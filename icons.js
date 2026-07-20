@@ -129,6 +129,17 @@ const RECIPES={
     cx.closePath();cx.fill();
     cx.strokeStyle="#8a7350";cx.lineWidth=2;cx.stroke();
   },
+  /* 🪶 羽毛：羽片 + 羽轴 */
+  feather(cx){
+    P.bg(cx,"#2a3020","#0e120a");
+    cx.save();cx.translate(32,32);cx.rotate(.6);
+    cx.fillStyle=P.lin(cx,-10,0,10,0,[[0,"#c8d8b0"],[1,"#eef4da"]]);
+    cx.beginPath();cx.moveTo(0,-24);cx.bezierCurveTo(12,-10,10,10,0,22);
+    cx.bezierCurveTo(-10,10,-12,-10,0,-24);cx.closePath();cx.fill();
+    cx.strokeStyle="#8a9a70";cx.lineWidth=1.5;
+    cx.beginPath();cx.moveTo(0,-22);cx.lineTo(0,27);cx.stroke();
+    cx.restore();
+  },
   /* 🍖 兽肉：肉块 + 骨柄 */
   meat(cx){
     P.bg(cx,"#331008","#120402");

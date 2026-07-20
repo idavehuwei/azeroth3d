@@ -38,9 +38,17 @@ const BALANCE={
     multiShot   :{dmg:[430,540]},
     roll        :{dist:9, invuln:.7},
   },
-  /* 草原野猪 */
-  mob:{hp:650, dmg:[55,85], atkCd:2.2, meleeR:2.4, aggroR:7, leashR:34,
-       wanderSpd:3, chaseSpd:5.5, respawnT:25},
+  /* 野怪族群数值表（STEP 5）：加新怪 = 加一条；aggroR:0 = 中立被动（只反击） */
+  mobs:{
+    boar    :{hp:650, dmg:[55,85],  atkCd:2.2, meleeR:2.4, aggroR:7,  leashR:34, wanderSpd:3,  chaseSpd:5.5, respawnT:25,  xp:80},
+    wolf    :{hp:520, dmg:[45,70],  atkCd:1.8, meleeR:2.3, aggroR:9,  leashR:38, wanderSpd:3.5,chaseSpd:6.5, respawnT:30,  xp:90,  socialR:18},
+    bird    :{hp:480, dmg:[40,60],  atkCd:1.6, meleeR:2.2, aggroR:0,  leashR:30, wanderSpd:4.5,chaseSpd:8,   respawnT:25,  xp:70},
+    harpy   :{hp:4200,dmg:[90,130], atkCd:2.4, meleeR:3.2, aggroR:12, leashR:44, wanderSpd:2.5,chaseSpd:5,   respawnT:60,  xp:450,
+              cast:{name:"女妖之火",dmg:[220,300],dur:1.5,cd:6,range:20,speed:16,hitR:3}},
+    boarKing:{hp:3200,dmg:[110,160],atkCd:2.4, meleeR:3.2, aggroR:8,  leashR:40, wanderSpd:2.2,chaseSpd:5,   respawnT:120, xp:500},
+  },
+  /* 脱战回巢（STEP 5 规范化）：回巢途中每秒回复最大生命的百分比，且免疫伤害 */
+  leash:{regenPct:.5},
   /* 烈焰之子 */
   add:{hp:1400, dmg:[130,190], atkCd:2, speed:4.6, meleeR:3, stopR:2.6},
   /* 炎魔领主 · 拉戈斯 */
@@ -53,13 +61,14 @@ const BALANCE={
   /* 任务 · 狂躁的野猪 / 讨伐拉戈斯 */
   quest:{boarKills:3, rewardHp:600, rewardDmgMul:1.15},
   /* 掉落与尸体拾取（STEP 2）：品质权重 70/25/5 · 尸体停留秒数 · 拾取距离 */
-  loot:{weights:{common:70,uncommon:25,rare:5}, corpseT:8, pickupR:3.5},
+  loot:{weights:{common:70,uncommon:25,rare:5}, corpseT:8, pickupR:3.5,
+        eliteWeights:{uncommon:72,rare:28}},   /* 精英必掉优秀以上（STEP 5） */
   /* 背包（STEP 4）：格数 */
   bag:{size:16},
   /* 上帝模式（首页勾选）：玩家每次攻击的固定伤害 */
   god:{dmg:9999999},
   /* 经验与等级（STEP 3）：经验来源 / 升级曲线 / 每级成长 */
-  levels:{max:10, xp:{mob:80, quest:300, boss:2000},
+  levels:{max:10, xp:{quest:300, boss:2000},   /* 野怪经验在 mobs 表逐条配置（STEP 5） */
     xpMax:[200,300,450,650,900,1200,1600,2100,2700],  /* 第 n 级升下一级所需经验 */
     perLevel:{dmgMul:.05, hpMax:.08}},                 /* 每级：基础伤害 +5% · 生命上限 +8% */
 };

@@ -3,6 +3,7 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（rand）
    [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS
+          buildQuadruped buildHumanoidMob QUADS MOB_HUMANOIDS（STEP 5 族群工厂）
           buildPlayer buildMage buildArcher buildBoss buildElder
           buildBoar buildFlameSpawn
    ------------------------------------------------------------
@@ -341,31 +342,125 @@ function buildFlameSpawn(){
   return g;
 }
 
-/* ---------------- 草原野猪（莫高雷野怪） ---------------- */
-function buildBoar(){
+/* ============================================================
+   族群工厂（STEP 5，参考 WoC 生物族群模板）
+   四足兽 buildQuadruped / 人形怪 buildHumanoidMob
+   加新怪 = 一条配方（QUADS / MOB_HUMANOIDS）+ 一条数值，不改工厂本体
+   ============================================================ */
+const QUADS={
+  /* 草原野猪（与原 buildBoar 外观一致） */
+  boar    :{fur:0x6a4a2e,furD:0x45311e,tusks:true,mane:true,ears:true,tail:'up'},
+  /* 草原狼：灰毛长吻，蓬尾 */
+  wolf    :{fur:0x7a7a82,furD:0x4a4a52,snoutLong:true,ears:true,mane:true,tail:'bushy'},
+  /* 陆行鸟：双足长颈，喙 + 冠羽 + 扇尾 */
+  bird    :{fur:0xd8b060,furD:0xa87830,legs:2,neck:1.1,beak:true,crest:true,tail:'plume'},
+  /* 老灰鬃野猪王：巨型灰鬃野猪（稀有精英） */
+  boarKing:{fur:0x8a8578,furD:0x55524a,tusks:true,tuskBig:true,mane:true,ears:true,tail:'up',size:1.55},
+};
+function buildQuadruped(cfg){
+  const c=Object.assign({size:1,legs:4,tusks:false,tuskBig:false,ears:true,mane:false,
+    neck:0,beak:false,crest:false,tail:'up',snoutLong:false},cfg);
   const g=new THREE.Group();
-  const fur=new THREE.MeshStandardMaterial({color:0x6a4a2e,roughness:1});
-  const furD=new THREE.MeshStandardMaterial({color:0x45311e,roughness:1});
-  const tuskM=new THREE.MeshStandardMaterial({color:0xe8e0c8,roughness:.6});
+  const fur=new THREE.MeshStandardMaterial({color:c.fur,roughness:1});
+  const furD=new THREE.MeshStandardMaterial({color:c.furD,roughness:1});
+  const ivory=new THREE.MeshStandardMaterial({color:0xe8e0c8,roughness:.6});
+  /* 躯干 + 鬃毛脊 */
   const body=new THREE.Mesh(new THREE.BoxGeometry(1.1,1,1.7),fur); body.position.y=1; g.add(body);
-  const ridge=new THREE.Mesh(new THREE.BoxGeometry(.5,.3,1.5),furD); ridge.position.y=1.55; g.add(ridge);
-  const head=new THREE.Mesh(new THREE.BoxGeometry(.85,.8,.7),fur); head.position.set(0,1.05,1.15); g.add(head);
-  const snout=new THREE.Mesh(new THREE.BoxGeometry(.45,.4,.35),furD); snout.position.set(0,.9,1.65); g.add(snout);
+  if(c.mane){const ridge=new THREE.Mesh(new THREE.BoxGeometry(.5,.3,1.5),furD); ridge.position.y=1.55; g.add(ridge);}
+  /* 头部：长颈（陆行鸟）或前置 */
+  let headY=1.05, headZ=1.15;
+  if(c.neck){
+    const neck=new THREE.Mesh(new THREE.CylinderGeometry(.16,.22,c.neck,6),fur);
+    neck.position.set(0,1.3+c.neck/2,1); neck.rotation.x=.15; g.add(neck);
+    headY=1.35+c.neck; headZ=1.25;
+  }
+  const head=new THREE.Mesh(new THREE.BoxGeometry(.85,.8,.7),fur); head.position.set(0,headY,headZ); g.add(head);
+  /* 吻部 / 喙 */
+  if(c.beak){
+    const beak=new THREE.Mesh(new THREE.ConeGeometry(.18,.55,5),ivory);
+    beak.position.set(0,headY-.05,headZ+.6); beak.rotation.x=Math.PI/2; g.add(beak);
+  }else{
+    const snout=new THREE.Mesh(new THREE.BoxGeometry(.45,.4,c.snoutLong?.6:.35),furD);
+    snout.position.set(0,headY-.15,headZ+(c.snoutLong?.62:.5)); g.add(snout);
+  }
+  /* 冠羽 */
+  if(c.crest)for(let i=0;i<3;i++){
+    const fe=new THREE.Mesh(new THREE.ConeGeometry(.08,.5,4),furD);
+    fe.position.set((i-1)*.14,headY+.55,headZ-.15); fe.rotation.x=-.4; g.add(fe);
+  }
   [-1,1].forEach(s=>{
-    const tk=new THREE.Mesh(new THREE.ConeGeometry(.09,.45,5),tuskM);
-    tk.position.set(s*.28,.95,1.62); tk.rotation.x=-.6; g.add(tk);
-    const ear=new THREE.Mesh(new THREE.ConeGeometry(.16,.35,4),furD);
-    ear.position.set(s*.34,1.6,1.05); g.add(ear);
-    [[.42],[-.42]].forEach(([dz])=>{
-      const leg=new THREE.Mesh(new THREE.CylinderGeometry(.14,.12,.7,5),furD);
-      leg.position.set(s*.4,.35,dz); g.add(leg);
+    if(c.tusks){
+      const tk=new THREE.Mesh(new THREE.ConeGeometry(c.tuskBig?.14:.09,c.tuskBig?.7:.45,5),ivory);
+      tk.position.set(s*.28,headY-.1,headZ+.47); tk.rotation.x=-.6; g.add(tk);
+    }
+    if(c.ears&&!c.beak){
+      const ear=new THREE.Mesh(new THREE.ConeGeometry(.16,.35,4),furD);
+      ear.position.set(s*.34,headY+.55,headZ-.1); g.add(ear);
+    }
+    /* 腿：四足两组 / 双足（陆行鸟）一组长腿 */
+    (c.legs===4?[[.42],[-.42]]:[[-.3]]).forEach(([dz])=>{
+      const leg=new THREE.Mesh(new THREE.CylinderGeometry(.14,.12,c.legs===2?1:.7,5),furD);
+      leg.position.set(s*(c.legs===2?.25:.4),c.legs===2?.5:.35,dz); g.add(leg);
     });
   });
-  const tail=new THREE.Mesh(new THREE.CylinderGeometry(.05,.03,.5,4),furD);
-  tail.position.set(0,1.35,-.95); tail.rotation.x=.7; g.add(tail);
+  /* 尾巴三式 */
+  if(c.tail==='up'){
+    const tail=new THREE.Mesh(new THREE.CylinderGeometry(.05,.03,.5,4),furD);
+    tail.position.set(0,1.35,-.95); tail.rotation.x=.7; g.add(tail);
+  }else if(c.tail==='bushy'){
+    const tail=new THREE.Mesh(new THREE.BoxGeometry(.2,.2,.65),furD);
+    tail.position.set(0,1.3,-1.05); tail.rotation.x=.5; g.add(tail);
+  }else if(c.tail==='plume'){
+    for(let i=0;i<3;i++){
+      const fe=new THREE.Mesh(new THREE.ConeGeometry(.1,.6,4),furD);
+      fe.position.set((i-1)*.16,1.5,-.95); fe.rotation.x=-2.3; g.add(fe);
+    }
+  }
+  g.scale.setScalar(c.size);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   return g;
 }
+
+/* 人形怪族群：鹰身女妖 /（将来的小恶魔等）共用 */
+const MOB_HUMANOIDS={
+  harpy:{size:1.15,skin:0xc9a2b8,feather:0x5a3a6e,featherD:0x3a2450,hair:0x2a1a3e,claw:0xe8e0c8},
+};
+function buildHumanoidMob(cfg){
+  const c=Object.assign({size:1,wings:true},cfg);
+  const g=new THREE.Group();
+  const mk=(col,r)=>new THREE.MeshStandardMaterial({color:col,roughness:r??.9});
+  const skin=mk(c.skin,.85),fe=mk(c.feather),feD=mk(c.featherD),hair=mk(c.hair),claw=mk(c.claw,.6);
+  /* 羽裙 + 躯干 + 头 */
+  const skirt=new THREE.Mesh(new THREE.ConeGeometry(.55,1,7),fe); skirt.position.y=1; g.add(skirt);
+  const torso=new THREE.Mesh(new THREE.BoxGeometry(.62,.9,.4),feD); torso.position.y=1.85; g.add(torso);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(.42,.42,.4),skin); head.position.y=2.6; g.add(head);
+  const mane=new THREE.Mesh(new THREE.ConeGeometry(.38,.75,7),hair);
+  mane.position.y=2.95; mane.rotation.z=.15; g.add(mane);
+  [-1,1].forEach(s=>{
+    /* 张开的利爪双臂 */
+    const arm=new THREE.Mesh(new THREE.BoxGeometry(.2,.8,.2),fe);
+    arm.position.set(s*.55,2.15,0); arm.rotation.z=s*.9; g.add(arm);
+    const talon=new THREE.Mesh(new THREE.ConeGeometry(.07,.28,4),claw);
+    talon.position.set(s*.92,1.9,0); talon.rotation.z=s*2.2; g.add(talon);
+    /* 羽翼（双面） */
+    if(c.wings){
+      const wing=new THREE.Mesh(new THREE.PlaneGeometry(1.5,.9),
+        new THREE.MeshStandardMaterial({color:c.feather,roughness:.9,side:THREE.DoubleSide}));
+      wing.position.set(s*.95,2.3,-.3); wing.rotation.set(.15,s*-.6,s*.3); g.add(wing);
+    }
+    /* 鸟腿 + 爪 */
+    const leg=new THREE.Mesh(new THREE.CylinderGeometry(.09,.07,.9,5),feD);
+    leg.position.set(s*.22,.45,0); g.add(leg);
+    const foot=new THREE.Mesh(new THREE.ConeGeometry(.09,.22,4),claw);
+    foot.position.set(s*.22,.08,.14); foot.rotation.x=1.2; g.add(foot);
+  });
+  g.scale.setScalar(c.size);
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  return g;
+}
+
+/* 草原野猪：族群配方包装（外观与原 buildBoar 一致） */
+function buildBoar(){return buildQuadruped(QUADS.boar);}
 
 /* ---------------- 牛头人长老 NPC ---------------- */
 function buildElder(){

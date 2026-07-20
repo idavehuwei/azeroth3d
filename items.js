@@ -34,6 +34,14 @@ const ITEMS={
   sulf_ring    :{id:"sulf_ring",    name:"烈焰指环",    icon:"armor", quality:"uncommon", slot:"armor", stats:{hpMax:180}},
   sulf_blade   :{id:"sulf_blade",   name:"熔火利刃",    icon:"sword", quality:"rare",     slot:"weapon",stats:{dmgMul:1.08},model:"sword"},
   sulfuras_haft:{id:"sulfuras_haft",name:"萨弗拉斯之柄",icon:"hammer",quality:"legendary",slot:"weapon",stats:{dmgMul:1.3},model:"sulfuras"},
+  /* —— STEP 5 新怪掉落 —— */
+  wolf_pelt    :{id:"wolf_pelt",    name:"灰狼皮",      icon:"hide",   quality:"common",  slot:"misc",  stats:null},
+  wolf_fang    :{id:"wolf_fang",    name:"锋利的狼牙",  icon:"tusk",   quality:"common",  slot:"misc",  stats:null},
+  bird_feather :{id:"bird_feather", name:"陆行鸟羽毛",  icon:"feather",quality:"common",  slot:"misc",  stats:null},
+  bird_meat    :{id:"bird_meat",    name:"陆行鸟腿肉",  icon:"meat",   quality:"common",  slot:"misc",  stats:null},
+  wind_blade   :{id:"wind_blade",   name:"疾风之刃",    icon:"sword",  quality:"uncommon",slot:"weapon",stats:{dmgMul:1.06},model:"sword"},
+  harpy_charm  :{id:"harpy_charm",  name:"鹰羽护符",    icon:"feather",quality:"uncommon",slot:"armor", stats:{hpMax:220}},
+  greyjaw_tusk :{id:"greyjaw_tusk", name:"老灰鬃的獠牙刃",icon:"sword",quality:"rare",    slot:"weapon",stats:{dmgMul:1.15},model:"sword"},
 };
 
 /* ---------------- 掉落表：品质三档池，权重见 BALANCE.loot.weights ---------------- */
@@ -48,13 +56,37 @@ const LOOT={
     uncommon:["sulf_ring"],
     rare    :["sulf_blade"],
   },
+  /* —— STEP 5 —— */
+  wolf:{
+    common  :["wolf_pelt","wolf_fang"],
+    uncommon:["tusk_blade","hide_vest"],
+    rare    :["plains_blade","mesa_guard"],
+  },
+  bird:{
+    common  :["bird_feather","bird_meat"],
+    uncommon:["hide_vest"],
+    rare    :["plains_blade"],
+  },
+  harpy:{                      /* 精英表：配 eliteWeights，必掉优秀以上 */
+    uncommon:["wind_blade","harpy_charm"],
+    rare    :["plains_blade","mesa_guard"],
+  },
+  boarKing:{
+    uncommon:["tusk_blade","hide_vest"],
+    rare    :["greyjaw_tusk","mesa_guard"],
+  },
 };
-/* 按权重掷品质档，再从该档均匀取一件（玩法随机 → rand 路线） */
-function rollLoot(table){
-  const w=BAL.loot.weights, r=rand(0,w.common+w.uncommon+w.rare);
-  const tier=r<w.rare?"rare":(r<w.rare+w.uncommon?"uncommon":"common");
-  const pool=table[tier];
-  return ITEMS[pool[(Math.random()*pool.length)|0]];
+/* 按权重掷品质档（可传 BAL.loot.eliteWeights 等），再从该档均匀取一件（玩法随机 → rand 路线） */
+function rollLoot(table,weights){
+  const w=weights||BAL.loot.weights;
+  let total=0; for(const k in w)total+=w[k];
+  let r=rand(0,total);
+  for(const k in w){
+    r-=w[k];
+    if(r<0){const pool=table[k];return ITEMS[pool[(Math.random()*pool.length)|0]];}
+  }
+  const pool=table.common||table[Object.keys(table)[0]];   /* 浮点兜底 */
+  return ITEMS[pool[0]];
 }
 
 /* ============================================================
@@ -114,6 +146,7 @@ function tryLoot(){
     fct(d.grp.position.clone().setY(2),`获得【${it.name}】`,"#ffd76a",16);
     logLoot(it);
   }
+  SFX.play("pickup");
   spawnBurst(d.grp.position.clone().setY(1),0xffd76a,24,1.6);
   removeDrop(d);
   if(d.onLooted)d.onLooted();
@@ -157,6 +190,7 @@ function equipItem(id){
   applyEquipStats(it,+1);
   if(it.slot==="weapon")setWeapon(player,it.model||player.userData.defaultWeapon);
   log(`装备【${it.name}】。`,"lg-me");
+  SFX.play("pickup");
   spawnBurst(player.position.clone().setY(1.5),QUALITY[it.quality].hex,20,1.4);
   renderBag();
 }

@@ -66,8 +66,9 @@ function tick(){
       }
       if(pd<4.5)enterRaid();
 
-      /* 野猪 AI */
+      /* 野怪 AI（STEP 5：族群通用状态机 wander / aggro / return / dead） */
       for(const m of MOBS){
+        const st=m.stats;
         if(m.state==="dead"){
           /* 尸体停留（STEP 2）：倒地灰化 8 秒后消失，掉落留至重生 */
           if(m.corpseT>0){m.corpseT-=dt;if(m.corpseT<=0)m.mesh.visible=false;}
@@ -82,31 +83,48 @@ function tick(){
           continue;
         }
         if(m.rootT>0)m.rootT-=dt;
+        if(m.castCd>0)m.castCd-=dt;
         const dP=Math.hypot(player.position.x-m.mesh.position.x,player.position.z-m.mesh.position.z);
         const dH=Math.hypot(m.home.x-m.mesh.position.x,m.home.z-m.mesh.position.z);
         if(m.state==="wander"){
-          if(dP<BAL.mob.aggroR&&S.p.alive){m.state="aggro";log("草原野猪发现了你，嚎叫着冲了过来！","lg-dmg");}
+          /* 主动仇恨：被动怪（陆行鸟 aggroR:0）永不主动 */
+          if(st.aggroR>0&&dP<st.aggroR&&S.p.alive)aggroMob(m);
           m.wanderT-=dt;
           if(m.wanderT<=0){
             m.wanderT=rand(2.5,5.5);
             const a=rand(0,6.28);
             m.dest={x:m.home.x+Math.cos(a)*rand(2,10),z:m.home.z+Math.sin(a)*rand(2,10)};
           }
-          if(m.dest&&m.rootT<=0)moveToward(m,m.dest,BAL.mob.wanderSpd,dt);
+          if(m.dest&&m.rootT<=0)moveToward(m,m.dest,st.wanderSpd,dt);
         }else if(m.state==="aggro"){
-          if(dH>BAL.mob.leashR||!S.p.alive){
-            m.state="wander"; m.hp=m.hpMax;
-            m.dest={x:m.home.x,z:m.home.z};
-          }else if(dP>BAL.mob.meleeR){
-            if(m.rootT<=0)moveToward(m,{x:player.position.x,z:player.position.z},BAL.mob.chaseSpd,dt);
+          if(dH>st.leashR||!S.p.alive){
+            m.state="return"; m.casting=null;   /* 脱战：回巢快速回血（免疫伤害） */
+          }else if(m.casting){
+            /* 施法读条（鹰身女妖首领）：站定吟唱，读完掷出火球 */
+            m.moving=false; m.casting.t+=dt;
+            m.mesh.rotation.y=Math.atan2(player.position.x-m.mesh.position.x,player.position.z-m.mesh.position.z);
+            if(m.casting.t>=st.cast.dur){
+              m.casting=null; m.castCd=st.cast.cd;
+              fireProjectile(player.position.clone(),m.mesh.position.clone().setY(2.6),st.cast);
+              log(`${m.name}掷出${st.cast.name}！`,"lg-dmg");
+            }
+          }else if(st.cast&&dP<=st.cast.range&&dP>st.meleeR&&m.castCd<=0){
+            m.casting={t:0};
+            fct(m.mesh.position.clone().setY(m.labelY),`☄️ 吟唱 · ${st.cast.name}`,"#ff9a55",13);
+          }else if(dP>st.meleeR){
+            if(m.rootT<=0)moveToward(m,{x:player.position.x,z:player.position.z},st.chaseSpd,dt);
           }else{
             m.moving=false;
             m.atkT-=dt;
-            if(m.atkT<=0){m.atkT=BAL.mob.atkCd;playerHit(R(BAL.mob.dmg),"草原野猪");}
+            if(m.atkT<=0){m.atkT=st.atkCd;playerHit(R(st.dmg),m.name);}
           }
+        }else if(m.state==="return"){
+          moveToward(m,m.home,st.chaseSpd,dt);
+          m.hp=Math.min(m.hpMax,m.hp+m.hpMax*BAL.leash.regenPct*dt);
+          if(dH<1.2){m.state="wander";m.hp=m.hpMax;m.dest=null;}
         }
         m.mesh.position.y=m.moving?Math.abs(Math.sin(S.t*9+m.home.x))*.22:0;
-        m.label.position.set(m.mesh.position.x,2.7,m.mesh.position.z);
+        m.label.position.set(m.mesh.position.x,m.labelY,m.mesh.position.z);
       }
       /* 长老待机动画 & 任务标记浮动 */
       elder.rotation.y=Math.PI*.85+Math.sin(S.t*.8)*.08;
@@ -170,7 +188,7 @@ function tick(){
       }else{
         if(S.mode==="world"){
           for(const m of MOBS){
-            if(m.state!=="dead"&&player.position.distanceTo(m.mesh.position)<4.5){
+            if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<4.5){
               S.p.attackAnim=1;mobDamage(m,rand(CLS.autoMin,CLS.autoMax));did=true;break;
             }
           }
@@ -184,6 +202,7 @@ function tick(){
           }
         }
       }
+      if(did&&!CLS.ranged)SFX.play("swing");   /* 近战普攻音效（远程在 firePlayerShot 里） */
       if(did&&CLS.hitGain)S.p.rage=Math.min(S.p.rageMax,S.p.rage+CLS.hitGain);
       S.p.atkTimer=did?CLS.autoSpd:.3;
     }
@@ -240,8 +259,8 @@ function tick(){
       const d=dir.length();
       if(d<1.2){
         spawnBurst(pr.mesh.position,0xff6a1a,30,2.5);
-        if(player.position.distanceTo(pr.target)<BAL.boss.fireball.hitR)playerHit(R(BAL.boss.fireball.dmg),"烈焰冲击");
-        else{log("你成功躲开了烈焰冲击！","lg-me");fct(player.position.clone().setY(3.4),"躲避！","#8ad0ff",16);}
+        if(player.position.distanceTo(pr.target)<pr.hitR)playerHit(R(pr.dmg),pr.label);
+        else{log(`你成功躲开了${pr.label}！`,"lg-me");fct(player.position.clone().setY(3.4),"躲避！","#8ad0ff",16);}
         scene.remove(pr.mesh);S.projectiles.splice(i,1);continue;
       }
       dir.normalize();pr.mesh.position.add(dir.multiplyScalar(pr.speed*dt));
@@ -256,7 +275,7 @@ function tick(){
         if(!S.b.alive){scene.remove(sh.mesh);S.pShots.splice(i,1);continue;}
         tp=new THREE.Vector3(boss.position.x,7.5,boss.position.z);
       }else if(sh.tgt.type==="mob"){
-        if(sh.tgt.m.state==="dead"){scene.remove(sh.mesh);S.pShots.splice(i,1);continue;}
+        if(!mobTargetable(sh.tgt.m)){scene.remove(sh.mesh);S.pShots.splice(i,1);continue;}
         tp=sh.tgt.m.mesh.position.clone().setY(1.1);
       }else{
         if(!S.adds.includes(sh.tgt.a)){scene.remove(sh.mesh);S.pShots.splice(i,1);continue;}
@@ -343,6 +362,7 @@ $("#btnStart").addEventListener("click",()=>{
   S.god=$("#godChk").checked;
   $("#startOv").classList.add("hide");
   S.started=true;
+  SFX.init(); SFX.music("world");   /* AudioContext 在用户手势里创建（STEP 6） */
   announce("莫高雷 · 圣山草原");
   log("你从牛头人营地出发。沿着土路向北，尽头矗立着通往熔火之心的传送门。","lg-sys");
   if(S.god)log(`⚡ 上帝模式已开启：你的每一次攻击都将造成 ${BAL.god.dmg.toLocaleString()} 点伤害。`,"lg-sys");

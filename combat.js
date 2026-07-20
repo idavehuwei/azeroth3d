@@ -38,7 +38,7 @@ const S={
 let SKILLS=[];
 const CLASSES={
   warrior:{title:"⚔️ 你 · 人类战士",hp:5200,resMax:100,resStart:20,resName:"怒气",
-    regen:0,hitGain:8,speed:10.5,ranged:false,range:10,
+    regen:0,hitGain:8,speed:10.5,ranged:false,range:10,sfx:"swing",
     autoMin:150,autoMax:210,autoSpd:1.6,shotColor:0xffffff,build:buildPlayer,
     barCss:"linear-gradient(180deg,#ffd76a,#c98a1f 60%,#7a4d0c)",
     tip:"提示：近身自动攻击积攒怒气；【冲锋】可迅速贴近目标并额外获得怒气。",
@@ -48,7 +48,7 @@ const CLASSES={
       {name:"冲锋",    icon:"💨",cd:12,rage:0, fn:charge},
       {name:"治疗药水",icon:"🧪",cd:22,rage:0, fn:potion}]},
   mage:{title:"🔮 你 · 人类法师",hp:3800,resMax:100,resStart:100,resName:"法力",
-    regen:7,hitGain:0,speed:10,ranged:true,range:30,
+    regen:7,hitGain:0,speed:10,ranged:true,range:30,sfx:"fireball",
     autoMin:175,autoMax:235,autoSpd:1.8,shotColor:0xff8a30,build:buildMage,
     barCss:"linear-gradient(180deg,#7ab8ff,#2a5ec9 60%,#123a7a)",
     tip:"提示：法力随时间恢复；远程自动施放火球，【闪现】拉开距离，危急时开【寒冰屏障】免疫伤害。",
@@ -58,7 +58,7 @@ const CLASSES={
       {name:"闪现",    icon:"✨",cd:12,rage:15,fn:blink},
       {name:"寒冰屏障",icon:"🧊",cd:25,rage:0, fn:iceBlock}]},
   archer:{title:"🏹 你 · 精灵弓箭手",hp:4300,resMax:100,resStart:100,resName:"能量",
-    regen:11,hitGain:0,speed:11.5,ranged:true,range:32,
+    regen:11,hitGain:0,speed:11.5,ranged:true,range:32,sfx:"arrow",
     autoMin:140,autoMax:190,autoSpd:1.25,shotColor:0xd0ffa0,build:buildArcher,
     barCss:"linear-gradient(180deg,#d8ff7a,#7fb32a 60%,#3d6a0c)",
     tip:"提示：能量随时间恢复；边走边射保持距离，【翻滚】可位移并短暂闪避一切伤害。",
@@ -181,7 +181,7 @@ function heroicStrike(){
   let hit=false;
   if(S.mode==="world"){
     for(const m of MOBS){
-      if(m.state!=="dead"&&player.position.distanceTo(m.mesh.position)<BAL.skills.heroicStrike.reach){
+      if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<BAL.skills.heroicStrike.reach){
         mobDamage(m,R(BAL.skills.heroicStrike.dmg),"英勇打击");hit=true;break;
       }
     }
@@ -193,15 +193,17 @@ function heroicStrike(){
   }
   if(!hit){log("没有目标在近战范围内。");return false;}
   S.p.attackAnim=1;
+  SFX.play("swing");
   return true;
 }
 function whirlwind(){
   S.p.attackAnim=1;
+  SFX.play("swing");
   spawnBurst(player.position.clone().setY(1),0x9ad0ff,26,1.6);
   let any=false;
   if(S.mode==="world"){
     MOBS.forEach(m=>{
-      if(m.state!=="dead"&&player.position.distanceTo(m.mesh.position)<BAL.skills.whirlwind.radius){
+      if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<BAL.skills.whirlwind.radius){
         mobDamage(m,R(BAL.skills.whirlwind.dmg),"旋风斩");any=true;
       }
     });
@@ -218,7 +220,7 @@ function charge(){
   let target=null,best=1e9;
   if(S.mode==="world"){
     MOBS.forEach(m=>{
-      if(m.state==="dead")return;
+      if(!mobTargetable(m))return;
       const d=player.position.distanceTo(m.mesh.position);
       if(d<best){best=d;target=m.mesh.position.clone().setY(0);}
     });
@@ -250,7 +252,7 @@ function pickTarget(range){
   let tgt=null,best=range;
   if(S.mode==="world"){
     for(const m of MOBS){
-      if(m.state==="dead")continue;
+      if(!mobTargetable(m))continue;
       const d=player.position.distanceTo(m.mesh.position);
       if(d<best){best=d;tgt={type:"mob",m};}
     }
@@ -264,6 +266,7 @@ function pickTarget(range){
   return tgt;
 }
 function firePlayerShot(tgt,dmg,label,scale=1){
+  SFX.play(CLS.sfx||"fireball");
   const m=new THREE.Mesh(new THREE.SphereGeometry(.3*scale,8,8),
     new THREE.MeshBasicMaterial({color:CLS.shotColor}));
   const glow=new THREE.Mesh(new THREE.SphereGeometry(.55*scale,8,8),
@@ -288,7 +291,7 @@ function frostNova(){
   let any=false;
   if(S.mode==="world"){
     MOBS.forEach(m=>{
-      if(m.state!=="dead"&&player.position.distanceTo(m.mesh.position)<BAL.skills.frostNova.radius){
+      if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<BAL.skills.frostNova.radius){
         mobDamage(m,R(BAL.skills.frostNova.dmg),"冰霜新星"); m.rootT=BAL.skills.frostNova.rootT; any=true;
       }
     });
@@ -335,7 +338,7 @@ function multiShot(){
   let n=0;
   if(S.mode==="world"){
     MOBS.forEach(m=>{
-      if(m.state!=="dead"&&player.position.distanceTo(m.mesh.position)<=CLS.range){
+      if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<=CLS.range){
         firePlayerShot({type:"mob",m},R(BAL.skills.multiShot.dmg),"多重射击");n++;
       }
     });
@@ -365,7 +368,7 @@ function roll(){
 function playerHit(amount,source){
   if(!S.p.alive||S.p.invuln>0)return;
   amount=Math.round(amount*R(BAL.variance.player));
-  S.p.hp-=amount; hurtFlash();
+  S.p.hp-=amount; hurtFlash(); SFX.play("hit");
   fct(player.position.clone().setY(3),`-${amount}`,"#ff6a5a",18);
   log(`${source} 对你造成 ${amount} 点伤害！`,"lg-dmg");
   if(S.p.hp<=0){S.p.hp=0;playerDie();}
@@ -389,6 +392,7 @@ function bossAI(dt){
     boss.position.y+=Math.sin(S.t*2)*.1;
     if(B.riseT>1.2&&B.riseT<1.3)spawnBurst(new THREE.Vector3(0,1,-14),0xff5a1a,60,4);
     if(B.riseT>=4){B.rising=false;
+      SFX.play("roar");
       announce("拉戈斯：太早了！你们竟敢太早唤醒我！");
       log("炎魔领主 拉戈斯 从熔岩中苏醒了！","lg-boss");}
     return;
@@ -410,6 +414,7 @@ function bossAI(dt){
   /* 阶段切换：50% 血量潜入岩浆并召唤小怪 */
   if(B.phase===1&&B.hp<=B.hpMax*BAL.boss.phase2At){
     B.phase=2; B.submerged=true; B.submergeT=BAL.boss.submergeT; B.casting=null; $("#castShell").style.display="none";
+    SFX.play("roar");
     announce("阶段二 · 烈焰之子！");
     log("拉戈斯沉入岩浆——烈焰之子从熔岩中涌出！消灭它们！","lg-boss");
     for(let i=0;i<BAL.boss.addCount;i++){
@@ -481,16 +486,21 @@ function bossAI(dt){
   }
 }
 
-/* ---------------- 火球投射物 ---------------- */
-function fireProjectile(targetPos){
-  const m=new THREE.Mesh(new THREE.SphereGeometry(.9,10,10),
+/* ---------------- 火球投射物 ----------------
+   默认 = Boss 烈焰冲击；传 origin/opt（{name,dmg,speed,hitR}）供野怪施法复用（STEP 5） */
+function fireProjectile(targetPos,origin,opt){
+  opt=opt||BAL.boss.fireball;
+  const sc=origin?.7:1;
+  const m=new THREE.Mesh(new THREE.SphereGeometry(.9*sc,10,10),
     new THREE.MeshBasicMaterial({color:0xffa030}));
-  const glow=new THREE.Mesh(new THREE.SphereGeometry(1.4,10,10),
+  const glow=new THREE.Mesh(new THREE.SphereGeometry(1.4*sc,10,10),
     new THREE.MeshBasicMaterial({color:0xff4400,transparent:true,opacity:.4}));
   m.add(glow);
-  m.position.set(boss.position.x+2.5,9,boss.position.z+2);
+  if(origin)m.position.copy(origin);
+  else m.position.set(boss.position.x+2.5,9,boss.position.z+2);
   scene.add(m);
-  S.projectiles.push({mesh:m,target:targetPos.clone().setY(.8),speed:BAL.boss.fireball.speed});
+  S.projectiles.push({mesh:m,target:targetPos.clone().setY(.8),speed:opt.speed,
+    dmg:opt.dmg,hitR:opt.hitR,label:opt.name||"烈焰冲击"});
 }
 /* ---------------- 地面 AoE 红圈 ---------------- */
 function spawnTelegraph(x,z,r,delay){
@@ -561,6 +571,7 @@ function gainXP(amount){
     P.hpMax+=hpGain; P.hp=Math.min(P.hpMax,P.hp+hpGain);
     P.dmgMul+=L.perLevel.dmgMul;
     if(P.level>=L.max)P.xp=0;
+    SFX.play("levelup");
     announce(`升 级 ！ Lv.${P.level}`);
     log(`你升到了 ${P.level} 级！生命上限 +${hpGain}，基础伤害 +${Math.round(L.perLevel.dmgMul*100)}%。`,"lg-heal");
     spawnBurst(player.position.clone().setY(1.5),0xffd76a,60,3);
@@ -576,6 +587,7 @@ function bossDie(){
   S.b.alive=false;
   S.b.canLeave=true;  /* 可自行离开副本，不清除进度 */
   if(QUEST.state===2){QUEST.state=3;updateQuest();}
+  SFX.play("roar");
   announce("炎魔领主 已被击败！");
   log("拉戈斯发出震天怒吼，缓缓沉回熔岩深处……","lg-boss");
   log("已拾取战利品后，走进出现的传送门即可离开副本。","lg-sys");

@@ -197,6 +197,7 @@ function enterRaid(){
       log("你踏入传送门——热浪扑面而来，岩浆在脚下沸腾！","lg-sys");
     }
     $("#bossFrame").classList.add("show");
+    SFX.music("raid");   /* 音乐切换：低音鼓点（STEP 6） */
     fadeTo(0);
   });
 }
@@ -215,6 +216,7 @@ function leaveRaid(){
     S.mode="world";
     removeExitPortal();
     $("#bossFrame").classList.remove("show");
+    SFX.music("world");   /* 音乐切换：五声音阶（STEP 6） */
     log("你回到莫高雷草原，炎魔的咆哮在远方回荡……","lg-sys");
     fadeTo(0);
   });
@@ -297,27 +299,71 @@ function setMarker(){
   markerQ.visible=(QUEST.state===1&&QUEST.kills>=3);
 }
 
-/* 野猪群：各有巢穴点，游荡/仇恨/回巢/重生 */
-[[20,22],[-24,26],[27,-4],[-18,-10],[10,32]].forEach(([x,z])=>{
-  const mesh=buildBoar(); mesh.position.set(x,0,z);
+/* ============================================================
+   野怪类型表（STEP 5）：模型配方 + 数值 + 掉落表 + 名字标签
+   加新怪 = 这里加一条 + BALANCE.mobs 加一条 + 一行 spawnMob
+   ============================================================ */
+const MOB_TYPES={
+  boar    :{name:"草原野猪",    build:()=>buildQuadruped(QUADS.boar),    stats:"boar",    loot:"boar",    labelW:4.6,labelY:2.7},
+  wolf    :{name:"草原狼",      build:()=>buildQuadruped(QUADS.wolf),    stats:"wolf",    loot:"wolf",    labelW:4.2,labelY:2.7},
+  bird    :{name:"陆行鸟",      build:()=>buildQuadruped(QUADS.bird),    stats:"bird",    loot:"bird",    labelW:4.2,labelY:3.4},
+  harpy   :{name:"鹰身女妖首领",build:()=>buildHumanoidMob(MOB_HUMANOIDS.harpy),stats:"harpy",loot:"harpy",labelW:7,labelY:4.4,elite:true,color:"#ff9ad0"},
+  boarKing:{name:"老灰鬃野猪王",build:()=>buildQuadruped(QUADS.boarKing),stats:"boarKing",loot:"boarKing",labelW:7.5,labelY:4.2,elite:true,color:"#ffd700"},
+};
+function spawnMob(type,x,z,group){
+  const T=MOB_TYPES[type], st=BAL.mobs[T.stats];
+  const mesh=T.build(); mesh.position.set(x,0,z);
   mesh.rotation.y=srand(0,6.28); sceneWorld.add(mesh);
-  const label=makeLabel("草原野猪",4.6);
-  label.position.set(x,2.7,z); sceneWorld.add(label);
-  MOBS.push({mesh,label,name:"草原野猪",
-    hp:BAL.mob.hp,hpMax:BAL.mob.hp,state:"wander",
-    home:{x,z},dest:null,wanderT:rand(0,3),atkT:0,rootT:0,respawnT:0,corpseT:0,moving:false,
-    /* —— 统一实体接口（STEP 1，hitEntity 消费） —— */
+  const label=makeLabel(T.name,T.labelW,T.color||"#ffd9a0",T.color||undefined);
+  label.position.set(x,T.labelY,z); sceneWorld.add(label);
+  const m={type,name:T.name,mesh,label,stats:st,loot:LOOT[T.loot],elite:!!T.elite,
+    group:group||null,labelY:T.labelY,
+    hp:st.hp,hpMax:st.hp,state:"wander",home:{x,z},dest:null,wanderT:rand(0,3),
+    atkT:0,rootT:0,respawnT:0,corpseT:0,castCd:0,casting:null,moving:false,
+    /* —— 统一实体接口（STEP 1，hitEntity 消费）；return = 脱战回巢，免疫伤害 —— */
     variance:BAL.variance.mob,
-    dead(){return this.state==="dead";},
-    fctPos(){return this.mesh.position.clone().setY(2.3);},
+    dead(){return this.state==="dead"||this.state==="return";},
+    fctPos(){return this.mesh.position.clone().setY(this.labelY-.4);},
     fctSize(){return 14;},
     onHit(amount,label){
-      if(this.state==="wander"){this.state="aggro";log("草原野猪被激怒，向你冲来！","lg-dmg");}
-      if(label)log(`你的【${label}】命中草原野猪，造成 ${amount} 伤害。`,"lg-me");
+      if(this.state==="wander")aggroMob(this);   /* 被动怪（陆行鸟）也会被打反击 */
+      if(label)log(`你的【${label}】命中${this.name}，造成 ${amount} 伤害。`,"lg-me");
     },
     onDeath(){mobDie(this);},
-  });
-});
+  };
+  MOBS.push(m); return m;
+}
+/* 可否被选中/命中：死亡与脱战回巢中的怪不可打 */
+function mobTargetable(m){return m.state!=="dead"&&m.state!=="return";}
+/* 进入仇恨（STEP 5 含社群仇恨 social pull）：同群且在社群半径内的伙伴全体跟进 */
+function aggroMob(m){
+  if(m.state!=="wander")return;
+  m.state="aggro";
+  SFX.play("growl");   /* 族群共用吼叫音色（STEP 6） */
+  log(`${m.name}向你扑来！`,"lg-dmg");
+  if(m.group){
+    let pulled=0;
+    for(const o of MOBS){
+      if(o!==m&&o.group===m.group&&o.state==="wander"&&
+         Math.hypot(o.mesh.position.x-m.mesh.position.x,o.mesh.position.z-m.mesh.position.z)<(m.stats.socialR||18)){
+        o.state="aggro"; pulled++;
+      }
+    }
+    if(pulled)log(`整群${m.name}都被激怒了！`,"lg-dmg");
+  }
+}
+
+/* ---------------- 野怪放置（固定坐标，世界确定性） ---------------- */
+/* 野猪群（营地周围，任务目标） */
+[[20,22],[-24,26],[27,-4],[-18,-10],[10,32]].forEach(([x,z])=>spawnMob("boar",x,z));
+/* 草原狼：3 只一群，社群仇恨（打一只全群上） */
+[[-42,-26],[-38,-31],[-45,-33]].forEach(([x,z])=>spawnMob("wolf",x,z,"wolfpack"));
+/* 陆行鸟：湖边中立被动（不主动攻击，被打才反击，移速快） */
+[[-28,2],[-46,26],[-24,14]].forEach(([x,z])=>spawnMob("bird",x,z));
+/* 鹰身女妖首领：小精英，读条火球，必掉优秀装备 */
+spawnMob("harpy",48,-30);
+/* 稀有精英「老灰鬃野猪王」：长重生计时，金色名字，必掉优秀物品 */
+spawnMob("boarKing",14,-34);
 function moveToward(m,dest,spd,dt){
   const dx=dest.x-m.mesh.position.x,dz=dest.z-m.mesh.position.z;
   const d=Math.hypot(dx,dz);
@@ -340,16 +386,20 @@ function setCorpse(m,on){
     else if(o.userData.liveMat){o.material=o.userData.liveMat;o.userData.liveMat=null;}
   });
 }
-/* 野猪死亡（STEP 1 onDeath 唯一挂接点）：留尸 + 掉落（STEP 2）；经验（STEP 3）也挂这里 */
+/* 野怪死亡（STEP 1 onDeath 唯一挂接点）：留尸 + 掉落（STEP 2）+ 经验（STEP 3）
+   STEP 5 泛化：数值/掉落/经验全部来自实体自身配置；精英走 eliteWeights 必掉优秀以上 */
 function mobDie(m){
-  m.state="dead"; m.respawnT=BAL.mob.respawnT; m.corpseT=BAL.loot.corpseT; m.moving=false;
+  m.state="dead"; m.respawnT=m.stats.respawnT; m.corpseT=BAL.loot.corpseT; m.moving=false;
+  m.casting=null;
   m.label.visible=false;
   setCorpse(m,true);
   spawnBurst(m.mesh.position.clone().setY(1),0xc9a06a,22,1.6);
-  log("你击杀了草原野猪！","lg-me");
-  dropLoot(m.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),[rollLoot(LOOT.boar)],m);
-  gainXP(BAL.levels.xp.mob);   /* 经验（STEP 3）：野猪 +80 */
-  if(QUEST.state===1&&QUEST.kills<BAL.quest.boarKills){
+  log(`你击杀了${m.name}！`,"lg-me");
+  if(m.elite)announce(`${m.name} 被击败！`);
+  dropLoot(m.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),
+    [rollLoot(m.loot,m.elite?BAL.loot.eliteWeights:null)],m);
+  gainXP(m.stats.xp);
+  if(m.type==="boar"&&QUEST.state===1&&QUEST.kills<BAL.quest.boarKills){
     QUEST.kills++; updateQuest();
     if(QUEST.kills>=BAL.quest.boarKills){announce("任务目标完成 · 回去找长老"); setMarker();}
   }
