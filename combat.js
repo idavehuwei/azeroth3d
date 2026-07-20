@@ -5,12 +5,13 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ clamp rand R BAL scene camera ARENA_R）
           models.js（buildPlayer buildMage buildArcher buildFlameSpawn）
-          world.js（player boss MOBS QUEST mobDamage updateQuest tryInteract）
+          items.js（ITEMS DROPS removeDrop dropLoot）
+          world.js（player boss MOBS QUEST mobDamage updateQuest tryInteract spawnExitPortal removeExitPortal）
           main.js 运行时（clampArena）
    [导出] S SKILLS CLASSES CLS setClass log announce fct hurtFlash keys joy
           useSkill hitEntity BOSS_ENT dmgBoss addDamage addDie spawnAdd
           pickTarget firePlayerShot playerHit bossAI startCast fireProjectile
-          spawnTelegraph spawnBurst bossDie playerDie distToBoss bossTargetable
+          spawnTelegraph spawnBurst bossDie playerDie resetBoss distToBoss bossTargetable
    ============================================================ */
 "use strict";
 /* ============================================================
@@ -19,13 +20,17 @@
 const S={
   started:false,over:false,t:0,mode:"world",portalHinted:false,
   p:{hp:5200,hpMax:5200,rage:20,rageMax:100,speed:10.5,alive:true,dmgMul:1,
-     atkTimer:0,attackAnim:0,walkPhase:0,face:0,invuln:0},
+     atkTimer:0,attackAnim:0,walkPhase:0,face:0,invuln:0,
+     level:1,xp:0,xpMax:BAL.levels.xpMax[0]},   /* 经验与等级（STEP 3） */
   b:{hp:BAL.boss.hp,hpMax:BAL.boss.hp,alive:true,rising:true,riseT:0,
      phase:1,swingT:0,casting:null,castT:0,castDur:0,
      nextMelee:2.5,nextFireball:6,nextEruption:10,nextWrath:18,
-     submerged:false,submergeT:0},
+     submerged:false,submergeT:0,canLeave:false},
   adds:[],projectiles:[],pShots:[],telegraphs:[],bursts:[],
   cds:[0,0,0,0],gcd:0,
+  inv:[],      /* 背包（STEP 2 起：拾取的物品 id 列表） */
+  eq:{weapon:null,armor:null},   /* 装备位（STEP 4）：物品 id */
+  god:false,   /* 上帝模式：启程时由首页勾选决定（hitEntity 消费） */
 };
 /* ============================================================
    职业系统：战士 / 法师 / 弓箭手
@@ -72,7 +77,7 @@ function setClass(key){
   S.p.hpMax=CLS.hp; S.p.hp=CLS.hp;
   S.p.rageMax=CLS.resMax; S.p.rage=CLS.resStart; S.p.speed=CLS.speed;
   SKILLS=CLS.skills;
-  $("#pName").textContent=CLS.title;
+  updateLevelUI();
   $("#pRage").style.background=CLS.barCss;
   document.querySelectorAll(".skill").forEach((el,i)=>{
     el.querySelector(".ic").textContent=SKILLS[i].icon;
@@ -107,6 +112,7 @@ addEventListener("keydown",e=>{
   keys[e.key.toLowerCase()]=true;
   if(["1","2","3","4"].includes(e.key))useSkill(+e.key-1);
   if(e.key.toLowerCase()==="f")tryInteract();
+  if(e.key.toLowerCase()==="b")toggleBag();
 });
 addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
 document.getElementById("interactBtn").addEventListener("pointerdown",()=>tryInteract());
@@ -152,7 +158,8 @@ function bossTargetable(){return S.b.alive&&!S.b.rising&&!S.b.submerged;}
 function hitEntity(ent,amount,label){
   if(ent.dead&&ent.dead())return;
   const v=ent.variance;
-  amount=Math.round(amount*S.p.dmgMul*(v?rand(v[0],v[1]):1));
+  /* 上帝模式：固定伤害，跳过系数与浮动 */
+  amount=S.god?BAL.god.dmg:Math.round(amount*S.p.dmgMul*(v?rand(v[0],v[1]):1));
   ent.hp=Math.max(0,ent.hp-amount);
   fct(ent.fctPos(),`-${amount}`,"#ffdf8a",ent.fctSize?ent.fctSize(label):14);
   if(ent.onHit)ent.onHit(amount,label);
@@ -516,7 +523,7 @@ function spawnAdd(x,z){
   const mesh=buildFlameSpawn();
   mesh.position.set(clamp(x,-ARENA_R+3,ARENA_R-3),0,clamp(z,-ARENA_R+3,ARENA_R-3));
   scene.add(mesh);
-  S.adds.push({mesh,name:"烈焰之子",hp:BAL.add.hp,hpMax:BAL.add.hp,atkT:0,
+  S.adds.push({mesh,name:"烈焰之子",hp:BAL.add.hp,hpMax:BAL.add.hp,atkT:0,corpseT:0,
     /* —— 统一实体接口（STEP 1）；烈焰之子历史上无伤害浮动，variance 置 null —— */
     variance:null,
     dead(){return !S.adds.includes(this);},
@@ -529,29 +536,74 @@ function spawnAdd(x,z){
 function addDamage(a,amount){hitEntity(a,amount);}
 function addDie(a){
   spawnBurst(a.mesh.position.clone().setY(1),0xffa040,26,2);
-  scene.remove(a.mesh);
-  S.adds.splice(S.adds.indexOf(a),1);
+  /* 尸体灰化 + 倒地（复用 corpseMat，参考 world.js setCorpse） */
+  a.mesh.traverse(o=>{if(o.isMesh){o.userData.liveMat=o.material;o.material=corpseMat;}});
+  a.mesh.rotation.z=Math.PI/2; a.mesh.position.y=.25;
+  a.corpseT=BAL.loot.corpseT;
+  /* 掉落 */
+  dropLoot(a.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),[rollLoot(LOOT.add)],a);
   log("一只烈焰之子被消灭了！","lg-me");
 }
+
+/* ============================================================
+   经验与等级（STEP 3）：唯一入口 gainXP——只由 onDeath 与任务回调调用
+   升级：每级 +5% 基础伤害、+8% 生命上限（BALANCE.levels），金光 + 大字提示
+   ============================================================ */
+function gainXP(amount){
+  const P=S.p,L=BAL.levels;
+  if(P.level>=L.max)return;
+  P.xp+=amount;
+  fct(player.position.clone().setY(3.6),`+${amount} 经验`,"#c9a0ff",14);
+  while(P.level<L.max&&P.xp>=P.xpMax){
+    P.xp-=P.xpMax; P.level++;
+    P.xpMax=L.xpMax[P.level-1]||P.xpMax;
+    const hpGain=Math.round(CLS.hp*L.perLevel.hpMax);
+    P.hpMax+=hpGain; P.hp=Math.min(P.hpMax,P.hp+hpGain);
+    P.dmgMul+=L.perLevel.dmgMul;
+    if(P.level>=L.max)P.xp=0;
+    announce(`升 级 ！ Lv.${P.level}`);
+    log(`你升到了 ${P.level} 级！生命上限 +${hpGain}，基础伤害 +${Math.round(L.perLevel.dmgMul*100)}%。`,"lg-heal");
+    spawnBurst(player.position.clone().setY(1.5),0xffd76a,60,3);
+  }
+  updateLevelUI();
+}
+function updateLevelUI(){$("#pName").textContent=`${CLS.title} · Lv.${S.p.level}`;}
 
 /* ============================================================
    胜负
    ============================================================ */
 function bossDie(){
-  S.b.alive=false;S.over=true;
+  S.b.alive=false;
+  S.b.canLeave=true;  /* 可自行离开副本，不清除进度 */
   if(QUEST.state===2){QUEST.state=3;updateQuest();}
   announce("炎魔领主 已被击败！");
   log("拉戈斯发出震天怒吼，缓缓沉回熔岩深处……","lg-boss");
+  log("已拾取战利品后，走进出现的传送门即可离开副本。","lg-sys");
+  gainXP(BAL.levels.xp.boss);   /* 经验（STEP 3）：Boss 击杀 +2000 */
   spawnBurst(new THREE.Vector3(boss.position.x,6,boss.position.z),0xffc060,120,9);
   let t=0;const iv=setInterval(()=>{t+=0.05;boss.position.y-=0.16;boss.rotation.z+=0.004;
     if(t>3)clearInterval(iv);},50);
+  /* STEP 2：拉戈斯必掉「萨弗拉斯之柄」——尸体沉没后浮出战利品 */
+  setTimeout(()=>{
+    dropLoot(new THREE.Vector3(0,0,-8),[ITEMS.sulfuras_haft],null);
+    announce("传说战利品 · 按 F 拾取");
+    log("熔岩翻涌，一柄燃烧的锤柄浮出岩浆——靠近按 F 拾取。","lg-sys");
+  },3400);
+  /* 击杀胜利提示（短暂展示，自动消失）+ 生成出口传送门 */
   setTimeout(()=>{
     $("#endTitle").textContent="胜 利";
     $("#endTitle").style.color="#ffd9a0";
     $("#endSub").textContent="MOLTEN CORE · CLEARED";
-    $("#endText").innerHTML="炎魔领主的躯体崩解为冷却的黑曜岩。<br>熔火之心恢复了短暂的寂静——你拾起了 <b style='color:#ff8a4a'>萨弗拉斯之柄</b>。<br>艾泽拉斯的英雄，这是属于你的传说。";
+    $("#endText").innerHTML="炎魔领主的躯体崩解为冷却的黑曜岩。<br>前往副本入口处，走进传送门离开。";
     $("#endOv").classList.remove("hide");
-  },3400);
+    /* 3 秒后自动隐藏胜利画面，生成出口传送门 */
+    setTimeout(()=>{
+      $("#endOv").classList.add("hide");
+      spawnExitPortal();
+      announce("离开副本的传送门已开启");
+      log("一道旋涡传送门在副本入口处打开——走进即可离开。","lg-sys");
+    },3000);
+  },5000);
 }
 function playerDie(){
   S.p.alive=false;S.over=true;
@@ -564,4 +616,30 @@ function playerDie(){
     $("#endText").innerHTML="烈焰吞没了你的身躯，拉戈斯的狂笑响彻洞穴。<br>灵魂医者在等着你——跑尸之后，再来一次。";
     $("#endOv").classList.remove("hide");
   },2200);
+}
+
+/* 重置 Boss 状态（再次进入副本时调用）：清空小怪/投射物/掉落，不碰玩家背包/等级/装备 */
+function resetBoss(){
+  S.b.hp=S.b.hpMax=BAL.boss.hp;
+  S.b.alive=true; S.b.phase=1; S.b.rising=true; S.b.riseT=0;
+  S.b.submerged=false; S.b.submergeT=0; S.b.casting=null; S.b.castT=0; S.b.castDur=0;
+  S.b.canLeave=false; S.b.swingT=0;
+  S.b.nextMelee=S.t+6; S.b.nextFireball=S.t+10;
+  S.b.nextEruption=S.t+14; S.b.nextWrath=S.t+22;
+  /* 清除出口传送门 */
+  removeExitPortal();
+  /* 清除遗留小怪 */
+  for(const a of S.adds)scene.remove(a.mesh);
+  S.adds.length=0;
+  /* 清除遗留投射物 */
+  for(const p of S.projectiles)scene.remove(p.mesh);
+  S.projectiles.length=0;
+  /* 清除地面预警 */
+  for(const t of S.telegraphs){scene.remove(t.ring);scene.remove(t.disc);}
+  S.telegraphs.length=0;
+  /* 清除 BOSS 掉落 */
+  for(let i=DROPS.length-1;i>=0;i--)removeDrop(DROPS[i]);
+  /* 重置 Boss 位置（沉入岩浆） */
+  boss.position.set(0,-16,-14); boss.rotation.z=0;
+  $("#castShell").style.display="none";
 }

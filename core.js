@@ -52,6 +52,16 @@ const BALANCE={
   },
   /* 任务 · 狂躁的野猪 / 讨伐拉戈斯 */
   quest:{boarKills:3, rewardHp:600, rewardDmgMul:1.15},
+  /* 掉落与尸体拾取（STEP 2）：品质权重 70/25/5 · 尸体停留秒数 · 拾取距离 */
+  loot:{weights:{common:70,uncommon:25,rare:5}, corpseT:8, pickupR:3.5},
+  /* 背包（STEP 4）：格数 */
+  bag:{size:16},
+  /* 上帝模式（首页勾选）：玩家每次攻击的固定伤害 */
+  god:{dmg:9999999},
+  /* 经验与等级（STEP 3）：经验来源 / 升级曲线 / 每级成长 */
+  levels:{max:10, xp:{mob:80, quest:300, boss:2000},
+    xpMax:[200,300,450,650,900,1200,1600,2100,2700],  /* 第 n 级升下一级所需经验 */
+    perLevel:{dmgMul:.05, hpMax:.08}},                 /* 每级：基础伤害 +5% · 生命上限 +8% */
 };
 const BAL=BALANCE;
 
@@ -67,14 +77,14 @@ function SeededRng(seed){let a=seed>>>0;return function(){
 const worldRng=SeededRng(WORLD_SEED);
 const srand=(a,b)=>a+worldRng()*(b-a);         /* 摆放类随机：静态布景专用 */
 
-/* ---------------- makeLabel：Canvas 悬浮文字（自 world.js 迁入，掉落系统将复用） ---------------- */
-function makeLabel(text,w){
+/* ---------------- makeLabel：Canvas 悬浮文字（掉落系统以品质色调用，默认参数保持旧观感） ---------------- */
+function makeLabel(text,w,color="#ffd9a0",glow="rgba(255,90,0,.95)"){
   const cv=document.createElement("canvas");cv.width=512;cv.height=128;
   const cx=cv.getContext("2d");
   cx.font="bold 78px 'Noto Sans SC','Microsoft YaHei',sans-serif";
   cx.textAlign="center";cx.textBaseline="middle";
-  cx.shadowColor="rgba(255,90,0,.95)";cx.shadowBlur=26;
-  cx.fillStyle="#ffd9a0";cx.fillText(text,256,64);
+  cx.shadowColor=glow;cx.shadowBlur=26;
+  cx.fillStyle=color;cx.fillText(text,256,64);
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),
     transparent:true,depthWrite:false}));
   sp.scale.set(w,w/4,1); return sp;

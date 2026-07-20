@@ -4,10 +4,12 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ rand srand worldRng BAL makeLabel scene camera）
           models.js（buildPlayer buildBoss buildElder buildBoar）
+          items.js（dropLoot rollLoot LOOT tryLoot）
           combat.js 运行时（S log announce fct spawnBurst hitEntity closeDialogue …）
    [导出] player boss WORLD_R sceneWorld sun worldFlames PORTAL_POS portalUni
           portalLabel enterRaid fadeTo MOBS QUEST moveToward mobDamage mobDie
-          updateQuest setMarker tryInteract openDialogue closeDialogue elder elderDist
+          setCorpse updateQuest setMarker tryInteract openDialogue closeDialogue
+          leaveRaid resetBoss spawnExitPortal removeExitPortal exitPortal elder elderDist
    ============================================================ */
 "use strict";
 /* ---------------- 实体放置 ---------------- */
@@ -184,13 +186,95 @@ function enterRaid(){
     player.position.set(0,0,18); S.p.knock=null;
     scene=sceneRaid;
     S.mode="raid";
-    /* 重置 Boss 技能计时（相对当前游戏时间） */
-    S.b.nextMelee=S.t+6; S.b.nextFireball=S.t+10;
-    S.b.nextEruption=S.t+14; S.b.nextWrath=S.t+22;
+    /* 如果 Boss 已死（再次进入），重置 Boss 状态但保留玩家进度 */
+    if(!S.b.alive||S.b.canLeave){
+      resetBoss();
+      log("你再次踏入熔火之心——火焰重新燃起，拉戈斯再度苏醒。","lg-sys");
+    }else{
+      /* 首次进入：重置 Boss 技能计时 */
+      S.b.nextMelee=S.t+6; S.b.nextFireball=S.t+10;
+      S.b.nextEruption=S.t+14; S.b.nextWrath=S.t+22;
+      log("你踏入传送门——热浪扑面而来，岩浆在脚下沸腾！","lg-sys");
+    }
     $("#bossFrame").classList.add("show");
-    log("你踏入传送门——热浪扑面而来，岩浆在脚下沸腾！","lg-sys");
     fadeTo(0);
   });
+}
+
+/* ---------------- 离开副本（通过出口传送门） ---------------- */
+function leaveRaid(){
+  if(S.mode!=="raid")return;
+  S.mode="transition";
+  fadeTo(1,()=>{
+    closeDialogue(); $("#interactBtn").style.display="none";
+    S.pShots.forEach(s=>s.mesh.parent&&s.mesh.parent.remove(s.mesh));
+    S.pShots.length=0;
+    sceneRaid.remove(player); sceneWorld.add(player);
+    player.position.set(0,0,52); S.p.knock=null;
+    scene=sceneWorld;
+    S.mode="world";
+    removeExitPortal();
+    $("#bossFrame").classList.remove("show");
+    log("你回到莫高雷草原，炎魔的咆哮在远方回荡……","lg-sys");
+    fadeTo(0);
+  });
+}
+
+/* ---------------- 出口传送门（击杀 Boss 后出现在副本入口） ---------------- */
+let exitPortal=null;
+const EXIT_PORTAL_POS=new THREE.Vector3(0,0,15);
+function spawnExitPortal(){
+  if(exitPortal)return;
+  const grp=new THREE.Group();
+  /* 底座 */
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(3.5,4.5,.8,12),
+    new THREE.MeshStandardMaterial({color:0x241812,roughness:.85,flatShading:true,
+      emissive:0x4a1a00,emissiveIntensity:.3}));
+  base.position.y=.4; grp.add(base);
+  /* 门柱 */
+  const pillarMat=new THREE.MeshStandardMaterial({color:0x1a120e,roughness:.9,emissive:0x6a2200,emissiveIntensity:.15});
+  [[-1.8],[1.8]].forEach(([sx])=>{
+    const p=new THREE.Mesh(new THREE.BoxGeometry(.6,4.2,.6),pillarMat);
+    p.position.set(sx,2.5,0); grp.add(p);
+    const sp=new THREE.Mesh(new THREE.ConeGeometry(.35,1,5),pillarMat);
+    sp.position.set(sx,5,0); grp.add(sp);
+  });
+  /* 门楣 */
+  const lintel=new THREE.Mesh(new THREE.BoxGeometry(4.6,.6,.5),pillarMat);
+  lintel.position.set(0,5,0).y=5; grp.add(lintel);
+  /* 旋涡盘（复用传送门 shader 风格） */
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(2.2,32),new THREE.ShaderMaterial({
+    uniforms:{uTime:{value:0}},transparent:true,side:THREE.DoubleSide,depthWrite:false,
+    vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`
+      varying vec2 vUv;uniform float uTime;
+      void main(){
+        vec2 p=vUv-.5;float r=length(p)*2.;float ang=atan(p.y,p.x);
+        float sw=sin(ang*4.+uTime*2.8+r*12.);
+        vec3 c=mix(vec3(.6,1.,.8),vec3(.2,.8,.4),smoothstep(-.6,.8,sw));
+        c=mix(c,vec3(0,.2,0.),smoothstep(.7,1.,r));
+        c+=vec3(.4,1.,.4)*smoothstep(.25,0.,r);
+        gl_FragColor=vec4(c*1.3,smoothstep(1.,.8,r));
+      }`}));
+  disc.position.y=2.2; disc.rotation.x=0; grp.add(disc);
+  /* 发光粒子 */
+  const glowPts=new THREE.Points(
+    new THREE.BufferGeometry(),
+    new THREE.PointsMaterial({color:0x66ffaa,size:.18,transparent:true,opacity:.7,
+      blending:THREE.AdditiveBlending,depthWrite:false}));
+  const gp=new Float32Array(60*3);
+  for(let i=0;i<60;i++){const a=rand(0,6.28),r=rand(1,2.8);
+    gp[i*3]=Math.cos(a)*r;gp[i*3+1]=rand(1.2,4.5);gp[i*3+2]=Math.sin(a)*r;}
+  glowPts.geometry.setAttribute("position",new THREE.BufferAttribute(gp,3));
+  grp.add(glowPts);
+  grp.position.copy(EXIT_PORTAL_POS);
+  sceneRaid.add(grp);
+  exitPortal={grp,disc,discUni:disc.material.uniforms.uTime,glowPts};
+}
+function removeExitPortal(){
+  if(!exitPortal)return;
+  sceneRaid.remove(exitPortal.grp);
+  exitPortal=null;
 }
 
 /* ============================================================
@@ -221,7 +305,7 @@ function setMarker(){
   label.position.set(x,2.7,z); sceneWorld.add(label);
   MOBS.push({mesh,label,name:"草原野猪",
     hp:BAL.mob.hp,hpMax:BAL.mob.hp,state:"wander",
-    home:{x,z},dest:null,wanderT:rand(0,3),atkT:0,rootT:0,respawnT:0,moving:false,
+    home:{x,z},dest:null,wanderT:rand(0,3),atkT:0,rootT:0,respawnT:0,corpseT:0,moving:false,
     /* —— 统一实体接口（STEP 1，hitEntity 消费） —— */
     variance:BAL.variance.mob,
     dead(){return this.state==="dead";},
@@ -244,12 +328,27 @@ function moveToward(m,dest,spd,dt){
 }
 /* 野猪受击：薄包装 → 统一受击入口 hitEntity（STEP 1） */
 function mobDamage(m,amount,label){hitEntity(m,amount,label);}
-/* 野猪死亡：掉落（STEP 2）与经验（STEP 3）将只在此处挂接 */
+/* ---------------- 尸体灰化 / 复原（STEP 2）----------------
+   死亡：倒地 + 全部材质换灰（原材质暂存 userData.liveMat）；重生时还原 */
+const corpseMat=new THREE.MeshStandardMaterial({color:0x8a8a8a,roughness:1,flatShading:true});
+function setCorpse(m,on){
+  m.mesh.rotation.z=on?Math.PI/2:0;
+  m.mesh.position.y=on?.25:0;
+  m.mesh.traverse(o=>{
+    if(!o.isMesh)return;
+    if(on){o.userData.liveMat=o.material;o.material=corpseMat;}
+    else if(o.userData.liveMat){o.material=o.userData.liveMat;o.userData.liveMat=null;}
+  });
+}
+/* 野猪死亡（STEP 1 onDeath 唯一挂接点）：留尸 + 掉落（STEP 2）；经验（STEP 3）也挂这里 */
 function mobDie(m){
-  m.state="dead"; m.respawnT=BAL.mob.respawnT;
-  m.mesh.visible=false; m.label.visible=false;
+  m.state="dead"; m.respawnT=BAL.mob.respawnT; m.corpseT=BAL.loot.corpseT; m.moving=false;
+  m.label.visible=false;
+  setCorpse(m,true);
   spawnBurst(m.mesh.position.clone().setY(1),0xc9a06a,22,1.6);
   log("你击杀了草原野猪！","lg-me");
+  dropLoot(m.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),[rollLoot(LOOT.boar)],m);
+  gainXP(BAL.levels.xp.mob);   /* 经验（STEP 3）：野猪 +80 */
   if(QUEST.state===1&&QUEST.kills<BAL.quest.boarKills){
     QUEST.kills++; updateQuest();
     if(QUEST.kills>=BAL.quest.boarKills){announce("任务目标完成 · 回去找长老"); setMarker();}
@@ -269,8 +368,13 @@ function updateQuest(){
 /* ---------------- NPC 对话 ---------------- */
 function elderDist(){return Math.hypot(player.position.x-elder.position.x,player.position.z-elder.position.z);}
 function tryInteract(){
-  if(S.mode!=="world"||!S.started||S.over)return;
-  if(elderDist()<5.5)openDialogue();
+  if(!S.started||S.over)return;
+  if(tryLoot())return;   /* 尸体旁的战利品优先（STEP 2），世界/副本通用 */
+  /* 副本内：击杀 Boss 后走进出口传送门自动离开 */
+  if(S.mode==="raid"&&S.b.canLeave&&exitPortal&&player.position.distanceTo(EXIT_PORTAL_POS)<4.5){
+    leaveRaid(); return;
+  }
+  if(S.mode==="world"&&elderDist()<5.5)openDialogue();
 }
 function closeDialogue(){$("#dlg").style.display="none";}
 function openDialogue(){
@@ -292,7 +396,9 @@ function openDialogue(){
   }else if(QUEST.state===1){
     tx.textContent="干得漂亮，勇士！听着——传送门深处沉睡着炎魔领主拉戈斯，他的烈焰迟早会烧到这片草原。收下大地母亲的祝福，北行吧，终结他！";
     btn("✦ 领取奖励，接受任务：讨伐拉戈斯",()=>{
-      S.p.hpMax+=BAL.quest.rewardHp; S.p.hp=S.p.hpMax; S.p.dmgMul=BAL.quest.rewardDmgMul;
+      /* 伤害奖励改为叠加（STEP 3 起）：不能覆盖等级带来的 dmgMul 成长 */
+      S.p.hpMax+=BAL.quest.rewardHp; S.p.hp=S.p.hpMax; S.p.dmgMul+=BAL.quest.rewardDmgMul-1;
+      gainXP(BAL.levels.xp.quest);   /* 经验（STEP 3）：任务 +300 */
       QUEST.state=2; updateQuest(); setMarker(); closeDialogue();
       spawnBurst(player.position.clone().setY(1.5),0x8aff9a,30,2);
       announce("获得 · 大地母亲的祝福");

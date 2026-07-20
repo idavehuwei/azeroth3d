@@ -29,6 +29,7 @@
     background:linear-gradient(180deg,#ff8a3c 0%,#e03a00 55%,#7a1500 100%)}
   .barFill.hpP{background:linear-gradient(180deg,#7cff6a,#1f9e2e 60%,#0c5a18)}
   .barFill.mpP{background:linear-gradient(180deg,#ffd76a,#c98a1f 60%,#7a4d0c)}
+  .barFill.xpP{background:linear-gradient(180deg,#c9a0ff,#7a4dc9 60%,#3d2a7a)}
   .barText{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     font-size:12px;font-weight:700;text-shadow:0 1px 2px #000;letter-spacing:1px}
   #castShell{margin-top:5px;height:12px;border:1px solid rgba(255,190,90,.4);background:rgba(0,0,0,.6);
@@ -64,6 +65,30 @@
   #log div{opacity:.92}
   .lg-sys{color:#ffd76a}.lg-dmg{color:#ffb08a}.lg-boss{color:#ff5a3c;font-weight:700}
   .lg-heal{color:#8aff9a}.lg-me{color:#cfe4ff}
+  .lg-loot{display:flex;align-items:center;gap:6px}
+  .lg-loot img{width:18px;height:18px;border:1px solid #888;background:#000;flex:none}
+
+  /* ---------- 背包与装备栏（STEP 4） ---------- */
+  #bag{position:fixed;right:14px;bottom:210px;width:250px;z-index:23;display:none;
+    background:var(--ui-bg);border:1px solid #ffcf90;padding:12px 14px;
+    box-shadow:0 0 32px rgba(255,120,20,.35)}
+  #bag .bag-title{font-weight:800;font-size:14px;color:#ffd9a0;letter-spacing:2px;margin-bottom:8px;
+    display:flex;justify-content:space-between}
+  #bag .bag-close{cursor:pointer;color:#8b7a5e}
+  #bag .bag-close:hover{color:#ffd9a0}
+  .bag-eq{display:flex;gap:10px;margin-bottom:10px}
+  .eqSlot{width:52px;height:52px;border:1px dashed var(--ui-line);position:relative;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35)}
+  .eqSlot .eqTag{position:absolute;bottom:2px;right:4px;font-size:9px;color:#8b7a5e;pointer-events:none}
+  .eqSlot img{width:44px;height:44px;border:1px solid #888}
+  #bagGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .bagCell{height:50px;border:1px solid var(--ui-line);background:rgba(0,0,0,.35);
+    display:flex;align-items:center;justify-content:center}
+  .bagCell img{width:44px;height:44px;border:1px solid #888;cursor:pointer}
+  .bag-hint{margin-top:8px;font-size:10px;color:#8b7a5e;letter-spacing:1px;line-height:1.7}
+  #bagBtn{position:fixed;left:16px;bottom:16px;z-index:12;width:46px;height:46px;font-size:20px;
+    background:var(--ui-bg);border:1px solid var(--ui-line);cursor:pointer;
+    box-shadow:0 0 14px rgba(255,90,0,.25)}
  
   /* ---------- 中央大字提示 ---------- */
   #announce{position:fixed;top:24%;left:50%;transform:translateX(-50%);z-index:20;pointer-events:none;
@@ -103,6 +128,9 @@
   .ccard .cd2{font-size:10.5px;line-height:1.8;color:#b09a7a}
   .ccard:hover{border-color:#ffcf90;transform:translateY(-2px)}
   .ccard.sel{border-color:#ffcf90;background:rgba(120,50,10,.45);box-shadow:0 0 20px rgba(255,120,20,.45)}
+  #godRow{display:flex;align-items:center;gap:8px;margin-bottom:24px;cursor:pointer;
+    font-size:13px;color:#ffcf98;letter-spacing:2px;text-shadow:0 1px 2px #000}
+  #godRow input{width:16px;height:16px;accent-color:#ff8a2a;cursor:pointer}
  
   /* ---------- 移动端摇杆 ---------- */
   #joy{position:fixed;left:26px;bottom:190px;width:110px;height:110px;border-radius:50%;z-index:11;
@@ -150,6 +178,7 @@
   <div class="pname" id="pName">⚔️ 你 · 人类战士</div>
   <div class="barShell"><div class="barFill hpP" id="pHp"></div><div class="barText" id="pHpTx"></div></div>
   <div class="barShell" style="height:11px"><div class="barFill mpP" id="pRage"></div><div class="barText" id="pRageTx" style="font-size:9px"></div></div>
+  <div class="barShell" style="height:10px;margin-top:4px"><div class="barFill xpP" id="pXp"></div><div class="barText" id="pXpTx" style="font-size:8px"></div></div>
 </div>
  
 <div id="skillBar">
@@ -163,6 +192,16 @@
 <div id="announce"></div>
 <div id="joy"><div id="joyKnob"></div></div>
 <div id="quest"></div>
+<div id="bag">
+  <div class="bag-title">🎒 背包与装备<span class="bag-close" id="bagClose">✕</span></div>
+  <div class="bag-eq">
+    <div class="eqSlot" data-slot="weapon"><span class="eqTag">武器</span></div>
+    <div class="eqSlot" data-slot="armor"><span class="eqTag">护甲</span></div>
+  </div>
+  <div id="bagGrid"></div>
+  <div class="bag-hint">点击物品装备 · 点击装备位卸下 · B 键开关</div>
+</div>
+<button id="bagBtn">🎒</button>
 <button id="interactBtn">💬 对 话（F）</button>
 <div id="dlg"><div class="dname">🐂 长老 · 岩蹄</div><div id="dlgText"></div><div id="dlgBtns"></div></div>
  
@@ -180,8 +219,9 @@
     <div class="ccard" data-cls="archer"><div class="ci">🏹</div><div class="cn">弓箭手</div>
       <div class="cd2">远程物理 · 高机动<br>能量：自动恢复<br>瞄准射击 / 翻滚闪避</div></div>
   </div>
+  <label id="godRow"><input type="checkbox" id="godChk"><span>⚡ 上帝模式 · 每次攻击造成 9,999,999 伤害</span></label>
   <button class="btn" id="btnStart">启 程</button>
-  <div class="hint">WASD / 方向键 移动 · 数字键 1-4 或点击释放技能<br>
+  <div class="hint">WASD / 方向键 移动 · 数字键 1-4 或点击释放技能 · 击杀敌人后靠近尸体按 F 拾取战利品 · B 打开背包装备<br>
        在莫高雷沿土路北行，走进传送门旋涡即进入副本 · 副本内走出地面红圈躲避熔岩喷发</div>
 </div>
  
@@ -192,6 +232,8 @@
  
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="core.js"></script>
+<script src="icons.js"></script>
+<script src="items.js"></script>
 <script src="models.js"></script>
 <script src="world.js"></script>
 <script src="combat.js"></script>

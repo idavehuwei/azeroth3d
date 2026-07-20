@@ -4,8 +4,10 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ clamp rand R BAL camera renderer scene ARENA_R
           lavaUniforms embers EMBERS emberVel）
+          items.js（updateDrops nearestDrop removeDropOf）
           world.js（player boss WORLD_R PORTAL_POS portalUni portalLabel worldFlames
-          MOBS elder elderDist enterRaid closeDialogue moveToward mobDamage）
+          MOBS elder elderDist enterRaid leaveRaid closeDialogue moveToward mobDamage setCorpse
+          exitPortal EXIT_PORTAL_POS spawnExitPortal removeExitPortal）
           combat.js（S CLS SKILLS keys joy setClass bossAI bossTargetable distToBoss
           pickTarget firePlayerShot dmgBoss addDamage mobDamage playerHit
           spawnBurst log announce fct）
@@ -26,6 +28,9 @@ function tick(){
   requestAnimationFrame(tick);
   const dt=Math.min(clock.getDelta(),.05);
   S.t+=dt; lavaUniforms.uTime.value=S.t; portalUni.uTime.value=S.t;
+
+  /* 出口传送门动画 */
+  if(exitPortal){exitPortal.discUni.value=S.t;exitPortal.glowPts.rotation.y+=dt*.8;}
 
   /* 莫高雷篝火/火盆闪烁 & 传送门文字浮动 */
   worldFlames.forEach((f,i)=>{
@@ -64,9 +69,12 @@ function tick(){
       /* 野猪 AI */
       for(const m of MOBS){
         if(m.state==="dead"){
+          /* 尸体停留（STEP 2）：倒地灰化 8 秒后消失，掉落留至重生 */
+          if(m.corpseT>0){m.corpseT-=dt;if(m.corpseT<=0)m.mesh.visible=false;}
           m.respawnT-=dt;
           if(m.respawnT<=0){
             m.state="wander"; m.hp=m.hpMax;
+            removeDropOf(m); setCorpse(m,false);
             m.mesh.position.set(m.home.x,0,m.home.z);
             m.mesh.visible=true; m.label.visible=true;
             spawnBurst(m.mesh.position.clone().setY(.8),0x8aff9a,12,1);
@@ -110,6 +118,13 @@ function tick(){
       $("#interactBtn").style.display=(nearElder&&$("#dlg").style.display!=="block")?"block":"none";
       if(!nearElder&&elderDist()>8)closeDialogue();
     }
+    /* ---- 掉落动画 & 拾取按钮（世界/副本通用，STEP 2） ---- */
+    updateDrops(dt);
+    const nd=nearestDrop(BAL.loot.pickupR), ib=$("#interactBtn");
+    if(nd){ib.textContent="✨ 拾 取（F）";ib.style.display="block";}
+    else if(S.mode==="raid"&&S.b.canLeave&&exitPortal&&player.position.distanceTo(EXIT_PORTAL_POS)<5.5){
+      ib.textContent="🚪 走进传送门";ib.style.display="block";
+    }else{ib.textContent="💬 对 话（F）";if(S.mode!=="world")ib.style.display="none";}
     /* ---- 玩家移动 ---- */
     let mx=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
     let mz=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
@@ -141,6 +156,9 @@ function tick(){
       U.armR.rotation.x=-2.4*Math.sin(Math.min(1,S.p.attackAnim)*Math.PI);}
     else U.armR.rotation.x=Math.sin(S.p.walkPhase)*.3;
     U.armL.rotation.x=-Math.sin(S.p.walkPhase)*.3;
+    /* 萨弗拉斯之柄火焰摇曳（STEP 4：仅装备橙锤时遍历） */
+    if(S.eq.weapon==="sulfuras_haft")
+      player.traverse(o=>{if(o.userData.flame)o.scale.y=1+Math.sin(S.t*7+o.position.x*5)*.25;});
 
     /* ---- 自动普攻（战士近战 / 法师火球 / 弓箭手射箭） ---- */
     S.p.atkTimer-=dt;
@@ -197,7 +215,14 @@ function tick(){
     }
 
     /* ---- 小怪 AI ---- */
-    for(const a of S.adds){
+    for(let i=S.adds.length-1;i>=0;i--){
+      const a=S.adds[i];
+      /* 尸体阶段：只计时，到期移除 */
+      if(a.corpseT>0){
+        a.corpseT-=dt;
+        if(a.corpseT<=0){scene.remove(a.mesh);S.adds.splice(i,1);}
+        continue;
+      }
       const dir=player.position.clone().sub(a.mesh.position);dir.y=0;
       const d=dir.length();
       if(a.rootT>0){a.rootT-=dt;}  /* 被冰霜新星定身 */
@@ -297,6 +322,8 @@ function tick(){
   $("#pHpTx").textContent=`${Math.max(0,Math.round(S.p.hp))} / ${S.p.hpMax}`;
   $("#pRage").style.transform=`scaleX(${S.p.rage/S.p.rageMax})`;
   $("#pRageTx").textContent=`${CLS.resName} ${Math.round(S.p.rage)}`;
+  $("#pXp").style.transform=`scaleX(${S.p.level>=BAL.levels.max?1:S.p.xp/S.p.xpMax})`;
+  $("#pXpTx").textContent=S.p.level>=BAL.levels.max?"满 级":`经验 ${Math.floor(S.p.xp)} / ${S.p.xpMax}`;
 
   renderer.render(scene,camera);
 }
@@ -313,9 +340,11 @@ document.querySelectorAll(".ccard").forEach(c=>{
 });
 $("#btnStart").addEventListener("click",()=>{
   setClass(chosenClass);
+  S.god=$("#godChk").checked;
   $("#startOv").classList.add("hide");
   S.started=true;
   announce("莫高雷 · 圣山草原");
   log("你从牛头人营地出发。沿着土路向北，尽头矗立着通往熔火之心的传送门。","lg-sys");
+  if(S.god)log(`⚡ 上帝模式已开启：你的每一次攻击都将造成 ${BAL.god.dmg.toLocaleString()} 点伤害。`,"lg-sys");
   setTimeout(()=>log(CLS.tip,"lg-sys"),2200);
 });

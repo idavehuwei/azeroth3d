@@ -2,167 +2,238 @@
    熔火之心 · models.js
    ------------------------------------------------------------
    [依赖] THREE · core.js（rand）
-   [导出] buildPlayer buildMage buildArcher buildBoss buildElder
+   [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS
+          buildPlayer buildMage buildArcher buildBoss buildElder
           buildBoar buildFlameSpawn
    ------------------------------------------------------------
-   3D 模型库：玩家三职业 / Boss / 烈焰之子 / 野猪 / 长老（全部程序化几何体）
+   3D 模型库（全部程序化几何体，零模型文件）
+   STEP 4：人形基座 buildHumanoid(config)——躯干/四肢/头/披风 + 动画挂点，
+   三职业收敛为 HUMANOIDS 数据配置；武器独立为 WEAPONS 配方表，
+   武器组打 userData.weapon 标，换装时 setWeapon 只换武器组。
+   加新职业 = 加一条 HUMANOIDS 配置；加新武器 = 加一条 WEAPONS 配方。
    ============================================================ */
 "use strict";
 /* ============================================================
-   玩家模型：人类战士（程序化低模）
+   通用几何 / 材质 / 部件工厂
+   部件 spec：{g:几何名, a:参数数组, p:[x,y,z], r:[rx,ry,rz], m:材质名, flame:火焰标}
+   材质 def ：{c:颜色, r:粗糙度, mt:金属度, e:自发光色, ei:强度, flat, ds:双面, basic, o:透明度}
    ============================================================ */
-function buildPlayer(){
-  const g=new THREE.Group();
-  const armor=new THREE.MeshStandardMaterial({color:0x4a6a8a,roughness:.45,metalness:.7});
-  const armorDark=new THREE.MeshStandardMaterial({color:0x2c3e50,roughness:.5,metalness:.6});
-  const skin=new THREE.MeshStandardMaterial({color:0xd8a37a,roughness:.8});
-  const gold=new THREE.MeshStandardMaterial({color:0xd9a441,roughness:.3,metalness:.9});
-  const cloth=new THREE.MeshStandardMaterial({color:0x7a1f1f,roughness:.9});
+const GEO={
+  box  :a=>new THREE.BoxGeometry(...a),
+  cyl  :a=>new THREE.CylinderGeometry(...a),
+  cone :a=>new THREE.ConeGeometry(...a),
+  sph  :a=>new THREE.SphereGeometry(...a),
+  dod  :a=>new THREE.DodecahedronGeometry(...a),
+  ico  :a=>new THREE.IcosahedronGeometry(...a),
+  oct  :a=>new THREE.OctahedronGeometry(...a),
+  tor  :a=>new THREE.TorusGeometry(...a),
+  plane:a=>new THREE.PlaneGeometry(...a),
+};
+function makeMats(defs){
+  const out={};
+  for(const k in defs){
+    const d=defs[k];
+    out[k]=d.basic
+      ?new THREE.MeshBasicMaterial({color:d.c,transparent:d.o!==undefined,opacity:d.o??1})
+      :new THREE.MeshStandardMaterial({color:d.c,roughness:d.r??.9,metalness:d.mt??0,
+        emissive:d.e??0x000000,emissiveIntensity:d.ei??1,flatShading:!!d.flat,
+        side:d.ds?THREE.DoubleSide:THREE.FrontSide});
+  }
+  return out;
+}
+function prim(spec,M){
+  const mesh=new THREE.Mesh(GEO[spec.g](spec.a),M[spec.m]);
+  if(spec.p)mesh.position.set(...spec.p);
+  if(spec.r)mesh.rotation.set(...spec.r);
+  if(spec.flame)mesh.userData.flame=true;
+  return mesh;
+}
+function addParts(parent,list,M){for(const s of list)parent.add(prim(s,M));}
 
-  const torso=new THREE.Mesh(new THREE.BoxGeometry(.95,1.1,.55),armor); torso.position.y=1.65; g.add(torso);
-  const belt=new THREE.Mesh(new THREE.BoxGeometry(1,.18,.6),gold); belt.position.y=1.12; g.add(belt);
-  const pelvis=new THREE.Mesh(new THREE.BoxGeometry(.85,.35,.5),armorDark); pelvis.position.y=.92; g.add(pelvis);
-  /* 头 + 头盔 */
-  const head=new THREE.Mesh(new THREE.BoxGeometry(.5,.5,.48),skin); head.position.y=2.5; g.add(head);
-  const helm=new THREE.Mesh(new THREE.CylinderGeometry(.34,.36,.34,8),armor); helm.position.y=2.72; g.add(helm);
-  const plume=new THREE.Mesh(new THREE.ConeGeometry(.1,.5,6),cloth); plume.position.set(0,3.05,0); g.add(plume);
-  /* 肩甲 */
-  [-1,1].forEach(s=>{
-    const p=new THREE.Mesh(new THREE.SphereGeometry(.32,8,6,0,6.28,0,1.7),armor);
-    p.position.set(s*.62,2.18,0); g.add(p);
-  });
-  /* 手臂（挂点用于攻击动画） */
-  const armR=new THREE.Group(); armR.position.set(.62,2.1,0);
-  const uarmR=new THREE.Mesh(new THREE.BoxGeometry(.26,.85,.26),armorDark); uarmR.position.y=-.42; armR.add(uarmR);
-  /* 长剑 */
-  const sword=new THREE.Group(); sword.position.set(0,-.85,.1);
-  const hilt=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.3,6),gold); sword.add(hilt);
-  const guard=new THREE.Mesh(new THREE.BoxGeometry(.3,.06,.1),gold); guard.position.y=.16; sword.add(guard);
-  const blade=new THREE.Mesh(new THREE.BoxGeometry(.1,1.5,.03),
-    new THREE.MeshStandardMaterial({color:0xcfd8e6,metalness:.95,roughness:.15,emissive:0x334455,emissiveIntensity:.2}));
-  blade.position.y=.95; sword.add(blade);
-  armR.add(sword); g.add(armR);
-  const armL=new THREE.Group(); armL.position.set(-.62,2.1,0);
-  const uarmL=new THREE.Mesh(new THREE.BoxGeometry(.26,.85,.26),armorDark); uarmL.position.y=-.42; armL.add(uarmL);
-  /* 盾牌 */
-  const shield=new THREE.Mesh(new THREE.CylinderGeometry(.5,.5,.09,8),armor);
-  shield.rotation.z=Math.PI/2; shield.rotation.y=Math.PI/2; shield.position.set(-.12,-.8,.15);
-  const boss_=new THREE.Mesh(new THREE.SphereGeometry(.13,8,8),gold); boss_.position.set(-.18,-.8,.15);
-  armL.add(shield); armL.add(boss_); g.add(armL);
-  /* 腿 */
-  const legR=new THREE.Group(); legR.position.set(.25,.9,0);
-  const legMeshR=new THREE.Mesh(new THREE.BoxGeometry(.3,.9,.3),armorDark);
-  legMeshR.position.set(0,-.45,0); legR.add(legMeshR);
-  const legL=new THREE.Group(); legL.position.set(-.25,.9,0);
-  const legMeshL=new THREE.Mesh(new THREE.BoxGeometry(.3,.9,.3),armorDark);
-  legMeshL.position.set(0,-.45,0); legL.add(legMeshL);
+/* ============================================================
+   武器配方表（独立于职业；userData.weapon 标记供换装）
+   ============================================================ */
+const WEAPONS={
+  /* 长剑（战士默认） */
+  sword:{mats:{gold:{c:0xd9a441,r:.3,mt:.9},
+               blade:{c:0xcfd8e6,mt:.95,r:.15,e:0x334455,ei:.2}},
+    parts:[
+      {g:'cyl',a:[.05,.05,.3,6],m:'gold'},                       /* 剑柄 */
+      {g:'box',a:[.3,.06,.1],p:[0,.16,0],m:'gold'},              /* 护手 */
+      {g:'box',a:[.1,1.5,.03],p:[0,.95,0],m:'blade'},            /* 剑身 */
+    ]},
+  /* 奥术法杖（法师默认） */
+  staff:{mats:{wood:{c:0x5a3a1a,r:.9},orb:{c:0x66ccff,basic:true},
+               trim:{c:0xd9a441,r:.3,mt:.9}},
+    parts:[
+      {g:'cyl',a:[.05,.07,3,7],p:[0,.6,0],m:'wood'},             /* 杖杆 */
+      {g:'ico',a:[.22,0],p:[0,2.2,0],m:'orb'},                   /* 奥术水晶 */
+      {g:'tor',a:[.32,.03,6,14],p:[0,2.2,0],m:'trim'},           /* 金环 */
+    ]},
+  /* 长弓（弓箭手默认，挂左手） */
+  bow:{mats:{wood:{c:0x6a4520,r:.85},feather:{c:0xd8d0b0,r:.9}},
+    parts:[
+      {g:'tor',a:[.85,.05,6,16,Math.PI],r:[0,0,Math.PI/2],m:'wood'},  /* 弓臂 */
+      {g:'box',a:[.02,1.7,.02],m:'feather'},                          /* 弓弦 */
+    ]},
+  /* 萨弗拉斯之柄：燃烧巨锤（装备橙锤时替换手中武器组） */
+  sulfuras:{mats:{
+      rock:{c:0x241009,r:1,flat:true,e:0x992200,ei:.18},
+      magma:{c:0x33130a,r:.85,flat:true,e:0xff3b00,ei:.55},
+      core:{c:0xffd060,basic:true},
+      fire:{c:0xffa030,basic:true,o:.92}},
+    parts:[
+      {g:'cyl',a:[.06,.09,1.7,7],p:[0,.55,0],m:'rock'},          /* 长柄 */
+      {g:'box',a:[.85,.5,.5],p:[0,1.55,0],m:'magma'},            /* 锤头 */
+      {g:'box',a:[.9,.14,.55],p:[0,1.55,0],m:'core'},            /* 熔纹 */
+      {g:'cone',a:[.16,.5,5],p:[.55,1.55,0],r:[0,0,-Math.PI/2],m:'rock'},
+      {g:'cone',a:[.16,.5,5],p:[-.55,1.55,0],r:[0,0,Math.PI/2],m:'rock'},
+      {g:'cone',a:[.22,.6,6],p:[0,2,0],m:'fire',flame:true},     /* 锤顶火焰 */
+      {g:'cone',a:[.13,.4,5],p:[.3,1.9,0],m:'fire',flame:true},
+      {g:'cone',a:[.13,.4,5],p:[-.3,1.9,0],m:'fire',flame:true},
+    ],
+    light:{c:0xff6a20,i:.9,d:7,p:[0,1.6,0]}},                    /* 火光 */
+};
+function buildWeapon(type){
+  const cfg=WEAPONS[type]||WEAPONS.sword;
+  const M=makeMats(cfg.mats);
+  const w=new THREE.Group();
+  addParts(w,cfg.parts,M);
+  if(cfg.light){
+    const l=new THREE.PointLight(cfg.light.c,cfg.light.i,cfg.light.d,1.8);
+    l.position.set(...cfg.light.p); w.add(l);
+  }
+  w.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  w.userData.weapon=type;
+  return w;
+}
+
+/* ============================================================
+   三职业人形配置（纯数据；外观与重构前一致）
+   ============================================================ */
+const HUMANOIDS={
+  /* ⚔️ 人类战士：板甲 + 头盔盔缨 + 剑盾 */
+  warrior:{
+    mats:{
+      armor:{c:0x4a6a8a,r:.45,mt:.7}, armorDark:{c:0x2c3e50,r:.5,mt:.6},
+      skin:{c:0xd8a37a,r:.8}, gold:{c:0xd9a441,r:.3,mt:.9},
+      cloth:{c:0x7a1f1f,r:.9}, capeM:{c:0x8a1f1f,r:.9,ds:true},
+    },
+    parts:[
+      {g:'box',a:[.95,1.1,.55],p:[0,1.65,0],m:'armor'},          /* 躯干 */
+      {g:'box',a:[1,.18,.6],p:[0,1.12,0],m:'gold'},              /* 腰带 */
+      {g:'box',a:[.85,.35,.5],p:[0,.92,0],m:'armorDark'},        /* 髋部 */
+      {g:'box',a:[.5,.5,.48],p:[0,2.5,0],m:'skin'},              /* 头 */
+      {g:'cyl',a:[.34,.36,.34,8],p:[0,2.72,0],m:'armor'},        /* 头盔 */
+      {g:'cone',a:[.1,.5,6],p:[0,3.05,0],m:'cloth'},             /* 盔缨 */
+      {g:'sph',a:[.32,8,6,0,6.28,0,1.7],p:[.62,2.18,0],m:'armor'},   /* 肩甲 */
+      {g:'sph',a:[.32,8,6,0,6.28,0,1.7],p:[-.62,2.18,0],m:'armor'},
+    ],
+    arm:{x:.62,y:2.1,mesh:{g:'box',a:[.26,.85,.26],p:[0,-.42,0],m:'armorDark'}},
+    armExtraL:[                                                   /* 盾牌 */
+      {g:'cyl',a:[.5,.5,.09,8],p:[-.12,-.8,.15],r:[0,Math.PI/2,Math.PI/2],m:'armor'},
+      {g:'sph',a:[.13,8,8],p:[-.18,-.8,.15],m:'gold'},
+    ],
+    leg:{x:.25,y:.9,mesh:{g:'box',a:[.3,.9,.3],p:[0,-.45,0],m:'armorDark'}},
+    cape:{a:[.9,1.5],p:[0,1.6,-.32],rx:.12,m:'capeM'},
+    weapon:'sword', weaponMount:'armR', weaponPos:[0,-.85,.1],
+  },
+  /* 🔮 人类法师：紫袍 + 尖顶帽 + 法杖法典 */
+  mage:{
+    mats:{
+      robe:{c:0x3b2d78,r:.85}, robeDark:{c:0x241a4a,r:.9},
+      trim:{c:0xd9a441,r:.3,mt:.9}, skin:{c:0xd8a37a,r:.8},
+      book:{c:0x7a1f1f,r:.8}, capeM:{c:0x241a4a,r:.9,ds:true},
+    },
+    parts:[
+      {g:'cyl',a:[.5,1,1.6,8],p:[0,1,0],m:'robe'},               /* 长袍下摆 */
+      {g:'cyl',a:[.42,.5,1,8],p:[0,2.2,0],m:'robeDark'},         /* 胸襟 */
+      {g:'cyl',a:[.52,.52,.12,8],p:[0,1.75,0],m:'trim'},         /* 束带 */
+      {g:'box',a:[.46,.46,.44],p:[0,2.95,0],m:'skin'},           /* 头 */
+      {g:'cyl',a:[.62,.66,.08,10],p:[0,3.2,0],m:'robe'},         /* 帽檐 */
+      {g:'cone',a:[.36,1,9],p:[0,3.7,0],r:[0,0,.12],m:'robe'},   /* 尖顶帽 */
+      {g:'oct',a:[.09,0],p:[.12,4.16,0],m:'trim'},               /* 帽顶星 */
+      {g:'sph',a:[.26,8,6],p:[.55,2.6,0],m:'robeDark'},          /* 垫肩 */
+      {g:'sph',a:[.26,8,6],p:[-.55,2.6,0],m:'robeDark'},
+    ],
+    arm:{x:.55,y:2.55,mesh:{g:'cyl',a:[.14,.2,.9,7],p:[0,-.45,0],m:'robe'}},
+    armExtraL:[{g:'box',a:[.34,.44,.12],p:[-.05,-.95,.12],m:'book'}],  /* 法典 */
+    leg:{x:.2,y:.6,mesh:null},                                   /* 长袍遮腿：空组占位 */
+    cape:{a:[.95,1.9],p:[0,1.95,-.4],rx:.1,m:'capeM'},
+    weapon:'staff', weaponMount:'armR', weaponPos:[.05,-.9,.15],
+  },
+  /* 🏹 精灵弓箭手：皮甲 + 兜帽 + 长弓箭袋 */
+  archer:{
+    mats:{
+      leather:{c:0x4a6a2a,r:.85}, leatherD:{c:0x3a2a14,r:.9},
+      skin:{c:0xe0b088,r:.8}, wood:{c:0x6a4520,r:.85},
+      feather:{c:0xd8d0b0,r:.9}, capeM:{c:0x2d4a1a,r:.9,ds:true},
+    },
+    parts:[
+      {g:'box',a:[.8,1.05,.48],p:[0,1.65,0],m:'leather'},        /* 躯干 */
+      {g:'box',a:[.16,1.1,.52],p:[0,1.65,0],r:[0,0,.5],m:'leatherD'}, /* 背带 */
+      {g:'box',a:[.86,.14,.52],p:[0,1.15,0],m:'leatherD'},       /* 腰带 */
+      {g:'box',a:[.74,.32,.44],p:[0,.92,0],m:'leatherD'},        /* 髋部 */
+      {g:'box',a:[.46,.46,.44],p:[0,2.45,0],m:'skin'},           /* 头 */
+      {g:'cone',a:[.44,.75,8],p:[0,2.72,0],r:[-.18,0,0],m:'leather'}, /* 兜帽 */
+      {g:'cyl',a:[.17,.14,.95,7],p:[-.24,1.95,-.42],r:[0,0,.35],m:'leatherD'}, /* 箭袋 */
+      {g:'cyl',a:[.02,.02,.55,4],p:[-.36,2.5,-.44],r:[0,0,.35],m:'wood'},      /* 箭矢×3 */
+      {g:'cyl',a:[.02,.02,.55,4],p:[-.27,2.5,-.44],r:[0,0,.35],m:'wood'},
+      {g:'cyl',a:[.02,.02,.55,4],p:[-.18,2.5,-.44],r:[0,0,.35],m:'wood'},
+      {g:'cone',a:[.06,.16,4],p:[-.45,2.76,-.44],m:'feather'},
+      {g:'cone',a:[.06,.16,4],p:[-.36,2.76,-.44],m:'feather'},
+      {g:'cone',a:[.06,.16,4],p:[-.27,2.76,-.44],m:'feather'},
+    ],
+    arm:{x:.55,y:2.1,mesh:{g:'box',a:[.22,.8,.22],p:[0,-.4,0],m:'leather'}},
+    armExtraR:[{g:'cyl',a:[.025,.025,.8,4],p:[0,-.82,.2],r:[Math.PI/2,0,0],m:'wood'}], /* 搭箭 */
+    leg:{x:.25,y:.9,mesh:{g:'box',a:[.28,.9,.28],p:[0,-.45,0],m:'leatherD'}},
+    cape:{a:[.85,1.3],p:[0,1.7,-.3],rx:.12,m:'capeM'},
+    weapon:'bow', weaponMount:'armL', weaponPos:[-.12,-.85,.18],
+  },
+};
+
+/* ============================================================
+   人形基座：躯干/四肢/头/披风 + 动画挂点（armR/armL/legR/legL/cape）
+   ============================================================ */
+function buildHumanoid(cfg){
+  const g=new THREE.Group();
+  const M=makeMats(cfg.mats);
+  addParts(g,cfg.parts,M);
+  /* 手臂挂点 */
+  const armR=new THREE.Group(); armR.position.set(cfg.arm.x,cfg.arm.y,0);
+  const armL=new THREE.Group(); armL.position.set(-cfg.arm.x,cfg.arm.y,0);
+  if(cfg.arm.mesh){armR.add(prim(cfg.arm.mesh,M));armL.add(prim(cfg.arm.mesh,M));}
+  if(cfg.armExtraR)addParts(armR,cfg.armExtraR,M);
+  if(cfg.armExtraL)addParts(armL,cfg.armExtraL,M);
+  g.add(armR); g.add(armL);
+  /* 腿部挂点（mesh 为 null 时是长袍遮腿的空组占位） */
+  const legR=new THREE.Group(); legR.position.set(cfg.leg.x,cfg.leg.y,0);
+  const legL=new THREE.Group(); legL.position.set(-cfg.leg.x,cfg.leg.y,0);
+  if(cfg.leg.mesh){legR.add(prim(cfg.leg.mesh,M));legL.add(prim(cfg.leg.mesh,M));}
   g.add(legR); g.add(legL);
   /* 披风 */
-  const cape=new THREE.Mesh(new THREE.PlaneGeometry(.9,1.5),
-    new THREE.MeshStandardMaterial({color:0x8a1f1f,roughness:.9,side:THREE.DoubleSide}));
-  cape.position.set(0,1.6,-.32); cape.rotation.x=.12; g.add(cape);
-
+  const cape=new THREE.Mesh(GEO.plane(cfg.cape.a),M[cfg.cape.m]);
+  cape.position.set(...cfg.cape.p); cape.rotation.x=cfg.cape.rx; g.add(cape);
+  /* 武器组：userData.weapon 标记，换装时 setWeapon 只换这一组 */
+  const mount=cfg.weaponMount==='armL'?armL:armR;
+  const w=buildWeapon(cfg.weapon); w.position.set(...cfg.weaponPos); mount.add(w);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
-  g.userData={armR,armL,legR,legL,cape};
+  g.userData={armR,armL,legR,legL,cape,
+    weaponMount:mount,weaponPos:cfg.weaponPos,defaultWeapon:cfg.weapon};
   return g;
 }
-
-/* ---------------- 法师模型：紫袍 + 尖顶帽 + 奥术法杖 ---------------- */
-function buildMage(){
-  const g=new THREE.Group();
-  const robe=new THREE.MeshStandardMaterial({color:0x3b2d78,roughness:.85});
-  const robeDark=new THREE.MeshStandardMaterial({color:0x241a4a,roughness:.9});
-  const trim=new THREE.MeshStandardMaterial({color:0xd9a441,roughness:.3,metalness:.9});
-  const skin=new THREE.MeshStandardMaterial({color:0xd8a37a,roughness:.8});
-  const wood=new THREE.MeshStandardMaterial({color:0x5a3a1a,roughness:.9});
-  const orb=new THREE.MeshBasicMaterial({color:0x66ccff});
-
-  const skirt=new THREE.Mesh(new THREE.CylinderGeometry(.5,1,1.6,8),robe); skirt.position.y=1; g.add(skirt);
-  const chest=new THREE.Mesh(new THREE.CylinderGeometry(.42,.5,1,8),robeDark); chest.position.y=2.2; g.add(chest);
-  const belt=new THREE.Mesh(new THREE.CylinderGeometry(.52,.52,.12,8),trim); belt.position.y=1.75; g.add(belt);
-  const head=new THREE.Mesh(new THREE.BoxGeometry(.46,.46,.44),skin); head.position.y=2.95; g.add(head);
-  const brim=new THREE.Mesh(new THREE.CylinderGeometry(.62,.66,.08,10),robe); brim.position.y=3.2; g.add(brim);
-  const hat=new THREE.Mesh(new THREE.ConeGeometry(.36,1,9),robe); hat.position.y=3.7; hat.rotation.z=.12; g.add(hat);
-  const star=new THREE.Mesh(new THREE.OctahedronGeometry(.09,0),trim); star.position.set(.12,4.16,0); g.add(star);
-  [-1,1].forEach(s=>{const p=new THREE.Mesh(new THREE.SphereGeometry(.26,8,6),robeDark);
-    p.position.set(s*.55,2.6,0); g.add(p);});
-  /* 右臂持法杖 */
-  const armR=new THREE.Group(); armR.position.set(.55,2.55,0);
-  const sr=new THREE.Mesh(new THREE.CylinderGeometry(.14,.2,.9,7),robe); sr.position.y=-.45; armR.add(sr);
-  const staff=new THREE.Group(); staff.position.set(.05,-.9,.15);
-  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.05,.07,3,7),wood); pole.position.y=.6; staff.add(pole);
-  const tip=new THREE.Mesh(new THREE.IcosahedronGeometry(.22,0),orb); tip.position.y=2.2; staff.add(tip);
-  const halo=new THREE.Mesh(new THREE.TorusGeometry(.32,.03,6,14),trim); halo.position.y=2.2; staff.add(halo);
-  armR.add(staff); g.add(armR);
-  /* 左臂持法典 */
-  const armL=new THREE.Group(); armL.position.set(-.55,2.55,0);
-  const sl=new THREE.Mesh(new THREE.CylinderGeometry(.14,.2,.9,7),robe); sl.position.y=-.45; armL.add(sl);
-  const book=new THREE.Mesh(new THREE.BoxGeometry(.34,.44,.12),
-    new THREE.MeshStandardMaterial({color:0x7a1f1f,roughness:.8}));
-  book.position.set(-.05,-.95,.12); armL.add(book); g.add(armL);
-  /* 长袍遮腿：空组占位供行走动画调用 */
-  const legR=new THREE.Group(),legL=new THREE.Group();
-  legR.position.set(.2,.6,0); legL.position.set(-.2,.6,0); g.add(legR); g.add(legL);
-  const cape=new THREE.Mesh(new THREE.PlaneGeometry(.95,1.9),
-    new THREE.MeshStandardMaterial({color:0x241a4a,roughness:.9,side:THREE.DoubleSide}));
-  cape.position.set(0,1.95,-.4); cape.rotation.x=.1; g.add(cape);
-  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
-  g.userData={armR,armL,legR,legL,cape};
-  return g;
+/* 换武器：移除挂点上带 userData.weapon 标的组，装上新武器（STEP 4 装备栏调用） */
+function setWeapon(hum,type){
+  const U=hum.userData, mount=U.weaponMount;
+  for(let i=mount.children.length-1;i>=0;i--)
+    if(mount.children[i].userData.weapon)mount.remove(mount.children[i]);
+  const w=buildWeapon(type); w.position.set(...U.weaponPos); mount.add(w);
 }
 
-/* ---------------- 弓箭手模型：皮甲 + 兜帽 + 长弓箭袋 ---------------- */
-function buildArcher(){
-  const g=new THREE.Group();
-  const leather=new THREE.MeshStandardMaterial({color:0x4a6a2a,roughness:.85});
-  const leatherD=new THREE.MeshStandardMaterial({color:0x3a2a14,roughness:.9});
-  const skin=new THREE.MeshStandardMaterial({color:0xe0b088,roughness:.8});
-  const wood=new THREE.MeshStandardMaterial({color:0x6a4520,roughness:.85});
-  const feather=new THREE.MeshStandardMaterial({color:0xd8d0b0,roughness:.9});
-
-  const torso=new THREE.Mesh(new THREE.BoxGeometry(.8,1.05,.48),leather); torso.position.y=1.65; g.add(torso);
-  const strap=new THREE.Mesh(new THREE.BoxGeometry(.16,1.1,.52),leatherD);
-  strap.position.y=1.65; strap.rotation.z=.5; g.add(strap);
-  const belt=new THREE.Mesh(new THREE.BoxGeometry(.86,.14,.52),leatherD); belt.position.y=1.15; g.add(belt);
-  const pelvis=new THREE.Mesh(new THREE.BoxGeometry(.74,.32,.44),leatherD); pelvis.position.y=.92; g.add(pelvis);
-  const head=new THREE.Mesh(new THREE.BoxGeometry(.46,.46,.44),skin); head.position.y=2.45; g.add(head);
-  const hood=new THREE.Mesh(new THREE.ConeGeometry(.44,.75,8),leather);
-  hood.position.y=2.72; hood.rotation.x=-.18; g.add(hood);
-  /* 背后箭袋 + 箭矢 */
-  const quiver=new THREE.Mesh(new THREE.CylinderGeometry(.17,.14,.95,7),leatherD);
-  quiver.position.set(-.24,1.95,-.42); quiver.rotation.z=.35; g.add(quiver);
-  for(let i=0;i<3;i++){
-    const ar=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.55,4),wood);
-    ar.position.set(-.36+i*.09,2.5,-.44); ar.rotation.z=.35; g.add(ar);
-    const fe=new THREE.Mesh(new THREE.ConeGeometry(.06,.16,4),feather);
-    fe.position.set(-.45+i*.09,2.76,-.44); g.add(fe);
-  }
-  /* 左臂持长弓 */
-  const armL=new THREE.Group(); armL.position.set(-.55,2.1,0);
-  const al=new THREE.Mesh(new THREE.BoxGeometry(.22,.8,.22),leather); al.position.y=-.4; armL.add(al);
-  const bow=new THREE.Group(); bow.position.set(-.12,-.85,.18);
-  const arc=new THREE.Mesh(new THREE.TorusGeometry(.85,.05,6,16,Math.PI),wood);
-  arc.rotation.z=Math.PI/2; bow.add(arc);
-  const string=new THREE.Mesh(new THREE.BoxGeometry(.02,1.7,.02),feather); bow.add(string);
-  armL.add(bow); g.add(armL);
-  /* 右臂搭箭 */
-  const armR=new THREE.Group(); armR.position.set(.55,2.1,0);
-  const arR=new THREE.Mesh(new THREE.BoxGeometry(.22,.8,.22),leather); arR.position.y=-.4; armR.add(arR);
-  const nock=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.8,4),wood);
-  nock.position.set(0,-.82,.2); nock.rotation.x=Math.PI/2; armR.add(nock); g.add(armR);
-  /* 腿 */
-  const legR=new THREE.Group(); legR.position.set(.25,.9,0);
-  const lr=new THREE.Mesh(new THREE.BoxGeometry(.28,.9,.28),leatherD); lr.position.y=-.45; legR.add(lr);
-  const legL=new THREE.Group(); legL.position.set(-.25,.9,0);
-  const ll=new THREE.Mesh(new THREE.BoxGeometry(.28,.9,.28),leatherD); ll.position.y=-.45; legL.add(ll);
-  g.add(legR); g.add(legL);
-  const cape=new THREE.Mesh(new THREE.PlaneGeometry(.85,1.3),
-    new THREE.MeshStandardMaterial({color:0x2d4a1a,roughness:.9,side:THREE.DoubleSide}));
-  cape.position.set(0,1.7,-.3); cape.rotation.x=.12; g.add(cape);
-  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
-  g.userData={armR,armL,legR,legL,cape};
-  return g;
-}
+/* 三职业构建：一条配置一职业（CLASSES.build 消费） */
+function buildPlayer(){return buildHumanoid(HUMANOIDS.warrior);}
+function buildMage(){return buildHumanoid(HUMANOIDS.mage);}
+function buildArcher(){return buildHumanoid(HUMANOIDS.archer);}
 
 /* ============================================================
    Boss 模型：炎魔领主（岩浆巨人，程序化原创低模）
