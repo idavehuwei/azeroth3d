@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>熔火之心 · 炎魔之王决战</title>
+<style>
+  :root{
+    --ember:#ff6a1a; --lava:#ff3b00; --gold:#e8b34a; --coal:#0b0705;
+    --ui-bg:rgba(14,8,5,.82); --ui-line:rgba(255,120,40,.35);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--coal);
+    font-family:"Noto Sans SC","Microsoft YaHei",sans-serif;color:#f3e2c8;user-select:none}
+  #game{position:fixed;inset:0}
+  canvas{display:block}
+ 
+  /* ---------- 顶部 BOSS 血条 ---------- */
+  #bossFrame{position:fixed;top:14px;left:50%;transform:translateX(-50%);width:min(680px,92vw);z-index:10;
+    opacity:0;transition:opacity .8s}
+  #bossFrame.show{opacity:1}
+  #bossName{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;
+    text-shadow:0 0 12px rgba(255,90,0,.8),0 2px 3px #000}
+  #bossName .n{font-size:20px;font-weight:900;letter-spacing:4px;color:#ffd9a0}
+  #bossName .t{font-size:12px;color:#ff9a55;letter-spacing:2px}
+  .barShell{position:relative;height:22px;border:1px solid var(--ui-line);background:rgba(0,0,0,.65);
+    box-shadow:0 0 18px rgba(255,80,0,.25),inset 0 0 12px #000}
+  .barFill{position:absolute;inset:1px;transform-origin:left;
+    background:linear-gradient(180deg,#ff8a3c 0%,#e03a00 55%,#7a1500 100%)}
+  .barFill.hpP{background:linear-gradient(180deg,#7cff6a,#1f9e2e 60%,#0c5a18)}
+  .barFill.mpP{background:linear-gradient(180deg,#ffd76a,#c98a1f 60%,#7a4d0c)}
+  .barText{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;text-shadow:0 1px 2px #000;letter-spacing:1px}
+  #castShell{margin-top:5px;height:12px;border:1px solid rgba(255,190,90,.4);background:rgba(0,0,0,.6);
+    position:relative;display:none}
+  #castFill{position:absolute;inset:1px;transform-origin:left;background:linear-gradient(180deg,#ffe9a0,#d19a2a)}
+  #castText{position:absolute;inset:0;font-size:10px;display:flex;align-items:center;justify-content:center;
+    color:#fff2d0;text-shadow:0 1px 2px #000;letter-spacing:2px}
+ 
+  /* ---------- 玩家面板 ---------- */
+  #playerFrame{position:fixed;left:16px;bottom:110px;width:min(300px,44vw);z-index:10}
+  #playerFrame .pname{font-size:13px;font-weight:700;color:#a8d8ff;letter-spacing:2px;margin-bottom:3px;
+    text-shadow:0 0 8px rgba(90,160,255,.6),0 1px 2px #000}
+  #playerFrame .barShell{height:16px;margin-bottom:4px}
+ 
+  /* ---------- 技能栏 ---------- */
+  #skillBar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:10px;z-index:10}
+  .skill{width:58px;height:58px;border:1px solid var(--ui-line);background:var(--ui-bg);position:relative;
+    cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    box-shadow:0 0 14px rgba(255,90,0,.18),inset 0 0 10px rgba(0,0,0,.8);transition:transform .08s}
+  .skill:active{transform:scale(.93)}
+  .skill .ic{font-size:22px;line-height:1;filter:drop-shadow(0 0 6px rgba(255,140,40,.7))}
+  .skill .nm{font-size:9px;margin-top:3px;color:#ffcf98;letter-spacing:1px}
+  .skill .key{position:absolute;top:2px;left:4px;font-size:9px;color:#8b7a5e}
+  .skill .cd{position:absolute;inset:0;background:rgba(0,0,0,.78);display:flex;align-items:center;
+    justify-content:center;font-size:18px;font-weight:800;color:#ffe;visibility:hidden}
+  .skill.oncd .cd{visibility:visible}
+  .skill.gcd::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.4)}
+ 
+  /* ---------- 战斗日志 ---------- */
+  #log{position:fixed;right:14px;bottom:16px;width:min(310px,46vw);max-height:180px;overflow:hidden;
+    z-index:9;font-size:11.5px;line-height:1.55;text-shadow:0 1px 2px #000;
+    -webkit-mask-image:linear-gradient(180deg,transparent,#000 30%);mask-image:linear-gradient(180deg,transparent,#000 30%)}
+  #log div{opacity:.92}
+  .lg-sys{color:#ffd76a}.lg-dmg{color:#ffb08a}.lg-boss{color:#ff5a3c;font-weight:700}
+  .lg-heal{color:#8aff9a}.lg-me{color:#cfe4ff}
+ 
+  /* ---------- 中央大字提示 ---------- */
+  #announce{position:fixed;top:24%;left:50%;transform:translateX(-50%);z-index:20;pointer-events:none;
+    font-size:clamp(22px,4.5vw,40px);font-weight:900;letter-spacing:6px;color:#ffcf6a;opacity:0;
+    text-shadow:0 0 24px rgba(255,90,0,.9),0 0 60px rgba(255,40,0,.6),0 2px 4px #000;text-align:center}
+  #announce.pop{animation:pop 3s ease forwards}
+  @keyframes pop{0%{opacity:0;transform:translateX(-50%) scale(.6)}12%{opacity:1;transform:translateX(-50%) scale(1.05)}
+    22%{transform:translateX(-50%) scale(1)}80%{opacity:1}100%{opacity:0}}
+ 
+  /* ---------- 伤害飘字 ---------- */
+  .fct{position:fixed;z-index:15;pointer-events:none;font-weight:900;text-shadow:0 1px 3px #000;
+    animation:fct 1.1s ease-out forwards;white-space:nowrap}
+  @keyframes fct{0%{transform:translate(-50%,0) scale(.7);opacity:0}15%{opacity:1;transform:translate(-50%,-14px) scale(1.15)}
+    100%{transform:translate(-50%,-70px) scale(.95);opacity:0}}
+ 
+  /* ---------- 开始/结束遮罩 ---------- */
+  .overlay{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;background:radial-gradient(ellipse at 50% 60%,rgba(60,15,0,.88),rgba(5,2,1,.96));
+    text-align:center;padding:20px;transition:opacity .6s}
+  .overlay.hide{opacity:0;pointer-events:none}
+  .overlay h1{font-size:clamp(30px,6vw,54px);font-weight:900;letter-spacing:10px;color:#ffd9a0;
+    text-shadow:0 0 30px rgba(255,90,0,.9),0 0 90px rgba(255,40,0,.5)}
+  .overlay h2{font-size:clamp(13px,2vw,17px);color:#ff9a55;letter-spacing:6px;margin:10px 0 26px;font-weight:400}
+  .overlay p{max-width:560px;font-size:13px;line-height:2;color:#d8c3a5;margin-bottom:30px}
+  .overlay .btn{padding:13px 46px;font-size:17px;font-weight:800;letter-spacing:6px;color:#2a1000;cursor:pointer;
+    background:linear-gradient(180deg,#ffce7a,#e0812a 60%,#a34a08);border:1px solid #ffcf90;
+    box-shadow:0 0 26px rgba(255,120,20,.55);font-family:inherit}
+  .overlay .btn:hover{filter:brightness(1.12)}
+  .overlay .hint{margin-top:22px;font-size:11px;color:#8b7a5e;letter-spacing:2px;line-height:2}
+ 
+  /* ---------- 职业选择 ---------- */
+  #classPick{display:flex;gap:14px;margin-bottom:28px;flex-wrap:wrap;justify-content:center}
+  .ccard{width:152px;padding:14px 10px;border:1px solid var(--ui-line);background:rgba(20,10,5,.6);
+    cursor:pointer;transition:.15s;text-align:center}
+  .ccard .ci{font-size:34px;filter:drop-shadow(0 0 8px rgba(255,140,40,.5))}
+  .ccard .cn{font-size:15px;font-weight:800;letter-spacing:4px;margin:6px 0 5px;color:#ffd9a0}
+  .ccard .cd2{font-size:10.5px;line-height:1.8;color:#b09a7a}
+  .ccard:hover{border-color:#ffcf90;transform:translateY(-2px)}
+  .ccard.sel{border-color:#ffcf90;background:rgba(120,50,10,.45);box-shadow:0 0 20px rgba(255,120,20,.45)}
+ 
+  /* ---------- 移动端摇杆 ---------- */
+  #joy{position:fixed;left:26px;bottom:190px;width:110px;height:110px;border-radius:50%;z-index:11;
+    border:1px solid rgba(255,140,60,.3);background:rgba(20,10,5,.35);display:none;touch-action:none}
+  #joyKnob{position:absolute;left:50%;top:50%;width:46px;height:46px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#ffb066,#a3450a);transform:translate(-50%,-50%);
+    box-shadow:0 0 14px rgba(255,110,30,.6)}
+  @media (pointer:coarse){#joy{display:block}}
+  #vignette{position:fixed;inset:0;pointer-events:none;z-index:8;
+    box-shadow:inset 0 0 180px rgba(120,20,0,.55)}
+  #hurtFlash{position:fixed;inset:0;pointer-events:none;z-index:8;background:radial-gradient(ellipse,transparent 55%,rgba(255,30,0,.45));opacity:0}
+  #fade{position:fixed;inset:0;z-index:26;background:#000;opacity:0;transition:opacity .65s;pointer-events:none}
+ 
+  /* ---------- 任务追踪 & NPC 对话 ---------- */
+  #quest{position:fixed;top:14px;right:14px;z-index:9;display:none;min-width:190px;
+    background:var(--ui-bg);border:1px solid var(--ui-line);padding:10px 14px;
+    font-size:12px;line-height:1.9;color:#e8d8bc;box-shadow:0 0 16px rgba(255,90,0,.2)}
+  #quest b{color:#ffd9a0;letter-spacing:1px}
+  #interactBtn{position:fixed;left:50%;bottom:94px;transform:translateX(-50%);z-index:12;display:none;
+    padding:9px 26px;font-size:14px;font-weight:700;letter-spacing:3px;color:#2a1000;cursor:pointer;
+    background:linear-gradient(180deg,#ffce7a,#e0812a 60%,#a34a08);border:1px solid #ffcf90;
+    box-shadow:0 0 18px rgba(255,120,20,.5);font-family:inherit}
+  #dlg{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);width:min(560px,92vw);z-index:22;
+    display:none;background:var(--ui-bg);border:1px solid #ffcf90;padding:16px 18px;
+    box-shadow:0 0 32px rgba(255,120,20,.35)}
+  #dlg .dname{font-weight:800;font-size:14px;color:#ffd9a0;letter-spacing:2px;margin-bottom:8px}
+  #dlgText{font-size:13px;line-height:2;color:#e8d8bc;margin-bottom:10px}
+  .dbtn{display:block;width:100%;text-align:left;padding:8px 12px;margin-top:6px;cursor:pointer;
+    background:rgba(120,50,10,.35);border:1px solid var(--ui-line);color:#ffcf98;
+    font-family:inherit;font-size:12.5px;letter-spacing:1px}
+  .dbtn:hover{border-color:#ffcf90;background:rgba(160,70,15,.5)}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="vignette"></div><div id="hurtFlash"></div><div id="fade"></div>
+ 
+<div id="bossFrame">
+  <div id="bossName"><span class="n">🔥 拉戈斯 · 炎魔领主</span><span class="t">熔火之心 · 最终首领</span></div>
+  <div class="barShell"><div class="barFill" id="bossHp"></div><div class="barText" id="bossHpTx"></div></div>
+  <div id="castShell"><div id="castFill"></div><div id="castText"></div></div>
+</div>
+ 
+<div id="playerFrame">
+  <div class="pname" id="pName">⚔️ 你 · 人类战士</div>
+  <div class="barShell"><div class="barFill hpP" id="pHp"></div><div class="barText" id="pHpTx"></div></div>
+  <div class="barShell" style="height:11px"><div class="barFill mpP" id="pRage"></div><div class="barText" id="pRageTx" style="font-size:9px"></div></div>
+</div>
+ 
+<div id="skillBar">
+  <div class="skill" data-sk="0"><span class="key">1</span><span class="ic">⚔️</span><span class="nm">英勇打击</span><div class="cd"></div></div>
+  <div class="skill" data-sk="1"><span class="key">2</span><span class="ic">🌀</span><span class="nm">旋风斩</span><div class="cd"></div></div>
+  <div class="skill" data-sk="2"><span class="key">3</span><span class="ic">💨</span><span class="nm">冲锋</span><div class="cd"></div></div>
+  <div class="skill" data-sk="3"><span class="key">4</span><span class="ic">🧪</span><span class="nm">治疗药水</span><div class="cd"></div></div>
+</div>
+ 
+<div id="log"></div>
+<div id="announce"></div>
+<div id="joy"><div id="joyKnob"></div></div>
+<div id="quest"></div>
+<button id="interactBtn">💬 对 话（F）</button>
+<div id="dlg"><div class="dname">🐂 长老 · 岩蹄</div><div id="dlgText"></div><div id="dlgBtns"></div></div>
+ 
+<div class="overlay" id="startOv">
+  <h1>熔火之心</h1>
+  <h2>MOLTEN&nbsp;CORE&nbsp;·&nbsp;深入炽热核心</h2>
+  <p>草原之风吹过莫高雷的红岩台地。牛头人长老在营火旁低语：<br>
+     北方矗立着一道燃烧的传送门，通往地底深处的 <b style="color:#ff8a4a">熔火之心</b>——<br>
+     选择你的职业，沿土路北行，踏入旋涡，讨伐炎魔领主 <b style="color:#ff8a4a">拉戈斯</b>。</p>
+  <div id="classPick">
+    <div class="ccard sel" data-cls="warrior"><div class="ci">⚔️</div><div class="cn">战 士</div>
+      <div class="cd2">近战 · 高生存<br>怒气：攻击积攒<br>冲锋 / 旋风斩</div></div>
+    <div class="ccard" data-cls="mage"><div class="ci">🔮</div><div class="cn">法 师</div>
+      <div class="cd2">远程法术 · 高爆发<br>法力：自动恢复<br>炎爆 / 闪现 / 寒冰屏障</div></div>
+    <div class="ccard" data-cls="archer"><div class="ci">🏹</div><div class="cn">弓箭手</div>
+      <div class="cd2">远程物理 · 高机动<br>能量：自动恢复<br>瞄准射击 / 翻滚闪避</div></div>
+  </div>
+  <button class="btn" id="btnStart">启 程</button>
+  <div class="hint">WASD / 方向键 移动 · 数字键 1-4 或点击释放技能<br>
+       在莫高雷沿土路北行，走进传送门旋涡即进入副本 · 副本内走出地面红圈躲避熔岩喷发</div>
+</div>
+ 
+<div class="overlay hide" id="endOv">
+  <h1 id="endTitle"></h1><h2 id="endSub"></h2><p id="endText"></p>
+  <button class="btn" onclick="location.reload()">再 战 一 次</button>
+</div>
+ 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="core.js"></script>
+<script src="models.js"></script>
+<script src="world.js"></script>
+<script src="combat.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

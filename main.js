@@ -1,0 +1,321 @@
+/* ============================================================
+   熔火之心 · main.js
+   主循环与启动：范围钳制 / 每帧更新 / 相机 / UI 刷新 / 职业选择与开战
+   ------------------------------------------------------------
+   [依赖] THREE · core.js（$ clamp rand R BAL camera renderer scene ARENA_R
+          lavaUniforms embers EMBERS emberVel）
+          world.js（player boss WORLD_R PORTAL_POS portalUni portalLabel worldFlames
+          MOBS elder elderDist enterRaid closeDialogue moveToward mobDamage）
+          combat.js（S CLS SKILLS keys joy setClass bossAI bossTargetable distToBoss
+          pickTarget firePlayerShot dmgBoss addDamage mobDamage playerHit
+          spawnBurst log announce fct）
+   [导出] clampArena tick
+   ============================================================ */
+"use strict";
+/* ============================================================
+   主循环
+   ============================================================ */
+function clampArena(pos){
+  const lim=(S.mode==="raid")?ARENA_R-2:WORLD_R;
+  const d=Math.hypot(pos.x,pos.z);
+  if(d>lim){const s=lim/d;pos.x*=s;pos.z*=s;}
+  return pos;
+}
+const clock=new THREE.Clock();
+function tick(){
+  requestAnimationFrame(tick);
+  const dt=Math.min(clock.getDelta(),.05);
+  S.t+=dt; lavaUniforms.uTime.value=S.t; portalUni.uTime.value=S.t;
+
+  /* 莫高雷篝火/火盆闪烁 & 传送门文字浮动 */
+  worldFlames.forEach((f,i)=>{
+    f.fl.scale.y=1+Math.sin(S.t*8+i*2)*.2;
+    f.li.intensity=1.2+Math.sin(S.t*9+i)*.35;
+  });
+  portalLabel.position.y=13.6+Math.sin(S.t*1.5)*.25;
+
+  /* 火星上升 */
+  const pp=embers.geometry.attributes.position.array;
+  for(let i=0;i<EMBERS;i++){
+    pp[i*3+1]+=emberVel[i]*dt;
+    pp[i*3]+=Math.sin(S.t*1.3+i)*dt*.6;
+    if(pp[i*3+1]>26){pp[i*3+1]=0;pp[i*3]=rand(-60,60);pp[i*3+2]=rand(-60,60);}
+  }
+  embers.geometry.attributes.position.needsUpdate=true;
+
+  /* Boss 火焰摇曳 */
+  boss.traverse(o=>{if(o.userData.flame){o.scale.y=1+Math.sin(S.t*7+o.position.x*3)*.18;
+    o.rotation.y+=dt*2;}});
+  boss.userData.core.rotation.y+=dt;
+  boss.userData.core.scale.setScalar(1+Math.sin(S.t*4)*.12);
+  boss.userData.bossLight.intensity=2+Math.sin(S.t*5)*.5;
+
+  if(S.started&&!S.over){
+    /* ---- 莫高雷：传送门检测 / 野怪 AI / NPC ---- */
+    if(S.mode==="world"){
+      const pd=Math.hypot(player.position.x-PORTAL_POS.x,player.position.z-PORTAL_POS.z);
+      if(pd<22&&!S.portalHinted){
+        S.portalHinted=true;
+        announce("熔火之心 · 副本入口");
+        log("灼热的气息从旋涡中渗出……走进传送门即可进入副本。","lg-sys");
+      }
+      if(pd<4.5)enterRaid();
+
+      /* 野猪 AI */
+      for(const m of MOBS){
+        if(m.state==="dead"){
+          m.respawnT-=dt;
+          if(m.respawnT<=0){
+            m.state="wander"; m.hp=m.hpMax;
+            m.mesh.position.set(m.home.x,0,m.home.z);
+            m.mesh.visible=true; m.label.visible=true;
+            spawnBurst(m.mesh.position.clone().setY(.8),0x8aff9a,12,1);
+          }
+          continue;
+        }
+        if(m.rootT>0)m.rootT-=dt;
+        const dP=Math.hypot(player.position.x-m.mesh.position.x,player.position.z-m.mesh.position.z);
+        const dH=Math.hypot(m.home.x-m.mesh.position.x,m.home.z-m.mesh.position.z);
+        if(m.state==="wander"){
+          if(dP<BAL.mob.aggroR&&S.p.alive){m.state="aggro";log("草原野猪发现了你，嚎叫着冲了过来！","lg-dmg");}
+          m.wanderT-=dt;
+          if(m.wanderT<=0){
+            m.wanderT=rand(2.5,5.5);
+            const a=rand(0,6.28);
+            m.dest={x:m.home.x+Math.cos(a)*rand(2,10),z:m.home.z+Math.sin(a)*rand(2,10)};
+          }
+          if(m.dest&&m.rootT<=0)moveToward(m,m.dest,BAL.mob.wanderSpd,dt);
+        }else if(m.state==="aggro"){
+          if(dH>BAL.mob.leashR||!S.p.alive){
+            m.state="wander"; m.hp=m.hpMax;
+            m.dest={x:m.home.x,z:m.home.z};
+          }else if(dP>BAL.mob.meleeR){
+            if(m.rootT<=0)moveToward(m,{x:player.position.x,z:player.position.z},BAL.mob.chaseSpd,dt);
+          }else{
+            m.moving=false;
+            m.atkT-=dt;
+            if(m.atkT<=0){m.atkT=BAL.mob.atkCd;playerHit(R(BAL.mob.dmg),"草原野猪");}
+          }
+        }
+        m.mesh.position.y=m.moving?Math.abs(Math.sin(S.t*9+m.home.x))*.22:0;
+        m.label.position.set(m.mesh.position.x,2.7,m.mesh.position.z);
+      }
+      /* 长老待机动画 & 任务标记浮动 */
+      elder.rotation.y=Math.PI*.85+Math.sin(S.t*.8)*.08;
+      elder.position.y=Math.sin(S.t*1.6)*.04;
+      markerExcl.position.y=6.8+Math.sin(S.t*2.4)*.3;
+      markerQ.position.y=markerExcl.position.y;
+      /* 对话按钮显隐 / 走远自动关闭对话 */
+      const nearElder=elderDist()<5.5;
+      $("#interactBtn").style.display=(nearElder&&$("#dlg").style.display!=="block")?"block":"none";
+      if(!nearElder&&elderDist()>8)closeDialogue();
+    }
+    /* ---- 玩家移动 ---- */
+    let mx=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
+    let mz=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
+    mx+=joy.x; mz+=joy.y;
+    const ml=Math.hypot(mx,mz);
+    if(S.p.knock){
+      player.position.add(S.p.knock.dir.clone().multiplyScalar(dt*28));
+      S.p.knock.t-=dt; if(S.p.knock.t<=0)S.p.knock=null;
+      clampArena(player.position);
+    }else if(ml>.1&&S.p.alive){
+      mx/=Math.max(1,ml);mz/=Math.max(1,ml);
+      player.position.x+=mx*S.p.speed*dt;
+      player.position.z+=mz*S.p.speed*dt;
+      clampArena(player.position);
+      S.p.face=Math.atan2(mx,mz);
+      S.p.walkPhase+=dt*11;
+    }else{
+      /* 站立时面向 Boss */
+      if(bossTargetable())S.p.face=Math.atan2(boss.position.x-player.position.x,boss.position.z-player.position.z);
+      S.p.walkPhase*=1-dt*8;
+    }
+    player.rotation.y=S.p.face;
+    /* 走路摆腿 & 披风 */
+    const U=player.userData,sw=Math.sin(S.p.walkPhase)*.55;
+    U.legR.rotation.x=sw; U.legL.rotation.x=-sw;
+    U.cape.rotation.x=.12+Math.abs(sw)*.25+Math.sin(S.t*3)*.04;
+    /* 攻击挥剑动画 */
+    if(S.p.attackAnim>0){S.p.attackAnim-=dt*4;
+      U.armR.rotation.x=-2.4*Math.sin(Math.min(1,S.p.attackAnim)*Math.PI);}
+    else U.armR.rotation.x=Math.sin(S.p.walkPhase)*.3;
+    U.armL.rotation.x=-Math.sin(S.p.walkPhase)*.3;
+
+    /* ---- 自动普攻（战士近战 / 法师火球 / 弓箭手射箭） ---- */
+    S.p.atkTimer-=dt;
+    if(S.p.alive&&S.p.atkTimer<=0){
+      let did=false;
+      if(CLS.ranged){
+        const tgt=pickTarget(CLS.range);
+        if(tgt){S.p.attackAnim=1;firePlayerShot(tgt,rand(CLS.autoMin,CLS.autoMax),null);did=true;}
+      }else{
+        if(S.mode==="world"){
+          for(const m of MOBS){
+            if(m.state!=="dead"&&player.position.distanceTo(m.mesh.position)<4.5){
+              S.p.attackAnim=1;mobDamage(m,rand(CLS.autoMin,CLS.autoMax));did=true;break;
+            }
+          }
+        }else if(bossTargetable()&&distToBoss()<=10){
+          S.p.attackAnim=1;dmgBoss(rand(CLS.autoMin,CLS.autoMax));did=true;
+        }else{
+          for(const a of S.adds){
+            if(player.position.distanceTo(a.mesh.position)<4.5){
+              S.p.attackAnim=1;addDamage(a,rand(CLS.autoMin,CLS.autoMax));did=true;break;
+            }
+          }
+        }
+      }
+      if(did&&CLS.hitGain)S.p.rage=Math.min(S.p.rageMax,S.p.rage+CLS.hitGain);
+      S.p.atkTimer=did?CLS.autoSpd:.3;
+    }
+
+    /* ---- 资源恢复 & 冷却 ---- */
+    S.p.invuln=Math.max(0,S.p.invuln-dt);
+    if(CLS.regen)S.p.rage=Math.min(S.p.rageMax,S.p.rage+CLS.regen*dt);
+    S.gcd=Math.max(0,S.gcd-dt);
+    document.querySelectorAll(".skill").forEach((el,i)=>{
+      S.cds[i]=Math.max(0,S.cds[i]-dt);
+      el.classList.toggle("oncd",S.cds[i]>0);
+      el.classList.toggle("gcd",S.gcd>0&&S.cds[i]<=0);
+      if(S.cds[i]>0)el.querySelector(".cd").textContent=Math.ceil(S.cds[i]);
+    });
+
+    /* ---- Boss（仅副本内激活） ---- */
+    if(S.mode==="raid")bossAI(dt);
+    /* Boss 挥锤动画 */
+    if(S.b.swingT>0){S.b.swingT-=dt*1.6;
+      boss.userData.armR.rotation.x=-2.1*Math.sin(Math.min(1,S.b.swingT)*Math.PI);}
+    else boss.userData.armR.rotation.x=Math.sin(S.t*1.2)*.12;
+    boss.userData.armL.rotation.x=Math.sin(S.t*1.2+1)*.15;
+    /* Boss 缓慢面向玩家 */
+    if(!S.b.rising&&!S.b.submerged&&S.b.alive){
+      const ta=Math.atan2(player.position.x-boss.position.x,player.position.z-boss.position.z);
+      let da=ta-boss.rotation.y;
+      while(da>Math.PI)da-=6.283; while(da<-Math.PI)da+=6.283;
+      boss.rotation.y+=da*dt*1.5;
+    }
+
+    /* ---- 小怪 AI ---- */
+    for(const a of S.adds){
+      const dir=player.position.clone().sub(a.mesh.position);dir.y=0;
+      const d=dir.length();
+      if(a.rootT>0){a.rootT-=dt;}  /* 被冰霜新星定身 */
+      else if(d>BAL.add.stopR){dir.normalize();a.mesh.position.add(dir.multiplyScalar(dt*BAL.add.speed));}
+      a.mesh.rotation.y=Math.atan2(dir.x,dir.z);
+      a.mesh.position.y=Math.abs(Math.sin(S.t*6+a.mesh.position.x))*.25;
+      a.atkT-=dt;
+      if(d<BAL.add.meleeR&&a.atkT<=0&&S.p.alive){a.atkT=BAL.add.atkCd;playerHit(R(BAL.add.dmg),"烈焰之子");}
+    }
+
+    /* ---- 投射物 ---- */
+    for(let i=S.projectiles.length-1;i>=0;i--){
+      const pr=S.projectiles[i];
+      const dir=pr.target.clone().sub(pr.mesh.position);
+      const d=dir.length();
+      if(d<1.2){
+        spawnBurst(pr.mesh.position,0xff6a1a,30,2.5);
+        if(player.position.distanceTo(pr.target)<BAL.boss.fireball.hitR)playerHit(R(BAL.boss.fireball.dmg),"烈焰冲击");
+        else{log("你成功躲开了烈焰冲击！","lg-me");fct(player.position.clone().setY(3.4),"躲避！","#8ad0ff",16);}
+        scene.remove(pr.mesh);S.projectiles.splice(i,1);continue;
+      }
+      dir.normalize();pr.mesh.position.add(dir.multiplyScalar(pr.speed*dt));
+      pr.mesh.rotation.y+=dt*8;
+    }
+
+    /* ---- 玩家投射物（火球 / 箭矢） ---- */
+    for(let i=S.pShots.length-1;i>=0;i--){
+      const sh=S.pShots[i];
+      let tp=null;
+      if(sh.tgt.type==="boss"){
+        if(!S.b.alive){scene.remove(sh.mesh);S.pShots.splice(i,1);continue;}
+        tp=new THREE.Vector3(boss.position.x,7.5,boss.position.z);
+      }else if(sh.tgt.type==="mob"){
+        if(sh.tgt.m.state==="dead"){scene.remove(sh.mesh);S.pShots.splice(i,1);continue;}
+        tp=sh.tgt.m.mesh.position.clone().setY(1.1);
+      }else{
+        if(!S.adds.includes(sh.tgt.a)){scene.remove(sh.mesh);S.pShots.splice(i,1);continue;}
+        tp=sh.tgt.a.mesh.position.clone().setY(1.2);
+      }
+      const dir=tp.clone().sub(sh.mesh.position);
+      if(dir.length()<2){
+        spawnBurst(sh.mesh.position,CLS.shotColor,12,1);
+        if(sh.tgt.type==="boss")dmgBoss(sh.dmg,sh.label);
+        else if(sh.tgt.type==="mob")mobDamage(sh.tgt.m,sh.dmg,sh.label);
+        else addDamage(sh.tgt.a,sh.dmg*rand(.92,1.08));
+        scene.remove(sh.mesh);S.pShots.splice(i,1);continue;
+      }
+      dir.normalize();sh.mesh.position.add(dir.multiplyScalar(sh.speed*dt));
+    }
+
+    /* ---- 地面 AoE ---- */
+    for(let i=S.telegraphs.length-1;i>=0;i--){
+      const tg=S.telegraphs[i];tg.t+=dt;
+      const k=Math.min(1,tg.t/tg.delay);
+      tg.disc.scale.setScalar(.2+k*.8);
+      tg.ring.material.opacity=.5+Math.sin(S.t*10)*.3;
+      if(tg.t>=tg.delay){
+        spawnBurst(new THREE.Vector3(tg.x,.4,tg.z),0xff4400,40,tg.r*.8);
+        if(Math.hypot(player.position.x-tg.x,player.position.z-tg.z)<tg.r)
+          playerHit(R(BAL.boss.eruption.dmg),"熔岩喷发");
+        scene.remove(tg.ring);scene.remove(tg.disc);S.telegraphs.splice(i,1);
+      }
+    }
+  }
+
+  /* ---- 粒子爆发衰减 ---- */
+  for(let i=S.bursts.length-1;i>=0;i--){
+    const b=S.bursts[i];b.life+=dt;
+    const arr=b.pts.geometry.attributes.position.array;
+    for(let j=0;j<b.vel.length;j++){
+      arr[j*3]+=b.vel[j].x*dt;arr[j*3+1]+=b.vel[j].y*dt;arr[j*3+2]+=b.vel[j].z*dt;
+      b.vel[j].y-=dt*6;
+    }
+    b.pts.geometry.attributes.position.needsUpdate=true;
+    b.pts.material.opacity=1-b.life/1.1;
+    if(b.life>1.1){scene.remove(b.pts);S.bursts.splice(i,1);}
+  }
+
+  /* ---- 相机跟随 ---- */
+  if(S.mode==="raid"){
+    const camTarget=new THREE.Vector3(
+      player.position.x*.7+boss.position.x*.15,13,
+      player.position.z*.7+boss.position.z*.15+22);
+    camera.position.lerp(camTarget,dt*3);
+    camera.lookAt(player.position.x*.6,3.5,player.position.z*.6-6);
+  }else{
+    const camTarget=new THREE.Vector3(player.position.x,12,player.position.z+17);
+    camera.position.lerp(camTarget,dt*3);
+    camera.lookAt(player.position.x,2.5,player.position.z-4);
+  }
+
+  /* ---- UI 刷新 ---- */
+  $("#bossHp").style.transform=`scaleX(${S.b.hp/S.b.hpMax})`;
+  $("#bossHpTx").textContent=S.b.submerged?"—— 潜入岩浆 ·先消灭烈焰之子 ——":
+    `${S.b.hp.toLocaleString()} / ${S.b.hpMax.toLocaleString()}  (${Math.ceil(S.b.hp/S.b.hpMax*100)}%)`;
+  $("#pHp").style.transform=`scaleX(${S.p.hp/S.p.hpMax})`;
+  $("#pHpTx").textContent=`${Math.max(0,Math.round(S.p.hp))} / ${S.p.hpMax}`;
+  $("#pRage").style.transform=`scaleX(${S.p.rage/S.p.rageMax})`;
+  $("#pRageTx").textContent=`${CLS.resName} ${Math.round(S.p.rage)}`;
+
+  renderer.render(scene,camera);
+}
+tick();
+
+/* ---------------- 职业选择 & 开战 ---------------- */
+let chosenClass="warrior";
+document.querySelectorAll(".ccard").forEach(c=>{
+  c.addEventListener("click",()=>{
+    document.querySelectorAll(".ccard").forEach(x=>x.classList.remove("sel"));
+    c.classList.add("sel");
+    chosenClass=c.dataset.cls;
+  });
+});
+$("#btnStart").addEventListener("click",()=>{
+  setClass(chosenClass);
+  $("#startOv").classList.add("hide");
+  S.started=true;
+  announce("莫高雷 · 圣山草原");
+  log("你从牛头人营地出发。沿着土路向北，尽头矗立着通往熔火之心的传送门。","lg-sys");
+  setTimeout(()=>log(CLS.tip,"lg-sys"),2200);
+});
