@@ -213,6 +213,30 @@ const BALANCE={
     portalEnterR:4.5,
     exitPortalEnterR:5.5,
   },
+  /* AI 队友（STEP 20）：单人伪组队；数值集中于此 */
+  companion:{
+    followDist:5.2,          /* 超过此距开始跟上 */
+    followStop:2.6,          /* 进入此距停下 */
+    combatEngageR:24,        /* 参战索敌半径（相对玩家） */
+    meleeR:4.2,
+    speedMul:1.08,
+    retreatSpeedMul:1.15,    /* 撤退态移速倍率（叠在 speedMul 上） */
+    dmgMul:.82,              /* 相对职业自动攻击 */
+    healMul:.9,              /* 牧师治疗量相对 BAL.skills */
+    hpMul:.72,               /* 同伴生命 = 职业 hp × 此值 */
+    retreatHpPct:.28,        /* 低于此比例撤退 */
+    retreatRecoverPct:.45,   /* 回血至此再出战 */
+    reviveHpPct:.45,         /* 倒下起身后生命比例 */
+    regenPct:.04,            /* 非战斗每秒回复最大生命比例 */
+    healPlayerHpPct:.40,     /* 牧师：玩家低于此比例优先治疗 */
+    healSelfHpPct:.50,
+    healCd:5,
+    attackCdMul:1.15,        /* 自动攻击略慢于玩家 */
+    atkTimerStart:.4,        /* 招募后首次攻击延迟 */
+    mobHitChance:.35,        /* 近战野怪有概率打队友 */
+    reviveT:10,              /* 倒下后自动起身秒数 */
+    spawnOffset:{x:2.2,z:1.4},
+  },
 };
 const BAL=BALANCE;
 

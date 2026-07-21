@@ -11,7 +11,8 @@
           zones.js（getCurrentZone getActivePortals enterZone resolvePortalPos）
           combat.js（S CLS SKILLS keys joy setClass bossAI bossTargetable distToBoss
           pickTarget firePlayerShot dmgBoss addDamage mobDamage playerHit
-          log announce fct）
+          setCurrentTarget log announce fct）
+          companions.js 运行时（tickCompanion companionAlive companionHit COMPANION）
           items.js（updateDrops nearestDrop removeDropOf cancelConsume）
           vfx.js（VFX spawnBurst fireProjectile disposeVfxMesh）
           raid.js 运行时（bossAI distToBoss bossTargetable DUNGEON）
@@ -239,7 +240,14 @@ function tick(){
           }else{
             m.moving=false;
             m.atkT-=dt;
-            if(m.atkT<=0){m.atkT=st.atkCd;playerHit(R(st.dmg),m.name);}
+            if(m.atkT<=0){
+              m.atkT=st.atkCd;
+              const hitCmp=typeof companionAlive==="function"&&companionAlive()
+                &&Math.hypot(COMPANION.mesh.position.x-m.mesh.position.x,COMPANION.mesh.position.z-m.mesh.position.z)<st.meleeR
+                &&rand()<BAL.companion.mobHitChance;
+              if(hitCmp)companionHit(R(st.dmg),m.name);
+              else playerHit(R(st.dmg),m.name);
+            }
           }
         }else if(m.state==="return"){
           moveToward(m,m.home,st.chaseSpd,dt);
@@ -386,15 +394,15 @@ function tick(){
         if(S.mode==="world"){
           for(const m of MOBS){
             if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<4.5){
-              S.p.attackAnim=1;mobDamage(m,rand(CLS.autoMin,CLS.autoMax));did=true;break;
+              S.p.attackAnim=1;setCurrentTarget({type:"mob",m});mobDamage(m,rand(CLS.autoMin,CLS.autoMax));did=true;break;
             }
           }
         }else if(bossTargetable()&&distToBoss()<=10){
-          S.p.attackAnim=1;dmgBoss(rand(CLS.autoMin,CLS.autoMax));did=true;
+          S.p.attackAnim=1;setCurrentTarget({type:"boss"});dmgBoss(rand(CLS.autoMin,CLS.autoMax));did=true;
         }else{
           for(const a of S.adds){
             if(player.position.distanceTo(a.mesh.position)<4.5){
-              S.p.attackAnim=1;addDamage(a,rand(CLS.autoMin,CLS.autoMax));did=true;break;
+              S.p.attackAnim=1;setCurrentTarget({type:"add",a});addDamage(a,rand(CLS.autoMin,CLS.autoMax));did=true;break;
             }
           }
         }
@@ -422,6 +430,9 @@ function tick(){
       el.classList.toggle("gcd",S.gcd>0&&S.cds[i]<=0);
       if(S.cds[i]>0)el.querySelector(".cd").textContent=Math.ceil(S.cds[i]);
     });
+
+    /* ---- AI 队友（STEP 20） ---- */
+    if(typeof tickCompanion==="function")tickCompanion(dt);
 
     /* ---- Boss（boss1 玛格曼达 / boss 拉戈斯） ---- */
     if(S.mode==="raid"){
@@ -493,7 +504,7 @@ function tick(){
       }
       const dir=tp.clone().sub(sh.mesh.position);
       if(dir.length()<2){
-        spawnBurst(sh.mesh.position,CLS.shotColor,12,1);
+        spawnBurst(sh.mesh.position,sh.shotColor||CLS.shotColor,12,1);
         if(sh.tgt.type==="boss")dmgBoss(sh.dmg,sh.label);
         else if(sh.tgt.type==="mob")mobDamage(sh.tgt.m,sh.dmg,sh.label);
         else addDamage(sh.tgt.a,sh.dmg*rand(.92,1.08));

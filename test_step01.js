@@ -107,8 +107,20 @@ assert(sfxSrc.includes("heal")&&sfxSrc.includes("holy"),"sfx.js 有 heal/holy �
 
 assert(html.includes('data-cls="priest"'),"启程界面有牧师职业卡");
 
+/* STEP 20 AI 队友冒烟 */
+const cmpSrc=fs.readFileSync(path.join(__dirname,"companions.js"),"utf8");
+assert(cmpSrc.includes("function recruitCompanion"),"companions.js 有 recruitCompanion");
+assert(cmpSrc.includes("function dismissCompanion"),"companions.js 有 dismissCompanion");
+assert(cmpSrc.includes("function tickCompanion"),"companions.js 有 tickCompanion");
+assert(cmpSrc.includes("FOLLOW")&&cmpSrc.includes("COMBAT")&&cmpSrc.includes("HEAL")&&cmpSrc.includes("RETREAT"),"同伴状态机含 FOLLOW/COMBAT/HEAL/RETREAT");
+assert(cmpSrc.includes("disposeCompanionMesh"),"解散有 disposeCompanionMesh");
+assert(html.includes('src="companions.js"'),"game.html 加载 companions.js");
+assert(html.includes("cmpFrame"),"game.html 有同伴 HUD");
+assert(coreSrc.includes("companion:{")||coreSrc.includes("companion:"),"BALANCE 含 companion 表");
+assert(combatSrc.includes("getFocusTarget")&&combatSrc.includes("currentTarget"),"combat.js 有集火目标 API");
+
 if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17/18/19 分区种子 / 注册表 / 牧师冒烟");
+console.log("\n全部通过 · STEP 17–20 分区 / 牧师 / AI 队友冒烟");

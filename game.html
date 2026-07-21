@@ -43,6 +43,11 @@
   #playerFrame .pname{font-size:13px;font-weight:700;color:#a8d8ff;letter-spacing:2px;margin-bottom:3px;
     text-shadow:0 0 8px rgba(90,160,255,.6),0 1px 2px #000}
   #playerFrame .barShell{height:16px;margin-bottom:4px}
+  #cmpFrame{position:fixed;left:16px;bottom:210px;width:min(260px,40vw);z-index:10;display:none}
+  #cmpFrame .pname{font-size:11px;font-weight:700;color:#9ec9ff;letter-spacing:1px;margin-bottom:2px;
+    text-shadow:0 0 8px rgba(80,140,220,.5),0 1px 2px #000}
+  #cmpFrame .barShell{height:12px;margin-bottom:2px}
+  #cmpFrame .cmp-st{font-size:9px;color:#8aa0b8;margin-top:1px}
   #pGold{font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:4px;
     text-shadow:0 1px 2px #000;display:flex;gap:8px;flex-wrap:wrap}
   #pGold .g{color:#ffd76a} #pGold .s{color:#d0d8e0} #pGold .c{color:#c98a4a}
@@ -303,6 +308,11 @@
   <div class="barShell" style="height:11px"><div class="barFill mpP" id="pRage"></div><div class="barText" id="pRageTx" style="font-size:9px"></div></div>
   <div class="barShell" style="height:10px;margin-top:4px"><div class="barFill xpP" id="pXp"></div><div class="barText" id="pXpTx" style="font-size:8px"></div></div>
 </div>
+<div id="cmpFrame">
+  <div class="pname" id="cmpName">同伴</div>
+  <div class="barShell"><div class="barFill hpP" id="cmpHp"></div><div class="barText" id="cmpHpTx"></div></div>
+  <div class="cmp-st" id="cmpState">—</div>
+</div>
  
 <div id="skillBar">
   <div class="skill" data-sk="0"><span class="key">1</span><span class="ic">⚔️</span><span class="nm">英勇打击</span><div class="cd"></div></div>
@@ -442,6 +452,7 @@
 <script src="world.js"></script>
 <script src="barrens.js"></script>
 <script src="combat.js"></script>
+<script src="companions.js"></script>
 <script src="talents.js"></script>
 <script src="panels.js"></script>
 <script src="map.js"></script>

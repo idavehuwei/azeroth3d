@@ -4,6 +4,7 @@
    ------------------------------------------------------------
    [依赖] core.js（BAL setZoneSeed）
           运行时：combat.js（S）· world.js（fadeTo player closeDialogue）
+          companions.js（transferCompanionZone）
           raid.js（resetBoss DUNGEON removeExitPortal）· sfx.js（SFX）
           map.js（setMapZone）· save.js（saveGame）
    [导出] ZONES registerZone getZone getCurrentZone getCurrentZoneId
@@ -117,6 +118,7 @@ function enterZone(id,gateId,opts){
           camera.position.set(gate.x,12,gate.z+17);
         }
       }
+      if(typeof transferCompanionZone==="function")transferCompanionZone(to.scene,gate);
     }
     if(typeof scene!=="undefined")scene=to.scene;
 

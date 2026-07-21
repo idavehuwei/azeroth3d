@@ -18,6 +18,7 @@
             spawnAdd addDamage addDie bossDie playerDie resetBoss BOSS_ENT DUNGEON）
    [导出] S SKILLS CLASSES CLS setClass log announce fct hurtFlash keys joy
           useSkill hitEntity dmgBoss pickTarget firePlayerShot playerHit
+          isTargetAlive setCurrentTarget getFocusTarget
           gainXP updateLevelUI gainCopper spendCopper formatCopperText updateGoldUI
           clearShieldVisual applyHeal
    ============================================================ */
@@ -28,6 +29,7 @@
 const S={
   started:false,over:false,t:0,mode:"world",zoneId:"mulgore",
   portalHinted:false,portalHints:{},portalLockT:0,
+  currentTarget:null,   /* STEP 20：玩家集火目标，供 AI 队友共用 */
   p:{hp:5200,hpMax:5200,rage:20,rageMax:100,speed:10.5,alive:true,dmgMul:1,
      atkTimer:0,attackAnim:0,walkPhase:0,face:0,invuln:0,
      absorb:0,absorbT:0,shieldMesh:null,   /* STEP 19 真言术：盾 */
@@ -288,24 +290,45 @@ function potion(){
 }
 
 /* ---------------- 远程职业通用：索敌 & 投射物 ---------------- */
-function pickTarget(range){
+function pickTarget(range,fromPos){
+  const origin=fromPos||player.position;
   let tgt=null,best=range;
   if(S.mode==="world"){
     for(const m of MOBS){
       if(!mobTargetable(m))continue;
-      const d=player.position.distanceTo(m.mesh.position);
+      const d=origin.distanceTo(m.mesh.position);
       if(d<best){best=d;tgt={type:"mob",m};}
     }
     return tgt;
   }
-  if(bossTargetable()&&distToBoss()<=range){tgt={type:"boss"};best=distToBoss();}
+  if(bossTargetable()){
+    const d=Math.hypot(origin.x-boss.position.x,origin.z-boss.position.z);
+    if(d<=range){tgt={type:"boss"};best=d;}
+  }
   for(const a of S.adds){
-    const d=player.position.distanceTo(a.mesh.position);
+    const d=origin.distanceTo(a.mesh.position);
     if(d<best){best=d;tgt={type:"add",a};}
   }
   return tgt;
 }
+function isTargetAlive(tgt){
+  if(!tgt)return false;
+  if(tgt.type==="mob")return mobTargetable(tgt.m);
+  if(tgt.type==="boss")return typeof bossTargetable==="function"&&bossTargetable();
+  if(tgt.type==="add")return !!(tgt.a&&S.adds.includes(tgt.a)&&tgt.a.hp>0);
+  return false;
+}
+function setCurrentTarget(tgt){
+  if(tgt&&isTargetAlive(tgt))S.currentTarget=tgt;
+}
+function getFocusTarget(range){
+  const r=range!=null?range:(BAL.companion?BAL.companion.combatEngageR:24);
+  if(isTargetAlive(S.currentTarget))return S.currentTarget;
+  S.currentTarget=null;
+  return pickTarget(r);
+}
 function firePlayerShot(tgt,dmg,label,scale=1){
+  setCurrentTarget(tgt);
   SFX.play(CLS.sfx||"fireball");
   const m=new THREE.Mesh(new THREE.SphereGeometry(.3*scale,8,8),
     new THREE.MeshBasicMaterial({color:CLS.shotColor}));
@@ -314,7 +337,7 @@ function firePlayerShot(tgt,dmg,label,scale=1){
   m.add(glow);
   m.position.copy(player.position); m.position.y=1.9;
   scene.add(m);
-  S.pShots.push({mesh:m,tgt,dmg,label,speed:28});
+  S.pShots.push({mesh:m,tgt,dmg,label,speed:28,shotColor:CLS.shotColor});
 }
 
 /* ---------------- 法师技能 ---------------- */

@@ -9,9 +9,11 @@
             getTalentNode updateSkillBarStats）
           world.js（QUEST updateQuest setMarker player scene sceneWorld）
           zones.js 运行时（enterZone）
+          companions.js 运行时（getCompanionSave restoreCompanion dismissCompanion）
    [导出] saveGame loadGame hasSave clearSave collectSaveData applySaveData
           exportSaveCode importSaveCode beginNewGame beginContinue
           refreshStartMenu
+          （存档字段含 companion:{classKey,hp}|null · STEP 20）
    ============================================================ */
 "use strict";
 
@@ -60,6 +62,7 @@ function collectSaveData(){
     pos:inWorld
       ?{x:+player.position.x.toFixed(2),z:+player.position.z.toFixed(2)}
       :{x:0,z:52},
+    companion:typeof getCompanionSave==="function"?getCompanionSave():null,
     savedAt:Date.now(),
   };
 }
@@ -105,6 +108,13 @@ function validateSave(raw){
   const x=typeof pos.x==="number"&&isFinite(pos.x)?pos.x:0;
   const z=typeof pos.z==="number"&&isFinite(pos.z)?pos.z:52;
   const zoneId=normalizeSaveZoneId(raw.zoneId||raw.zone);
+  let companion=null;
+  if(raw.companion&&typeof raw.companion==="object"&&CLASSES[raw.companion.classKey]){
+    companion={
+      classKey:raw.companion.classKey,
+      hp:typeof raw.companion.hp==="number"&&isFinite(raw.companion.hp)?raw.companion.hp:null,
+    };
+  }
   return {
     ok:true,
     data:{
@@ -119,6 +129,7 @@ function validateSave(raw){
       zone:zoneId==="molten_core"?"raid":"world",
       zoneId,
       pos:{x,z},
+      companion,
       savedAt:raw.savedAt|0,
     },
   };
@@ -218,6 +229,10 @@ function applySaveData(data){
   setMarker();
   if(typeof renderBag==="function")renderBag();
   if(typeof renderTalentPanel==="function")renderTalentPanel();
+  if(typeof restoreCompanion==="function"){
+    if(data.companion)restoreCompanion(data.companion);
+    else if(typeof dismissCompanion==="function")dismissCompanion({silent:true,noSave:true});
+  }
 }
 
 function saveGame(silent){
@@ -299,8 +314,10 @@ function beginNewGame(classKey){
   clearSave();
   QUEST.state=0; QUEST.kills=0;
   if(typeof BARRENS_QUEST!=="undefined"){BARRENS_QUEST.state=0;BARRENS_QUEST.kills=0;}
+  if(typeof dismissCompanion==="function")dismissCompanion({silent:true,noSave:true});
   S.inv=[]; S.eq={weapon:null,armor:null};
   S.p.gold=0; S.over=false; S.mode="world"; S.zoneId="mulgore";
+  S.currentTarget=null;
   setClass(classKey||"warrior");
   S.god=$("#godChk")&&$("#godChk").checked;
   if(typeof enterZone==="function"&&(typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore")!=="mulgore"){

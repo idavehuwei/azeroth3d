@@ -30,7 +30,8 @@
 | `items.js` | 物品与掉落 | QUALITY, ITEMS, LOOT, dropLoot, tryLoot, useItem, sellItem |
 | `models.js` | 3D 模型工厂 | buildPlayer, buildMage, buildArcher, buildBoss, buildBoar, buildFlameSpawn, buildElder, buildVendor |
 | `world.js` | 莫高雷世界 | player, boss, MOBS, QUEST, enterRaid, mobDie, setCorpse, tryInteract, vendor, spiritHealer |
-| `combat.js` | 战斗系统 | S, CLASSES, SKILLS, hitEntity, useSkill, gainCopper |
+| `combat.js` | 战斗系统 | S, CLASSES, SKILLS, hitEntity, useSkill, gainCopper, getFocusTarget |
+| `companions.js` | AI 队友 | recruitCompanion, dismissCompanion, tickCompanion, companionHit |
 | `vfx.js` | 特效注册表 | VFX, fireProjectile, spawnTelegraph, spawnBurst, disposeVfxMesh |
 | `talents.js` | 天赋数据层 | TALENTS, spendTalent, getSkillCd, cheatTalent |
 | `panels.js` | HUD 面板 | toggleCharPanel, toggleSpellPanel, toggleQuestLog |

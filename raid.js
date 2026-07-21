@@ -12,7 +12,8 @@
           spawnExitPortal removeExitPortal leaveRaid）
           vfx.js（VFX fireProjectile spawnTelegraph spawnBurst disposeVfxMesh）
           save.js 运行时（saveGame；Boss 击杀自动存）
-          combat.js 运行时（gainCopper rollCopperRange）
+          combat.js 运行时（gainCopper rollCopperRange playerHit）
+          companions.js 运行时（companionAlive companionHit COMPANION）
    [导出] BOSSES createBoss defineBoss getBossCfg armBossSkills activateRaidBoss mountBossMesh
           bossAI startCast spawnAdd addDamage addDie bossDie playerDie resetBoss
           releaseSpiritWorld releaseSpiritRaid releaseSpiritLeaveRaid resurrectPlayer
@@ -536,8 +537,14 @@ function runBossSkill(sk){
         let mul=1;
         if(sk.phaseMul&&sk.phaseMul[B.phase])mul=st[sk.phaseMul[B.phase]]||1;
         if(distToBoss()<st.hitRange&&S.p.alive){
-          playerHit(R(st.dmg)*mul,label);
-          if(vfx)VFX.spawn(vfx,{pos:player.position.clone().setY(.5)});
+          const hitCmp=typeof companionAlive==="function"&&companionAlive()
+            &&Math.hypot(COMPANION.mesh.position.x-boss.position.x,COMPANION.mesh.position.z-boss.position.z)<st.hitRange
+            &&rand()<BAL.companion.mobHitChance;
+          if(hitCmp)companionHit(R(st.dmg)*mul,label);
+          else{
+            playerHit(R(st.dmg)*mul,label);
+            if(vfx)VFX.spawn(vfx,{pos:player.position.clone().setY(.5)});
+          }
         }
       },st.delayMs);
     }

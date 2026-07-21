@@ -8,6 +8,7 @@
           items.js（dropLoot rollLoot LOOT tryLoot buyVendorItem）
           combat.js 运行时（S log announce fct spawnBurst hitEntity closeDialogue
             gainCopper rollCopperRange …）
+          companions.js 运行时（openRecruitDialogue companionAlive）
           vfx.js 运行时（VFX spawnBurst）
           save.js 运行时（saveGame；接任务/交任务/离本）
    [导出] player boss BOSS_MESHES WORLD_R sceneWorld heli sun worldFlames PORTAL_POS portalUni
@@ -663,9 +664,16 @@ function openDialogue(){
       log("接受任务【狂躁的野猪】：猎杀草原野猪 0/3。","lg-sys");
       if(typeof saveGame==="function")saveGame(true);
     });
+    if(typeof openRecruitDialogue==="function")btn("✦ 招募同伴同行",()=>openRecruitDialogue());
     btn("离开",closeDialogue);
   }else if(QUEST.state===1&&QUEST.kills<BAL.quest.boarKills){
     tx.textContent=`野猪仍在草原上游荡（${QUEST.kills}/3）。靠近它们，用你的武器说话吧，勇士。`;
+    if(typeof openRecruitDialogue==="function"){
+      if(typeof companionAlive==="function"&&companionAlive())
+        btn("解散 / 更换同伴",()=>openRecruitDialogue());
+      else
+        btn("✦ 招募同伴同行",()=>openRecruitDialogue());
+    }
     btn("离开",closeDialogue);
   }else if(QUEST.state===1){
     tx.textContent="干得漂亮，勇士！听着——传送门深处沉睡着炎魔领主拉戈斯，他的烈焰迟早会烧到这片草原。收下大地母亲的祝福，北行吧，终结他！";
@@ -681,12 +689,20 @@ function openDialogue(){
       log("接受任务【讨伐拉戈斯】：进入北方传送门，击败炎魔领主。","lg-sys");
       if(typeof saveGame==="function")saveGame(true);
     });
+    if(typeof openRecruitDialogue==="function")btn("✦ 招募同伴同行",()=>openRecruitDialogue());
+    btn("离开",closeDialogue);
   }else{
     let tip="北行吧，勇士。踏入旋涡，愿圣山的风与你同在。";
     if(S.p.level>=BAL.barrens.minLevel){
       tip+=" 营地南边的土路已通向贫瘠之地的十字路口——那里需要新的帮手。";
     }
     tx.textContent=tip;
+    if(typeof openRecruitDialogue==="function"){
+      if(typeof companionAlive==="function"&&companionAlive())
+        btn("解散 / 更换同伴",()=>openRecruitDialogue());
+      else
+        btn("✦ 招募同伴同行",()=>openRecruitDialogue());
+    }
     btn("离开",closeDialogue);
   }
 }
