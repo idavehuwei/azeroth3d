@@ -509,14 +509,13 @@ function spawnMob(type,x,z,group,opts){
     group:group||null,labelY,zoneId,
     hp:st.hp,hpMax:st.hp,state:"wander",home:{x,z},dest:null,wanderT:rand(0,3),
     atkT:0,rootT:0,respawnT:0,corpseT:0,castCd:0,casting:null,moving:false,aura:null,
-    attackAnim:0, hitReact:0,
+    attackAnim:0,
     variance:BAL.variance.mob,
     dead(){return this.state==="dead"||this.state==="return";},
     fctPos(){return this.mesh.position.clone().setY(this.labelY-.4);},
     fctSize(){return this.worldBoss?18:this.elite?16:14;},
     onHit(amount,label){
       if(this.state==="wander")aggroMob(this);
-      this.hitReact=1;
       if(label)log(`你的【${label}】命中${this.name}，造成 ${amount} 伤害。`,"lg-me");
     },
     onDeath(){mobDie(this);},

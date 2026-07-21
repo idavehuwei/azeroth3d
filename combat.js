@@ -65,13 +65,13 @@ const CLASSES={
     barCss:"linear-gradient(180deg,#ffd76a,#c98a1f 60%,#7a4d0c)",
     tip:"提示：近身自动攻击积攒怒气；【冲锋】可迅速贴近目标并额外获得怒气。",
     skills:[
-      {name:"英勇打击",icon:"sword",cd:5, rage:20,fn:heroicStrike,bal:"heroicStrike",sfx:"swing_heavy",
+      {name:"英勇打击",icon:"sword",cd:5, rage:20,fn:heroicStrike,bal:"heroicStrike",
        desc:"奋力一击，对面前敌人造成物理伤害。"},
-      {name:"旋风斩",  icon:"whirlwind",cd:9, rage:30,fn:whirlwind,bal:"whirlwind",sfx:"whirlwind",
+      {name:"旋风斩",  icon:"whirlwind",cd:9, rage:30,fn:whirlwind,bal:"whirlwind",
        desc:"旋转兵器，对周围敌人造成范围物理伤害。"},
-      {name:"冲锋",    icon:"charge",cd:12,rage:0, fn:charge,bal:"charge",sfx:"charge",
+      {name:"冲锋",    icon:"charge",cd:12,rage:0, fn:charge,bal:"charge",
        desc:"向目标冲锋并贴近，额外积攒怒气。"},
-      {name:"治疗药水",icon:"potion",cd:22,rage:0, fn:potion,bal:"potion",sfx:"potion",
+      {name:"治疗药水",icon:"potion",cd:22,rage:0, fn:potion,bal:"potion",
        desc:"喝下药水，立即回复生命。"}]},
   mage:{title:"🔮 你 · 人类法师",hp:3800,resMax:100,resStart:100,resName:"法力",
     regen:7,hitGain:0,speed:10,ranged:true,range:30,sfx:"fireball",
@@ -79,13 +79,13 @@ const CLASSES={
     barCss:"linear-gradient(180deg,#7ab8ff,#2a5ec9 60%,#123a7a)",
     tip:"提示：法力随时间恢复；远程自动施放火球，【闪现】拉开距离，危急时开【寒冰屏障】免疫伤害。",
     skills:[
-      {name:"炎爆术",  icon:"fireball",cd:7, rage:30,fn:pyroblast,bal:"pyroblast",sfx:"fireball",
+      {name:"炎爆术",  icon:"fireball",cd:7, rage:30,fn:pyroblast,bal:"pyroblast",
        desc:"蓄力投出巨大火球，造成高额火焰伤害。"},
-      {name:"冰霜新星",icon:"frost",cd:11,rage:25,fn:frostNova,bal:"frostNova",sfx:"frost_nova",
+      {name:"冰霜新星",icon:"frost",cd:11,rage:25,fn:frostNova,bal:"frostNova",
        desc:"冻结周围敌人并造成冰霜伤害，短暂定身。"},
-      {name:"闪现",    icon:"blink",cd:12,rage:15,fn:blink,bal:"blink",sfx:"blink",
+      {name:"闪现",    icon:"blink",cd:12,rage:15,fn:blink,bal:"blink",
        desc:"瞬间向前传送一段距离。"},
-      {name:"寒冰屏障",icon:"ice_block",cd:25,rage:0, fn:iceBlock,bal:"iceBlock",sfx:"ice_block",
+      {name:"寒冰屏障",icon:"ice_block",cd:25,rage:0, fn:iceBlock,bal:"iceBlock",
        desc:"把自己封进寒冰，短时间内免疫伤害。"}]},
   archer:{title:"🏹 你 · 精灵弓箭手",hp:4300,resMax:100,resStart:100,resName:"能量",
     regen:11,hitGain:0,speed:11.5,ranged:true,range:32,sfx:"arrow",
@@ -93,11 +93,11 @@ const CLASSES={
     barCss:"linear-gradient(180deg,#d8ff7a,#7fb32a 60%,#3d6a0c)",
     tip:"提示：能量随时间恢复；边走边射保持距离，【翻滚】可位移并短暂闪避一切伤害。",
     skills:[
-      {name:"瞄准射击",icon:"aimed",cd:6, rage:30,fn:aimedShot,bal:"aimedShot",sfx:"aimed",
+      {name:"瞄准射击",icon:"aimed",cd:6, rage:30,fn:aimedShot,bal:"aimedShot",
        desc:"精确瞄准，射出高伤害箭矢。"},
-      {name:"多重射击",icon:"multi_shot",cd:10,rage:35,fn:multiShot,bal:"multiShot",sfx:"multi_shot",
+      {name:"多重射击",icon:"multi_shot",cd:10,rage:35,fn:multiShot,bal:"multiShot",
        desc:"同时射出多支箭，打击多个目标。"},
-      {name:"翻滚",    icon:"roll",cd:9, rage:20,fn:roll,bal:"roll",sfx:"roll",
+      {name:"翻滚",    icon:"roll",cd:9, rage:20,fn:roll,bal:"roll",
        desc:"向前翻滚位移，短暂闪避一切伤害。"},
       {name:"治疗药水",icon:"potion",cd:22,rage:0, fn:potion,bal:"potion",
        desc:"喝下药水，立即回复生命。"}]},
@@ -107,13 +107,13 @@ const CLASSES={
     barCss:"linear-gradient(180deg,#fff8d0,#d4af37 60%,#8a7020)",
     tip:"提示：法力随时间恢复；远程自动施放神圣惩击；【治疗术】续航，【真言术：盾】先吸收伤害。",
     skills:[
-      {name:"治疗术",    icon:"heal", cd:8,  rage:35,fn:heal,           bal:"heal",sfx:"heal",
+      {name:"治疗术",    icon:"heal", cd:8,  rage:35,fn:heal,           bal:"heal",
        desc:"施放圣光，恢复大量生命。"},
-      {name:"快速治疗",  icon:"flash_heal", cd:4,  rage:20,fn:flashHeal,     bal:"flashHeal",sfx:"flash_heal",
+      {name:"快速治疗",  icon:"flash_heal", cd:4,  rage:20,fn:flashHeal,     bal:"flashHeal",
        desc:"迅速施法，立即恢复中等生命。"},
-      {name:"神圣惩击",  icon:"holy", cd:6,  rage:25,fn:smite,         bal:"smite",sfx:"holy",
+      {name:"神圣惩击",  icon:"holy", cd:6,  rage:25,fn:smite,         bal:"smite",
        desc:"对目标造成神圣伤害。"},
-      {name:"真言术：盾",icon:"holy_shield", cd:12, rage:30,fn:powerWordShield,bal:"powerWordShield",sfx:"holy_shield",
+      {name:"真言术：盾",icon:"holy_shield", cd:12, rage:30,fn:powerWordShield,bal:"powerWordShield",
        desc:"为自己施加吸收护盾，持续一段时间。"}]},
 };
 let CLS=CLASSES.warrior;
@@ -225,10 +225,7 @@ function useSkill(i){
   if(S.cds[i]>0||S.gcd>0)return;
   const sk=SKILLS[i];
   if(S.p.rage<sk.rage){log(`${CLS.resName}不足！（${sk.name} 需要 ${sk.rage} ${CLS.resName}）`,"lg-sys");return;}
-  if(sk.fn()){
-    S.p.rage-=sk.rage;S.cds[i]=typeof getSkillCd==="function"?getSkillCd(i):sk.cd;S.gcd=.8;
-    if(sk.sfx&&typeof SFX!=="undefined")SFX.play(sk.sfx);
-  }
+  if(sk.fn()){S.p.rage-=sk.rage;S.cds[i]=typeof getSkillCd==="function"?getSkillCd(i):sk.cd;S.gcd=.8;}
 }
 /* bossTargetable 在 raid.js 定义 */
 
@@ -246,12 +243,6 @@ function hitEntity(ent,amount,label,opts){
   amount=S.god?BAL.god.dmg:Math.round(amount*S.p.dmgMul*(v?rand(v[0],v[1]):1));
   ent.hp=Math.max(0,ent.hp-amount);
   fct(ent.fctPos(),`-${amount}`,"#ffdf8a",ent.fctSize?ent.fctSize(label):14);
-  /* V1-A5：受击分层（按 type / hitKind / Boss id） */
-  if(typeof SFX!=="undefined"&&SFX.playHit){
-    let kind=ent.type||ent.hitKind||"hit_flesh";
-    if(typeof BOSS_ENT!=="undefined"&&ent===BOSS_ENT&&S.b&&S.b.id)kind=S.b.id;
-    SFX.playHit(kind);
-  }
   if(ent.onHit)ent.onHit(amount,label);
   /* STEP 27：默认记玩家仇恨；同伴须传 opts.sourceKey */
   if(typeof addThreat==="function"&&!(opts&&opts.noThreat)){
@@ -278,10 +269,12 @@ function heroicStrike(){
   }
   if(!hit){log("没有目标在近战范围内。");return false;}
   S.p.attackAnim=1;
+  SFX.play("swing");
   return true;
 }
 function whirlwind(){
   S.p.attackAnim=1;
+  SFX.play("swing");
   spawnBurst(player.position.clone().setY(1),0x9ad0ff,26,1.6);
   let any=false;
   const thr={skillId:"whirlwind"};
@@ -381,10 +374,9 @@ function getFocusTarget(range){
   S.currentTarget=null;
   return pickTarget(r);
 }
-function firePlayerShot(tgt,dmg,label,scale=1,opts){
+function firePlayerShot(tgt,dmg,label,scale=1){
   setCurrentTarget(tgt);
-  /* 技能成功时由 useSkill 播 sk.sfx，避免叠音 */
-  if(!(opts&&opts.noSfx))SFX.play(CLS.sfx||"fireball");
+  SFX.play(CLS.sfx||"fireball");
   const m=new THREE.Mesh(new THREE.SphereGeometry(.3*scale,8,8),
     new THREE.MeshBasicMaterial({color:CLS.shotColor}));
   const glow=new THREE.Mesh(new THREE.SphereGeometry(.55*scale,8,8),
@@ -400,7 +392,7 @@ function pyroblast(){
   const t=pickTarget(CLS.range);
   if(!t){log("目标超出施法距离！");return false;}
   S.p.attackAnim=1;
-  firePlayerShot(t,R(BAL.skills.pyroblast.dmg),"炎爆术",1.7,{noSfx:true});
+  firePlayerShot(t,R(BAL.skills.pyroblast.dmg),"炎爆术",1.7);
   log("你吟唱出巨大的炎爆术！","lg-me");
   return true;
 }
@@ -448,7 +440,7 @@ function aimedShot(){
   const t=pickTarget(CLS.range);
   if(!t){log("目标超出射程！");return false;}
   S.p.attackAnim=1;
-  firePlayerShot(t,R(BAL.skills.aimedShot.dmg),"瞄准射击",1.4,{noSfx:true});
+  firePlayerShot(t,R(BAL.skills.aimedShot.dmg),"瞄准射击",1.4);
   log("你屏息凝神，射出致命一箭！","lg-me");
   return true;
 }
@@ -457,14 +449,14 @@ function multiShot(){
   if(S.mode==="world"){
     MOBS.forEach(m=>{
       if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<=CLS.range){
-        firePlayerShot({type:"mob",m},R(BAL.skills.multiShot.dmg),"多重射击",1,{noSfx:true});n++;
+        firePlayerShot({type:"mob",m},R(BAL.skills.multiShot.dmg),"多重射击");n++;
       }
     });
   }else{
-    if(bossTargetable()&&distToBoss()<=CLS.range){firePlayerShot({type:"boss"},R(BAL.skills.multiShot.dmg),"多重射击",1,{noSfx:true});n++;}
+    if(bossTargetable()&&distToBoss()<=CLS.range){firePlayerShot({type:"boss"},R(BAL.skills.multiShot.dmg),"多重射击");n++;}
     S.adds.forEach(a=>{
       if(player.position.distanceTo(a.mesh.position)<=CLS.range){
-        firePlayerShot({type:"add",a},R(BAL.skills.multiShot.dmg),"多重射击",1,{noSfx:true});n++;
+        firePlayerShot({type:"add",a},R(BAL.skills.multiShot.dmg),"多重射击");n++;
       }
     });
   }
@@ -499,6 +491,7 @@ function applyHeal(amount,label){
   S.p.hp=Math.min(S.p.hpMax,S.p.hp+heal);
   fct(player.position.clone().setY(3),`+${heal}`,"#8aff9a",18);
   VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.4)});
+  if(typeof SFX!=="undefined")SFX.play("heal");
   log(`你施放【${label}】，恢复 ${heal} 点生命值。`,"lg-heal");
   return true;
 }
@@ -512,7 +505,7 @@ function smite(){
   const t=pickTarget(CLS.range);
   if(!t){log("目标超出施法距离！");return false;}
   S.p.attackAnim=1;
-  firePlayerShot(t,R(BAL.skills.smite.dmg),"神圣惩击",1.5,{noSfx:true});
+  firePlayerShot(t,R(BAL.skills.smite.dmg),"神圣惩击",1.5);
   log("你唤来神圣惩击！","lg-me");
   return true;
 }
@@ -529,6 +522,7 @@ function powerWordShield(){
   ice.position.y=1.75; player.add(ice);
   S.p.shieldMesh=ice;
   fct(player.position.clone().setY(3.2),`盾 ${absorb}`,"#ffe9a0",16);
+  if(typeof SFX!=="undefined")SFX.play("holy");
   log(`真言术：盾！吸收 ${absorb} 点伤害，持续 ${bal.duration} 秒。`,"lg-heal");
   return true;
 }
@@ -537,25 +531,18 @@ function playerHit(amount,source){
   if(!S.p.alive||S.p.invuln>0)return;
   amount=Math.round(amount*R(BAL.variance.player));
   /* STEP 19：吸收盾先扣，溢出再扣血（玩家受击入口在 playerHit，非 hitEntity） */
-  let shielded=false;
   if(S.p.absorb>0){
     const absorbed=Math.min(S.p.absorb,amount);
     S.p.absorb-=absorbed;
     amount-=absorbed;
     if(absorbed>0){
-      shielded=true;
       fct(player.position.clone().setY(3.2),`-${absorbed}(盾)`,"#ffe9a0",16);
       log(`真言术：盾吸收了 ${absorbed} 点伤害。`,"lg-heal");
     }
     if(S.p.absorb<=0){S.p.absorb=0;S.p.absorbT=0;clearShieldVisual();}
   }
-  if(amount<=0){
-    if(shielded&&typeof SFX!=="undefined"&&SFX.playHit)SFX.playHit("hit_shield");
-    return;
-  }
-  S.p.hp-=amount; hurtFlash();
-  if(typeof SFX!=="undefined"&&SFX.playHit)SFX.playHit(shielded?"hit_shield":"hit_player");
-  else if(typeof SFX!=="undefined")SFX.play("hit");
+  if(amount<=0)return;
+  S.p.hp-=amount; hurtFlash(); SFX.play("hit");
   fct(player.position.clone().setY(3),`-${amount}`,"#ff6a5a",18);
   log(`${source} 对你造成 ${amount} 点伤害！`,"lg-dmg");
   if(S.p.hp<=0){S.p.hp=0;playerDie();}

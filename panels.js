@@ -175,28 +175,25 @@ function renderQuestLog(){
 function toggleCharPanel(){
   if(!S.started)return;
   const open=panelOpen("#charPanel");
-  if(open){setPanel("#charPanel",false);if(typeof SFX!=="undefined"&&SFX.playUI)SFX.playUI("close");return;}
+  if(open){setPanel("#charPanel",false);return;}
   closeAllHudPanels("char");
   setPanel("#charPanel",true);
-  if(typeof SFX!=="undefined"&&SFX.playUI)SFX.playUI("open");
   renderCharPanel();
 }
 function toggleSpellPanel(){
   if(!S.started)return;
   const open=panelOpen("#spellPanel");
-  if(open){setPanel("#spellPanel",false);if(typeof SFX!=="undefined"&&SFX.playUI)SFX.playUI("close");return;}
+  if(open){setPanel("#spellPanel",false);return;}
   closeAllHudPanels("spell");
   setPanel("#spellPanel",true);
-  if(typeof SFX!=="undefined"&&SFX.playUI)SFX.playUI("open");
   renderSpellPanel();
 }
 function toggleQuestLog(){
   if(!S.started)return;
   const open=panelOpen("#questLog");
-  if(open){setPanel("#questLog",false);if(typeof SFX!=="undefined"&&SFX.playUI)SFX.playUI("close");return;}
+  if(open){setPanel("#questLog",false);return;}
   closeAllHudPanels("quest");
   setPanel("#questLog",true);
-  if(typeof SFX!=="undefined"&&SFX.playUI)SFX.playUI("open");
   renderQuestLog();
 }
 

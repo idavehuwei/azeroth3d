@@ -109,8 +109,7 @@ function grantDeed(id,opts){
   if(!opts.silent){
     announce(`功绩 · ${d.title}`);
     log(`获得功绩【${d.title}】${d.reward&&d.reward.title?` · 称号「${d.reward.title}」`:""}`,"lg-heal");
-    if(typeof SFX!=="undefined"&&SFX.playUI)SFX.playUI("deed");
-    else if(typeof SFX!=="undefined")SFX.play("levelup");
+    if(typeof SFX!=="undefined")SFX.play("levelup");
   }
   /* 首次获得自动装备称号/边框（若当前未装备） */
   if(d.reward){

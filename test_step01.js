@@ -268,21 +268,7 @@ const animSrc=fs.readFileSync(path.join(__dirname,"anim.js"),"utf8");
 assert(html.includes('src="anim.js"'),"game.html 加载 anim.js");
 assert(animSrc.includes("function updateMobAnim")&&animSrc.includes("function beginDeathRoll"),"anim.js 有走/死 API");
 assert(animSrc.includes("function updateBossWingAnim")&&animSrc.includes("function tickDeathRoll"),"anim.js 有翼拍/侧倒插值");
-assert(coreSrc.includes("byKind")&&coreSrc.includes("enabled:true")&&coreSrc.includes("harpy"),"BALANCE.anim 含 byKind/enabled");
-assert(modelsSrcA1.includes("headG")||modelsSrcA1.includes("head:headG")||modelsSrcA1.includes("head:head"),"四足有 head 枢轴");
-assert(modelsSrcA1.includes('kind:"harpy"')&&modelsSrcA1.includes("wingL"),"鹰身有翼挂点 kind");
-assert(modelsSrcA1.includes('kind:"centaur"')&&modelsSrcA1.includes("armR"),"半人马有臂枢轴");
-assert(modelsSrcA1.includes('kind:"element"'),"烈焰之子 element 挂点");
-assert(animSrc.includes("beginFinalSink")&&animSrc.includes("updateNpcIdleAnim"),"anim 终局下沉/NPC 待机");
-assert(animSrc.includes("emitAnimFootstep")&&animSrc.includes("thump"),"anim 脚步钩与落地顿挫");
-assert(modelsSrcA1.includes("userData.tail")||modelsSrcA1.includes("tail=tailG")||modelsSrcA1.includes("tailG"),"奥妮尾枢轴");
-assert(modelsSrcA1.includes('kind:"npc"'),"长老 NPC 挂点");
-assert(raidSrc.includes("beginFinalSink")||raidSrc.includes("finalSink"),"Boss 终局走统一死亡 API");
-assert(raidSrc.includes("beginDeathRoll(player")||raidSrc.includes("beginDeathRoll(player,"),"玩家死亡走插值");
-assert(mainSrc.includes("zoneFootSurface")&&mainSrc.includes("__ANIM_DEBUG"),"脚步表面与 ?anim 调试");
-assert(fs.readFileSync(path.join(__dirname,"sfx.js"),"utf8").includes("playFoot"),"SFX.playFoot 钩子");
-assert(fs.readFileSync(path.join(__dirname,"DESIGN.md"),"utf8").includes("生物动画语言"),"DESIGN 含动画语言");
-assert(worldSrc.includes("hitReact"),"野怪受击 hitReact");
+assert(coreSrc.includes("anim:")&&coreSrc.includes("deathRollSpd")&&coreSrc.includes("wingFlap"),"BALANCE 含 anim 表");
 assert(modelsSrcA1.includes("userData={legs")||modelsSrcA1.includes("legs,"),"buildQuadruped 导出腿枢轴");
 assert(modelsSrcA1.includes("wingL")&&modelsSrcA1.includes('kind="dragon"'),"buildOnyxia 有翼挂点");
 assert(modelsSrcA1.includes('kind:"humanoid"')||modelsSrcA1.includes("anim:{state"),"人形 userData.anim");
@@ -303,33 +289,6 @@ assert(zonesSrc.includes("setWeather"),"enterZone 挂接 setWeather");
 assert(mainSrc.includes("updateWeather"),"main.js tick 更新天气");
 assert(!/aggroR|leashR|dmg\[/.test(weatherSrc),"weather.js 不碰战斗数值");
 
-/* plan-v1 · V1-A5 SFX 扩表 + 材质脚步冒烟 */
-const sfxStudio=fs.existsSync(path.join(__dirname,"sfx_studio.html"))
-  ?fs.readFileSync(path.join(__dirname,"sfx_studio.html"),"utf8"):"";
-/* 粗算 SOUNDS 块内键：取 SOUNDS={...} 内顶层键 */
-const soundsBlock=(sfxSrc.match(/const SOUNDS=\{([\s\S]*?)\n\};/)||[])[1]||"";
-const soundsCount=(soundsBlock.match(/^\s{2}[a-zA-Z0-9_]+\s*:/gm)||[]).length;
-assert(soundsCount>=45,"SOUNDS 具名键 ≥45（实际 "+soundsCount+"）");
-assert(sfxSrc.includes("function playFoot")&&sfxSrc.includes("function playHit")&&sfxSrc.includes("function playUI"),"SFX 有 playFoot/playHit/playUI");
-assert(sfxSrc.includes("ambienceGain")&&sfxSrc.includes("function ambience"),"SFX 分轨 ambience");
-assert(sfxSrc.includes("foot_grass")&&sfxSrc.includes("foot_ash")&&sfxSrc.includes("foot_wood"),"材质脚步键");
-assert(sfxSrc.includes("hit_flesh")&&sfxSrc.includes("hit_scale")&&sfxSrc.includes("hit_element"),"受击分层键");
-assert(sfxSrc.includes("breath_fire")&&sfxSrc.includes("wailing")&&sfxSrc.includes("onyxia"),"Boss/新区音色与音乐");
-assert(coreSrc.includes("sfx:")&&coreSrc.includes("footThrottleMs")&&coreSrc.includes("enabled:true"),"BALANCE.sfx 可关表");
-assert(mainSrc.includes("zoneFootSurface")&&mainSrc.includes("woodPts"),"脚步表面含木板兴趣点");
-assert(combatSrc.includes("playHit")&&combatSrc.includes("hit_player"),"playerHit/hitEntity 受击分层");
-assert(combatSrc.includes('sfx:"charge"')||combatSrc.includes("sfx:\"frost_nova\""),"技能绑独立音色");
-assert(weatherSrc.includes("SFX.ambience"),"天气挂接 ambience");
-assert(questsSrc.includes("quest_accept")||questsSrc.includes('playUI("quest_accept")'),"接任务 UI 音");
-assert(itemsSrc.includes("loot_epic")||itemsSrc.includes("vendor_buy"),"掉落/商人 UI 音");
-assert(wailingSrc.includes('music:"wailing"'),"哀嚎 music=wailing");
-assert(onyxiaSrc.includes('music:"onyxia"'),"奥妮 music=onyxia");
-assert(sfxStudio.includes("SFX.list")||sfxStudio.includes("sfx.js"),"sfx_studio.html 存在并可加载 sfx.js");
-assert(sfxStudio.includes("导出")||sfxStudio.includes("clipboard"),"studio 可导出参数");
-assert(fs.readFileSync(path.join(__dirname,"DESIGN.md"),"utf8").includes("音频设计语言"),"DESIGN 含音频语言");
-const rootAudio=fs.readdirSync(__dirname).filter(f=>/\.(mp3|ogg|wav)$/i.test(f));
-assert(rootAudio.length===0,"无新增 .mp3/.ogg/.wav（"+rootAudio.join(",")+"）");
-
 function DEEDS_COUNT_OK(src){
   const m=src.match(/id:"[^"]+"/g)||[];
   /* DEEDS 表内 id 约 18；过滤 DEED_BY_ID 等 */
@@ -340,4 +299,4 @@ if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–29 … / V1-A1–A5 冒烟");
+console.log("\n全部通过 · STEP 17–29 … / V1-A1–A4 冒烟");

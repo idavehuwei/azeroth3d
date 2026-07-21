@@ -261,7 +261,6 @@ function acceptQuest(id,opts){
   prog.flags={};
   if(q.acceptLog&&!opts.silent)log(q.acceptLog,"lg-sys");
   if(!opts.silent)announce(`接受任务 · ${q.title}`);
-  if(!opts.silent&&typeof SFX!=="undefined"&&SFX.playUI)SFX.playUI("quest_accept");
   /* 无交任务 NPC 的自动任务：接受后即跟踪 */
   if(q.autoComplete&&q.objectives&&q.objectives[0]&&q.objectives[0].type==="boss"){
     /* 保持 active，等 boss 击杀 */
@@ -298,7 +297,6 @@ function finishQuest(id,opts){
   if(!opts.skipRewards)applyQuestRewards(q,opts);
   if(q.completeAnnounce&&!opts.silent)announce(q.completeAnnounce);
   if(q.completeLog&&!opts.silent)log(q.completeLog,"lg-sys");
-  if(!opts.silent&&typeof SFX!=="undefined"&&SFX.playUI)SFX.playUI("quest_complete");
   syncLegacyQuestAliases();
   updateQuestTracker();
   if(q.next&&canAcceptQuest(q.next))acceptQuest(q.next,{silent:opts.silent,noSave:true});

@@ -120,7 +120,7 @@ registerZone({
   name:"奥妮克希亚巢穴",
   scene:sceneOnyxia,
   build:buildOnyxiaZone,
-  music:"onyxia",
+  music:"raid",
   mode:"raid",
   levelRange:[16,18],
   boundsR:()=>ONYXIA_ARENA()-2,
