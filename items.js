@@ -48,6 +48,9 @@ const ITEMS={
   /* —— STEP 9c 玛格曼达 —— */
   magma_fang   :{id:"magma_fang",   name:"熔岩犬牙项链",icon:"tusk",  quality:"uncommon",slot:"armor", stats:{hpMax:320},vendorSell:90},
   magma_collar :{id:"magma_collar", name:"焚犬项圈",    icon:"armor", quality:"rare",    slot:"armor", stats:{hpMax:520},vendorSell:260},
+  /* —— STEP 21 哀嚎洞穴 —— */
+  serpent_fang :{id:"serpent_fang", name:"毒牙弯刃",    icon:"sword", quality:"rare",    slot:"weapon",stats:{dmgMul:1.14},model:"sword",vendorSell:280},
+  moss_mantle  :{id:"moss_mantle",  name:"苔藓披风甲",  icon:"armor", quality:"rare",    slot:"armor", stats:{hpMax:720},vendorSell:300},
   /* —— STEP 13 商人消耗品 —— */
   plain_bread  :{id:"plain_bread",  name:"硬面饼",      icon:"bread",  quality:"common", slot:"consumable",use:"food",
                  stats:null, vendorBuy:25, vendorSell:5},
@@ -89,6 +92,16 @@ const LOOT={
   magmadar:{
     uncommon:["magma_fang","sulf_ring"],
     rare    :["magma_collar","sulf_blade"],
+  },
+  /* —— STEP 21 哀嚎洞穴 —— */
+  wailingAdd:{
+    common  :["boar_hide","bird_feather"],
+    uncommon:["hide_vest","tusk_blade"],
+    rare    :["serpent_fang"],
+  },
+  wailing:{
+    uncommon:["hide_vest","wind_blade"],
+    rare    :["serpent_fang","moss_mantle"],
   },
   /* —— STEP 18 贫瘠之地 —— */
   quilboar:{

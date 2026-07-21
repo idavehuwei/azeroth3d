@@ -71,6 +71,24 @@ const MAP_ZONES={
       road:[["crossroads","portal_n"],["crossroads","portal_s"]],
     },
   },
+  wailing_caverns:{
+    id:"wailing_caverns",
+    name:"哀嚎洞穴",
+    radius:()=>(BAL.wailing&&BAL.wailing.arenaR)||24,
+    landmarks:[
+      {id:"entrance",label:"入口",x:0,z:16,color:"#8a9a6a",kind:"portal"},
+      {id:"pool",label:"毒池",x:0,z:-8,color:"#44aa22",kind:"camp"},
+    ],
+    elites:[],
+    outline:[
+      [0,-1],[.65,-.75],[1,0],[.65,.75],[0,1],[-.65,.75],[-1,0],[-.65,-.75],
+    ],
+    terrain:{
+      bg:"#081208",
+      fill:"rgba(40,70,40,.45)",
+      stroke:"rgba(100,160,90,.5)",
+    },
+  },
 };
 let _mapZoneId="mulgore";
 function getActiveMapZone(){return MAP_ZONES[_mapZoneId]||MAP_ZONES.mulgore;}

@@ -8,7 +8,7 @@
           world.js（spawnMob MOBS）
           combat.js 运行时（S log announce）
           save.js 运行时（saveGame）· panels.js 运行时（renderQuestLog）
-   [导出] sceneBarrens BARRENS_R BARRENS_QUEST BARRENS_PORTAL_N
+   [导出] sceneBarrens BARRENS_R BARRENS_QUEST BARRENS_PORTAL_N BARRENS_PORTAL_S
           barrensHeli barrensSun barrensFlames
           buildBarrensZone onBarrensQuestKill tryInteractBarrens
           updateBarrensMarkers crossroadsDist barrensSpiritDist
@@ -19,6 +19,7 @@ const BARRENS_R=BAL.barrens.radius;
 const sceneBarrens=new THREE.Scene();
 const BARRENS_PORTAL_N=new THREE.Vector3(0,0,-(BARRENS_R-8));
 const BARRENS_SOUTH_MARK=new THREE.Vector3(0,0,BARRENS_R-12);
+const BARRENS_PORTAL_S=BARRENS_SOUTH_MARK;
 
 /* 入口任务：0 未接 | 1 清野猪人 | 2 已交（完整任务网见 STEP 22） */
 const BARRENS_QUEST={id:"crossroads_trouble",state:0,kills:0};
@@ -150,13 +151,36 @@ function buildBarrensZone(scn){
   const nLab=makeLabel("莫高雷",12,"#c8e8a0","rgba(60,120,40,.9)");
   nLab.position.set(BARRENS_PORTAL_N.x,12.2,BARRENS_PORTAL_N.z); root.add(nLab);
 
-  const southStone=new THREE.Mesh(new THREE.BoxGeometry(3.5,4.5,1.2),
-    new THREE.MeshStandardMaterial({color:0x4a5a3a,roughness:1,flatShading:true}));
-  southStone.position.set(BARRENS_SOUTH_MARK.x,2.2,BARRENS_SOUTH_MARK.z); southStone.castShadow=true; root.add(southStone);
-  const sLab=makeLabel("哀嚎洞穴",10,"#a8c080","rgba(40,80,30,.85)");
-  sLab.position.set(BARRENS_SOUTH_MARK.x,5.5,BARRENS_SOUTH_MARK.z); root.add(sLab);
-  const sLab2=makeLabel("· 即将开放 ·",6,"#889868","rgba(40,60,30,.8)");
-  sLab2.position.set(BARRENS_SOUTH_MARK.x,4.4,BARRENS_SOUTH_MARK.z); root.add(sLab2);
+  const sPlat=new THREE.Mesh(new THREE.CylinderGeometry(7,8.5,1,12),
+    new THREE.MeshStandardMaterial({color:0x3a4a30,roughness:.9,flatShading:true,
+      emissive:0x2a4a20,emissiveIntensity:.2}));
+  sPlat.position.set(BARRENS_PORTAL_S.x,.5,BARRENS_PORTAL_S.z); sPlat.receiveShadow=true; root.add(sPlat);
+  [[-3.4],[3.4]].forEach(([sx])=>{
+    const pil=new THREE.Mesh(new THREE.BoxGeometry(1.5,8.5,1.5),
+      new THREE.MeshStandardMaterial({color:0x3a4a30,roughness:.9,flatShading:true,
+        emissive:0x2a4a20,emissiveIntensity:.15}));
+    pil.position.set(BARRENS_PORTAL_S.x+sx,4.8,BARRENS_PORTAL_S.z); pil.castShadow=true; root.add(pil);
+  });
+  const sLintel=new THREE.Mesh(new THREE.BoxGeometry(9.2,1.4,1.6),
+    new THREE.MeshStandardMaterial({color:0x3a4a30,roughness:.9,flatShading:true}));
+  sLintel.position.set(BARRENS_PORTAL_S.x,9.2,BARRENS_PORTAL_S.z); root.add(sLintel);
+  const sDisc=new THREE.Mesh(new THREE.CircleGeometry(2.8,36),new THREE.ShaderMaterial({
+    uniforms:barrensPortalUni,transparent:true,side:THREE.DoubleSide,depthWrite:false,
+    vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`
+      varying vec2 vUv;uniform float uTime;
+      void main(){
+        vec2 p=vUv-.5; float r=length(p)*2.; float ang=atan(p.y,p.x);
+        float sw=sin(ang*3.-uTime*1.8+r*6.);
+        vec3 c=mix(vec3(.35,.7,.4),vec3(.1,.3,.12),smoothstep(-.5,.7,sw));
+        c=mix(c,vec3(.02,.06,.02),smoothstep(.7,1.,r));
+        gl_FragColor=vec4(c*1.2,smoothstep(1.,.88,r));
+      }`}));
+  sDisc.position.set(BARRENS_PORTAL_S.x,4.6,BARRENS_PORTAL_S.z); root.add(sDisc);
+  const sLab=makeLabel("哀嚎洞穴",11,"#a8d080","rgba(40,80,30,.9)");
+  sLab.position.set(BARRENS_PORTAL_S.x,12.0,BARRENS_PORTAL_S.z); root.add(sLab);
+  const sLab2=makeLabel("建议等级 15+",6,"#88a868","rgba(40,60,30,.85)");
+  sLab2.position.set(BARRENS_PORTAL_S.x,10.6,BARRENS_PORTAL_S.z); root.add(sLab2);
 
   crossroadsSentinel=buildVendor();
   crossroadsSentinel.traverse(o=>{
@@ -268,7 +292,7 @@ function openBarrensDialogue(){
     tx.textContent=`野猪人仍在西边前哨游荡（${BARRENS_QUEST.kills}/${need}）。干完活再来找我。`;
     btn("离开",closeDialogue);
   }else if(BARRENS_QUEST.state===1){
-    tx.textContent="漂亮！补给线暂时安全了。东南半人马营地仍不安分，南方石碑后是哀嚎洞穴——很快就会开放。收下这些铜币，继续变强吧。";
+    tx.textContent="漂亮！补给线暂时安全了。南方的哀嚎洞穴已经开放——建议等级 15，带上同伴更稳妥。收下这些铜币，继续变强吧。";
     btn("✦ 领取奖励",()=>{
       const xp=BAL.quest.barrens.rewardXp||BAL.levels.xp.barrensQuest||400;
       const cu=BAL.quest.barrens.rewardCopper||200;
@@ -281,11 +305,11 @@ function openBarrensDialogue(){
       spawnBurst(player.position.clone().setY(1.5),0xe8c898,28,2);
       announce("完成 · 十字路口的麻烦");
       log(`奖励：经验 +${xp}，铜币 +${cu}。`,"lg-heal");
-      log("哨兵提及：南方哀嚎洞穴即将开放（STEP 21）。","lg-sys");
+      log("哨兵提及：南方哀嚎洞穴已开放（建议 Lv15+）。","lg-sys");
       if(typeof saveGame==="function")saveGame(true);
     });
   }else{
-    tx.textContent="十字路口永远欢迎英雄。留意南方石碑——哀嚎洞穴的入口就在那里。";
+    tx.textContent="十字路口永远欢迎英雄。留意南方绿色旋涡——哀嚎洞穴的入口就在那里（Lv15+）。";
     btn("离开",closeDialogue);
   }
 }
@@ -302,6 +326,7 @@ registerZone({
   dayNight:true,
   gates:{
     from_mulgore:{x:0,z:-(BARRENS_R-22)},  /* 远离北口，避免与莫高雷南口乒乓 */
+    from_wailing:{x:0,z:BARRENS_R-22},     /* 远离南口，避免进出乒乓 */
     crossroads:{x:0,z:0},
     spirit:{x:-8,z:5},
     default:{x:0,z:0},
@@ -317,10 +342,23 @@ registerZone({
     autoEnter:true,
     targetZone:"mulgore",
     targetGate:"from_barrens",
+  },{
+    id:"to_wailing",
+    pos:()=>BARRENS_PORTAL_S,
+    hintR:()=>BAL.zones.portalHintR,
+    enterR:()=>BAL.zones.portalEnterR,
+    announce:"哀嚎洞穴 · 副本入口",
+    logHint:"潮气与毒草的气味从旋涡中渗出……走进即可进入哀嚎洞穴。",
+    requireAlive:true,
+    autoEnter:true,
+    visible:()=>S.p&&S.p.level>=(BAL.barrens.wailingMinLevel||15),
+    targetZone:"wailing_caverns",
+    targetGate:"entrance",
   }],
   onEnter(fromId,gateId,opts){
     if(opts&&opts.silent)return;
     if(fromId==="mulgore")log("干燥的热风扑面而来——你已踏入贫瘠之地。","lg-sys");
+    else if(fromId==="wailing_caverns")log("你离开哀嚎洞穴，十字路口的风干而炙热。","lg-sys");
     updateBarrensMarkers();
     if(typeof updateQuest==="function")updateQuest();
   },

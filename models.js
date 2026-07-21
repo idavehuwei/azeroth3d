@@ -395,6 +395,10 @@ const QUADS={
   /* —— STEP 18 贫瘠之地 —— */
   zebra   :{fur:0xe8e0d0,furD:0x3a3028,ears:true,mane:true,tail:'bushy',size:1.05},
   quilboar:{fur:0xc4783a,furD:0x8a5020,tusks:true,mane:true,ears:true,tail:'up',size:1.15,quills:true},
+  /* —— STEP 21 哀嚎洞穴 —— */
+  deviate :{fur:0x4a8a3a,furD:0x2a5a20,tusks:true,mane:true,ears:true,tail:'up',size:1.25,quills:true},
+  cobrahn :{fur:0x3a7a28,furD:0x1a4010,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:4.2},
+  verdan  :{fur:0x2a6a38,furD:0x143820,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:5.5},
 };
 function buildQuadruped(cfg){
   const c=Object.assign({size:1,legs:4,tusks:false,tuskBig:false,ears:true,mane:false,

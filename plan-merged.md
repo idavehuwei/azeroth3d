@@ -384,15 +384,13 @@ js/
 
 > **验收**：带 AI 打玛格曼达不卡死；解散/招募无泄漏 mesh。 ← **已通过**（`node test_step01.js`）
 
-### STEP 21 · 5 人风格副本「哀嚎洞穴」`P0` ⏳
+### STEP 21 · 5 人风格副本「哀嚎洞穴」`P0` ✅
 
-- 新 `DUNGEON` 配置：蛇人群落（四足/人形配方）→ 小 Boss「考布莱恩」式毒液喷吐 → 终房「吞噬者」简化版。
-- 复用 `createBoss` + `VFX` + 分段；入口在贫瘠之地南。
-- 难度：建议等级 15；掉落蓝装 1–2 件。
+- 新建 `wailing.js` + `DUNGEONS.wailing_caverns`：走廊变异蛇 → 考布莱恩（毒液喷吐）→ 吞噬者。
+- 复用 `createBoss` / `getDungeon` / `spawnAdd(addCfg)`；入口在贫瘠之地南口（Lv15+）；掉落蓝装 `serpent_fang` / `moss_mantle`。
+- `leaveRaid` / 读档按副本 hub 回贫瘠之地或莫高雷。
 
-> **WoC 对照**：Hollow Crypt 成对精英 → miniboss → 终 Boss；我们保持单人可打 + AI 可带。
-
-> **验收**：加本 = 加 `DUNGEONS.wailing` 数据 + 少量摆件；引擎零分支。
+> **验收**：加本 = 加 `DUNGEONS.wailing` 数据 + 少量摆件；引擎零分支。 ← **已通过**（`node test_step01.js`）
 
 ---
 
@@ -561,7 +559,7 @@ js/
 | v2.5 经典系统 | 14 | 角色 / 法术书 / 任务日志（C P L） | ✅ 完成 | 0.5 次迭代 |
 | v2.5 经典系统 | 15 | 死亡与灵魂医者 | ✅ 完成 | 1 次迭代 |
 | v2.5 经典系统 | 16 | 小地图 | ✅ 完成 | 1 次迭代 |
-| v3.0 卡利姆多 | 17–21 | 多区、贫瘠之地、牧师、AI 队友、哀嚎洞穴 | 🔄 STEP 17–20 完成 | 4–6 次迭代 |
+| v3.0 卡利姆多 | 17–21 | 多区、贫瘠之地、牧师、AI 队友、哀嚎洞穴 | ✅ STEP 17–21 完成 | 4–6 次迭代 |
 | v3.5 内容密度 | 22–25 | 任务网、专业、世界 Boss、成就 | ⏳ 待开始 | 3–4 次迭代 |
 | v4.0 开荒团 | 26–29 | 5 AI、仇恨职责、短团本、本地查找器 | ⏳ 待开始 | 4–5 次迭代 |
 | v4.5 修路 | 30–31 | sim 抽离、无头 bot 回归 | ⏳ 待开始 | 2–3 次迭代 |
@@ -594,13 +592,13 @@ js/
 | 16 | ✅ | `map.js`：小地图 blip + M 世界地图；`MAP_ZONES` 预留 |
 | 17 | ✅ | `zones.js`：`ZONES` / `enterZone`；分区种子 `WORLD_SEED ^ hash(zoneId)`；传送门数据化 |
 | 18 | ✅ | `barrens.js`：贫瘠之地 + 十字路口任务；南口 Lv10+；存档 `zoneId`/`barrensQuest` |
-| 19–21 | 🔄 | 牧师 ✅ / AI 队友 ✅ / 哀嚎洞穴 |
+| 19–21 | ✅ | 牧师 / AI 队友 / 哀嚎洞穴 |
 | 22–36 | 🔮 | v3.5–v5.0 已规划，待前置完成 |
 
-**当前模块清单**（`game.html` 加载序）：`core → zones → sfx → icons → items → models → world → barrens → combat → companions → talents → panels → map → vfx → main → raid → save`
+**当前模块清单**（`game.html` 加载序）：`core → zones → sfx → icons → items → models → world → barrens → combat → companions → talents → panels → map → vfx → main → raid → wailing → save`
 
-**下一步行动**：从 **STEP 21** 做哀嚎洞穴（南口已占位）。
+**下一步行动**：从 **STEP 22** 做任务枢纽与故事线。
 
 ---
 
-*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 20 完成，下一步 STEP 21*
+*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 21 完成，下一步 STEP 22*

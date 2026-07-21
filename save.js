@@ -21,6 +21,7 @@ const SAVE_SLOTS=["weapon","armor"];
 
 function normalizeSaveZoneId(z){
   if(z==="molten_core"||z==="raid")return "molten_core";
+  if(z==="wailing_caverns"||z==="wailing")return "wailing_caverns";
   if(z==="barrens")return "barrens";
   if(z==="mulgore"||z==="world"||!z)return "mulgore";
   return(typeof ZONES!=="undefined"&&ZONES[z])?z:"mulgore";
@@ -152,8 +153,12 @@ function rebuildLevelStats(level){
 function applySaveData(data){
   /* 副本态不恢复遭遇，回世界；野外按 zoneId 重建 */
   const wantZone=normalizeSaveZoneId(data.zoneId||data.zone);
-  const restoreZone=wantZone==="molten_core"?"mulgore":wantZone;
-  const gate=restoreZone==="barrens"?"crossroads":"camp";
+  /* 副本遭遇不恢复：熔火回莫高雷，哀嚎回贫瘠之地 */
+  const restoreZone=wantZone==="molten_core"?"mulgore"
+    :(wantZone==="wailing_caverns"?"barrens":wantZone);
+  const gate=restoreZone==="barrens"
+    ?(wantZone==="wailing_caverns"?"from_wailing":"crossroads")
+    :"camp";
   if(S.mode==="raid"||(typeof getCurrentZoneId==="function"&&getCurrentZoneId()!==restoreZone)||scene!==(ZONES[restoreZone]&&ZONES[restoreZone].scene)){
     if(typeof enterZone==="function"){
       enterZone(restoreZone,gate,{skipFade:true,skipSave:true,silent:true,force:true});

@@ -180,8 +180,7 @@ function tick(){
         const enterR=typeof p.enterR==="function"?p.enterR():(p.enterR||BAL.zones.portalEnterR);
         if(pd<enterR&&p.autoEnter!==false){
           if(p.requireAlive&&!S.p.alive)continue;
-          if(p.targetZone==="molten_core")enterRaid();
-          else if(p.targetZone==="mulgore"&&S.mode==="raid")leaveRaid();
+          if(S.mode==="raid"&&(p.targetZone==="mulgore"||p.targetZone==="barrens"))leaveRaid();
           else enterZone(p.targetZone,p.targetGate);
         }
       }
@@ -434,10 +433,11 @@ function tick(){
     /* ---- AI 队友（STEP 20） ---- */
     if(typeof tickCompanion==="function")tickCompanion(dt);
 
-    /* ---- Boss（boss1 玛格曼达 / boss 拉戈斯） ---- */
+    /* ---- Boss（boss1 / boss；bridge 仅熔火） ---- */
     if(S.mode==="raid"){
-      DUNGEON.tickBridge(dt);
-      if(DUNGEON.stage==="boss"||DUNGEON.stage==="boss1")bossAI(dt);
+      const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
+      if(D.tickBridge)D.tickBridge(dt);
+      if(D.stage==="boss"||D.stage==="boss1")bossAI(dt);
     }
     /* Boss 挥锤动画（人形有 armR；四足跳过） */
     if(boss.userData.armR&&boss.userData.armL){
@@ -463,14 +463,18 @@ function tick(){
         if(a.corpseT<=0){scene.remove(a.mesh);S.adds.splice(i,1);}
         continue;
       }
+      const st=a.stats||BAL.add;
       const dir=player.position.clone().sub(a.mesh.position);dir.y=0;
       const d=dir.length();
       if(a.rootT>0){a.rootT-=dt;}  /* 被冰霜新星定身 */
-      else if(d>BAL.add.stopR){dir.normalize();a.mesh.position.add(dir.multiplyScalar(dt*BAL.add.speed));}
+      else if(d>(st.stopR||BAL.add.stopR)){dir.normalize();a.mesh.position.add(dir.multiplyScalar(dt*(st.speed||BAL.add.speed)));}
       a.mesh.rotation.y=Math.atan2(dir.x,dir.z);
       a.mesh.position.y=Math.abs(Math.sin(S.t*6+a.mesh.position.x))*.25;
       a.atkT-=dt;
-      if(d<BAL.add.meleeR&&a.atkT<=0&&S.p.alive){a.atkT=BAL.add.atkCd;playerHit(R(BAL.add.dmg),"烈焰之子");}
+      if(d<(st.meleeR||BAL.add.meleeR)&&a.atkT<=0&&S.p.alive){
+        a.atkT=st.atkCd||BAL.add.atkCd;
+        playerHit(R(st.dmg||BAL.add.dmg),a.name||"小怪");
+      }
     }
 
     /* ---- 投射物 ---- */
@@ -562,10 +566,18 @@ function tick(){
   }
 
   /* ---- UI 刷新 ---- */
-  if(S.mode==="raid"&&(DUNGEON.stage==="corridor"||DUNGEON.stage==="bridge")){
-    $("#bossHp").style.transform="scaleX(1)";
-    $("#bossHpTx").textContent=DUNGEON.stage==="corridor"
-      ?"—— 清理走廊熔岩犬 ——":"—— 岩桥开启中 ——";
+  if(S.mode==="raid"){
+    const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
+    if(D.stage==="corridor"||D.stage==="bridge"){
+      $("#bossHp").style.transform="scaleX(1)";
+      $("#bossHpTx").textContent=D.stage==="corridor"
+        ?(D.id==="wailing_caverns"?"—— 清理走廊变异兽 ——":"—— 清理走廊熔岩犬 ——")
+        :"—— 岩桥开启中 ——";
+    }else{
+      $("#bossHp").style.transform=`scaleX(${S.b.hpMax?S.b.hp/S.b.hpMax:0})`;
+      $("#bossHpTx").textContent=S.b.submerged?"—— 潜入岩浆 ·先消灭烈焰之子 ——":
+        `${S.b.hp.toLocaleString()} / ${S.b.hpMax.toLocaleString()}  (${Math.ceil(S.b.hp/S.b.hpMax*100)}%)`;
+    }
   }else{
     $("#bossHp").style.transform=`scaleX(${S.b.hpMax?S.b.hp/S.b.hpMax:0})`;
     $("#bossHpTx").textContent=S.b.submerged?"—— 潜入岩浆 ·先消灭烈焰之子 ——":

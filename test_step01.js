@@ -119,8 +119,24 @@ assert(html.includes("cmpFrame"),"game.html 有同伴 HUD");
 assert(coreSrc.includes("companion:{")||coreSrc.includes("companion:"),"BALANCE 含 companion 表");
 assert(combatSrc.includes("getFocusTarget")&&combatSrc.includes("currentTarget"),"combat.js 有集火目标 API");
 
+/* STEP 21 哀嚎洞穴冒烟 */
+const wailingSrc=fs.readFileSync(path.join(__dirname,"wailing.js"),"utf8");
+assert(wailingSrc.includes('id:"wailing_caverns"'),"wailing.js 注册 wailing_caverns");
+assert(wailingSrc.includes("WAILING_DUNGEON")&&wailingSrc.includes("buildWailingZone"),"wailing.js 有副本状态机与建造");
+assert(wailingSrc.includes("cobrahn")&&wailingSrc.includes("verdan"),"哀嚎分段含考布莱恩/吞噬者");
+assert(html.includes('src="wailing.js"'),"game.html 加载 wailing.js");
+assert(coreSrc.includes("cobrahn")&&coreSrc.includes("verdan")&&coreSrc.includes("wailingAdd"),"BALANCE 含哀嚎数值");
+assert(coreSrc.includes("venom_bolt")||coreSrc.includes("venom_ring"),"BALANCE.vfx 含毒液特效");
+assert(raidSrc.includes("function getDungeon")&&raidSrc.includes("DUNGEONS"),"raid.js 有 DUNGEONS/getDungeon");
+assert(raidSrc.includes('id:"cobrahn"')&&raidSrc.includes('id:"verdan"'),"raid.js 定义考布莱恩/吞噬者");
+assert(barrensSrc.includes("to_wailing")||barrensSrc.includes("BARRENS_PORTAL_S"),"barrens 南口传送门");
+assert(barrensSrc.includes("wailing_caverns"),"barrens 南口指向哀嚎洞穴");
+
+const itemsSrc=fs.readFileSync(path.join(__dirname,"items.js"),"utf8");
+assert(itemsSrc.includes("serpent_fang")&&itemsSrc.includes("moss_mantle"),"哀嚎蓝装物品");
+
 if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–20 分区 / 牧师 / AI 队友冒烟");
+console.log("\n全部通过 · STEP 17–21 分区 / 牧师 / 队友 / 哀嚎洞穴冒烟");

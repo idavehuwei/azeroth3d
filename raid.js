@@ -18,7 +18,8 @@
           bossAI startCast spawnAdd addDamage addDie bossDie playerDie resetBoss
           releaseSpiritWorld releaseSpiritRaid releaseSpiritLeaveRaid resurrectPlayer
           showDeathUi hideDeathUi clearRaidHazards applyWipeEncounter
-          distToBoss bossTargetable BOSS_ENT DUNGEON buildRaidScene buildMoltenCoreZone
+          distToBoss bossTargetable BOSS_ENT DUNGEON DUNGEONS getDungeon
+          buildRaidScene buildMoltenCoreZone
    ============================================================ */
 "use strict";
 
@@ -163,12 +164,19 @@ registerZone({
    corridor → boss1（玛格曼达）→ bridge → boss（拉戈斯）
    ============================================================ */
 const DUNGEON={
+  id:"molten_core",
   stage:"boss",      /* "corridor" | "boss1" | "bridge" | "boss" */
   mobsAlive:0,
   bridgeT:0,
   bridgeDone:false,
-  /* 团灭策略（STEP 15）：keep_stage=保留分段，复活时重置当前遭遇 */
   wipePolicy:"keep_stage",
+  exitZone:"mulgore",
+  exitGate:"from_raid",
+  raidSpawn:{x:0,z:18},
+  wipeBoss1:"magmadar",
+  wipeFinal:"ragnaros",
+  addCfg:{build:null, balKey:"add", name:"烈焰之子", lootTable:"add",
+    dieLog:"一只烈焰之子被消灭了！", burstColor:0xff5a1a},
   setStage(s){
     if(s==="corridor"){
       this.stage="corridor"; this.bridgeDone=false;
@@ -212,6 +220,13 @@ const DUNGEON={
     }
   },
 };
+
+/* 多副本注册表（STEP 21）：getDungeon() 按当前 zone 取活动副本 */
+const DUNGEONS={molten_core:DUNGEON};
+function getDungeon(){
+  const z=typeof getCurrentZoneId==="function"?getCurrentZoneId():"molten_core";
+  return DUNGEONS[z]||DUNGEON;
+}
 
 /* ============================================================
    Boss 工厂（STEP 9b）：createBoss(config) + 数据驱动 AI
@@ -354,6 +369,110 @@ defineBoss({
   },
 });
 
+/* ---- 考布莱恩：哀嚎洞穴一号位（STEP 21）· 毒液喷吐 ---- */
+defineBoss({
+  id:"cobrahn",
+  name:"考布莱恩 · 毒牙领主",
+  title:"哀嚎洞穴 · 一号首领",
+  hitNoun:"考布莱恩",
+  statsKey:"cobrahn",
+  build:()=>buildQuadruped(QUADS.cobrahn),
+  projectileY:4.8, fctY:6.5,
+  intro:{
+    type:"appear", fromY:0, toY:0, dur:1.2,
+    burst:{at:.3,window:.2,vfx:"roar_aura",pos:[0,2.5,-10],color:0x44aa22,count:50,spread:4},
+    sfx:"growl",
+    announce:"考布莱恩发出嘶嘶低鸣！",
+    log:"巨大的变异蛇怪考布莱恩从苔藓中探出身来！",
+  },
+  bob:false,
+  home:{x:0,z:-10},
+  skills:[
+    {id:"melee",type:"melee",bal:"melee",name:"毒牙撕咬",firstDelay:2.2,
+      vfx:"melee_impact",label:"考布莱恩的撕咬",phaseMul:{2:"p2Mul"}},
+    {id:"spit",type:"cast_projectile",bal:"spit",name:"毒液喷吐",firstDelay:4,
+      vfx:"venom_bolt",log:"考布莱恩喷出扇形毒液！",exclusive:true,
+      countKey:{1:"count",2:"p2Count"},fanKey:"fan"},
+    {id:"breath",type:"cast_line",bal:"breath",name:"酸液吐息",firstDelay:7,
+      vfx:"venom_ring",
+      announce:"酸液吐息 · 躲开直线！",log:"考布莱恩张开巨口，酸液沿直线喷涌！",
+      exclusive:true,segsKey:{1:"segs",2:"p2Segs"}},
+  ],
+  phases:[
+    {to:2,from:1,hpPctKey:"phase2At",onEnter:"enrage",
+      sfx:"growl",announce:"⚠️ 考布莱恩狂暴！",
+      log:"毒牙领主鳞片迸裂——喷吐更密，变异兽从暗处涌出！",
+      compressNext:{melee:1.2,spit:2.2,breath:3.5},
+      burst:{vfx:"roar_aura",y:3.5,color:0x33cc44,count:70,spread:6},
+      spawnAdds:{countKey:"addCount",r:[8,14],zOff:-2}},
+  ],
+  death:{
+    isFinal:false, nextStage:"boss",
+    sfx:"growl",announce:"考布莱恩倒下了！",
+    log:"毒牙领主瘫倒在苔藓上，洞穴深处传来更沉重的脚步声……",
+    tip:"通往吞噬者巢穴的道路已打开。",
+    xpKey:"cobrahn", copperKey:"cobrahn",
+    lootTable:"wailing", lootPos:[0,0,-5], lootDelay:1400,
+    lootAnnounce:"毒液中浮出战利品",
+  },
+});
+
+/* ---- 吞噬者 · 终局（STEP 21 简化版） ---- */
+defineBoss({
+  id:"verdan",
+  name:"吞噬者 · 永生者",
+  title:"哀嚎洞穴 · 最终首领",
+  hitNoun:"吞噬者",
+  statsKey:"verdan",
+  build:()=>buildQuadruped(QUADS.verdan),
+  projectileY:5.5, fctY:7.2,
+  intro:{
+    type:"appear", fromY:0, toY:0, dur:1.5,
+    burst:{at:.35,window:.2,vfx:"roar_aura",pos:[0,3,-12],color:0x2a8a40,count:80,spread:5},
+    sfx:"roar",
+    announce:"吞噬者苏醒了！",
+    log:"洞穴中央的巨兽睁开双眼——苔藓与藤蔓随之翻涌！",
+  },
+  bob:false,
+  home:{x:0,z:-12},
+  skills:[
+    {id:"melee",type:"melee",bal:"melee",name:"藤蔓重砸",firstDelay:2.5,
+      vfx:"melee_impact",label:"吞噬者的重砸",phaseMul:{2:"p2Mul"}},
+    {id:"spit",type:"cast_projectile",bal:"spit",name:"腐液喷射",firstDelay:5,
+      vfx:"venom_bolt",log:"吞噬者甩出腐液！",exclusive:true,
+      countKey:{1:"count",2:"p2Count"},fanKey:"fan"},
+    {id:"stomp",type:"cast_telegraph",bal:"stomp",name:"根须震荡",firstDelay:9,
+      vfx:"venom_ring",playerRingRKey:"ringR",
+      countKey:{1:"count",2:"p2Count"},
+      announce:"根须震荡 · 快躲开绿圈！",log:"地面崩裂，根须从石缝中刺出！",exclusive:true},
+  ],
+  phases:[
+    {to:2,from:1,hpPctKey:"phase2At",onEnter:"enrage",
+      sfx:"roar",announce:"⚠️ 吞噬者狂暴！",
+      log:"永生者发出震耳嘶鸣——更多变异兽从岩壁爬出！",
+      compressNext:{melee:1.3,spit:2.5,stomp:3.5},
+      burst:{vfx:"roar_aura",y:4,color:0x228822,count:90,spread:7},
+      spawnAdds:{countKey:"addCount",r:[9,15],zOff:-2}},
+  ],
+  death:{
+    isFinal:true, questComplete:false,
+    sfx:"roar",announce:"吞噬者已被击败！",
+    log:"巨兽缓缓倒下，苔藓失去生气……哀嚎洞穴恢复了短暂的平静。",
+    tip:"已拾取战利品后，走进入口处的传送门即可返回贫瘠之地。",
+    xpKey:"verdan", copperKey:"verdan",
+    lootTable:"wailing", lootPos:[0,0,-6], lootDelay:2000,
+    lootAnnounce:"稀有战利品出现了",
+    lootLog:"毒液褪去，蓝装散落在苔藓上——靠近按 F 拾取。",
+    endTitle:"胜 利",endSub:"WAILING CAVERNS · CLEARED",
+    endHtml:"吞噬者的躯体崩解为枯死的藤蔓。<br>前往副本入口处，走进传送门返回贫瘠之地。",
+    burst:{vfx:"roar_aura",y:5,color:0x66cc44,count:100,spread:8},
+  },
+  defeat:{
+    endTitle:"团 灭",endSub:"YOU HAVE BEEN DEFEATED",
+    endHtml:"毒液淹没了洞穴，吞噬者的嘶鸣回荡。<br>释放灵魂，在走廊入口重整旗鼓。",
+  },
+});
+
 function getBossCfg(){return BOSSES[S.b.id]||BOSSES.ragnaros;}
 function bossNum(){return BAL[getBossCfg().statsKey];}
 function skillBal(sk){return bossNum()[sk.bal];}
@@ -393,7 +512,7 @@ function spawnBossAdds(spec){
 function mountBossMesh(id){
   const cfg=BOSSES[id];
   if(!cfg)return;
-  const parent=boss&&boss.parent?boss.parent:sceneRaid;
+  const parent=(typeof scene!=="undefined"&&scene)?scene:sceneRaid;
   if(boss&&boss.parent)boss.parent.remove(boss);
   if(BOSS_MESHES[id]){
     const old=BOSS_MESHES[id];
@@ -696,32 +815,46 @@ function bossAI(dt){
   }
 }
 
-/* ---------------- 烈焰之子 ---------------- */
-function spawnAdd(x,z){
-  const mesh=buildFlameSpawn();
-  mesh.position.set(clamp(x,-ARENA_R+3,ARENA_R-3),0,clamp(z,-ARENA_R+3,ARENA_R-3));
+/* ---------------- 副本小怪（烈焰之子 / 变异蛇等，由 getDungeon().addCfg 驱动） ---------------- */
+function spawnAdd(x,z,opts){
+  opts=opts||{};
+  const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
+  const conf=Object.assign({},D&&D.addCfg||{},opts);
+  const bal=BAL[conf.balKey||"add"]||BAL.add;
+  const buildFn=conf.build||buildFlameSpawn;
+  const mesh=typeof buildFn==="function"?buildFn():buildFlameSpawn();
+  const Rlim=(D&&D.arenaR)!=null?D.arenaR:ARENA_R;
+  mesh.position.set(clamp(x,-Rlim+3,Rlim-3),0,clamp(z,-Rlim+3,Rlim-3));
   scene.add(mesh);
-  S.adds.push({mesh,name:"烈焰之子",hp:BAL.add.hp,hpMax:BAL.add.hp,atkT:0,corpseT:0,
+  S.adds.push({
+    mesh,name:conf.name||"烈焰之子",hp:bal.hp,hpMax:bal.hp,atkT:0,corpseT:0,
+    stats:bal,
+    lootTable:conf.lootTable||"add",
+    dieLog:conf.dieLog||"一只烈焰之子被消灭了！",
+    burstColor:conf.burstColor!=null?conf.burstColor:0xff5a1a,
     variance:null,
     dead(){return this.corpseT>0||!S.adds.includes(this);},
     fctPos(){return this.mesh.position.clone().setY(2.6);},
     onDeath(){addDie(this);},
   });
-  VFX.spawn("melee_impact",{pos:mesh.position.clone().setY(1),color:0xff5a1a,count:20,spread:1.6});
+  VFX.spawn("melee_impact",{pos:mesh.position.clone().setY(1),color:conf.burstColor||0xff5a1a,count:20,spread:1.6});
 }
 function addDamage(a,amount){hitEntity(a,amount);}
 function addDie(a){
-  VFX.spawn("melee_impact",{pos:a.mesh.position.clone().setY(1),color:0xffa040,count:26,spread:2});
+  VFX.spawn("melee_impact",{pos:a.mesh.position.clone().setY(1),color:a.burstColor||0xffa040,count:26,spread:2});
   a.mesh.traverse(o=>{if(o.isMesh){o.userData.liveMat=o.material;o.material=corpseMat;}});
   a.mesh.rotation.z=Math.PI/2; a.mesh.position.y=.25;
   a.corpseT=BAL.loot.corpseT;
-  dropLoot(a.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),[rollLoot(LOOT.add)],a);
-  log("一只烈焰之子被消灭了！","lg-me");
-  const cu=rollCopperRange(BAL.add.copper);
+  const table=a.lootTable&&LOOT[a.lootTable]?a.lootTable:"add";
+  dropLoot(a.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),[rollLoot(LOOT[table])],a);
+  log(a.dieLog||"一只小怪被消灭了！","lg-me");
+  const bal=BAL[(typeof getDungeon==="function"&&getDungeon().addCfg&&getDungeon().addCfg.balKey)||"add"]||BAL.add;
+  const cu=rollCopperRange(bal.copper);
   if(cu)gainCopper(cu);
-  if(DUNGEON.stage==="corridor"){
-    DUNGEON.mobsAlive--;
-    if(DUNGEON.mobsAlive<=0)DUNGEON.setStage("boss1");
+  const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
+  if(D.stage==="corridor"){
+    D.mobsAlive--;
+    if(D.mobsAlive<=0)D.setStage(D.afterCorridor||"boss1");
   }
 }
 
@@ -782,7 +915,10 @@ function bossDie(){
       },3000);
     },5000);
   }else if(D.nextStage){
-    setTimeout(()=>DUNGEON.setStage(D.nextStage),2200);
+    setTimeout(()=>{
+      const dung=typeof getDungeon==="function"?getDungeon():DUNGEON;
+      dung.setStage(D.nextStage);
+    },2200);
   }
   if(typeof saveGame==="function")saveGame(true);
 }
@@ -844,21 +980,21 @@ function clearRaidHazards(){
 /** 按 wipePolicy 重置当前遭遇（保留已推进的 stage） */
 function applyWipeEncounter(){
   clearRaidHazards();
-  const pol=DUNGEON.wipePolicy||"keep_stage";
+  const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
+  const pol=D.wipePolicy||"keep_stage";
   if(pol==="reset_to_corridor"){
     resetBoss();
-    DUNGEON.setStage("corridor");
+    D.setStage("corridor");
     return;
   }
-  /* keep_stage：当前 Boss 战重开；走廊重刷；桥段保持 */
-  if(DUNGEON.stage==="corridor"){
+  if(D.stage==="corridor"){
     resetBoss();
-    DUNGEON.setStage("corridor");
-  }else if(DUNGEON.stage==="boss1"){
-    activateRaidBoss("magmadar");
-  }else if(DUNGEON.stage==="boss"){
-    activateRaidBoss("ragnaros");
-  }else if(DUNGEON.stage==="bridge"){
+    D.setStage("corridor");
+  }else if(D.stage==="boss1"){
+    activateRaidBoss(D.wipeBoss1||"magmadar");
+  }else if(D.stage==="boss"){
+    activateRaidBoss(D.wipeFinal||"ragnaros");
+  }else if(D.stage==="bridge"){
     S.b.alive=false; if(boss)boss.visible=false;
   }
 }
@@ -897,7 +1033,9 @@ function releaseSpiritWorld(){
 function releaseSpiritRaid(){
   if(S.p.alive||S.mode!=="raid")return;
   applyWipeEncounter();
-  resurrectPlayer(BAL.death.raidSpawn);
+  const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
+  const sp=D.raidSpawn||BAL.death.raidSpawn;
+  resurrectPlayer(sp);
   log("你在走廊入口重整旗鼓。当前副本分段已保留，遭遇已重置。","lg-sys");
 }
 
@@ -905,11 +1043,17 @@ function releaseSpiritLeaveRaid(){
   if(S.p.alive||S.mode!=="raid")return;
   clearRaidHazards();
   hideDeathUi();
-  enterZone("mulgore","spirit",{
+  const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
+  const hub=D.exitZone||"mulgore";
+  const gate=hub==="barrens"?"spirit":"spirit";
+  const worldSp=(BAL.death.spawns&&BAL.death.spawns[hub])||BAL.death.worldSpawn;
+  enterZone(hub,gate,{
     afterEnter(){
-      resurrectPlayer(BAL.death.worldSpawn,{silent:true});
-      announce("你回到了营地");
-      log("你退出熔火之心，在灵魂医者旁苏醒。","lg-sys");
+      resurrectPlayer(worldSp,{silent:true});
+      announce(hub==="barrens"?"你回到了十字路口":"你回到了营地");
+      log(hub==="barrens"
+        ?"你退出哀嚎洞穴，在十字路口灵魂医者旁苏醒。"
+        :"你退出熔火之心，在灵魂医者旁苏醒。","lg-sys");
     },
   });
 }
@@ -917,10 +1061,13 @@ function releaseSpiritLeaveRaid(){
 /* 重置遭遇：场景清理；进本时由 setStage("corridor") 重新开打 */
 function resetBoss(){
   removeExitPortal();
-  DUNGEON.mobsAlive=0; DUNGEON.bridgeDone=false; DUNGEON.bridgeT=0;
-  for(let i=0;i<bridgeSegs.length;i++){
-    const seg=bridgeSegs[i];
-    seg.position.y=2.25; seg.material.opacity=1; seg.material.transparent=false;
+  const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
+  D.mobsAlive=0; D.bridgeDone=false; D.bridgeT=0;
+  if(typeof bridgeSegs!=="undefined"){
+    for(let i=0;i<bridgeSegs.length;i++){
+      const seg=bridgeSegs[i];
+      seg.position.y=2.25; seg.material.opacity=1; seg.material.transparent=false;
+    }
   }
   for(const a of S.adds)scene.remove(a.mesh);
   S.adds.length=0;

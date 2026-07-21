@@ -11,7 +11,9 @@
 /* ---- 配方表：Boss / 技能只写 vfx:'lava_bolt'，运行时 VFX.spawn 解析 ---- */
 const VFX_RECIPES={
   lava_bolt    :{type:"projectile"},   /* 参数见 BAL.vfx.lava_bolt */
+  venom_bolt   :{type:"projectile"},   /* STEP 21 毒液弹 */
   eruption_ring:{type:"aura"},         /* 地面预警红圈 */
+  venom_ring   :{type:"aura"},         /* STEP 21 毒液圈 */
   melee_impact :{type:"impact"},
   roar_aura    :{type:"impact"},
   heal_cross   :{type:"impact"},
