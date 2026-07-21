@@ -206,6 +206,7 @@ function spendTalent(nodeId){
   renderTalentPanel();
   if(typeof renderCharPanel==="function")renderCharPanel();
   if(typeof renderSpellPanel==="function")renderSpellPanel();
+  if(typeof onDeedTalentChange==="function")onDeedTalentChange();
   if(typeof saveGame==="function")saveGame(true);
   return true;
 }

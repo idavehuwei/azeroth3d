@@ -12,10 +12,11 @@
           companions.js 运行时（getCompanionSave restoreCompanion dismissCompanion）
           quests.js 运行时（collectQuestSave applyQuestSave resetAllQuests）
           professions.js 运行时（collectMatsSave applyMatsSave resetMats）
+          deeds.js 运行时（collectDeedsSave applyDeedsSave resetDeeds）
    [导出] saveGame loadGame hasSave clearSave collectSaveData applySaveData
           exportSaveCode importSaveCode beginNewGame beginContinue
           refreshStartMenu
-          （存档字段含 companion · quests{} · mats{} · STEP 20/22/23）
+          （存档字段含 companion · quests{} · mats{} · deeds{} · STEP 20–25）
    ============================================================ */
 "use strict";
 
@@ -68,6 +69,7 @@ function collectSaveData(){
       :{x:0,z:52},
     companion:typeof getCompanionSave==="function"?getCompanionSave():null,
     mats:typeof collectMatsSave==="function"?collectMatsSave():{},
+    deeds:typeof collectDeedsSave==="function"?collectDeedsSave():{},
     savedAt:Date.now(),
   };
 }
@@ -140,6 +142,25 @@ function validateSave(raw){
       if(n)mats[id]=n;
     }
   }
+  let deeds=null;
+  if(raw.deeds&&typeof raw.deeds==="object"){
+    deeds={done:{},progress:{},zones:{},bosses:{},dungeons:{},activeTitle:null,activeBorder:null};
+    if(raw.deeds.done&&typeof raw.deeds.done==="object"){
+      for(const id in raw.deeds.done){
+        if(typeof DEED_BY_ID==="undefined"||DEED_BY_ID[id])deeds.done[id]=1;
+      }
+    }
+    if(raw.deeds.progress&&typeof raw.deeds.progress==="object"){
+      for(const k in raw.deeds.progress)deeds.progress[k]=Math.max(0,raw.deeds.progress[k]|0);
+    }
+    ["zones","bosses","dungeons"].forEach(key=>{
+      if(raw.deeds[key]&&typeof raw.deeds[key]==="object"){
+        for(const id in raw.deeds[key])if(raw.deeds[key][id])deeds[key][id]=true;
+      }
+    });
+    if(typeof raw.deeds.activeTitle==="string")deeds.activeTitle=raw.deeds.activeTitle;
+    if(typeof raw.deeds.activeBorder==="string")deeds.activeBorder=raw.deeds.activeBorder;
+  }
   return {
     ok:true,
     data:{
@@ -153,6 +174,7 @@ function validateSave(raw){
       barrensQuest:{state:bqState,kills:bqKills},
       quests,
       mats,
+      deeds,
       zone:zoneId==="molten_core"?"raid":"world",
       zoneId,
       pos:{x,z},
@@ -241,6 +263,8 @@ function applySaveData(data){
   S.eq={weapon:null,armor:null};
   if(typeof applyMatsSave==="function")applyMatsSave(data.mats);
   else S.mats={...(data.mats||{})};
+  if(typeof applyDeedsSave==="function")applyDeedsSave(data.deeds);
+  else if(data.deeds)S.deeds=data.deeds;
   for(const slot of SAVE_SLOTS){
     const id=data.eq[slot];
     if(!id||!ITEMS[id])continue;
@@ -361,6 +385,7 @@ function beginNewGame(classKey){
   if(typeof dismissCompanion==="function")dismissCompanion({silent:true,noSave:true});
   if(typeof resetMats==="function")resetMats({silent:true});
   else S.mats={};
+  if(typeof resetDeeds==="function")resetDeeds({silent:true});
   S.inv=[]; S.eq={weapon:null,armor:null};
   S.p.gold=0; S.over=false; S.mode="world"; S.zoneId="mulgore";
   S.currentTarget=null;

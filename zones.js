@@ -8,6 +8,7 @@
           raid.js（resetBoss DUNGEON removeExitPortal）· sfx.js（SFX）
           map.js（setMapZone）· save.js（saveGame）
           quests.js 运行时（onQuestZoneEnter）
+          deeds.js 运行时（onDeedZoneEnter）
    [导出] ZONES registerZone getZone getCurrentZone getCurrentZoneId
           ensureZoneBuilt ensureAllZonesBuilt enterZone getActivePortals
           resolvePortalPos portalMinLevel portalLevelLocked
@@ -150,6 +151,7 @@ function enterZone(id,gateId,opts){
 
     if(typeof opts.afterEnter==="function")opts.afterEnter(fromId,id,gateId);
     if(typeof onQuestZoneEnter==="function"&&!(opts&&opts.silent))onQuestZoneEnter(id);
+    if(typeof onDeedZoneEnter==="function"&&!(opts&&opts.silent))onDeedZoneEnter(id);
 
     if(from&&to&&from.id!==to.id&&!opts.skipSave){
       if(typeof saveGame==="function")saveGame(true);

@@ -421,12 +421,12 @@ js/
 
 > **验收**：双区各一只稀有；战争使者可击杀并掉蓝装。 ← **已通过**（`node test_step01.js`）
 
-### STEP 25 · 成就「功绩之书」`P2` ⏳
+### STEP 25 · 成就「功绩之书」`P2` ✅
 
-- `Shift+Z`：击杀、任务、首通副本、满天赋等；奖励称号（姓名板前缀）与外观边框。
-- 数据 `DEEDS[]`；存档持久化。
+- 新建 `deeds.js`：`DEEDS[]` 18 条；击杀 / 稀有 / 任务 / 探索 / 首通副本 / 等级 / 满天赋。
+- `Shift+Z` 面板；奖励称号（`#pName` 前缀）与 `#playerFrame` 外观边框；存档 `deeds{}`。
 
-> **WoC 对照**：Book of Deeds；我们做 15–20 条起步。
+> **验收**：完成一条功绩后称号可见；读档不丢进度。 ← **已通过**（`node test_step01.js`）
 
 ---
 
@@ -597,12 +597,13 @@ js/
 | 17 | ✅ | `zones.js`：`ZONES` / `enterZone`；分区种子 `WORLD_SEED ^ hash(zoneId)`；传送门数据化 |
 | 18 | ✅ | `barrens.js`：贫瘠之地 + 十字路口任务；南口 Lv10+；存档 `zoneId`/`barrensQuest` |
 | 19–21 | ✅ | 牧师 / AI 队友 / 哀嚎洞穴 |
-| 22–36 | 🔮 | v3.5–v5.0 已规划，待前置完成 |
+| 22–25 | ✅ | 任务枢纽 / 专业技能 / 稀有精英 / 功绩之书 |
+| 26–36 | 🔮 | v4.0–v5.0 已规划，待前置完成 |
 
-**当前模块清单**（`game.html` 加载序）：`core → zones → sfx → icons → items → models → world → barrens → combat → companions → talents → panels → map → vfx → main → raid → wailing → save`
+**当前模块清单**（`game.html` 加载序）：`core → zones → … → panels → deeds → map → … → save`
 
-**下一步行动**：从 **STEP 25** 做成就「功绩之书」。
+**下一步行动**：从 **STEP 26** 做 5 人 AI 小队框架。
 
 ---
 
-*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 24 完成，下一步 STEP 25*
+*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 25 完成，下一步 STEP 26*

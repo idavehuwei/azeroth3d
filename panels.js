@@ -21,6 +21,7 @@ function closeAllHudPanels(except){
   if(except!=="char")setPanel("#charPanel",false);
   if(except!=="spell")setPanel("#spellPanel",false);
   if(except!=="quest")setPanel("#questLog",false);
+  if(except!=="deeds")setPanel("#deedsPanel",false);
   if(except!=="bag"&&typeof bagOpen==="function"&&bagOpen())$("#bag").style.display="none";
   if(except!=="talent"&&typeof talentOpen==="function"&&talentOpen())closeTalentPanel();
   if(except!=="map"&&typeof worldMapOpen==="function"&&worldMapOpen()){

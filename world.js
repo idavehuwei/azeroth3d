@@ -584,6 +584,7 @@ function mobDie(m){
     if(QUEST.kills>=BAL.quest.boarKills){announce("任务目标完成 · 回去找长老"); setMarker();}
     if(typeof saveGame==="function")saveGame(true);
   }
+  if(typeof onDeedMobKill==="function")onDeedMobKill(m);
   if(typeof onBarrensQuestKill==="function")onBarrensQuestKill(m);
 }
 

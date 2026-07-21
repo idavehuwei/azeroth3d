@@ -871,6 +871,7 @@ function bossDie(){
   if(D.tip)log(D.tip,"lg-sys");
   if(typeof onQuestBossKill==="function")onQuestBossKill(cfg.id);
   else if(D.questComplete&&QUEST.state===2){QUEST.state=3;updateQuest();}
+  if(typeof onDeedBossKill==="function")onDeedBossKill(cfg.id);
   const xp=D.xpKey?BAL.levels.xp[D.xpKey]:BAL.levels.xp.boss;
   if(xp)gainXP(xp);
   const copperSrc=D.copperKey?BAL[D.copperKey]&&BAL[D.copperKey].copper
@@ -902,6 +903,14 @@ function bossDie(){
     },dropDelay);
   }
   if(D.isFinal){
+    if(typeof onDeedDungeonClear==="function"){
+      const dung=typeof getDungeon==="function"?getDungeon():DUNGEON;
+      const did=(dung&&dung.id)||(cfg.dungeonId)||null;
+      /* molten: ragnaros isFinal；wailing: verdan isFinal — 用当前副本 id */
+      if(did)onDeedDungeonClear(did);
+      else if(cfg.id==="ragnaros")onDeedDungeonClear("molten_core");
+      else if(cfg.id==="verdan")onDeedDungeonClear("wailing_caverns");
+    }
     setTimeout(()=>{
       $("#endTitle").textContent=D.endTitle||"胜 利";
       $("#endTitle").style.color="#ffd9a0";

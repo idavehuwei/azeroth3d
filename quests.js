@@ -300,6 +300,7 @@ function finishQuest(id,opts){
   syncLegacyQuestAliases();
   updateQuestTracker();
   if(q.next&&canAcceptQuest(q.next))acceptQuest(q.next,{silent:opts.silent,noSave:true});
+  if(typeof onDeedQuestComplete==="function")onDeedQuestComplete(id);
   if(!opts.noSave&&typeof saveGame==="function")saveGame(true);
   return true;
 }

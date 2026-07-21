@@ -33,6 +33,7 @@ const S={
   currentTarget:null,   /* STEP 20：玩家集火目标，供 AI 队友共用 */
   quests:{},            /* STEP 22：任务运行时 {id:{status,kills,flags}} */
   mats:{},              /* STEP 23：采集材料堆叠 {matId:count} */
+  deeds:null,           /* STEP 25：功绩之书（ensureDeeds 初始化） */
   craftOpen:false,
   p:{hp:5200,hpMax:5200,rage:20,rageMax:100,speed:10.5,alive:true,dmgMul:1,
      atkTimer:0,attackAnim:0,walkPhase:0,face:0,invuln:0,
@@ -170,6 +171,7 @@ addEventListener("keydown",e=>{
   if(e.key.toLowerCase()==="p")toggleSpellPanel();
   if(e.key.toLowerCase()==="l")toggleQuestLog();
   if(e.key.toLowerCase()==="m")toggleWorldMap();
+  if(e.shiftKey&&e.key.toLowerCase()==="z"&&typeof toggleDeedsPanel==="function"){e.preventDefault();toggleDeedsPanel();}
   if(e.key==="Escape"&&typeof worldMapOpen==="function"&&worldMapOpen())closeWorldMap();
 });
 addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
@@ -527,6 +529,7 @@ function gainXP(amount){
     log(`你升到了 ${P.level} 级！生命上限 +${hpGain}，基础伤害 +${Math.round(L.perLevel.dmgMul*100)}%。`,"lg-heal");
     VFX.spawn("loot_spark",{pos:player.position.clone().setY(1.5),color:0xffd76a,count:60,spread:3});
     if(typeof grantTalentPointOnLevel==="function")grantTalentPointOnLevel(P.level);
+    if(typeof onDeedLevelUp==="function")onDeedLevelUp(P.level);
   }
   updateLevelUI();
   if(typeof saveGame==="function")saveGame(true);
@@ -585,4 +588,8 @@ function rollCopperRange(range){
   if(Array.isArray(range))return Math.round(rand(range[0],range[1]));
   return 0;
 }
-function updateLevelUI(){$("#pName").textContent=`${CLS.title} · Lv.${S.p.level}`;updateGoldUI();}
+function updateLevelUI(){
+  if(typeof updatePlayerNameplate==="function")updatePlayerNameplate();
+  else $("#pName").textContent=`${CLS.title} · Lv.${S.p.level}`;
+  updateGoldUI();
+}

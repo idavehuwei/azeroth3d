@@ -180,8 +180,27 @@ assert(barrensSrc.includes("spawnRaresForZone"),"barrens.js 挂接稀有表");
 const mapSrc=fs.readFileSync(path.join(__dirname,"map.js"),"utf8");
 assert(mapSrc.includes("getRareMapEntries")||mapSrc.includes("m.rare"),"map.js 稀有点走 rare 标记");
 
+/* STEP 25 功绩之书冒烟 */
+const deedsSrc=fs.readFileSync(path.join(__dirname,"deeds.js"),"utf8");
+assert(html.includes('src="deeds.js"'),"game.html 加载 deeds.js");
+assert(html.includes('id="deedsPanel"'),"game.html 有功绩面板");
+assert(deedsSrc.includes("const DEEDS=")&&deedsSrc.includes("function grantDeed"),"deeds.js 有 DEEDS 与 grantDeed");
+assert(deedsSrc.includes("function toggleDeedsPanel")&&deedsSrc.includes("function collectDeedsSave"),"deeds.js 有面板与存档");
+assert(deedsSrc.includes("function onDeedMobKill")&&deedsSrc.includes("function onDeedDungeonClear"),"deeds.js 有击杀/副本钩子");
+assert(deedsSrc.includes("updatePlayerNameplate"),"deeds.js 有姓名板更新");
+assert(combatSrc.includes("toggleDeedsPanel")&&combatSrc.includes("shiftKey"),"combat.js 绑定 Shift+Z");
+assert(saveSrc.includes("collectDeedsSave")&&saveSrc.includes("applyDeedsSave"),"save.js 读写 deeds");
+assert(worldSrc.includes("onDeedMobKill"),"world.js 挂接功绩击杀");
+assert(DEEDS_COUNT_OK(deedsSrc),"DEEDS 条目不少于 15");
+
+function DEEDS_COUNT_OK(src){
+  const m=src.match(/id:"[^"]+"/g)||[];
+  /* DEEDS 表内 id 约 18；过滤 DEED_BY_ID 等 */
+  return m.filter(s=>/id:"(kill_|rare_|world_|quest_|enter_|dungeon_|boss_|level_|talents_)/.test(s)).length>=15;
+}
+
 if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–24 分区 / … / 专业 / 稀有精英冒烟");
+console.log("\n全部通过 · STEP 17–25 … / 稀有 / 功绩之书冒烟");
