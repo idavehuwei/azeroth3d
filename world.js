@@ -36,7 +36,7 @@ const BOSS_MESHES={ragnaros:boss};
 /* ============================================================
    莫高雷 · 外部世界（草原 / 红岩台地 / 牛头人营地 / 副本传送门）
    ============================================================ */
-const WORLD_R=88;
+const WORLD_R=176; /* V1-B2：开放区半径×2 */
 const sceneWorld=new THREE.Scene();
 sceneWorld.background=new THREE.Color(0x8fc0e8);
 sceneWorld.fog=new THREE.FogExp2(0xa8c8e0,0.0062);
@@ -138,7 +138,7 @@ const worldFlames=[];
 });
 
 /* ---------------- 副本传送门：熔火之心入口 ---------------- */
-const PORTAL_POS=new THREE.Vector3(0,0,-62);
+const PORTAL_POS=new THREE.Vector3(0,0,-(WORLD_R-8));
 const obsidian=new THREE.MeshStandardMaterial({color:0x241812,roughness:.85,flatShading:true,
   emissive:0x661a00,emissiveIntensity:.2});
 const pPlat=new THREE.Mesh(new THREE.CylinderGeometry(8,9.5,1,12),obsidian);
@@ -442,6 +442,11 @@ const MOB_TYPES={
   quilboar:{name:"野猪人斥候",  build:()=>buildQuadruped(QUADS.quilboar),stats:"quilboar",loot:"quilboar",labelW:5.2,labelY:2.9},
   centaur :{name:"半人马战士",  build:()=>buildCentaur(MOB_HUMANOIDS.centaur),stats:"centaur",loot:"centaur",labelW:6.5,labelY:4.8},
   zebra   :{name:"平原斑马",    build:()=>buildQuadruped(QUADS.zebra),   stats:"zebra",   loot:"zebra",   labelW:4.6,labelY:2.8},
+  /* V1-B1 赭岩谷 */
+  scorp     :{name:"赭岩巨蝎",    build:()=>buildQuadruped(QUADS.scorp),    stats:"scorp",    loot:"scorp",    labelW:5.0,labelY:2.6},
+  razorback :{name:"刺脊野猪人",  build:()=>buildQuadruped(QUADS.razorback),stats:"razorback",loot:"razorback",labelW:5.8,labelY:3.2},
+  cliffHarpy:{name:"崖风鹰身",    build:()=>buildHumanoidMob(MOB_HUMANOIDS.cliffHarpy),stats:"cliffHarpy",loot:"cliffHarpy",
+    labelW:9,labelY:6.0,elite:true,color:"#ff9a70",auraColor:0xff7040},
   /* STEP 24 世界 Boss */
   centaurHerald:{name:"半人马战争使者",build:()=>buildCentaur(MOB_HUMANOIDS.centaurHerald),
     stats:"centaurHerald",loot:"centaurHerald",labelW:11,labelY:7.2,
@@ -547,13 +552,14 @@ function aggroMob(m){
   }
 }
 
-/* ---------------- 野怪放置（固定坐标，世界确定性） ---------------- */
+/* ---------------- 野怪放置（V1-B2：坐标×2 + 增驻点，世界确定性） ---------------- */
 /* 野猪群（营地周围，任务目标） */
-[[20,22],[-24,26],[27,-4],[-18,-10],[10,32]].forEach(([x,z])=>spawnMob("boar",x,z));
-/* 草原狼：3 只一群，社群仇恨（打一只全群上） */
-[[-42,-26],[-38,-31],[-45,-33]].forEach(([x,z])=>spawnMob("wolf",x,z,"wolfpack"));
-/* 陆行鸟：湖边中立被动（不主动攻击，被打才反击，移速快） */
-[[-28,2],[-46,26],[-24,14]].forEach(([x,z])=>spawnMob("bird",x,z));
+[[40,44],[-48,52],[54,-8],[-36,-20],[20,64],[32,28],[-20,40],[48,16],[-56,36],[12,72]].forEach(([x,z])=>spawnMob("boar",x,z));
+/* 草原狼：两群 */
+[[-84,-52],[-76,-62],[-90,-66],[-70,-48]].forEach(([x,z])=>spawnMob("wolf",x,z,"wolfpack"));
+[[60,70],[68,78],[54,82]].forEach(([x,z])=>spawnMob("wolf",x,z,"wolfpack2"));
+/* 陆行鸟：湖边中立被动 */
+[[-56,4],[-92,52],[-48,28],[-70,16],[-40,40]].forEach(([x,z])=>spawnMob("bird",x,z));
 /* 稀有/精英：rares.js 加载后 spawnRaresForZone("mulgore") */
 function moveToward(m,dest,spd,dt){
   const dx=dest.x-m.mesh.position.x,dz=dest.z-m.mesh.position.z;
@@ -611,6 +617,7 @@ function mobDie(m){
   }
   if(typeof onDeedMobKill==="function")onDeedMobKill(m);
   if(typeof onBarrensQuestKill==="function")onBarrensQuestKill(m);
+  if(typeof updateDurotarMarkers==="function")updateDurotarMarkers();
 }
 
 /* ---------------- 任务追踪 HUD（右上角；详情见 L 任务日志）· STEP 22 走 quests.js ---- */
@@ -634,6 +641,8 @@ function tryInteract(){
   if(typeof tryProfessionInteract==="function"&&tryProfessionInteract())return;
   if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="barrens"
     &&typeof tryInteractBarrens==="function"){tryInteractBarrens();return;}
+  if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="durotar"
+    &&typeof tryInteractDurotar==="function"){tryInteractDurotar();return;}
   const R=BAL.economy.interactR;
   const dE=elderDist(), dV=vendorDist(), dS=spiritDist();
   if(dS<R&&dS<=dE&&dS<=dV){openSpiritDialogue();return;}

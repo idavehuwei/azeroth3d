@@ -155,7 +155,7 @@ function renderQuestLog(){
     body.innerHTML=`<div class="ql-empty">尚未接受任务。<br>与营地的长老 · 岩蹄对话（F）开始旅程。<br>按 L 随时查看任务日志。</div>`;
     return;
   }
-  const zoneName={mulgore:"莫高雷",barrens:"贫瘠之地",molten_core:"熔火之心",wailing_caverns:"哀嚎洞穴"};
+  const zoneName={mulgore:"莫高雷",barrens:"贫瘠之地",durotar:"赭岩谷",molten_core:"熔火之心",wailing_caverns:"哀嚎洞穴",onyxias_lair:"奥妮克希亚巢穴"};
   let html="";
   let lastZone="";
   for(const e of list){

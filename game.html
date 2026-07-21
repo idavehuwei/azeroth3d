@@ -150,10 +150,15 @@
   .tal-hint{margin-top:10px;font-size:10px;color:#8b7a5e;letter-spacing:1px;line-height:1.7}
   @media (max-width:520px){.tal-branches{grid-template-columns:1fr}}
 
-  /* ---------- 角色 / 法术书 / 任务日志（STEP 14） ---------- */
+  /* ---------- 角色 / 法术书 / 任务日志（STEP 14 · V1-B2 日志可滚动） ---------- */
   .hudPanel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,92vw);
     z-index:24;display:none;background:var(--ui-bg);border:1px solid #ffcf90;padding:14px 16px;
     box-shadow:0 0 36px rgba(255,120,20,.4);max-height:min(78vh,560px);overflow:auto}
+  #questLog{overflow:hidden;max-height:min(82vh,620px)}
+  #questLogBody{overflow-y:auto;overflow-x:hidden;max-height:min(62vh,480px);
+    padding-right:4px;scrollbar-width:thin;scrollbar-color:#ff9a55 transparent}
+  #questLogBody::-webkit-scrollbar{width:8px}
+  #questLogBody::-webkit-scrollbar-thumb{background:#c87830;border-radius:4px}
   .hudPanel .bag-title{font-weight:800;font-size:14px;color:#ffd9a0;letter-spacing:2px;margin-bottom:10px;
     display:flex;justify-content:space-between;align-items:center}
   .hudPanel .bag-close{cursor:pointer;color:#8b7a5e}
@@ -502,6 +507,7 @@
 <script src="weather.js"></script>
 <script src="rares.js"></script>
 <script src="barrens.js"></script>
+<script src="durotar.js"></script>
 <script src="combat.js"></script>
 <script src="quests.js"></script>
 <script src="companions.js"></script>

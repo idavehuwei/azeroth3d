@@ -70,6 +70,27 @@ const ITEMS={
                  stats:null, vendorSell:12},
   whetstone    :{id:"whetstone",    name:"磨刀石",      icon:"whetstone",quality:"common",slot:"consumable",use:"whetstone",
                  stats:null, vendorSell:10},
+  /* —— V1-B2 任务物品 / 分区装备 —— */
+  quest_sacred_oil  :{id:"quest_sacred_oil",  name:"圣油",        icon:"potion", quality:"common", slot:"consumable",use:"quest",
+                      stats:null, quest:true},
+  quest_signal_horn :{id:"quest_signal_horn", name:"信号号角",    icon:"tusk",   quality:"common", slot:"consumable",use:"quest",
+                      stats:null, quest:true},
+  quest_supply_crate:{id:"quest_supply_crate",name:"军需木箱",    icon:"armor",  quality:"common", slot:"misc",
+                      stats:null, quest:true},
+  quest_ochre_report:{id:"quest_ochre_report",name:"斥候急报",    icon:"hide",   quality:"common", slot:"misc",
+                      stats:null, quest:true},
+  zebra_hide        :{id:"zebra_hide",        name:"斑马皮",      icon:"hide",   quality:"common", slot:"misc",
+                      stats:null, vendorSell:9},
+  scorp_stinger     :{id:"scorp_stinger",     name:"蝎刺",        icon:"tusk",   quality:"common", slot:"misc",
+                      stats:null, vendorSell:8},
+  barrens_cleaver   :{id:"barrens_cleaver",   name:"贫瘠劈刀",    icon:"sword",  quality:"uncommon",slot:"weapon",
+                      stats:{dmgMul:1.09},model:"sword",vendorSell:160},
+  barrens_cuirass   :{id:"barrens_cuirass",   name:"十字路口胸甲",icon:"armor",  quality:"uncommon",slot:"armor",
+                      stats:{hpMax:420},vendorSell:170},
+  ochre_fang        :{id:"ochre_fang",        name:"赭岩毒牙刃",  icon:"sword",  quality:"rare",    slot:"weapon",
+                      stats:{dmgMul:1.13},model:"sword",vendorSell:260},
+  ochre_plate       :{id:"ochre_plate",       name:"哨站硬皮甲",  icon:"armor",  quality:"uncommon",slot:"armor",
+                      stats:{hpMax:480},vendorSell:190},
 };
 
 /* ---------------- 掉落表：品质三档池，权重见 BALANCE.loot.weights ---------------- */
@@ -137,15 +158,29 @@ const LOOT={
     uncommon:["tusk_blade","hide_vest"],
     rare    :["plains_blade"],
   },
-  centaur:{
-    common  :["wolf_pelt","bird_feather"],
-    uncommon:["wind_blade","hide_vest"],
+  scorp:{
+    common  :["boar_hide","bird_feather","scorp_stinger"],
+    uncommon:["hide_vest","tusk_blade"],
+    rare    :["ochre_fang","plains_blade"],
+  },
+  razorback:{
+    common  :["boar_meat","boar_tusk","boar_hide"],
+    uncommon:["tusk_blade","hide_vest","ochre_plate"],
     rare    :["plains_blade","mesa_guard"],
   },
+  cliffHarpy:{
+    uncommon:["wind_blade","harpy_charm","ochre_fang"],
+    rare    :["plains_blade","mesa_guard"],
+  },
+  centaur:{
+    common  :["wolf_pelt","bird_feather"],
+    uncommon:["wind_blade","hide_vest","barrens_cuirass"],
+    rare    :["barrens_cleaver","plains_blade","mesa_guard"],
+  },
   zebra:{
-    common  :["bird_meat","bird_feather"],
-    uncommon:["hide_vest"],
-    rare    :["plains_blade"],
+    common  :["bird_meat","bird_feather","zebra_hide"],
+    uncommon:["hide_vest","barrens_cuirass"],
+    rare    :["barrens_cleaver","plains_blade"],
   },
 };
 /* 按权重掷品质档（可传 BAL.loot.eliteWeights 等），再从该档均匀取一件（玩法随机 → rand 路线） */
@@ -223,6 +258,7 @@ function tryLoot(){
   removeDrop(d);
   if(d.onLooted)d.onLooted();
   renderBag();
+  if(typeof refreshDeliverObjectives==="function")refreshDeliverObjectives({noSave:true});
   if(typeof saveGame==="function")saveGame(true);
   return true;
 }
@@ -315,12 +351,20 @@ function useItem(id){
     if(typeof saveGame==="function")saveGame(true);
     return true;
   }
+  if(it.use==="quest"){
+    S.inv.splice(idx,1);
+    log(`使用【${it.name}】。`,"lg-sys");
+    if(typeof onQuestUseItem==="function")onQuestUseItem(id);
+    renderBag();
+    if(typeof saveGame==="function")saveGame(true);
+    return true;
+  }
   return false;
 }
 function sellItem(id){
   if(!S.vendorOpen){log("需要在商人处才能出售。","lg-sys");return false;}
   const it=ITEMS[id];
-  if(!it||it.vendorSell==null){log("该物品无法出售。","lg-sys");return false;}
+  if(!it||it.quest||it.vendorSell==null){log("该物品无法出售。","lg-sys");return false;}
   const idx=S.inv.indexOf(id); if(idx<0)return false;
   S.inv.splice(idx,1);
   gainCopper(it.vendorSell,{silent:true});

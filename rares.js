@@ -17,19 +17,19 @@
 /* ---- 稀有精英表（加一只 = 加一条；坐标相对各区原点） ---- */
 const RARES=[
   {id:"greyjaw_mulgore", type:"boarKing", zone:"mulgore",
-    x:14, z:-34, rare:true, label:"老灰鬃"},
+    x:28, z:-68, rare:true, label:"老灰鬃"},
   {id:"ashmane_barrens", type:"ashmane", zone:"barrens",
-    x:-48, z:38, rare:true, label:"灰蹄野猪王",
+    x:-96, z:76, rare:true, label:"灰蹄野猪王",
     name:"灰蹄野猪王"},
   /* 粉色精英也走表，便于小地图统一 */
   {id:"harpy_mulgore", type:"harpy", zone:"mulgore",
-    x:48, z:-30, rare:false, label:"鹰身女妖"},
+    x:96, z:-60, rare:false, label:"鹰身女妖"},
 ];
 
 /* ---- 世界 Boss 表（野外可摸，非副本分段） ---- */
 const WORLD_BOSSES=[
   {id:"centaur_warbringer", type:"centaurHerald", zone:"barrens",
-    x:52, z:32, worldBoss:true, rare:true, label:"战争使者",
+    x:104, z:64, worldBoss:true, rare:true, label:"战争使者",
     name:"半人马战争使者"},
 ];
 

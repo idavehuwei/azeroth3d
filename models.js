@@ -464,6 +464,9 @@ const QUADS={
   /* —— STEP 18 贫瘠之地 —— */
   zebra   :{fur:0xe8e0d0,furD:0x3a3028,ears:true,mane:true,tail:'bushy',size:1.05},
   quilboar:{fur:0xc4783a,furD:0x8a5020,tusks:true,mane:true,ears:true,tail:'up',size:1.15,quills:true},
+  /* —— V1-B1 赭岩谷 —— */
+  scorp   :{fur:0xc87828,furD:0x5a3010,tusks:true,ears:false,tail:'up',size:1.05,quills:true},
+  razorback:{fur:0x8a4020,furD:0x4a2010,tusks:true,tuskBig:true,mane:true,ears:true,tail:'up',size:1.35,quills:true},
   /* —— STEP 21 哀嚎洞穴 —— */
   deviate :{fur:0x4a8a3a,furD:0x2a5a20,tusks:true,mane:true,ears:true,tail:'up',size:1.25,quills:true},
   cobrahn :{fur:0x3a7a28,furD:0x1a4010,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:4.2},
@@ -593,6 +596,7 @@ function buildCentaur(cfg){
 /* 人形怪族群：鹰身女妖 /（将来的小恶魔等）共用 */
 const MOB_HUMANOIDS={
   harpy:{size:1.55,skin:0xc9a2b8,feather:0x5a3a6e,featherD:0x3a2450,hair:0x2a1a3e,claw:0xe8e0c8},
+  cliffHarpy:{size:1.75,skin:0xd4a090,feather:0x6a3020,featherD:0x3a1810,hair:0x2a1008,claw:0xe8d0a0,wings:true},
   centaur:{size:1.2,skin:0xc9a080,fur:0x8a6a40,furD:0x5a4028,cloth:0x6a4030},
   /* STEP 24 半人马战争使者 */
   centaurHerald:{size:1.55,skin:0xd4a878,fur:0x6a5030,furD:0x3a2818,cloth:0x8a3020,banner:true},
@@ -702,6 +706,7 @@ function buildSpiritHealer(){
 const BUILD_PAL={
   mulgore:{wood:0x6a4a28,woodD:0x3a2810,roof:0x8a5a30,hide:0xc9a06a,flag:0xc04020,stake:0x4a3020},
   barrens:{wood:0x7a5a30,woodD:0x4a3020,roof:0xa87840,hide:0xb89050,flag:0xc04020,stake:0x5a3820},
+  durotar:{wood:0x6a3a18,woodD:0x3a1e0c,roof:0x8a4820,hide:0xc07040,flag:0xd03018,stake:0x4a2810},
 };
 
 function placeProp(root,mesh,x,z,rotY){

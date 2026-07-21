@@ -51,6 +51,7 @@ const MOB_HIT={
   harpy:"hit_flesh", centaur:"hit_flesh", centaurHerald:"hit_flesh",
   boarKing:"hit_flesh", ashmane:"hit_flesh",
   quilboar:"hit_shell", deviate:"hit_shell",
+  scorp:"hit_shell", razorback:"hit_shell", cliffHarpy:"hit_flesh",
   magmadar:"hit_flesh", cobrahn:"hit_shell", verdan:"hit_shell",
   onyxia:"hit_flesh", ragnaros:"hit_flesh", flame:"hit_flesh", add:"hit_flesh",
 };
@@ -60,6 +61,8 @@ const MUSIC={
          scale:[262,294,330,392,440,523,587,659]},
   barrens:{tempo:980, wave:"triangle", vol:.12, noteDur:1.5, chance:.75,
          scale:[294,330,370,440,494,587,659]},
+  durotar:{tempo:920, wave:"triangle", vol:.12, noteDur:1.4, chance:.78,
+         scale:[330,370,392,494,554,659]},
   raid :{tempo:600,  wave:"sawtooth", vol:.1,  noteDur:.4, kick:true,
          scale:[65,73,82]},
 };

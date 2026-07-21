@@ -12,7 +12,7 @@
           professions.js 运行时（spawnGatherNodesForZone）
           rares.js 运行时（spawnRaresForZone）
           save.js 运行时（saveGame）· panels.js 运行时（renderQuestLog）
-   [导出] sceneBarrens BARRENS_R BARRENS_QUEST BARRENS_PORTAL_N BARRENS_PORTAL_S BARRENS_PORTAL_E
+   [导出] sceneBarrens BARRENS_R BARRENS_QUEST BARRENS_PORTAL_N BARRENS_PORTAL_S BARRENS_PORTAL_E BARRENS_PORTAL_W
           barrensHeli barrensSun barrensFlames
           buildBarrensZone onBarrensQuestKill tryInteractBarrens
           updateBarrensMarkers crossroadsDist barrensSpiritDist
@@ -25,6 +25,7 @@ const BARRENS_PORTAL_N=new THREE.Vector3(0,0,-(BARRENS_R-8));
 const BARRENS_SOUTH_MARK=new THREE.Vector3(0,0,BARRENS_R-12);
 const BARRENS_PORTAL_S=BARRENS_SOUTH_MARK;
 const BARRENS_PORTAL_E=new THREE.Vector3(BARRENS_R-12,0,8);
+const BARRENS_PORTAL_W=new THREE.Vector3(-(BARRENS_R-12),0,-18);
 
 /* 入口任务：0 未接 | 1 清野猪人 | 2 已交（完整任务网见 STEP 22） */
 const BARRENS_QUEST={id:"crossroads_trouble",state:0,kills:0};
@@ -207,6 +208,36 @@ function buildBarrensZone(scn){
   const eLab2=makeLabel(`需要 Lv.${BAL.barrens.onyxiaMinLevel||16}+`,6,"#ff9060","rgba(80,40,20,.9)");
   eLab2.position.set(BARRENS_PORTAL_E.x,10.6,BARRENS_PORTAL_E.z); root.add(eLab2);
 
+  /* —— 西口：赭岩谷（V1-B1） —— */
+  const wPlat=new THREE.Mesh(new THREE.CylinderGeometry(5.5,6.5,.5,10),
+    new THREE.MeshStandardMaterial({color:0x8a4820,roughness:1,flatShading:true}));
+  wPlat.position.set(BARRENS_PORTAL_W.x,.5,BARRENS_PORTAL_W.z); wPlat.receiveShadow=true; root.add(wPlat);
+  [-1,1].forEach(sz=>{
+    const pil=new THREE.Mesh(new THREE.BoxGeometry(1.1,8.8,1.1),
+      new THREE.MeshStandardMaterial({color:0x5a2810,roughness:.95,flatShading:true}));
+    pil.position.set(BARRENS_PORTAL_W.x,4.6,BARRENS_PORTAL_W.z+sz*3.0); pil.castShadow=true; root.add(pil);
+  });
+  const wLintel=new THREE.Mesh(new THREE.BoxGeometry(1.3,1.2,7.5),
+    new THREE.MeshStandardMaterial({color:0x6a3018,roughness:.9,flatShading:true}));
+  wLintel.position.set(BARRENS_PORTAL_W.x,9.0,BARRENS_PORTAL_W.z); root.add(wLintel);
+  const wDisc=new THREE.Mesh(new THREE.CircleGeometry(2.6,36),new THREE.ShaderMaterial({
+    uniforms:barrensPortalUni,transparent:true,side:THREE.DoubleSide,depthWrite:false,
+    vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`
+      varying vec2 vUv;uniform float uTime;
+      void main(){
+        vec2 p=vUv-.5; float r=length(p)*2.; float ang=atan(p.y,p.x);
+        float sw=sin(ang*2.4-uTime*2.1+r*6.5);
+        vec3 c=mix(vec3(.95,.5,.2),vec3(.55,.2,.06),smoothstep(-.5,.7,sw));
+        c=mix(c,vec3(.1,.03,0.),smoothstep(.7,1.,r));
+        gl_FragColor=vec4(c*1.2,smoothstep(1.,.88,r));
+      }`}));
+  wDisc.position.set(BARRENS_PORTAL_W.x,4.5,BARRENS_PORTAL_W.z); wDisc.rotation.y=Math.PI/2; root.add(wDisc);
+  const wLab=makeLabel("赭岩谷",10,"#ffb070","rgba(100,40,15,.92)");
+  wLab.position.set(BARRENS_PORTAL_W.x,11.8,BARRENS_PORTAL_W.z); root.add(wLab);
+  const wLab2=makeLabel(`需要 Lv.${BAL.barrens.durotarMinLevel||12}+`,6,"#ff9060","rgba(90,40,15,.9)");
+  wLab2.position.set(BARRENS_PORTAL_W.x,10.4,BARRENS_PORTAL_W.z); root.add(wLab2);
+
   crossroadsSentinel=buildVendor();
   crossroadsSentinel.traverse(o=>{
     if(!o.isMesh||!o.material||!o.material.color)return;
@@ -230,16 +261,16 @@ function buildBarrensZone(scn){
   barrensMarkerQ=makeLabel("❓",3.2,"#ffd76a","rgba(255,160,0,.95)");
   barrensMarkerQ.position.copy(barrensMarkerExcl.position); barrensMarkerQ.visible=false; root.add(barrensMarkerQ);
 
-  [[-32,-12],[-28,-18],[-36,-8],[-30,-22],[-40,-14]].forEach(([x,z])=>{
+  [[-64,-24],[-56,-36],[-72,-16],[-60,-44],[-80,-28],[-48,-20]].forEach(([x,z])=>{
     spawnMob("quilboar",x,z,"quilboar_outpost",{zoneId:"barrens"});
   });
-  [[38,22],[44,28],[32,30],[48,20]].forEach(([x,z])=>{
+  [[76,44],[88,56],[64,60],[96,40],[80,30],[70,50]].forEach(([x,z])=>{
     spawnMob("centaur",x,z,"centaur_camp",{zoneId:"barrens"});
   });
-  [[-15,40],[-22,32],[12,-40],[18,35]].forEach(([x,z])=>{
+  [[-30,80],[-44,64],[24,-80],[36,70],[-50,90],[40,-60]].forEach(([x,z])=>{
     spawnMob("zebra",x,z,null,{zoneId:"barrens"});
   });
-  [[-18,28],[8,-35]].forEach(([x,z])=>{
+  [[-36,56],[16,-70],[-20,-50],[50,40]].forEach(([x,z])=>{
     spawnMob("bird",x,z,null,{zoneId:"barrens"});
   });
 
@@ -250,7 +281,7 @@ function buildBarrensZone(scn){
     spawnGatherNodesForZone("barrens",root,{
       radius:BARRENS_R,
       camp:{x:0,z:-2},
-      portals:[{x:BARRENS_PORTAL_N.x,z:BARRENS_PORTAL_N.z},{x:BARRENS_PORTAL_S.x,z:BARRENS_PORTAL_S.z},{x:BARRENS_PORTAL_E.x,z:BARRENS_PORTAL_E.z}],
+      portals:[{x:BARRENS_PORTAL_N.x,z:BARRENS_PORTAL_N.z},{x:BARRENS_PORTAL_S.x,z:BARRENS_PORTAL_S.z},{x:BARRENS_PORTAL_E.x,z:BARRENS_PORTAL_E.z},{x:BARRENS_PORTAL_W.x,z:BARRENS_PORTAL_W.z}],
     });
   }
   const z=ZONES.barrens;
@@ -352,6 +383,7 @@ registerZone({
     from_mulgore:{x:0,z:-(BARRENS_R-22)},  /* 远离北口，避免与莫高雷南口乒乓 */
     from_wailing:{x:0,z:BARRENS_R-22},     /* 远离南口，避免进出乒乓 */
     from_onyxia:{x:BARRENS_R-28,z:8},      /* 远离东口 */
+    from_durotar:{x:-(BARRENS_R-26),z:-18}, /* 远离西口 */
     crossroads:{x:0,z:0},
     spirit:{x:-8,z:5},
     default:{x:0,z:0},
@@ -395,11 +427,26 @@ registerZone({
     lockedLog:()=>`黑龙巢穴极其危险——当前 Lv.${S.p.level}，建议升到 Lv.${BAL.barrens.onyxiaMinLevel||16} 后再挑战。`,
     targetZone:"onyxias_lair",
     targetGate:"entrance",
+  },{
+    id:"to_durotar",
+    pos:()=>BARRENS_PORTAL_W,
+    hintR:()=>BAL.zones.portalHintR,
+    enterR:()=>BAL.zones.portalEnterR,
+    announce:"赭岩谷 · 兽人哨站风",
+    logHint:"西边热浪翻滚——赭岩谷的橙土与哨站旗影隐约可见。",
+    requireAlive:true,
+    autoEnter:true,
+    minLevel:()=>BAL.barrens.durotarMinLevel||12,
+    lockedAnnounce:()=>`等级不足！需要 Lv.${BAL.barrens.durotarMinLevel||12}`,
+    lockedLog:()=>`赭岩谷危机四伏——当前 Lv.${S.p.level}，建议升到 Lv.${BAL.barrens.durotarMinLevel||12} 后再前往。`,
+    targetZone:"durotar",
+    targetGate:"from_barrens",
   }],
   onEnter(fromId,gateId,opts){
     if(opts&&opts.silent)return;
     if(fromId==="mulgore")log("干燥的热风扑面而来——你已踏入贫瘠之地。","lg-sys");
     else if(fromId==="wailing_caverns")log("你离开哀嚎洞穴，十字路口的风干而炙热。","lg-sys");
+    else if(fromId==="durotar")log("你离开赭岩谷，贫瘠之地的热风干涩依旧。","lg-sys");
     updateBarrensMarkers();
     if(typeof updateQuest==="function")updateQuest();
   },

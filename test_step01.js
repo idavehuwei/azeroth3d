@@ -149,6 +149,16 @@ assert(questsSrc.includes("function onQuestMobKill")&&questsSrc.includes("functi
 assert(questsSrc.includes("function getQuestLogEntries")&&questsSrc.includes("function collectQuestSave"),"quests.js 有日志与存档");
 assert(questsSrc.includes("function applyQuestSave")&&questsSrc.includes("function syncLegacyQuestAliases"),"quests.js 有读档迁移");
 assert(coreSrc.includes("side:")&&coreSrc.includes("plains_patrol"),"BALANCE.quest.side 支线奖励表");
+assert(questsSrc.includes('type:"deliver"')&&questsSrc.includes('type:"use"')&&questsSrc.includes('type:"arrive"')&&questsSrc.includes('type:"escort"'),"V1-B2 四类新目标");
+assert(questsSrc.includes("function tickQuestWorld")&&questsSrc.includes("function onQuestUseItem"),"V1-B2 到达/使用/护送 API");
+assert(questsSrc.includes("flags:")&&questsSrc.includes("collectQuestSave"),"任务存档含 flags");
+assert(coreSrc.includes("radius:184")||coreSrc.includes("radius:176"),"V1-B2 开放区半径扩大");
+assert(worldSrc.includes("WORLD_R=176")||worldSrc.includes("WORLD_R = 176"),"莫高雷 WORLD_R×2");
+assert(html.includes("#questLogBody")&&html.includes("overflow-y:auto"),"L 任务日志可滚动");
+assert(itemsSrc.includes("quest_sacred_oil")&&itemsSrc.includes("barrens_cleaver")&&itemsSrc.includes("ochre_fang"),"V1-B2 任务物与分区装备");
+assert((questsSrc.match(/chapter:"side", zone:"mulgore"/g)||[]).length>=10,"莫高雷支线≥10");
+assert((questsSrc.match(/chapter:"side", zone:"barrens"/g)||[]).length>=10,"贫瘠支线≥10");
+assert((questsSrc.match(/chapter:"side", zone:"durotar"/g)||[]).length>=10,"赭岩支线≥10");
 assert(combatSrc.includes("quests:{}")||combatSrc.includes("quests:"),"combat S 含 quests 运行时");
 const saveSrc=fs.readFileSync(path.join(__dirname,"save.js"),"utf8");
 const panelsSrc=fs.readFileSync(path.join(__dirname,"panels.js"),"utf8");
@@ -301,6 +311,20 @@ assert(raidSrc.includes('sfx:"breath_fire"')&&raidSrc.includes('sfx:"breath_pois
 const rootAudio=fs.readdirSync(__dirname).filter(f=>/\.(mp3|ogg|wav)$/i.test(f));
 assert(rootAudio.length===0,"无音频二进制");
 
+/* plan-v1 · V1-B1 赭岩谷冒烟 */
+const durotarSrc=fs.readFileSync(path.join(__dirname,"durotar.js"),"utf8");
+assert(html.includes('src="durotar.js"'),"game.html 加载 durotar.js");
+assert(durotarSrc.includes('id:"durotar"')&&durotarSrc.includes("buildDurotarZone"),"durotar.js 注册并建造");
+assert(durotarSrc.includes('targetZone:"barrens"'),"赭岩有回贫瘠门");
+assert(barrensSrc.includes("to_durotar")&&barrensSrc.includes("BARRENS_PORTAL_W"),"贫瘠西口→赭岩");
+assert(coreSrc.includes("durotar:")&&coreSrc.includes("durotarMinLevel"),"BALANCE 含 durotar / 等级门");
+assert(coreSrc.includes("scorp")&&coreSrc.includes("razorback")&&coreSrc.includes("cliffHarpy"),"BALANCE 含巨蝎/刺脊/崖风");
+assert(worldSrc.includes("scorp")&&worldSrc.includes("razorback")&&worldSrc.includes("cliffHarpy"),"MOB_TYPES 含赭岩怪");
+assert(mapSrc.includes('id:"durotar"')||mapSrc.includes("durotar:{"),"MAP_ZONES 含赭岩谷");
+assert(saveSrc.includes('"durotar"')||saveSrc.includes("durotar"),"save 识别 durotar zoneId");
+assert(questsSrc.includes("ochre_sting"),"赭岩入口任务");
+assert(deedsSrc.includes("enter_durotar"),"进区功绩");
+
 function DEEDS_COUNT_OK(src){
   const m=src.match(/id:"[^"]+"/g)||[];
   /* DEEDS 表内 id 约 18；过滤 DEED_BY_ID 等 */
@@ -311,4 +335,4 @@ if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–29 … / V1-A1–A5 冒烟");
+console.log("\n全部通过 · STEP 17–29 … / V1-A1–A5 · V1-B1–B2 冒烟");

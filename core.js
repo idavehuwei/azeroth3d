@@ -56,6 +56,11 @@ const BALANCE={
     quilboar:{hp:1200,dmg:[75,110], atkCd:2.0, meleeR:2.6, aggroR:8,  leashR:36, wanderSpd:2.8,chaseSpd:5.8, respawnT:28,  xp:140, copper:[18,35]},
     centaur :{hp:1800,dmg:[95,140], atkCd:2.2, meleeR:3.0, aggroR:10, leashR:40, wanderSpd:2.6,chaseSpd:5.5, respawnT:35,  xp:180, copper:[28,50], socialR:20},
     zebra   :{hp:700, dmg:[50,75],  atkCd:1.7, meleeR:2.3, aggroR:0,  leashR:32, wanderSpd:4.2,chaseSpd:7.5, respawnT:26,  xp:90,  copper:[10,20]},
+    /* —— V1-B1 赭岩谷 —— */
+    scorp     :{hp:1100,dmg:[80,115], atkCd:1.9, meleeR:2.5, aggroR:9,  leashR:34, wanderSpd:2.6,chaseSpd:6.0, respawnT:26,  xp:150, copper:[20,38]},
+    razorback :{hp:1600,dmg:[95,135], atkCd:2.1, meleeR:2.8, aggroR:9,  leashR:38, wanderSpd:2.5,chaseSpd:5.6, respawnT:32,  xp:190, copper:[26,48]},
+    cliffHarpy:{hp:5200,dmg:[110,155],atkCd:2.3, meleeR:3.3, aggroR:13, leashR:46, wanderSpd:2.4,chaseSpd:5.2, respawnT:70,  xp:520, copper:[100,160], socialR:24,
+              cast:{name:"崖风火矢",dmg:[260,340],dur:1.4,cd:5.5,range:22,speed:17,hitR:3.1}},
     /* —— STEP 24 世界 Boss —— */
     centaurHerald:{hp:9000,dmg:[140,200],atkCd:2.1,meleeR:3.4,aggroR:14,leashR:48,
       wanderSpd:2.2,chaseSpd:5.2,respawnT:240,xp:900,copper:[200,320],socialR:26,
@@ -73,6 +78,7 @@ const BALANCE={
     worldBossAura:{innerR:2.2,outerR:4.0,opacity:.65,pulse:0.4},
     minions:{
       harpy   :{type:"bird", count:3, radius:7},
+      cliffHarpy:{type:"scorp", count:2, radius:8},
       boarKing:{type:"boar", count:3, radius:8},
       ashmane :{type:"boar", count:3, radius:8},
       centaurHerald:{type:"centaur", count:2, radius:9},
@@ -96,6 +102,7 @@ const BALANCE={
     spawns:{                  /* 分区复活点（STEP 18） */
       mulgore:{x:0,z:58},
       barrens:{x:-8,z:5},
+      durotar:{x:0,z:6},
     },
   },
   /* plan-v1 · V1-A5 音效（可关） */
@@ -172,6 +179,7 @@ const BALANCE={
   /* 任务 · 主线 + 支线奖励表（STEP 22） */
   quest:{boarKills:3, rewardHp:600, rewardDmgMul:1.15, rewardCopper:150,
     barrens:{quilboarKills:4, rewardXp:400, rewardCopper:200},
+    durotar:{scorpKills:5, rewardXp:380, rewardCopper:180},
     side:{
       plains_patrol:{xp:180,copper:80,kills:5},
       harpy_nest:{xp:350,copper:120,kills:1},
@@ -179,23 +187,70 @@ const BALANCE={
       supply_run:{xp:220,copper:100,kills:4},
       centaur_threat:{xp:320,copper:140,kills:3},
       wailing_call:{xp:200,copper:60,kills:1},
+      ochre_sting:{xp:280,copper:110,kills:5},
+      razor_patrol:{xp:340,copper:130,kills:3},
+      sacred_pool:{xp:120,copper:40,kills:1},
+      ancestor_tusk:{xp:200,copper:90,kills:3},
+      bird_cull:{xp:160,copper:70,kills:4},
+      wind_feather:{xp:150,copper:60,kills:3},
+      sacred_salve:{xp:140,copper:50,kills:1},
+      mesa_escort:{xp:280,copper:110,kills:1},
+      boar_cull:{xp:100,copper:45,kills:6},
+      lake_shrine:{xp:130,copper:55,kills:1},
+      wolf_pelts:{xp:170,copper:75,kills:4},
+      mesa_path:{xp:110,copper:40,kills:1},
+      dust_watch:{xp:150,copper:55,kills:1},
+      zebra_meat:{xp:180,copper:80,kills:5},
+      quil_extra:{xp:200,copper:90,kills:5},
+      bird_dust:{xp:160,copper:70,kills:3},
+      supply_crate:{xp:190,copper:85,kills:1},
+      signal_horn:{xp:140,copper:50,kills:1},
+      caravan_escort:{xp:300,copper:120,kills:1},
+      east_ridge:{xp:130,copper:50,kills:1},
+      hide_bundle:{xp:170,copper:75,kills:3},
+      oasis_visit:{xp:120,copper:45,kills:1},
+      cliff_harpy:{xp:360,copper:140,kills:1},
+      scorp_extra:{xp:220,copper:95,kills:6},
+      cliff_beacon:{xp:160,copper:60,kills:1},
+      ochre_report:{xp:180,copper:80,kills:1},
+      scorched_oil:{xp:150,copper:55,kills:1},
+      runner_escort:{xp:320,copper:130,kills:1},
+      razor_extra:{xp:240,copper:100,kills:4},
+      west_canyon:{xp:140,copper:50,kills:1},
+      sting_bundle:{xp:170,copper:70,kills:3},
+      outpost_horn:{xp:145,copper:55,kills:1},
+      sacred_pool_main:{xp:200,copper:80,kills:1},
+      ancestor_main:{xp:250,copper:100,kills:3},
+      plains_wolves:{xp:220,copper:90,kills:5},
+      supply_crate_main:{xp:240,copper:100,kills:1},
+      cliff_beacon_main:{xp:200,copper:80,kills:1},
+      runner_main:{xp:280,copper:120,kills:1},
     },
-    trackerMax:3},
-  /* 贫瘠之地（STEP 18） */
+    trackerMax:5},
+  /* 贫瘠之地（STEP 18）· V1-B2 半径×2 */
   barrens:{
-    radius:92,
+    radius:184,
     minLevel:10,
     wailingMinLevel:15,
     onyxiaMinLevel:16,
+    durotarMinLevel:12,
     ground:0xc4a060, dirt:0x9a7848, sky:0xe8c898, fog:0xd8b880, fogDensity:0.0085,
     hemiSky:0xf0d8a8, hemiGround:0x8a6a3a, hemiIntensity:0.95,
     sunColor:0xffe0a0, sunIntensity:1.15,
+  },
+  /* 赭岩谷（plan-v1 · V1-B1/B2）：橙土 · 兽人哨站风味 · 半径×2 */
+  durotar:{
+    radius:176,
+    minLevel:12,
+    ground:0xd07838, dirt:0xa85828, sky:0xf0b878, fog:0xe09858, fogDensity:0.009,
+    hemiSky:0xffd0a0, hemiGround:0x8a4020, hemiIntensity:1.0,
+    sunColor:0xffc880, sunIntensity:1.2,
   },
   /* 掉落与尸体拾取（STEP 2）：品质权重 70/25/5 · 尸体停留秒数 · 拾取距离 */
   loot:{weights:{common:70,uncommon:25,rare:5}, corpseT:8, pickupR:3.5,
         eliteWeights:{uncommon:72,rare:28}},   /* 精英必掉优秀以上（STEP 5） */
   /* 背包（STEP 4）：格数 */
-  bag:{size:16},
+  bag:{size:20},
   /* 金币经济 + 商人（STEP 13）：铜为最小单位；1金=100银=10000铜 */
   economy:{
     copperPerSilver:100,
@@ -213,16 +268,16 @@ const BALANCE={
     gatherCast:1.5,
     respawn:75,
     yieldMin:1, yieldMax:2,
-    herbCount:{mulgore:6, barrens:5},
-    oreCount:{mulgore:5, barrens:6},
+    herbCount:{mulgore:10, barrens:9, durotar:9},
+    oreCount:{mulgore:9, barrens:10, durotar:9},
     campR:18,          /* 采集点避开营地半径 */
     portalR:14,        /* 避开传送门 */
     matsMax:99,
     nodeGap:6,
     placeTries:40,
     workbench:{x:18,z:46},
-    herbChance:{mulgore:.55, barrens:.5},
-    oreChance:{mulgore:.7, barrens:.45},
+    herbChance:{mulgore:.55, barrens:.5, durotar:.48},
+    oreChance:{mulgore:.7, barrens:.45, durotar:.5},
   },
   /* 上帝模式（首页勾选）：玩家每次攻击的固定伤害 */
   god:{dmg:5000},
@@ -240,6 +295,7 @@ const BALANCE={
     zoneDefaults:{
       mulgore:"clear",
       barrens:"dust",
+      durotar:"dust",
       molten_core:"clear",
       wailing_caverns:"mist",
       onyxias_lair:"clear",
@@ -262,7 +318,7 @@ const BALANCE={
     },
   },
   /* 经验与等级（STEP 3）：经验来源 / 升级曲线 / 每级成长 */
-  levels:{max:18, xp:{quest:300, boss:2000, magmadar:800, barrensQuest:400, cobrahn:900, verdan:1600, onyxia:2200},
+  levels:{max:18, xp:{quest:300, boss:2000, magmadar:800, barrensQuest:400, durotarQuest:380, cobrahn:900, verdan:1600, onyxia:2200},
     /* 野怪经验在 mobs 表；xpMax[i] = 第 i+1 级升下一级所需（共 max-1 档） */
     xpMax:[200,300,450,650,900,1200,1600,2100,2700,3500,4200,5000,5900,6900,8000,9200,10500],
     perLevel:{dmgMul:.05, hpMax:.08}},

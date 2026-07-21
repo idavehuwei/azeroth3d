@@ -41,6 +41,7 @@ function clampArena(pos){
 function zoneFootSurface(zid){
   const id=zid||(typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore");
   if(id==="molten_core"||id==="onyxias_lair"||id==="wailing_caverns")return "stone";
+  if(id==="durotar")return "stone";
   if(id==="mulgore"&&typeof player!=="undefined"&&BAL.sfx&&BAL.sfx.woodPts){
     for(const pt of BAL.sfx.woodPts){
       const r=pt[2]!=null?pt[2]:8;
@@ -103,6 +104,7 @@ function tick(){
   if(typeof southPortalUni!=="undefined"&&southPortalUni)southPortalUni.uTime.value=S.t;
   if(typeof southPortalLabel!=="undefined"&&southPortalLabel)southPortalLabel.position.y=12.2+Math.sin(S.t*1.4)*.2;
   if(typeof barrensPortalUni!=="undefined"&&barrensPortalUni)barrensPortalUni.uTime.value=S.t;
+  if(typeof durotarPortalUni!=="undefined"&&durotarPortalUni)durotarPortalUni.uTime.value=S.t;
 
   /* 火星上升 */
   const pp=embers.geometry.attributes.position.array;
@@ -134,17 +136,17 @@ function tick(){
     if(scn&&scn.background&&scn.fog){
       const D=dn.day,N=dn.night;
       const skyCol=new THREE.Color();
-      /* 贫瘠之地基底偏黄，再与昼夜插值 */
-      const daySky=cz.id==="barrens"?BAL.barrens.sky:D.sky;
-      const dayFog=cz.id==="barrens"?BAL.barrens.fog:D.fog;
-      const dayDens=cz.id==="barrens"?BAL.barrens.fogDensity:D.fogDensity;
+      const pal=cz.id==="barrens"?BAL.barrens:(cz.id==="durotar"?BAL.durotar:null);
+      const daySky=pal?pal.sky:D.sky;
+      const dayFog=pal?pal.fog:D.fog;
+      const dayDens=pal?pal.fogDensity:D.fogDensity;
       scn.background=skyCol.lerpColors(new THREE.Color(daySky),new THREE.Color(N.sky),nightFactor);
       scn.fog.color.copy(skyCol);
       scn.fog.density=dayDens+nightFactor*(N.fogDensity-dayDens);
       if(hemiL){
-        hemiL.color.lerpColors(new THREE.Color(cz.id==="barrens"?BAL.barrens.hemiSky:D.hemiSky),new THREE.Color(N.hemiSky),nightFactor);
-        hemiL.groundColor.lerpColors(new THREE.Color(cz.id==="barrens"?BAL.barrens.hemiGround:D.hemiGround),new THREE.Color(N.hemiGround),nightFactor);
-        hemiL.intensity=(cz.id==="barrens"?BAL.barrens.hemiIntensity:D.hemiIntensity)+nightFactor*(N.hemiIntensity-(cz.id==="barrens"?BAL.barrens.hemiIntensity:D.hemiIntensity));
+        hemiL.color.lerpColors(new THREE.Color(pal?pal.hemiSky:D.hemiSky),new THREE.Color(N.hemiSky),nightFactor);
+        hemiL.groundColor.lerpColors(new THREE.Color(pal?pal.hemiGround:D.hemiGround),new THREE.Color(N.hemiGround),nightFactor);
+        hemiL.intensity=(pal?pal.hemiIntensity:D.hemiIntensity)+nightFactor*(N.hemiIntensity-(pal?pal.hemiIntensity:D.hemiIntensity));
       }
     }
     const flames=L.flames||(cz.id==="mulgore"?worldFlames:null);
@@ -343,6 +345,18 @@ function tick(){
         const nearNpc=S.p.alive&&(crossroadsDist()<nearR||barrensSpiritDist()<nearR||nearGather);
         $("#interactBtn").style.display=(nearNpc&&$("#dlg").style.display!=="block")?"block":"none";
         if(crossroadsDist()>8&&barrensSpiritDist()>8&&!nearGather)closeDialogue();
+      }else if(zid==="durotar"&&typeof ochreOutpostDist==="function"){
+        if(ochreOutpost){
+          ochreOutpost.rotation.y=Math.PI+Math.sin(S.t*.7)*.08;
+          ochreOutpost.position.y=Math.sin(S.t*1.5)*.04;
+        }
+        if(durotarMarkerExcl)durotarMarkerExcl.position.y=6.8+Math.sin(S.t*2.4)*.3;
+        if(durotarMarkerQ)durotarMarkerQ.position.y=durotarMarkerExcl?durotarMarkerExcl.position.y:6.8;
+        const nearR=BAL.economy.interactR;
+        const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||nearR);
+        const nearNpc=S.p.alive&&(ochreOutpostDist()<nearR||durotarSpiritDist()<nearR||nearGather);
+        $("#interactBtn").style.display=(nearNpc&&$("#dlg").style.display!=="block")?"block":"none";
+        if(ochreOutpostDist()>8&&durotarSpiritDist()>8&&!nearGather)closeDialogue();
       }
     }
     /* ---- 掉落动画 & 拾取按钮（世界/副本通用，STEP 2） ---- */
@@ -355,9 +369,12 @@ function tick(){
       const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore";
       const nearS=zid==="barrens"&&typeof barrensSpiritDist==="function"
         ?barrensSpiritDist()<BAL.economy.interactR
-        :spiritDist()<BAL.economy.interactR;
-      const nearV=zid==="barrens"?false:vendorDist()<BAL.economy.interactR;
-      const nearC=zid==="barrens"&&typeof crossroadsDist==="function"&&crossroadsDist()<BAL.economy.interactR;
+        :(zid==="durotar"&&typeof durotarSpiritDist==="function"
+          ?durotarSpiritDist()<BAL.economy.interactR
+          :spiritDist()<BAL.economy.interactR);
+      const nearV=zid==="barrens"||zid==="durotar"?false:vendorDist()<BAL.economy.interactR;
+      const nearC=(zid==="barrens"&&typeof crossroadsDist==="function"&&crossroadsDist()<BAL.economy.interactR)
+        ||(zid==="durotar"&&typeof ochreOutpostDist==="function"&&ochreOutpostDist()<BAL.economy.interactR);
       const nearCraft=zid==="mulgore"&&typeof workbenchDist==="function"&&workbenchDist()<(BAL.professions.interactR||4);
       const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||4);
       ib.textContent=nearGather?(nearestGatherNode(BAL.professions.interactR).kind==="ore"?"⛏ 开采（F）":"🌿 采集（F）")
@@ -498,6 +515,8 @@ function tick(){
 
     /* ---- AI 队友（STEP 20） ---- */
     if(typeof tickCompanion==="function")tickCompanion(dt);
+    /* ---- 任务到达/护送/交付轮询（V1-B2） ---- */
+    if(typeof tickQuestWorld==="function")tickQuestWorld(dt);
 
     /* ---- Boss（boss1 / boss；bridge 仅熔火） ---- */
     if(S.mode==="raid"){
