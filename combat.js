@@ -26,7 +26,7 @@
    ============================================================ */
 const S={
   started:false,over:false,t:0,mode:"world",zoneId:"mulgore",
-  portalHinted:false,portalHints:{},
+  portalHinted:false,portalHints:{},portalLockT:0,
   p:{hp:5200,hpMax:5200,rage:20,rageMax:100,speed:10.5,alive:true,dmgMul:1,
      atkTimer:0,attackAnim:0,walkPhase:0,face:0,invuln:0,
      level:1,xp:0,xpMax:BAL.levels.xpMax[0],gold:0,   /* 经验与等级（STEP 3）· 金币铜（STEP 13） */

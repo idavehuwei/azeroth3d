@@ -301,7 +301,7 @@ registerZone({
   boundsR:()=>BARRENS_R,
   dayNight:true,
   gates:{
-    from_mulgore:{x:0,z:-(BARRENS_R-10)},
+    from_mulgore:{x:0,z:-(BARRENS_R-22)},  /* 远离北口，避免与莫高雷南口乒乓 */
     crossroads:{x:0,z:0},
     spirit:{x:-8,z:5},
     default:{x:0,z:0},

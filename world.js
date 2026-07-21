@@ -261,7 +261,7 @@ registerZone({
   gates:{
     camp:{x:0,z:52},
     from_raid:{x:0,z:52},
-    from_barrens:{x:0,z:WORLD_R-12},
+    from_barrens:{x:0,z:WORLD_R-22},   /* 远离南口传送门，避免进出乒乓 */
     spirit:{x:0,z:58},
     default:{x:0,z:52},
   },

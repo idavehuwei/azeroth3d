@@ -109,6 +109,14 @@ function enterZone(id,gateId,opts){
       if(to.scene)to.scene.add(player);
       const gate=resolveGate(to,gateId);
       player.position.set(gate.x,0,gate.z);
+      /* 换区后立刻对齐相机，避免仍停在旧区坐标看一片黑 */
+      if(typeof camera!=="undefined"){
+        if((to.mode||"world")==="raid"){
+          camera.position.set(gate.x*.7,13,gate.z*.7+22);
+        }else{
+          camera.position.set(gate.x,12,gate.z+17);
+        }
+      }
     }
     if(typeof scene!=="undefined")scene=to.scene;
 
@@ -116,6 +124,8 @@ function enterZone(id,gateId,opts){
     if(typeof S!=="undefined"){
       S.zoneId=id;
       S.mode=to.mode||"world";
+      /* 防传送门乒乓：落点靠近回程门时短暂锁定 */
+      S.portalLockT=Math.max(S.portalLockT||0,1.6);
     }
 
     if(to&&typeof to.onEnter==="function")to.onEnter(fromId,gateId,opts);
@@ -138,7 +148,8 @@ function enterZone(id,gateId,opts){
   if(typeof S!=="undefined")S.mode="transition";
   if(typeof fadeTo==="function"){
     fadeTo(1,()=>{
-      doSwitch();
+      try{doSwitch();}
+      catch(err){console.error("enterZone",id,err); if(typeof S!=="undefined")S.mode=(to&&to.mode)||"world";}
       fadeTo(0);
     });
   }else{

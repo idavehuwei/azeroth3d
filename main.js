@@ -159,8 +159,9 @@ function tick(){
   }
 
   if(S.started){
+    if(S.portalLockT>0)S.portalLockT=Math.max(0,S.portalLockT-dt);
     /* ---- 传送门检测（数据驱动，STEP 17） ---- */
-    if(S.mode!=="transition"&&typeof getActivePortals==="function"){
+    if(S.mode!=="transition"&&S.portalLockT<=0&&typeof getActivePortals==="function"){
       for(const p of getActivePortals()){
         const pos=resolvePortalPos(p);
         if(!pos)continue;
