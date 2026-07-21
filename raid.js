@@ -473,6 +473,76 @@ defineBoss({
   },
 });
 
+/* ---- 奥妮克希亚：巢穴精简团本（STEP 28）· 三阶段飞天/喷吐/深呼吸 ---- */
+defineBoss({
+  id:"onyxia",
+  name:"奥妮克希亚 · 黑龙女王",
+  title:"奥妮克希亚巢穴 · 最终首领",
+  hitNoun:"奥妮克希亚",
+  statsKey:"onyxia",
+  build:()=>buildOnyxia(),
+  projectileY:6.5, fctY:8.5,
+  intro:{
+    type:"appear", fromY:0, toY:0, dur:1.6,
+    burst:{at:.4,window:.25,vfx:"roar_aura",pos:[0,4,-12],color:0xff3300,count:90,spread:6},
+    sfx:"roar",
+    announce:"奥妮克希亚发出震天龙吟！",
+    log:"黑龙女王奥妮克希亚展开双翼，巢穴在烈焰中苏醒！",
+  },
+  bob:false,
+  home:{x:0,z:-12},
+  skills:[
+    {id:"melee",type:"melee",bal:"melee",name:"龙爪撕扯",firstDelay:2.4,
+      vfx:"melee_impact",label:"奥妮克希亚的龙爪",
+      phaseMul:{2:"p2Mul",3:"p3Mul"}},
+    {id:"spit",type:"cast_projectile",bal:"spit",name:"暗焰喷吐",firstDelay:4.5,
+      vfx:"lava_bolt",log:"奥妮克希亚喷出扇形暗焰！",exclusive:true,
+      countKey:{1:"count",2:"p2Count",3:"p3Count"},fanKey:"fan"},
+    {id:"breath",type:"cast_line",bal:"breath",name:"火焰吐息",firstDelay:7.5,
+      vfx:"eruption_ring",
+      announce:"火焰吐息 · 躲开直线！",log:"黑龙张开巨口，烈焰沿直线喷涌！",
+      exclusive:true,segsKey:{1:"segs",2:"p2Segs",3:"p3Segs"}},
+    {id:"wing",type:"cast_telegraph",bal:"wing",name:"翼击落火",firstDelay:11,
+      vfx:"eruption_ring",playerRingRKey:"ringR",
+      countKey:{1:"count",2:"p2Count",3:"p3Count"},
+      announce:"翼击落火 · 快躲开红圈！",log:"龙翼扇起火雨——地面燃起红圈！",exclusive:true},
+    {id:"deepBreath",type:"cast_line",bal:"deepBreath",name:"深呼吸",firstDelay:28,
+      vfx:"eruption_ring",
+      announce:"深呼吸 · 立刻躲开整条直线！！",log:"奥妮克希亚深深吸气——毁灭性的直线烈焰即将释放！",
+      exclusive:true,segsKey:{1:"segs",2:"p2Segs",3:"p3Segs"}},
+  ],
+  phases:[
+    {to:2,from:1,hpPctKey:"phase2At",onEnter:"fly",flyY:8,
+      sfx:"roar",announce:"阶段二 · 升空！",
+      log:"黑龙女王振翅升空——近战够不着，喷吐与落火将覆盖地面！",
+      compressNext:{melee:999,spit:2.4,breath:4.5,wing:3.2,deepBreath:999},
+      burst:{vfx:"roar_aura",y:6,color:0xff2200,count:80,spread:7}},
+    {to:3,from:2,hpPctKey:"phase3At",onEnter:"land",
+      sfx:"roar",announce:"⚠️ 阶段三 · 深呼吸！",
+      log:"奥妮克希亚俯冲落地——深呼吸与漫天火雨开始了！",
+      compressNext:{melee:1.4,spit:3,breath:3.5,wing:2.8,deepBreath:5},
+      burst:{vfx:"roar_aura",y:4,color:0xff4400,count:100,spread:8},
+      spawnAdds:{countKey:"addCount",r:[9,15],zOff:-2}},
+  ],
+  death:{
+    isFinal:true, questComplete:false,
+    sfx:"roar",announce:"黑龙女王已被击败！",
+    log:"奥妮克希亚发出最后一声悲鸣，庞大的躯体轰然坠地……",
+    tip:"已拾取战利品后，走进入口处的传送门即可返回贫瘠之地。",
+    xpKey:"onyxia", copperKey:"onyxia",
+    lootTable:"onyxia", lootPos:[0,0,-6], lootDelay:2200,
+    lootAnnounce:"龙鳞战利品散落一地",
+    lootLog:"黑龙鳞片与利牙滚落在地——靠近按 F 拾取。",
+    endTitle:"胜 利",endSub:"ONYXIA'S LAIR · CLEARED",
+    endHtml:"黑龙女王的躯体逐渐冷却。<br>前往副本入口处，走进传送门返回贫瘠之地。",
+    burst:{vfx:"roar_aura",y:5,color:0xff8040,count:120,spread:9},
+  },
+  defeat:{
+    endTitle:"团 灭",endSub:"YOU HAVE BEEN DEFEATED",
+    endHtml:"暗焰吞没了小队。<br>释放灵魂，在巢穴入口重整旗鼓。",
+  },
+});
+
 function getBossCfg(){return BOSSES[S.b.id]||BOSSES.ragnaros;}
 function bossNum(){return BAL[getBossCfg().statsKey];}
 function skillBal(sk){return bossNum()[sk.bal];}
@@ -547,6 +617,7 @@ function createBoss(id){
   S.b.rising=!!cfg.intro;
   S.b.riseT=0;
   S.b.submerged=false; S.b.submergeT=0;
+  S.b.flying=false; S.b.flyTargetY=null;
   S.b.casting=null; S.b.castT=0; S.b.castDur=0;
   S.b.canLeave=false; S.b.swingT=0;
   S.b.nextAddSpawn=0; S.b.addWave=null;
@@ -607,6 +678,30 @@ function enterBossPhase(ph){
     if(ph.spawnAdds)spawnBossAdds(ph.spawnAdds);
     B.addWave=ph.addWave||null;
     B.nextAddSpawn=0;   /* 与旧逻辑一致：进入狂暴后下一帧即可刷波 */
+  }else if(ph.onEnter==="fly"){
+    /* STEP 28：升空——近战停手，喷吐/落火加密 */
+    B.flying=true;
+    B.flyTargetY=ph.flyY!=null?ph.flyY:(bossNum().flyY||8);
+    if(ph.compressNext)compressBossSkills(ph.compressNext);
+    if(ph.burst){
+      const b=ph.burst;
+      VFX.spawn(b.vfx,{pos:new THREE.Vector3(boss.position.x,b.y,boss.position.z),
+        color:b.color,count:b.count,spread:b.spread});
+    }
+    if(ph.spawnAdds)spawnBossAdds(ph.spawnAdds);
+  }else if(ph.onEnter==="land"){
+    /* STEP 28：落地进入深呼吸阶段 */
+    B.flying=false;
+    B.flyTargetY=0;
+    if(ph.compressNext)compressBossSkills(ph.compressNext);
+    if(ph.burst){
+      const b=ph.burst;
+      VFX.spawn(b.vfx,{pos:new THREE.Vector3(boss.position.x,b.y,boss.position.z),
+        color:b.color,count:b.count,spread:b.spread});
+    }
+    if(ph.spawnAdds)spawnBossAdds(ph.spawnAdds);
+    B.addWave=ph.addWave||null;
+    B.nextAddSpawn=0;
   }
 }
 
@@ -651,6 +746,8 @@ function runBossSkill(sk){
   const B=S.b, st=skillBal(sk), d=distToBoss();
   if(sk.type==="melee"){
     B.next[sk.id]=S.t+R(st.cd);
+    /* STEP 28：飞天阶段不近战 */
+    if(B.flying)return false;
     /* STEP 27：有仇恨目标或玩家在挥击距离内才出手 */
     const threatNear=typeof getTopThreatActor==="function"
       ?getTopThreatActor(BOSS_ENT,boss.position,st.range):null;
@@ -786,7 +883,13 @@ function bossAI(dt){
 
   if(B.rising&&cfg.intro){tickBossIntro(dt,cfg);return;}
   if(B.submerged){tickBossSubmerged(dt);return;}
-  if(cfg.bob)boss.position.y=THREE.MathUtils.lerp(boss.position.y,Math.sin(S.t*1.6)*.25,dt*3);
+  /* STEP 28：飞天高度插值；落地后回 0 */
+  if(B.flying){
+    const ty=B.flyTargetY||8;
+    boss.position.y=THREE.MathUtils.lerp(boss.position.y,ty+Math.sin(S.t*1.4)*.35,dt*2.2);
+  }else if(B.flyTargetY===0&&boss.position.y>0.08){
+    boss.position.y=THREE.MathUtils.lerp(boss.position.y,0,dt*3);
+  }else if(cfg.bob)boss.position.y=THREE.MathUtils.lerp(boss.position.y,Math.sin(S.t*1.6)*.25,dt*3);
 
   const st=bossNum();
   for(const ph of cfg.phases){

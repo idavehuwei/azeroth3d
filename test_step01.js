@@ -209,6 +209,22 @@ assert(cmpSrc.includes("healTankHpPct")||cmpSrc.includes("BAL.threat"),"companio
 assert(raidSrc.includes("meleeHitFromThreat"),"raid.js Boss 近战打最高仇恨");
 assert(mainSrc.includes("meleeHitFromThreat"),"main.js 野怪近战打最高仇恨");
 
+/* STEP 28 奥妮克希亚巢穴冒烟 */
+const onyxiaSrc=fs.readFileSync(path.join(__dirname,"onyxia.js"),"utf8");
+assert(html.includes('src="onyxia.js"'),"game.html 加载 onyxia.js");
+assert(onyxiaSrc.includes('id:"onyxias_lair"')&&onyxiaSrc.includes("ONYXIA_DUNGEON"),"onyxia.js 注册 onyxias_lair");
+assert(onyxiaSrc.includes("buildOnyxiaZone")&&onyxiaSrc.includes("activateRaidBoss"),"onyxia.js 有场景与 Boss 激活");
+assert(raidSrc.includes('id:"onyxia"')&&raidSrc.includes('onEnter:"fly"'),"raid.js 定义奥妮克希亚三阶段（飞天）");
+assert(raidSrc.includes('onEnter:"land"')&&raidSrc.includes("deepBreath"),"raid.js 有落地/深呼吸");
+assert(coreSrc.includes("onyxia:")&&coreSrc.includes("onyxiasLair:")&&coreSrc.includes("onyxiaAdd"),"BALANCE 含奥妮克希亚数值");
+assert(coreSrc.includes("onyxia:2200")||coreSrc.includes("onyxia:"),"BALANCE.levels.xp 含 onyxia");
+assert(barrensSrc.includes("to_onyxia")&&barrensSrc.includes("BARRENS_PORTAL_E"),"barrens 东口指向奥妮克希亚");
+assert(itemsSrc.includes("onyxia_fang")&&itemsSrc.includes("dragonscale"),"奥妮克希亚史诗掉落物品");
+const modelsSrc28=fs.readFileSync(path.join(__dirname,"models.js"),"utf8");
+assert(modelsSrc28.includes("function buildOnyxia"),"models.js 有 buildOnyxia");
+const mapSrc28=fs.readFileSync(path.join(__dirname,"map.js"),"utf8");
+assert(mapSrc28.includes("onyxias_lair"),"map.js 有巢穴图层");
+
 function DEEDS_COUNT_OK(src){
   const m=src.match(/id:"[^"]+"/g)||[];
   /* DEEDS 表内 id 约 18；过滤 DEED_BY_ID 等 */
@@ -219,4 +235,4 @@ if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–27 … / 仇恨与职责冒烟");
+console.log("\n全部通过 · STEP 17–28 … / 奥妮克希亚巢穴冒烟");

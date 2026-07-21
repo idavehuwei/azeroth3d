@@ -53,6 +53,7 @@ const MAP_ZONES={
       {id:"crossroads",label:"十字路口",x:0,z:0,color:"#e8c080",kind:"camp"},
       {id:"portal_n",label:"莫高雷",x:0,z:-84,color:"#c9a06a",kind:"portal"},
       {id:"portal_s",label:"哀嚎洞穴",x:0,z:80,color:"#8a9a6a",kind:"portal"},
+      {id:"portal_e",label:"奥妮克希亚巢穴",x:80,z:8,color:"#e8a080",kind:"portal"},
       {id:"spirit",label:"灵魂医者",x:-8,z:5,color:"#a8d8ff",kind:"npc"},
       {id:"quilboar",label:"野猪人前哨",x:-32,z:-12,color:"#c4783a",kind:"camp"},
       {id:"centaur",label:"半人马营地",x:40,z:25,color:"#a87840",kind:"camp"},
@@ -66,7 +67,7 @@ const MAP_ZONES={
       bg:"#1a1408",
       fill:"rgba(120,90,40,.4)",
       stroke:"rgba(200,160,80,.5)",
-      road:[["crossroads","portal_n"],["crossroads","portal_s"]],
+      road:[["crossroads","portal_n"],["crossroads","portal_s"],["crossroads","portal_e"]],
     },
   },
   wailing_caverns:{
@@ -85,6 +86,24 @@ const MAP_ZONES={
       bg:"#081208",
       fill:"rgba(40,70,40,.45)",
       stroke:"rgba(100,160,90,.5)",
+    },
+  },
+  onyxias_lair:{
+    id:"onyxias_lair",
+    name:"奥妮克希亚巢穴",
+    radius:()=>(BAL.onyxiasLair&&BAL.onyxiasLair.arenaR)||26,
+    landmarks:[
+      {id:"entrance",label:"入口",x:0,z:16,color:"#e8a080",kind:"portal"},
+      {id:"lair",label:"龙后",x:0,z:-12,color:"#ff4400",kind:"camp"},
+    ],
+    elites:[],
+    outline:[
+      [0,-1],[.7,-.7],[1,0],[.7,.7],[0,1],[-.7,.7],[-1,0],[-.7,-.7],
+    ],
+    terrain:{
+      bg:"#100808",
+      fill:"rgba(80,30,20,.5)",
+      stroke:"rgba(200,100,60,.55)",
     },
   },
 };
@@ -109,6 +128,8 @@ function liveLandmarkPos(lm){
   }
   if(lm.id==="portal"&&typeof PORTAL_POS!=="undefined")return {x:PORTAL_POS.x,z:PORTAL_POS.z};
   if(lm.id==="portal_n"&&typeof BARRENS_PORTAL_N!=="undefined")return {x:BARRENS_PORTAL_N.x,z:BARRENS_PORTAL_N.z};
+  if(lm.id==="portal_s"&&typeof BARRENS_PORTAL_S!=="undefined")return {x:BARRENS_PORTAL_S.x,z:BARRENS_PORTAL_S.z};
+  if(lm.id==="portal_e"&&typeof BARRENS_PORTAL_E!=="undefined")return {x:BARRENS_PORTAL_E.x,z:BARRENS_PORTAL_E.z};
   if(lm.id==="crossroads"&&typeof crossroadsSentinel!=="undefined"&&crossroadsSentinel)
     return {x:crossroadsSentinel.position.x,z:crossroadsSentinel.position.z};
   return {x:lm.x,z:lm.z};

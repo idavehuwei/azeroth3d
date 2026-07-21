@@ -11,7 +11,7 @@
           professions.js 运行时（spawnGatherNodesForZone）
           rares.js 运行时（spawnRaresForZone）
           save.js 运行时（saveGame）· panels.js 运行时（renderQuestLog）
-   [导出] sceneBarrens BARRENS_R BARRENS_QUEST BARRENS_PORTAL_N BARRENS_PORTAL_S
+   [导出] sceneBarrens BARRENS_R BARRENS_QUEST BARRENS_PORTAL_N BARRENS_PORTAL_S BARRENS_PORTAL_E
           barrensHeli barrensSun barrensFlames
           buildBarrensZone onBarrensQuestKill tryInteractBarrens
           updateBarrensMarkers crossroadsDist barrensSpiritDist
@@ -23,6 +23,7 @@ const sceneBarrens=new THREE.Scene();
 const BARRENS_PORTAL_N=new THREE.Vector3(0,0,-(BARRENS_R-8));
 const BARRENS_SOUTH_MARK=new THREE.Vector3(0,0,BARRENS_R-12);
 const BARRENS_PORTAL_S=BARRENS_SOUTH_MARK;
+const BARRENS_PORTAL_E=new THREE.Vector3(BARRENS_R-12,0,8);
 
 /* 入口任务：0 未接 | 1 清野猪人 | 2 已交（完整任务网见 STEP 22） */
 const BARRENS_QUEST={id:"crossroads_trouble",state:0,kills:0};
@@ -185,6 +186,36 @@ function buildBarrensZone(scn){
   const sLab2=makeLabel(`需要 Lv.${BAL.barrens.wailingMinLevel||15}+`,6,"#ffb060","rgba(60,80,20,.9)");
   sLab2.position.set(BARRENS_PORTAL_S.x,10.6,BARRENS_PORTAL_S.z); root.add(sLab2);
 
+  /* —— 东口：奥妮克希亚巢穴（STEP 28） —— */
+  const ePlat=new THREE.Mesh(new THREE.CylinderGeometry(5.5,6,.5,10),
+    new THREE.MeshStandardMaterial({color:0x4a2820,roughness:1,flatShading:true}));
+  ePlat.position.set(BARRENS_PORTAL_E.x,.5,BARRENS_PORTAL_E.z); ePlat.receiveShadow=true; root.add(ePlat);
+  [-1,1].forEach(sx=>{
+    const pil=new THREE.Mesh(new THREE.BoxGeometry(1.1,9.2,1.1),
+      new THREE.MeshStandardMaterial({color:0x2a1510,roughness:.95,flatShading:true}));
+    pil.position.set(BARRENS_PORTAL_E.x,4.8,BARRENS_PORTAL_E.z+sx*3.2); pil.castShadow=true; root.add(pil);
+  });
+  const eLintel=new THREE.Mesh(new THREE.BoxGeometry(1.4,1.2,8),
+    new THREE.MeshStandardMaterial({color:0x3a1a12,roughness:.9,flatShading:true}));
+  eLintel.position.set(BARRENS_PORTAL_E.x,9.2,BARRENS_PORTAL_E.z); root.add(eLintel);
+  const eDisc=new THREE.Mesh(new THREE.CircleGeometry(2.8,36),new THREE.ShaderMaterial({
+    uniforms:barrensPortalUni,transparent:true,side:THREE.DoubleSide,depthWrite:false,
+    vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`
+      varying vec2 vUv;uniform float uTime;
+      void main(){
+        vec2 p=vUv-.5; float r=length(p)*2.; float ang=atan(p.y,p.x);
+        float sw=sin(ang*2.8-uTime*2.+r*7.);
+        vec3 c=mix(vec3(.85,.4,.2),vec3(.4,.12,.05),smoothstep(-.5,.7,sw));
+        c=mix(c,vec3(.08,.02,0.),smoothstep(.7,1.,r));
+        gl_FragColor=vec4(c*1.2,smoothstep(1.,.88,r));
+      }`}));
+  eDisc.position.set(BARRENS_PORTAL_E.x,4.6,BARRENS_PORTAL_E.z); eDisc.rotation.y=Math.PI/2; root.add(eDisc);
+  const eLab=makeLabel("奥妮克希亚巢穴",10,"#e8a080","rgba(80,30,20,.92)");
+  eLab.position.set(BARRENS_PORTAL_E.x,12.0,BARRENS_PORTAL_E.z); root.add(eLab);
+  const eLab2=makeLabel(`需要 Lv.${BAL.barrens.onyxiaMinLevel||16}+`,6,"#ff9060","rgba(80,40,20,.9)");
+  eLab2.position.set(BARRENS_PORTAL_E.x,10.6,BARRENS_PORTAL_E.z); root.add(eLab2);
+
   crossroadsSentinel=buildVendor();
   crossroadsSentinel.traverse(o=>{
     if(!o.isMesh||!o.material||!o.material.color)return;
@@ -228,7 +259,7 @@ function buildBarrensZone(scn){
     spawnGatherNodesForZone("barrens",root,{
       radius:BARRENS_R,
       camp:{x:0,z:-2},
-      portals:[{x:BARRENS_PORTAL_N.x,z:BARRENS_PORTAL_N.z},{x:BARRENS_PORTAL_S.x,z:BARRENS_PORTAL_S.z}],
+      portals:[{x:BARRENS_PORTAL_N.x,z:BARRENS_PORTAL_N.z},{x:BARRENS_PORTAL_S.x,z:BARRENS_PORTAL_S.z},{x:BARRENS_PORTAL_E.x,z:BARRENS_PORTAL_E.z}],
     });
   }
   const z=ZONES.barrens;
@@ -329,6 +360,7 @@ registerZone({
   gates:{
     from_mulgore:{x:0,z:-(BARRENS_R-22)},  /* 远离北口，避免与莫高雷南口乒乓 */
     from_wailing:{x:0,z:BARRENS_R-22},     /* 远离南口，避免进出乒乓 */
+    from_onyxia:{x:BARRENS_R-28,z:8},      /* 远离东口 */
     crossroads:{x:0,z:0},
     spirit:{x:-8,z:5},
     default:{x:0,z:0},
@@ -357,6 +389,20 @@ registerZone({
     lockedAnnounce:()=>`等级不足！需要 Lv.${BAL.barrens.wailingMinLevel||15}`,
     lockedLog:()=>`哀嚎洞穴危机四伏——当前 Lv.${S.p.level}，建议升到 Lv.${BAL.barrens.wailingMinLevel||15} 后再挑战。`,
     targetZone:"wailing_caverns",
+    targetGate:"entrance",
+  },{
+    id:"to_onyxia",
+    pos:()=>BARRENS_PORTAL_E,
+    hintR:()=>BAL.zones.portalHintR,
+    enterR:()=>BAL.zones.portalEnterR,
+    announce:"奥妮克希亚巢穴 · 副本入口",
+    logHint:"硫磺与龙息的气味从旋涡中涌出……走进即可挑战黑龙女王。",
+    requireAlive:true,
+    autoEnter:true,
+    minLevel:()=>BAL.barrens.onyxiaMinLevel||16,
+    lockedAnnounce:()=>`等级不足！需要 Lv.${BAL.barrens.onyxiaMinLevel||16}`,
+    lockedLog:()=>`黑龙巢穴极其危险——当前 Lv.${S.p.level}，建议升到 Lv.${BAL.barrens.onyxiaMinLevel||16} 后再挑战。`,
+    targetZone:"onyxias_lair",
     targetGate:"entrance",
   }],
   onEnter(fromId,gateId,opts){

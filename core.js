@@ -134,6 +134,25 @@ const BALANCE={
     spit  :{dmg:[280,360], cast:1.5, cd:[6,8], hitR:3.3, speed:16, count:4, p2Count:6, fan:0.5},
     stomp :{dmg:[360,480], cast:1.4, cd:[9,12], count:3, p2Count:5, delay:1.8, ringR:5.5},
   },
+  /* 奥妮克希亚巢穴·精简（STEP 28） */
+  onyxiasLair:{
+    arenaR:26,
+    minLevel:16,
+    corridorCount:2,
+    ground:0x2a1a18, wall:0x1a1010, bone:0xc8b898,
+    sky:0x120808, fog:0x1a0c0c, fogDensity:0.022,
+  },
+  onyxiaAdd:{hp:2800, dmg:[130,180], atkCd:2.0, speed:5.2, meleeR:3.0, stopR:2.4, copper:[30,55]},
+  onyxia:{hp:92000, phase2At:.70, phase3At:.40, addCount:3, copper:1800, flyY:8,
+    melee :{dmg:[260,360], p2Mul:1.0, p3Mul:1.4, cd:[2.6,3.6], range:11, hitRange:12, delayMs:300},
+    spit  :{dmg:[280,380], cast:1.5, cd:[5.5,7.5], hitR:3.2, speed:18,
+      count:3, p2Count:5, p3Count:6, fan:0.46},
+    breath:{dmg:[420,560], cast:1.7, cd:[10,13], delay:1.55,
+      segs:5, p2Segs:6, p3Segs:5, step:4.2, ringR:3.4},
+    wing  :{dmg:[380,500], cast:1.4, cd:[8,11], count:2, p2Count:4, p3Count:5, delay:1.8, ringR:5.5},
+    deepBreath:{dmg:[620,820], cast:2.2, cd:[14,18], delay:2.0,
+      segs:8, p2Segs:8, p3Segs:10, step:3.8, ringR:3.8},
+  },
   /* 任务 · 主线 + 支线奖励表（STEP 22） */
   quest:{boarKills:3, rewardHp:600, rewardDmgMul:1.15, rewardCopper:150,
     barrens:{quilboarKills:4, rewardXp:400, rewardCopper:200},
@@ -151,6 +170,7 @@ const BALANCE={
     radius:92,
     minLevel:10,
     wailingMinLevel:15,
+    onyxiaMinLevel:16,
     ground:0xc4a060, dirt:0x9a7848, sky:0xe8c898, fog:0xd8b880, fogDensity:0.0085,
     hemiSky:0xf0d8a8, hemiGround:0x8a6a3a, hemiIntensity:0.95,
     sunColor:0xffe0a0, sunIntensity:1.15,
@@ -199,7 +219,7 @@ const BALANCE={
     campfire:{base:1.4, nightBoost:2.6},  /* 白天 1.4，夜晚 1.4+2.6=4.0 */
   },
   /* 经验与等级（STEP 3）：经验来源 / 升级曲线 / 每级成长 */
-  levels:{max:18, xp:{quest:300, boss:2000, magmadar:800, barrensQuest:400, cobrahn:900, verdan:1600},
+  levels:{max:18, xp:{quest:300, boss:2000, magmadar:800, barrensQuest:400, cobrahn:900, verdan:1600, onyxia:2200},
     /* 野怪经验在 mobs 表；xpMax[i] = 第 i+1 级升下一级所需（共 max-1 档） */
     xpMax:[200,300,450,650,900,1200,1600,2100,2700,3500,4200,5000,5900,6900,8000,9200,10500],
     perLevel:{dmgMul:.05, hpMax:.08}},

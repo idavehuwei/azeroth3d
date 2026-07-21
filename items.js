@@ -19,6 +19,7 @@ const QUALITY={
   common   :{name:"普通",color:"#e8e8e8",hex:0xe8e8e8},
   uncommon :{name:"优秀",color:"#1eff00",hex:0x1eff00},
   rare     :{name:"稀有",color:"#4aa8ff",hex:0x4aa8ff},
+  epic     :{name:"史诗",color:"#a335ee",hex:0xa335ee},
   legendary:{name:"传说",color:"#ff8000",hex:0xff8000},
 };
 
@@ -51,6 +52,11 @@ const ITEMS={
   /* —— STEP 21 哀嚎洞穴 —— */
   serpent_fang :{id:"serpent_fang", name:"毒牙弯刃",    icon:"sword", quality:"rare",    slot:"weapon",stats:{dmgMul:1.14},model:"sword",vendorSell:280},
   moss_mantle  :{id:"moss_mantle",  name:"苔藓披风甲",  icon:"armor", quality:"rare",    slot:"armor", stats:{hpMax:720},vendorSell:300},
+  /* —— STEP 28 奥妮克希亚 —— */
+  onyxia_fang  :{id:"onyxia_fang",  name:"奥妮克希亚之牙",icon:"sword", quality:"epic",   slot:"weapon",stats:{dmgMul:1.22},model:"sword",vendorSell:800},
+  dragonscale  :{id:"dragonscale",  name:"黑龙鳞胸甲",  icon:"armor", quality:"epic",   slot:"armor", stats:{hpMax:1100},vendorSell:850},
+  scale_cloak  :{id:"scale_cloak",  name:"龙鳞披风",    icon:"armor", quality:"rare",    slot:"armor", stats:{hpMax:680},vendorSell:420},
+  whelp_claw   :{id:"whelp_claw",   name:"幼龙利爪",    icon:"sword", quality:"uncommon",slot:"weapon",stats:{dmgMul:1.08},model:"sword",vendorSell:160},
   /* —— STEP 24 世界 Boss —— */
   warbringer_spear:{id:"warbringer_spear",name:"战争使者战矛",icon:"sword",quality:"rare",slot:"weapon",stats:{dmgMul:1.16},model:"sword",vendorSell:320},
   warbringer_plate:{id:"warbringer_plate",name:"半人马督军胸甲",icon:"armor",quality:"rare",slot:"armor",stats:{hpMax:780},vendorSell:340},
@@ -114,6 +120,16 @@ const LOOT={
   wailing:{
     uncommon:["hide_vest","wind_blade"],
     rare    :["serpent_fang","moss_mantle"],
+  },
+  /* —— STEP 28 奥妮克希亚 —— */
+  onyxiaAdd:{
+    common  :["sulf_ash","bird_feather"],
+    uncommon:["whelp_claw","sulf_ring"],
+    rare    :["scale_cloak"],
+  },
+  onyxia:{
+    uncommon:["scale_cloak","whelp_claw"],
+    rare    :["onyxia_fang","dragonscale","scale_cloak"],
   },
   /* —— STEP 18 贫瘠之地 —— */
   quilboar:{

@@ -4,7 +4,7 @@
    [依赖] THREE · core.js（rand）
    [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS
           buildQuadruped buildHumanoidMob buildCentaur QUADS MOB_HUMANOIDS（STEP 5/18 族群工厂）
-          buildPlayer buildMage buildArcher buildPriest buildBoss buildElder buildVendor buildSpiritHealer
+          buildPlayer buildMage buildArcher buildPriest buildBoss buildOnyxia buildElder buildVendor buildSpiritHealer
           buildBoar buildFlameSpawn
    ------------------------------------------------------------
    3D 模型库（全部程序化几何体，零模型文件）
@@ -358,6 +358,65 @@ function buildBoss(){
 
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   g.userData={armR,armL,core,bossLight};
+  return g;
+}
+
+/* ============================================================
+   奥妮克希亚（STEP 28）：黑龙女王 · 程序化龙形低模
+   ============================================================ */
+function buildOnyxia(){
+  const g=new THREE.Group();
+  const scale=new THREE.MeshStandardMaterial({color:0x1a1a22,roughness:.75,flatShading:true,
+    emissive:0x220808,emissiveIntensity:.25});
+  const scaleD=new THREE.MeshStandardMaterial({color:0x0c0c12,roughness:.9,flatShading:true});
+  const belly=new THREE.MeshStandardMaterial({color:0x3a2820,roughness:.85,flatShading:true,
+    emissive:0x661a00,emissiveIntensity:.2});
+  const horn=new THREE.MeshStandardMaterial({color:0xc8b090,roughness:.55,metalness:.2});
+  const eye=new THREE.MeshBasicMaterial({color:0xff4400});
+
+  const body=new THREE.Mesh(new THREE.BoxGeometry(2.8,2.2,5.2),scale);
+  body.position.set(0,2.4,0); g.add(body);
+  const under=new THREE.Mesh(new THREE.BoxGeometry(2.2,1.2,4.4),belly);
+  under.position.set(0,1.5,0); g.add(under);
+
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.55,.75,2.4,6),scale);
+  neck.position.set(0,3.4,2.8); neck.rotation.x=-.55; g.add(neck);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(1.3,1.1,1.8),scaleD);
+  head.position.set(0,4.2,4.1); g.add(head);
+  const snout=new THREE.Mesh(new THREE.BoxGeometry(.9,.55,1.1),belly);
+  snout.position.set(0,3.85,5.1); g.add(snout);
+  [-1,1].forEach(s=>{
+    const h=new THREE.Mesh(new THREE.ConeGeometry(.14,.7,5),horn);
+    h.position.set(s*.4,5.0,3.7); h.rotation.x=-.35; g.add(h);
+    const e=new THREE.Mesh(new THREE.SphereGeometry(.12,6,6),eye);
+    e.position.set(s*.45,4.45,4.7); g.add(e);
+  });
+
+  [-1,1].forEach(s=>{
+    const wing=new THREE.Mesh(new THREE.PlaneGeometry(5.5,2.8),
+      new THREE.MeshStandardMaterial({color:0x14141c,roughness:.95,side:THREE.DoubleSide,
+        emissive:0x180404,emissiveIntensity:.15}));
+    wing.position.set(s*2.8,3.6,.2); wing.rotation.y=s*.55; wing.rotation.z=s*.35; g.add(wing);
+    const bone=new THREE.Mesh(new THREE.CylinderGeometry(.08,.05,4.8,5),horn);
+    bone.position.set(s*2.2,3.9,.1); bone.rotation.z=s*1.15; bone.rotation.y=s*.2; g.add(bone);
+  });
+
+  [-1,1].forEach(s=>{
+    [[1.4],[-1.5]].forEach(([dz])=>{
+      const leg=new THREE.Mesh(new THREE.CylinderGeometry(.28,.22,1.6,5),scaleD);
+      leg.position.set(s*.9,.85,dz); g.add(leg);
+      const claw=new THREE.Mesh(new THREE.ConeGeometry(.12,.35,4),horn);
+      claw.position.set(s*.9,.15,dz+.25); claw.rotation.x=1.2; g.add(claw);
+    });
+  });
+
+  const tail=new THREE.Mesh(new THREE.CylinderGeometry(.35,.08,4.5,6),scale);
+  tail.position.set(0,2.2,-4.2); tail.rotation.x=.85; g.add(tail);
+  const tip=new THREE.Mesh(new THREE.ConeGeometry(.35,.8,5),scaleD);
+  tip.position.set(0,4.0,-5.8); tip.rotation.x=.5; g.add(tip);
+
+  g.scale.setScalar(1.85);
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   return g;
 }
 
