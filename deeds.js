@@ -419,10 +419,12 @@ function resetDeeds(opts){
   if(!(opts&&opts.silent))updatePlayerNameplate();
 }
 
-/* DOM 关闭按钮 */
+/* DOM 关闭 / 底栏按钮 */
 (function bindDeedsUi(){
-  const btn=$("#deedsClose");
-  if(btn)btn.addEventListener("click",toggleDeedsPanel);
+  const close=$("#deedsClose");
+  if(close)close.addEventListener("click",toggleDeedsPanel);
+  const btn=$("#deedsBtn");
+  if(btn)btn.addEventListener("pointerdown",()=>toggleDeedsPanel());
 })();
 
 console.info("[deeds] STEP 25 就绪：功绩之书 · Shift+Z");
