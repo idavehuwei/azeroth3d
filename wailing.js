@@ -130,7 +130,7 @@ registerZone({
   name:"哀嚎洞穴",
   scene:sceneWailing,
   build:buildWailingZone,
-  music:"raid",
+  music:"wailing",
   mode:"raid",
   levelRange:[15,18],
   boundsR:()=>WAILING_ARENA()-2,

@@ -98,13 +98,43 @@ const BALANCE={
       barrens:{x:-8,z:5},
     },
   },
-  /* plan-v1 · V1-A3 生物动画挂点（仅表现，不改伤害/仇恨） */
+  /* plan-v1 · V1-A5 音效（可关）；脚步/UI/氛围音量 */
+  sfx:{
+    enabled:true,
+    ambience:true,
+    footVol:1, uiVol:1, ambienceVol:1,
+    footThrottleMs:90,
+    footstepInterval:.35, /* 文档/调参；实际触发靠 walkPhase 过零 + 节流 */
+    hitCap:3,
+    hitVariance:true,
+    mobHit:null, /* 可选覆盖；默认用 sfx.js MOB_HIT */
+    /* 莫高雷营地木板兴趣点 [x,z,r] */
+    woodPts:[[0,55,10],[6,49,7],[-10,50,7],[0,52,8]],
+  },
+  /* plan-v1 · V1-A3 生物动画（仅表现）；enabled:false 可关 */
   anim:{
+    enabled:true,
     walkFreq:9, walkAmp:.55, walkDecay:8,
     attackDecay:4,
     deathRollSpd:6,
     bobAmp:.22,
     wingFlap:{freq:1.4, amp:.35},
+    castWingMul:1.8,
+    lungeAmp:.55,
+    hitReactAmp:.25,
+    hitReactDecay:8,
+    leanMul:.04,
+    thumpBoost:.35,
+    tailAmp:.22,
+    tailFreq:1.1,
+    byKind:{
+      quad  :{walkFreq:9, walkAmp:.55},
+      biped :{walkFreq:8, walkAmp:.72},
+      centaur:{walkFreq:8.5, walkAmp:.5},
+      harpy :{walkFreq:10, walkAmp:.35, wingFlap:{freq:2.2, amp:.45}, hoverAmp:.18},
+      dragon:{wingFlap:{freq:1.2, amp:.5}, wingFlapFly:{freq:1.6, amp:.7}},
+      element:{pulseFreq:5, pulseAmp:.12},
+    },
   },
   /* 烈焰之子 */
   add:{hp:1400, dmg:[130,190], atkCd:2, speed:4.6, meleeR:3, stopR:2.6, copper:[12,28]},

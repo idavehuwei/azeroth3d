@@ -217,8 +217,13 @@ function tryLoot(){
     S.inv.push(it.id);          /* 纯数据入包，STEP 4 背包 UI 消费 */
     fct(d.grp.position.clone().setY(2),`获得【${it.name}】`,"#ffd76a",16);
     logLoot(it);
+    /* V1-A5：蓝/紫独立短音，其余 pickup */
+    if(typeof SFX!=="undefined"){
+      if(it.quality==="epic"||it.quality==="legendary")SFX.playUI("loot_epic");
+      else if(it.quality==="rare")SFX.playUI("loot_rare");
+      else SFX.play("pickup");
+    }
   }
-  SFX.play("pickup");
   VFX.spawn("loot_spark",{pos:d.grp.position.clone().setY(1)});
   removeDrop(d);
   if(d.onLooted)d.onLooted();
@@ -325,7 +330,8 @@ function sellItem(id){
   S.inv.splice(idx,1);
   gainCopper(it.vendorSell,{silent:true});
   log(`出售【${it.name}】，获得 ${formatCopperText(it.vendorSell)}。`,"lg-sys");
-  SFX.play("pickup");
+  if(typeof SFX!=="undefined"&&SFX.playUI)SFX.playUI("vendor_sell");
+  else if(typeof SFX!=="undefined")SFX.play("pickup");
   renderBag();
   if(typeof refreshVendorPanel==="function")refreshVendorPanel();
   if(typeof saveGame==="function")saveGame(true);
@@ -342,7 +348,8 @@ function buyVendorItem(id){
   }
   S.inv.push(id);
   log(`购买【${it.name}】，花费 ${formatCopperText(it.vendorBuy)}。`,"lg-sys");
-  SFX.play("pickup");
+  if(typeof SFX!=="undefined"&&SFX.playUI)SFX.playUI("vendor_buy");
+  else if(typeof SFX!=="undefined")SFX.play("pickup");
   renderBag();
   if(typeof refreshVendorPanel==="function")refreshVendorPanel();
   if(typeof saveGame==="function")saveGame(true);

@@ -261,7 +261,7 @@ defineBoss({
     {id:"fireball",type:"cast_projectile",bal:"fireball",name:"烈焰冲击",firstDelay:10,
       vfx:"lava_bolt",log:"拉戈斯掷出烈焰冲击！",exclusive:true},
     {id:"eruption",type:"cast_telegraph",bal:"eruption",name:"熔岩喷发",firstDelay:14,
-      vfx:"eruption_ring",playerRingR:4.5,
+      sfx:"eruption",vfx:"eruption_ring",playerRingR:4.5,
       countKey:{1:"count",2:"p2Count",3:"p3Count"},
       announce:"熔岩喷发 · 快躲开红圈！",log:"大地震颤，熔岩即将喷发！",exclusive:true},
     {id:"wrath",type:"cast_knockback",bal:"wrath",name:"拉戈斯之怒",firstDelay:22,
@@ -331,12 +331,12 @@ defineBoss({
       countKey:{1:"count",2:"p2Count"},fanKey:"fan"},
     /* 直线喷吐：Boss→玩家方向铺预警环 */
     {id:"breath",type:"cast_line",bal:"breath",name:"熔岩吐息",firstDelay:7,
-      vfx:"eruption_ring",
+      sfx:"breath_fire",vfx:"eruption_ring",
       announce:"熔岩吐息 · 躲开直线！",log:"玛格曼达深吸一口气，岩浆沿直线喷涌！",
       exclusive:true,segsKey:{1:"segs",2:"p2Segs"}},
     /* 践踏：脚下大圈 + 随机落点 */
     {id:"stomp",type:"cast_telegraph",bal:"stomp",name:"践踏震荡",firstDelay:10,
-      vfx:"eruption_ring",playerRingRKey:"ringR",
+      sfx:"lava_burst",vfx:"eruption_ring",playerRingRKey:"ringR",
       countKey:{1:"count",2:"p2Count"},
       announce:"践踏 · 快躲开红圈！",log:"玛格曼达猛踏地面，震荡波层层扩散！",exclusive:true},
     /* 恐惧 + 击退 + 脚下恐慌圈 */
@@ -394,6 +394,7 @@ defineBoss({
       vfx:"venom_bolt",log:"考布莱恩喷出扇形毒液！",exclusive:true,
       countKey:{1:"count",2:"p2Count"},fanKey:"fan"},
     {id:"breath",type:"cast_line",bal:"breath",name:"酸液吐息",firstDelay:7,
+      sfx:"breath_poison",
       vfx:"venom_ring",
       announce:"酸液吐息 · 躲开直线！",log:"考布莱恩张开巨口，酸液沿直线喷涌！",
       exclusive:true,segsKey:{1:"segs",2:"p2Segs"}},
@@ -499,15 +500,15 @@ defineBoss({
       vfx:"lava_bolt",log:"奥妮克希亚喷出扇形暗焰！",exclusive:true,
       countKey:{1:"count",2:"p2Count",3:"p3Count"},fanKey:"fan"},
     {id:"breath",type:"cast_line",bal:"breath",name:"火焰吐息",firstDelay:7.5,
-      vfx:"eruption_ring",
+      sfx:"breath_fire",vfx:"eruption_ring",
       announce:"火焰吐息 · 躲开直线！",log:"黑龙张开巨口，烈焰沿直线喷涌！",
       exclusive:true,segsKey:{1:"segs",2:"p2Segs",3:"p3Segs"}},
     {id:"wing",type:"cast_telegraph",bal:"wing",name:"翼击落火",firstDelay:11,
-      vfx:"eruption_ring",playerRingRKey:"ringR",
+      sfx:"wing_flap",vfx:"eruption_ring",playerRingRKey:"ringR",
       countKey:{1:"count",2:"p2Count",3:"p3Count"},
       announce:"翼击落火 · 快躲开红圈！",log:"龙翼扇起火雨——地面燃起红圈！",exclusive:true},
     {id:"deepBreath",type:"cast_line",bal:"deepBreath",name:"深呼吸",firstDelay:28,
-      vfx:"eruption_ring",
+      sfx:"breath_fire",vfx:"eruption_ring",
       announce:"深呼吸 · 立刻躲开整条直线！！",log:"奥妮克希亚深深吸气——毁灭性的直线烈焰即将释放！",
       exclusive:true,segsKey:{1:"segs",2:"p2Segs",3:"p3Segs"}},
   ],
@@ -690,9 +691,13 @@ function enterBossPhase(ph){
     }
     if(ph.spawnAdds)spawnBossAdds(ph.spawnAdds);
   }else if(ph.onEnter==="land"){
-    /* STEP 28：落地进入深呼吸阶段 */
+    /* STEP 28：落地进入深呼吸阶段 + 落地扬尘（表现） */
     B.flying=false;
     B.flyTargetY=0;
+    if(typeof VFX!=="undefined"){
+      VFX.spawn("melee_impact",{pos:new THREE.Vector3(boss.position.x,.4,boss.position.z),
+        color:0xc9a080,count:36,spread:3.2});
+    }
     if(ph.compressNext)compressBossSkills(ph.compressNext);
     if(ph.burst){
       const b=ph.burst;
@@ -744,6 +749,8 @@ function tickBossSubmerged(dt){
 
 function runBossSkill(sk){
   const B=S.b, st=skillBal(sk), d=distToBoss();
+  /* V1-A5：Boss 技能专用音色（近战仍用受击分层） */
+  if(sk.type!=="melee"&&sk.sfx&&typeof SFX!=="undefined")SFX.play(sk.sfx);
   if(sk.type==="melee"){
     B.next[sk.id]=S.t+R(st.cd);
     /* STEP 28：飞天阶段不近战 */
@@ -935,6 +942,7 @@ function spawnAdd(x,z,opts){
   S.adds.push({
     mesh,name:conf.name||"烈焰之子",hp:bal.hp,hpMax:bal.hp,atkT:0,corpseT:0,
     stats:bal, moving:false, attackAnim:0, state:"alive",
+    hitKind:conf.hitKind||((conf.balKey&&conf.balKey!=="add")?conf.balKey:"flame"),
     lootTable:conf.lootTable||"add",
     dieLog:conf.dieLog||"一只烈焰之子被消灭了！",
     burstColor:conf.burstColor!=null?conf.burstColor:0xff5a1a,
@@ -992,15 +1000,14 @@ function bossDie(){
     VFX.spawn(b.vfx,{pos:new THREE.Vector3(boss.position.x,b.y,boss.position.z),
       color:b.color,count:b.count,spread:b.spread});
   }
-  /* 倒地动画（终局下沉 / 中段侧倒） */
+  /* 倒地动画（终局下沉 / 中段侧倒）——统一 anim API */
   if(D.isFinal){
     S.b.canLeave=true;
-    let t=0;const iv=setInterval(()=>{t+=0.05;boss.position.y-=0.16;boss.rotation.z+=0.004;
-      if(t>3)clearInterval(iv);},50);
+    if(typeof beginFinalSink==="function")beginFinalSink(boss,{y:boss.position.y});
+    else if(typeof beginDeathRoll==="function")beginDeathRoll(boss,{y:boss.position.y,finalSink:true});
   }else{
-    if(typeof beginDeathRoll==="function")beginDeathRoll(boss);
-    else boss.rotation.z=Math.PI/2;
-    boss.position.y=.3;
+    if(typeof beginDeathRoll==="function")beginDeathRoll(boss,{y:.3, thump:true});
+    else{boss.rotation.z=Math.PI/2; boss.position.y=.3;}
   }
   /* 掉落：固定传说件 或 掉落表掷骰 */
   const dropDelay=D.lootDelay||1200;
@@ -1051,9 +1058,12 @@ function playerDie(){
   S.p.knock=null; S.p.fear=null;
   if(typeof cancelConsume==="function")cancelConsume();
   clearBossCast();
+  if(typeof SFX!=="undefined")SFX.play("death_player");
   announce("你被击败了……");
   log("你倒下了。释放灵魂即可在灵魂医者处重生。","lg-sys");
-  player.rotation.z=Math.PI/2; player.position.y=.5;
+  player.position.y=.5;
+  if(typeof beginDeathRoll==="function")beginDeathRoll(player,{y:.5, thump:true, restY:.5});
+  else player.rotation.z=Math.PI/2;
   if(typeof checkPartyWipe==="function")checkPartyWipe();
   const delay=(BAL.death.corpseDelay||1.2)*1000;
   setTimeout(()=>{
@@ -1135,10 +1145,13 @@ function resurrectPlayer(spawn,opts){
   S.p.eating=null; S.p.bandaging=null; S.p.gathering=null;
   if(S.p.whetstoneT>0&&S.p.whetstoneAdd){S.p.dmgMul-=S.p.whetstoneAdd;S.p.whetstoneAdd=0;S.p.whetstoneT=0;}
   S.p.weaknessT=D.weaknessT||0;
-  player.rotation.z=0; player.position.y=0;
+  if(typeof resetDeathRoll==="function")resetDeathRoll(player);
+  else{player.rotation.z=0; player.position.y=0;}
+  player.position.y=0;
   if(spawn)player.position.set(spawn.x,0,spawn.z);
   hideDeathUi();
   if(!(opts&&opts.silent)){
+    if(typeof SFX!=="undefined")SFX.play("respawn");
     announce("你复活了！");
     log(`复活成功。虚弱 ${D.weaknessT} 秒（移速降低）。`,"lg-heal");
     VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.5)});
@@ -1202,7 +1215,11 @@ function resetBoss(){
   for(let i=DROPS.length-1;i>=0;i--)removeDrop(DROPS[i]);
   S.b.alive=false; S.b.canLeave=false; S.b.casting=null;
   if(typeof clearThreat==="function")clearThreat(BOSS_ENT);
-  if(boss){boss.visible=false;boss.rotation.z=0;}
+  if(boss){
+    boss.visible=false;
+    if(typeof resetDeathRoll==="function")resetDeathRoll(boss);
+    else boss.rotation.z=0;
+  }
   $("#castShell").style.display="none";
 }
 

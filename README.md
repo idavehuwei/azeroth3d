@@ -44,6 +44,7 @@ cd azeroth3d
 # 直接打开 game.html（需要本地 HTTP 服务器以加载 Three.js CDN）
 python3 -m http.server 8080
 # 浏览器打开 http://localhost:8080/game.html
+# 音效调音台（可选）：http://localhost:8080/sfx_studio.html
 ```
 
 3. 游戏流程

@@ -36,6 +36,50 @@ function clampArena(pos){
   if(d>lim){const s=lim/d;pos.x*=s;pos.z*=s;}
   return pos;
 }
+
+/** 区 → 脚步表面（V1-A3 钩 / V1-A5 音色） */
+function zoneFootSurface(zid){
+  const id=zid||(typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore");
+  if(id==="barrens")return "dirt";
+  if(id==="molten_core"||id==="onyxias_lair")return "ash";
+  if(id==="wailing_caverns")return "stone";
+  /* 莫高雷营地建筑附近：木板 */
+  if(id==="mulgore"&&typeof player!=="undefined"&&BAL.sfx&&BAL.sfx.woodPts){
+    for(const pt of BAL.sfx.woodPts){
+      const r=pt[2]!=null?pt[2]:8;
+      if(Math.hypot(player.position.x-pt[0],player.position.z-pt[1])<r)return "wood";
+    }
+  }
+  return "grass";
+}
+
+function updateAnimDebugHud(){
+  if(!window.__ANIM_DEBUG)return;
+  let el=$("#animDbg");
+  if(!el){
+    el=document.createElement("div");
+    el.id="animDbg";
+    el.style.cssText="position:fixed;left:8px;top:48px;z-index:40;font:11px/1.35 monospace;color:#9fdf9f;background:rgba(0,0,0,.55);padding:6px 8px;pointer-events:none;max-width:240px";
+    document.body.appendChild(el);
+  }
+  let near="—", st="—";
+  if(typeof MOBS!=="undefined"){
+    let best=null,bd=14;
+    for(const m of MOBS){
+      if(!m.mesh||m.state==="dead")continue;
+      const d=player.position.distanceTo(m.mesh.position);
+      if(d<bd){bd=d;best=m;}
+    }
+    if(best){
+      near=best.name||best.type;
+      const A=best.mesh.userData&&best.mesh.userData.anim;
+      st=A?(A.state+" · "+(best.mesh.userData.kind||"?")):"?";
+    }
+  }
+  const pa=player.userData&&player.userData.anim;
+  el.textContent=`anim debug\nplayer alive=${S.p.alive} walk=${(S.p.walkPhase||0).toFixed(1)}\nnpc near: ${near}\nstate: ${st}\nfoot: ${zoneFootSurface()}`;
+}
+
 const clock=new THREE.Clock();
 
 /* ---------------- FPS 叠层（STEP 12） ---------------- */
@@ -69,6 +113,8 @@ function updateFps(dt){
   const q=new URLSearchParams(location.search);
   FPS.show=q.has("dev")||q.get("fps")==="1";
   applyFpsVisibility();
+  /* ?anim=1 或 ?dev&anim：叠动画状态字 */
+  if(q.get("anim")==="1"||(q.has("dev")&&q.has("anim")))window.__ANIM_DEBUG=true;
   addEventListener("keydown",e=>{
     if(!(e.ctrlKey||e.metaKey)||e.key.toLowerCase()!=="f")return;
     e.preventDefault();
@@ -155,6 +201,7 @@ function tick(){
 
   /* 天气层（V1-A4）：须在 dayNight 写雾之后叠加；render-only */
   if(typeof updateWeather==="function")updateWeather(dt);
+  updateAnimDebugHud();
 
   /* Boss 火焰摇曳（仅拉戈斯等人形岩浆 Boss 有 core/bossLight） */
   if(boss.userData.core&&boss.userData.bossLight){
@@ -288,7 +335,14 @@ function tick(){
           if(dH<1.2){m.state="wander";m.hp=m.hpMax;m.dest=null;}
         }
         const bobAmp=(BAL.anim&&BAL.anim.bobAmp)!=null?BAL.anim.bobAmp:.22;
-        m.mesh.position.y=m.moving?Math.abs(Math.sin(S.t*9+m.home.x))*bobAmp:0;
+        let hover=0;
+        if(m.mesh.userData&&m.mesh.userData.kind==="harpy"){
+          const hk=BAL.anim&&BAL.anim.byKind&&BAL.anim.byKind.harpy;
+          hover=(hk&&hk.hoverAmp)!=null?hk.hoverAmp:.18;
+        }
+        m.footSurface=zoneFootSurface(zid);
+        m.mesh.position.y=(m.moving?Math.abs(Math.sin(S.t*9+m.home.x))*bobAmp:0)
+          +(hover?hover*(.55+.45*Math.sin(S.t*2.4+m.home.z)):0);
         if(typeof updateMobAnim==="function")updateMobAnim(m,dt);
         m.label.position.set(m.mesh.position.x,m.labelY,m.mesh.position.z);
         /* 精英光环脉动 */
@@ -309,6 +363,11 @@ function tick(){
         vendor.position.y=Math.sin(S.t*1.5+2)*.04;
         spiritHealer.rotation.y=Math.PI+Math.sin(S.t*.6)*.06;
         spiritHealer.position.y=Math.sin(S.t*1.4+1)*.05;
+        if(typeof updateNpcIdleAnim==="function"){
+          updateNpcIdleAnim(elder,dt,0);
+          updateNpcIdleAnim(vendor,dt,1.7);
+          updateNpcIdleAnim(spiritHealer,dt,3.1);
+        }
         markerExcl.position.y=6.8+Math.sin(S.t*2.4)*.3;
         markerQ.position.y=markerExcl.position.y;
         const nearR=BAL.economy.interactR;
@@ -413,15 +472,22 @@ function tick(){
       S.p.walkPhase*=1-dt*8;
     }
     if(S.p.alive)player.rotation.y=S.p.face;
+    else if(typeof tickDeathRoll==="function")tickDeathRoll(player,dt);
     /* 走路摆腿 & 披风 */
     const U=player.userData,sw=Math.sin(S.p.walkPhase)*.55;
-    U.legR.rotation.x=sw; U.legL.rotation.x=-sw;
-    U.cape.rotation.x=.12+Math.abs(sw)*.25+Math.sin(S.t*3)*.04;
-    /* 攻击挥剑动画 */
-    if(S.p.attackAnim>0){S.p.attackAnim-=dt*4;
-      U.armR.rotation.x=-2.4*Math.sin(Math.min(1,S.p.attackAnim)*Math.PI);}
-    else U.armR.rotation.x=Math.sin(S.p.walkPhase)*.3;
-    U.armL.rotation.x=-Math.sin(S.p.walkPhase)*.3;
+    if(S.p.alive){
+      U.legR.rotation.x=sw; U.legL.rotation.x=-sw;
+      U.cape.rotation.x=.12+Math.abs(sw)*.25+Math.sin(S.t*3)*.04;
+      if(S.p.attackAnim>0){S.p.attackAnim-=dt*4;
+        U.armR.rotation.x=-2.4*Math.sin(Math.min(1,S.p.attackAnim)*Math.PI);}
+      else U.armR.rotation.x=Math.sin(S.p.walkPhase)*.3;
+      U.armL.rotation.x=-Math.sin(S.p.walkPhase)*.3;
+      const sFoot=Math.sin(S.p.walkPhase);
+      if(ml>.1&&S.p._prevFootSin!=null&&S.p._prevFootSin<0&&sFoot>=0){
+        if(typeof emitAnimFootstep==="function")emitAnimFootstep({footSurface:zoneFootSurface()});
+      }
+      S.p._prevFootSin=sFoot;
+    }
     /* 萨弗拉斯之柄火焰摇曳（STEP 4：仅装备橙锤时遍历） */
     if(S.eq.weapon==="sulfuras_haft")
       player.traverse(o=>{if(o.userData.flame)o.scale.y=1+Math.sin(S.t*7+o.position.x*5)*.25;});

@@ -90,6 +90,9 @@ function setWeather(zoneId){
     clearWeather();
     _wx.type="clear";
     _wx.zoneId=zoneId||null;
+    if(typeof SFX!=="undefined"&&SFX.ambience){
+      SFX.ambience(zoneId==="wailing_caverns"?"cave_drip":null);
+    }
     return;
   }
   const type=(W.zoneDefaults&&W.zoneDefaults[zoneId])||"clear";
@@ -108,6 +111,15 @@ function setWeather(zoneId){
   if(cfg&&cfg.particle&&scn){
     _wx.points=buildWeatherPoints(cfg);
     scn.add(_wx.points);
+  }
+  /* V1-A5：天气/区域氛围垫底（可关） */
+  if(typeof SFX!=="undefined"&&SFX.ambience){
+    let amb=null;
+    if(zoneId==="wailing_caverns")amb="cave_drip";
+    else if(type==="rain")amb="rain";
+    else if(type==="dust")amb="dust";
+    else if(type==="mist")amb="wind";
+    SFX.ambience(amb);
   }
 }
 

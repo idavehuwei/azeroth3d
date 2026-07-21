@@ -51,12 +51,13 @@
 | `finder.js` | 本地地下城查找器 | toggleDungeonFinderPanel, queueDungeonFinder |
 | `save.js` | 存档系统 | saveGame, loadGame, exportSaveCode, importSaveCode |
 | `main.js` | 主循环 | tick, clampArena |
-| `sfx.js` | 程序化音效 | SFX.init, SFX.play, SFX.music |
+| `sfx.js` | 程序化音效 | SFX.init, play, playFoot, playHit, playUI, music, ambience |
 
 ## 命令
 
 - `python3 -m http.server 8080` — 启动本地服务器
 - `node test_step01.js` — 运行回归测试
+- 浏览器打开 `http://localhost:8080/sfx_studio.html` — V1-A5 音效调音台（独立页，不进主包）
 
 ## 开发进度
 

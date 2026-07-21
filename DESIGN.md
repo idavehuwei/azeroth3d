@@ -129,6 +129,23 @@
 - 材质：`AdditiveBlending`，半透明
 - 衰减：1.1 秒后自动移除
 
+### 生物动画语言（plan-v1 · V1-A3）
+
+- **原则：** 纯表现，不改伤害 / 仇恨 / 碰撞；幅度与频率只进 `BALANCE.anim`。
+- **状态：** `idle` / `walk` / `attack` / `cast` / `dead`（见 `userData.anim.state`）。
+- **幅度上限：** 腿摆 `walkAmp ≤ 0.75`；转弯外倾 `|z| ≤ 0.2`；禁止整模 360° 空翻。
+- **死亡：** 必须 `beginDeathRoll` / `beginFinalSink` 插值，禁止瞬切 `rotation.z`；可有落地顿挫（`thumpBoost`）。
+- **挂点：** 四足 `legs[]` + `head`；人形 `leg/arm`；龙 `wingL/R` + `tail`；加新怪先挂点再摆。
+- **调试：** `?anim=1` 左上角叠状态字；`BAL.anim.enabled=false` 关闭驱动（死亡插值仍可收尾）。
+
+### 音频设计语言（plan-v1 · V1-A5）
+
+- **原则：** 零 `.mp3/.ogg/.wav`；调音只改 `sfx.js` 的 `SOUNDS` / `MUSIC` / `AMBIENCE` 与 `BALANCE.sfx`。
+- **分轨：** `sfx` / `music` / `ambience` 独立 Gain；总静音仍走 mute 按钮。
+- **材质脚步：** 区默认表面（草/土/石/渣）+ 营地木板兴趣点；雨天草/土走 `grass_wet`；`SFX.playFoot`。
+- **受击分层：** `playHit(type)` → 肉体/甲壳/龙鳞/元素/玩家护甲；叠音 ≤3。
+- **调音台：** 独立打开 `sfx_studio.html`（列表试听、改 JSON、导出、分轨滑条）。
+
 ---
 
 ## 6. 布局

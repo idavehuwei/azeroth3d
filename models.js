@@ -418,14 +418,18 @@ function buildOnyxia(){
     });
   });
 
+  const tailG=new THREE.Group();
+  tailG.position.set(0,2.2,-2.2);
   const tail=new THREE.Mesh(new THREE.CylinderGeometry(.35,.08,4.5,6),scale);
-  tail.position.set(0,2.2,-4.2); tail.rotation.x=.85; g.add(tail);
+  tail.position.set(0,0,-2.0); tail.rotation.x=.85; tailG.add(tail);
   const tip=new THREE.Mesh(new THREE.ConeGeometry(.35,.8,5),scaleD);
-  tip.position.set(0,4.0,-5.8); tip.rotation.x=.5; g.add(tip);
+  tip.position.set(0,1.8,-3.6); tip.rotation.x=.5; tailG.add(tip);
+  g.add(tailG);
 
   g.scale.setScalar(1.85);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   g.userData.kind="dragon";
+  g.userData.tail=tailG;
   g.userData.anim={state:"idle",walkPhase:0,attackAnim:0,deathRoll:0};
   return g;
 }
@@ -442,6 +446,8 @@ function buildFlameSpawn(){
   const eye=new THREE.Mesh(new THREE.SphereGeometry(.16,6,6),new THREE.MeshBasicMaterial({color:0xffe080}));
   eye.position.set(0,1.15,.75); g.add(eye);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  g.userData={body, flame, kind:"element",
+    anim:{state:"idle",walkPhase:0,attackAnim:0,deathRoll:0}};
   return g;
 }
 
@@ -479,36 +485,35 @@ function buildQuadruped(cfg){
   /* 躯干 + 鬃毛脊 */
   const body=new THREE.Mesh(new THREE.BoxGeometry(1.1,1,1.7),fur); body.position.y=1; g.add(body);
   if(c.mane){const ridge=new THREE.Mesh(new THREE.BoxGeometry(.5,.3,1.5),furD); ridge.position.y=1.55; g.add(ridge);}
-  /* 头部：长颈（陆行鸟）或前置 */
+  /* 头部枢轴（攻击俯冲）；子网格用局部坐标 */
   let headY=1.05, headZ=1.15;
   if(c.neck){
     const neck=new THREE.Mesh(new THREE.CylinderGeometry(.16,.22,c.neck,6),fur);
     neck.position.set(0,1.3+c.neck/2,1); neck.rotation.x=.15; g.add(neck);
     headY=1.35+c.neck; headZ=1.25;
   }
-  const head=new THREE.Mesh(new THREE.BoxGeometry(.85,.8,.7),fur); head.position.set(0,headY,headZ); g.add(head);
-  /* 吻部 / 喙 */
+  const headG=new THREE.Group(); headG.position.set(0,headY,headZ); g.add(headG);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(.85,.8,.7),fur); headG.add(head);
   if(c.beak){
     const beak=new THREE.Mesh(new THREE.ConeGeometry(.18,.55,5),ivory);
-    beak.position.set(0,headY-.05,headZ+.6); beak.rotation.x=Math.PI/2; g.add(beak);
+    beak.position.set(0,-.05,.6); beak.rotation.x=Math.PI/2; headG.add(beak);
   }else{
     const snout=new THREE.Mesh(new THREE.BoxGeometry(.45,.4,c.snoutLong?.6:.35),furD);
-    snout.position.set(0,headY-.15,headZ+(c.snoutLong?.62:.5)); g.add(snout);
+    snout.position.set(0,-.15,c.snoutLong?.62:.5); headG.add(snout);
   }
-  /* 冠羽 */
   if(c.crest)for(let i=0;i<3;i++){
     const fe=new THREE.Mesh(new THREE.ConeGeometry(.08,.5,4),furD);
-    fe.position.set((i-1)*.14,headY+.55,headZ-.15); fe.rotation.x=-.4; g.add(fe);
+    fe.position.set((i-1)*.14,.55,-.15); fe.rotation.x=-.4; headG.add(fe);
   }
   const legs=[];
   [-1,1].forEach(s=>{
     if(c.tusks){
       const tk=new THREE.Mesh(new THREE.ConeGeometry(c.tuskBig?.14:.09,c.tuskBig?.7:.45,5),ivory);
-      tk.position.set(s*.28,headY-.1,headZ+.47); tk.rotation.x=-.6; g.add(tk);
+      tk.position.set(s*.28,-.1,.47); tk.rotation.x=-.6; headG.add(tk);
     }
     if(c.ears&&!c.beak){
       const ear=new THREE.Mesh(new THREE.ConeGeometry(.16,.35,4),furD);
-      ear.position.set(s*.34,headY+.55,headZ-.1); g.add(ear);
+      ear.position.set(s*.34,.55,-.1); headG.add(ear);
     }
     /* 腿：枢轴 Group（V1-A3 走/攻摆腿）· 四足两组 / 双足一组长腿 */
     (c.legs===4?[[.42],[-.42]]:[[-.3]]).forEach(([dz])=>{
@@ -544,7 +549,7 @@ function buildQuadruped(cfg){
   }
   g.scale.setScalar(c.size);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
-  g.userData={legs, kind:c.legs===2?"biped":"quad",
+  g.userData={legs, head:headG, kind:c.legs===2?"biped":"quad",
     anim:{state:"idle",walkPhase:0,attackAnim:0,deathRoll:0}};
   return g;
 }
@@ -564,28 +569,31 @@ function buildCentaur(cfg){
   const hair=new THREE.Mesh(new THREE.ConeGeometry(.28,.5,6),
     new THREE.MeshStandardMaterial({color:c.furD,roughness:1}));
   hair.position.set(0,3.65,.28); g.add(hair);
-  [-1,1].forEach(s=>{
-    const arm=new THREE.Mesh(new THREE.BoxGeometry(.16,.7,.16),skin);
-    arm.position.set(s*.42,2.7,.35); arm.rotation.z=s*.35; g.add(arm);
-  });
+  const armR=new THREE.Group(); armR.position.set(.42,2.95,.35); g.add(armR);
+  const armL=new THREE.Group(); armL.position.set(-.42,2.95,.35); g.add(armL);
+  const armMeshR=new THREE.Mesh(new THREE.BoxGeometry(.16,.7,.16),skin);
+  armMeshR.position.y=-.35; armMeshR.rotation.z=.35; armR.add(armMeshR);
+  const armMeshL=new THREE.Mesh(new THREE.BoxGeometry(.16,.7,.16),skin);
+  armMeshL.position.y=-.35; armMeshL.rotation.z=-.35; armL.add(armMeshL);
   const spear=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,2.2,5),
     new THREE.MeshStandardMaterial({color:0x6a5030,roughness:.8}));
-  spear.position.set(.55,3.1,.6); spear.rotation.z=-.4; g.add(spear);
+  spear.position.set(.12,-.2,.35); spear.rotation.z=-.4; armR.add(spear);
   const tip=new THREE.Mesh(new THREE.ConeGeometry(.08,.28,5),
     new THREE.MeshStandardMaterial({color:0xc0c0c0,roughness:.4,metalness:.6}));
-  tip.position.set(.85,3.85,.85); tip.rotation.z=-.4; g.add(tip);
+  tip.position.set(.35,.55,.55); tip.rotation.z=-.4; armR.add(tip);
   if(c.banner){
     const pole=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,2.6,5),
       new THREE.MeshStandardMaterial({color:0x4a4030,roughness:.8}));
-    pole.position.set(-.55,3.4,.2); g.add(pole);
+    pole.position.set(0,-.2,.05); armL.add(pole);
     const flag=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.7),
       new THREE.MeshStandardMaterial({color:0xc04020,roughness:.9,side:THREE.DoubleSide}));
-    flag.position.set(-1.05,4.3,.2); g.add(flag);
+    flag.position.set(-.5,.7,.05); armL.add(flag);
   }
   g.scale.setScalar(c.size);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
-  /* 挂点指向马身腿，外层可直接 updateMobAnim */
-  g.userData={legs:horse.userData.legs, kind:"centaur", horse,
+  /* 马腿 + 人头俯冲引用马头；臂枢轴挥矛 */
+  g.userData={legs:horse.userData.legs, head:horse.userData.head, kind:"centaur", horse,
+    armR, armL,
     anim:horse.userData.anim||{state:"idle",walkPhase:0,attackAnim:0,deathRoll:0}};
   return g;
 }
@@ -608,26 +616,36 @@ function buildHumanoidMob(cfg){
   const head=new THREE.Mesh(new THREE.BoxGeometry(.42,.42,.4),skin); head.position.y=2.6; g.add(head);
   const mane=new THREE.Mesh(new THREE.ConeGeometry(.38,.75,7),hair);
   mane.position.y=2.95; mane.rotation.z=.15; g.add(mane);
+  const armR=new THREE.Group(); armR.position.set(.55,2.35,0); g.add(armR);
+  const armL=new THREE.Group(); armL.position.set(-.55,2.35,0); g.add(armL);
+  const legR=new THREE.Group(); legR.position.set(.22,.9,0); g.add(legR);
+  const legL=new THREE.Group(); legL.position.set(-.22,.9,0); g.add(legL);
+  let wingL=null, wingR=null;
   [-1,1].forEach(s=>{
-    /* 张开的利爪双臂 */
+    const armG=s>0?armR:armL;
     const arm=new THREE.Mesh(new THREE.BoxGeometry(.2,.8,.2),fe);
-    arm.position.set(s*.55,2.15,0); arm.rotation.z=s*.9; g.add(arm);
+    arm.position.set(0,-.25,0); arm.rotation.z=s*.9; armG.add(arm);
     const talon=new THREE.Mesh(new THREE.ConeGeometry(.07,.28,4),claw);
-    talon.position.set(s*.92,1.9,0); talon.rotation.z=s*2.2; g.add(talon);
-    /* 羽翼（双面） */
+    talon.position.set(s*.37,-.45,0); talon.rotation.z=s*2.2; armG.add(talon);
     if(c.wings){
+      const wingG=new THREE.Group();
+      wingG.position.set(s*.95,2.3,-.3);
       const wing=new THREE.Mesh(new THREE.PlaneGeometry(1.5,.9),
         new THREE.MeshStandardMaterial({color:c.feather,roughness:.9,side:THREE.DoubleSide}));
-      wing.position.set(s*.95,2.3,-.3); wing.rotation.set(.15,s*-.6,s*.3); g.add(wing);
+      wing.rotation.set(.15,s*-.6,s*.3); wingG.add(wing);
+      g.add(wingG);
+      if(s<0)wingL=wingG; else wingR=wingG;
     }
-    /* 鸟腿 + 爪 */
+    const legG=s>0?legR:legL;
     const leg=new THREE.Mesh(new THREE.CylinderGeometry(.09,.07,.9,5),feD);
-    leg.position.set(s*.22,.45,0); g.add(leg);
+    leg.position.y=-.45; legG.add(leg);
     const foot=new THREE.Mesh(new THREE.ConeGeometry(.09,.22,4),claw);
-    foot.position.set(s*.22,.08,.14); foot.rotation.x=1.2; g.add(foot);
+    foot.position.set(0,-.82,.14); foot.rotation.x=1.2; legG.add(foot);
   });
   g.scale.setScalar(c.size);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  g.userData={armR,armL,legR,legL,wingL,wingR, kind:"harpy",
+    anim:{state:"idle",walkPhase:0,attackAnim:0,deathRoll:0}};
   return g;
 }
 
@@ -646,11 +664,14 @@ function buildElder(){
   const torso=new THREE.Mesh(new THREE.BoxGeometry(1.6,1.7,1.05),fur); torso.position.y=2.5; g.add(torso);
   const mantle=new THREE.Mesh(new THREE.BoxGeometry(1.8,.5,1.2),cloth); mantle.position.y=3.2; g.add(mantle);
   const loin=new THREE.Mesh(new THREE.BoxGeometry(1.25,1,.95),cloth); loin.position.y=1.3; g.add(loin);
+  const armR=new THREE.Group(); armR.position.set(1.05,3.1,0); g.add(armR);
+  const armL=new THREE.Group(); armL.position.set(-1.05,3.1,0); g.add(armL);
   [-1,1].forEach(s=>{
     const leg=new THREE.Mesh(new THREE.BoxGeometry(.5,.9,.55),furD);
     leg.position.set(s*.4,.45,0); g.add(leg);
+    const armG=s>0?armR:armL;
     const arm=new THREE.Mesh(new THREE.BoxGeometry(.45,1.5,.5),fur);
-    arm.position.set(s*1.05,2.4,0); g.add(arm);
+    arm.position.set(0,-.75,0); armG.add(arm);
     const horn=new THREE.Mesh(new THREE.ConeGeometry(.17,1,5),hornM);
     horn.position.set(s*.85,4.45,0); horn.rotation.z=s*-1.1; g.add(horn);
   });
@@ -658,16 +679,19 @@ function buildElder(){
   const snout=new THREE.Mesh(new THREE.BoxGeometry(.5,.45,.45),furD); snout.position.set(0,3.95,.55); g.add(snout);
   const beads=new THREE.Mesh(new THREE.TorusGeometry(.55,.08,6,12),wood);
   beads.position.y=3.35; beads.rotation.x=Math.PI/2.4; g.add(beads);
-  /* 图腾法杖 */
-  const staff=new THREE.Mesh(new THREE.CylinderGeometry(.09,.11,4.4,6),wood);
-  staff.position.set(1.4,2.2,.3); g.add(staff);
+  const staff=new THREE.Group();
+  const staffPole=new THREE.Mesh(new THREE.CylinderGeometry(.09,.11,4.4,6),wood);
+  staffPole.position.set(0,-1.2,.3); staff.add(staffPole);
   const topper=new THREE.Mesh(new THREE.TorusGeometry(.32,.07,6,10),wood);
-  topper.position.set(1.4,4.5,.3); g.add(topper);
+  topper.position.set(0,1.1,.3); staff.add(topper);
   for(let i=0;i<3;i++){
     const fe=new THREE.Mesh(new THREE.ConeGeometry(.07,.55,4),featherM);
-    fe.position.set(1.4+(i-1)*.18,3.9,.42); fe.rotation.x=Math.PI; g.add(fe);
+    fe.position.set((i-1)*.18,.5,.42); fe.rotation.x=Math.PI; staff.add(fe);
   }
+  staff.position.set(.35,-.2,.2); armR.add(staff);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  g.userData={kind:"npc", armR, armL, staff,
+    anim:{state:"idle",walkPhase:0,attackAnim:0,deathRoll:0}};
   return g;
 }
 /* 营地商人：复用长老骨架，布料改青绿 */
