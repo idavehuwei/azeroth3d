@@ -11,6 +11,7 @@
           combat.js（S CLS SKILLS keys joy setClass bossAI bossTargetable distToBoss
           pickTarget firePlayerShot dmgBoss addDamage mobDamage playerHit
           spawnBurst log announce fct）
+          world.js 运行时（heli sun fireflies FIREFLIES ffPhases）
    [导出] clampArena tick
    ============================================================ */
 "use strict";
@@ -32,11 +33,6 @@ function tick(){
   /* 出口传送门动画 */
   if(exitPortal){exitPortal.discUni.value=S.t;exitPortal.glowPts.rotation.y+=dt*.8;}
 
-  /* 莫高雷篝火/火盆闪烁 & 传送门文字浮动 */
-  worldFlames.forEach((f,i)=>{
-    f.fl.scale.y=1+Math.sin(S.t*8+i*2)*.2;
-    f.li.intensity=1.2+Math.sin(S.t*9+i)*.35;
-  });
   portalLabel.position.y=13.6+Math.sin(S.t*1.5)*.25;
 
   /* 火星上升 */
@@ -47,6 +43,45 @@ function tick(){
     if(pp[i*3+1]>26){pp[i*3+1]=0;pp[i*3]=rand(-60,60);pp[i*3+2]=rand(-60,60);}
   }
   embers.geometry.attributes.position.needsUpdate=true;
+
+  /* ---- 昼夜循环（STEP 7）：render-only，不碰任何数值/AI ---- */
+  const dn=BAL.dayNight, cycle=(S.t%dn.duration)/dn.duration, a=cycle*Math.PI*2;
+  const dayFactor=(Math.cos(a)+1)/2;  /* 1=正午，0=午夜 */
+  const nightFactor=1-dayFactor;
+  /* 太阳位置：绕圈，Y 随角度变化，正午最高，午夜沉入地平线以下 */
+  sun.position.x=Math.cos(a)*60;
+  sun.position.y=Math.sin(a)*50+25;  /* -25~75 */
+  sun.position.z=30;
+  /* 太阳颜色/强度 白天→夜晚 插值 */
+  const D=dn.day,N=dn.night;
+  sun.color.lerpColors(new THREE.Color(D.sunColor),new THREE.Color(N.sunColor),nightFactor);
+  sun.intensity=D.sunIntensity+nightFactor*(N.sunIntensity-D.sunIntensity);
+  /* 天空背景/雾色 */
+  const skyCol=new THREE.Color();
+  sceneWorld.background=skyCol.lerpColors(new THREE.Color(D.sky),new THREE.Color(N.sky),nightFactor);
+  sceneWorld.fog.color.copy(skyCol);
+  sceneWorld.fog.density=D.fogDensity+nightFactor*(N.fogDensity-D.fogDensity);
+  /* 半球光 */
+  heli.color.lerpColors(new THREE.Color(D.hemiSky),new THREE.Color(N.hemiSky),nightFactor);
+  heli.groundColor.lerpColors(new THREE.Color(D.hemiGround),new THREE.Color(N.hemiGround),nightFactor);
+  heli.intensity=D.hemiIntensity+nightFactor*(N.hemiIntensity-D.hemiIntensity);
+  /* 篝火/火盆夜晚强度提升 */
+  worldFlames.forEach((f,i)=>{
+    f.fl.scale.y=1+Math.sin(S.t*8+i*2)*.2;
+    f.li.intensity=1.2+Math.sin(S.t*9+i)*.35+nightFactor*dn.campfire.nightBoost;
+  });
+  /* 萤火虫：夜晚浮现，白天消失 */
+  fireflies.material.opacity=nightFactor*.7;
+  if(nightFactor>.1){
+    const fp=fireflies.geometry.attributes.position.array;
+    for(let i=0;i<FIREFLIES;i++){
+      fp[i*3+1]+=Math.sin(S.t*2+ffPhases[i])*dt*.6;
+      fp[i*3]+=Math.sin(S.t*1.3+ffPhases[i]*3)*dt*.3;
+      if(fp[i*3+1]>5)fp[i*3+1]=.5;
+      if(fp[i*3+1]<.5)fp[i*3+1]=5;
+    }
+    fireflies.geometry.attributes.position.needsUpdate=true;
+  }
 
   /* Boss 火焰摇曳 */
   boss.traverse(o=>{if(o.userData.flame){o.scale.y=1+Math.sin(S.t*7+o.position.x*3)*.18;

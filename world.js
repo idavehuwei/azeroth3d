@@ -6,10 +6,11 @@
           models.js（buildPlayer buildBoss buildElder buildBoar）
           items.js（dropLoot rollLoot LOOT tryLoot）
           combat.js 运行时（S log announce fct spawnBurst hitEntity closeDialogue …）
-   [导出] player boss WORLD_R sceneWorld sun worldFlames PORTAL_POS portalUni
+   [导出] player boss WORLD_R sceneWorld heli sun worldFlames PORTAL_POS portalUni
           portalLabel enterRaid fadeTo MOBS QUEST moveToward mobDamage mobDie
           setCorpse updateQuest setMarker tryInteract openDialogue closeDialogue
-          leaveRaid resetBoss spawnExitPortal removeExitPortal exitPortal elder elderDist
+          leaveRaid resetBoss spawnExitPortal removeExitPortal exitPortal
+          fireflies FIREFLIES ffPhases elder elderDist
    ============================================================ */
 "use strict";
 /* ---------------- 实体放置 ---------------- */
@@ -24,6 +25,7 @@ const sceneWorld=new THREE.Scene();
 sceneWorld.background=new THREE.Color(0x8fc0e8);
 sceneWorld.fog=new THREE.FogExp2(0xa8c8e0,0.0062);
 sceneWorld.add(new THREE.HemisphereLight(0xcfe8ff,0x5a7a3a,0.95));
+const heli=sceneWorld.children.find(c=>c.isHemisphereLight);  /* 昼夜循环需要调节 */
 const sun=new THREE.DirectionalLight(0xfff2d8,1.05);
 sun.position.set(40,70,30); sun.castShadow=true;
 sun.shadow.mapSize.set(2048,2048);
@@ -165,6 +167,21 @@ const portalLabel=makeLabel("熔火之心",14);
 portalLabel.position.set(PORTAL_POS.x,13.6,PORTAL_POS.z); sceneWorld.add(portalLabel);
 const portalLabel2=makeLabel("· 副本入口 ·",8);
 portalLabel2.position.set(PORTAL_POS.x,12,PORTAL_POS.z); sceneWorld.add(portalLabel2);
+
+/* ---------------- 萤火虫粒子（STEP 7 昼夜）：夜晚浮现，白天透明 ---------------- */
+const FIREFLIES=80;
+const fireflyGeo=new THREE.BufferGeometry();
+const ffPos=new Float32Array(FIREFLIES*3), ffPhases=new Float32Array(FIREFLIES);
+for(let i=0;i<FIREFLIES;i++){
+  const a=srand(0,6.28),r=srand(5,WORLD_R-8);
+  ffPos[i*3]=Math.cos(a)*r; ffPos[i*3+1]=srand(1,4); ffPos[i*3+2]=Math.sin(a)*r;
+  ffPhases[i]=srand(0,6.28);
+}
+fireflyGeo.setAttribute("position",new THREE.BufferAttribute(ffPos,3));
+const fireflies=new THREE.Points(fireflyGeo,new THREE.PointsMaterial({
+  color:0xd0ffa0,size:.35,transparent:true,opacity:0,
+  blending:THREE.AdditiveBlending,depthWrite:false}));
+sceneWorld.add(fireflies);
 
 /* 玩家移入莫高雷出生点（营地旁），当前场景切换为外部世界 */
 sceneRaid.remove(player); sceneWorld.add(player);

@@ -67,6 +67,14 @@ const BALANCE={
   bag:{size:16},
   /* 上帝模式（首页勾选）：玩家每次攻击的固定伤害 */
   god:{dmg:9999999},
+  /* 昼夜循环（STEP 7）：10 分钟一昼夜，render-only，不碰任何数值 */
+  dayNight:{duration:600,  /* 10 分钟一昼夜（秒） */
+    day:{sky:0x8fc0e8, fog:0xa8c8e0, fogDensity:0.0062, sunColor:0xfff2d8, sunIntensity:1.05,
+         sunAlt:65, sunAz:0, hemiSky:0xcfe8ff, hemiGround:0x5a7a3a, hemiIntensity:0.95},
+    night:{sky:0x08081a, fog:0x0a0a1a, fogDensity:0.025, sunColor:0x1a1a3a, sunIntensity:0.15,
+           sunAlt:-20, sunAz:0, hemiSky:0x1a1a3a, hemiGround:0x0a0a1a, hemiIntensity:0.25},
+    campfire:{base:1.4, nightBoost:2.6},  /* 白天 1.4，夜晚 1.4+2.6=4.0 */
+  },
   /* 经验与等级（STEP 3）：经验来源 / 升级曲线 / 每级成长 */
   levels:{max:10, xp:{quest:300, boss:2000},   /* 野怪经验在 mobs 表逐条配置（STEP 5） */
     xpMax:[200,300,450,650,900,1200,1600,2100,2700],  /* 第 n 级升下一级所需经验 */
