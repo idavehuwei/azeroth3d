@@ -432,12 +432,14 @@ js/
 
 ## 九 · v4.0 开荒团——无需真人的团队感
 
-> WoC 用 5-bot 脚本清 Hollow Crypt；Delve 用 AI 同伴。本阶段把「单人 +1 AI」扩成「可配 5 人角色的开荒模拟」，仍全部本地、零服务器。
+> WoC 用 5-bot 脚本清 Hollow Crypt；Delve 用 AI 同伴。本阶段把「单人 +1 AI」扩成「玩家 + 2 AI = 3 人小队」，仍全部本地、零服务器。
 
-### STEP 26 · 5 人 AI 小队框架 `P1` ⏳
+### STEP 26 · 3 人 AI 小队框架 `P1` ✅
 
-- 队伍栏 UI（头像+血条）；角色：坦克 / 治疗 / 3 DPS（可从已实装职业抽）。
-- 共享目标、拾取规则（自由拾取简化）；小队经验小幅加成（经典 3/4/5 人系数可缩水写入 BALANCE）。
+- `PARTY[]` 最多 2 名 AI；职责槽坦克 / 治疗 / 输出；队伍栏双槽血条 HUD。
+- 长老「一键组成 3 人小队」；共享 `getFocusTarget` 集火；`BAL.party.xpMul` 小队经验加成；存档兼容数组。
+
+> **验收**：一键成队后双同伴跟战；HUD 显示两槽。 ← **已通过**（`node test_step01.js`）
 
 ### STEP 27 · 仇恨与职责 `P1` ⏳
 
@@ -445,9 +447,9 @@ js/
 - 治疗 AI 优先级：坦克 <30% > 自己 <40% > 最低血 DPS。
 - 失败条件：全灭；成功条件：Boss 死。
 
-### STEP 28 · 团队副本「黑石深渊前厅」或「奥妮克希亚巢穴·精简」`P0` ⏳
+### STEP 28 · 团队副本「奥妮克希亚巢穴·精简」`P0` ⏳
 
-- 择一：3 Boss 短团本（建议 **黑翼之巢门厅风格** 或 **奥妮克希亚单 Boss 三阶段**——飞天/喷吐/深呼吸简化）。
+- 择一：3 Boss 短团本（建议 **奥妮克希亚单 Boss 三阶段**——飞天/喷吐/深呼吸简化）。
 - 必须用 `createBoss` + 阶段表；机制教玩家走位（出红圈、躲直线）。
 
 ### STEP 29 · 本地「地下城查找器」`P2` ⏳
@@ -598,12 +600,13 @@ js/
 | 18 | ✅ | `barrens.js`：贫瘠之地 + 十字路口任务；南口 Lv10+；存档 `zoneId`/`barrensQuest` |
 | 19–21 | ✅ | 牧师 / AI 队友 / 哀嚎洞穴 |
 | 22–25 | ✅ | 任务枢纽 / 专业技能 / 稀有精英 / 功绩之书 |
-| 26–36 | 🔮 | v4.0–v5.0 已规划，待前置完成 |
+| 26 | ✅ | 3 人 AI 小队（PARTY + 队伍栏 + 经验加成） |
+| 27–36 | 🔮 | v4.0–v5.0 已规划，待前置完成 |
 
 **当前模块清单**（`game.html` 加载序）：`core → zones → … → panels → deeds → map → … → save`
 
-**下一步行动**：从 **STEP 26** 做 5 人 AI 小队框架。
+**下一步行动**：从 **STEP 27** 做仇恨与职责。
 
 ---
 
-*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 25 完成，下一步 STEP 26*
+*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 26 完成，下一步 STEP 27*

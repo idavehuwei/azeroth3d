@@ -112,12 +112,16 @@ const cmpSrc=fs.readFileSync(path.join(__dirname,"companions.js"),"utf8");
 assert(cmpSrc.includes("function recruitCompanion"),"companions.js 有 recruitCompanion");
 assert(cmpSrc.includes("function dismissCompanion"),"companions.js 有 dismissCompanion");
 assert(cmpSrc.includes("function tickCompanion"),"companions.js 有 tickCompanion");
+assert(cmpSrc.includes("const PARTY")||cmpSrc.includes("PARTY="),"companions.js 有 PARTY 小队");
+assert(cmpSrc.includes("function formParty"),"companions.js 有 formParty 一键成队");
 assert(cmpSrc.includes("FOLLOW")&&cmpSrc.includes("COMBAT")&&cmpSrc.includes("HEAL")&&cmpSrc.includes("RETREAT"),"同伴状态机含 FOLLOW/COMBAT/HEAL/RETREAT");
 assert(cmpSrc.includes("disposeCompanionMesh"),"解散有 disposeCompanionMesh");
 assert(html.includes('src="companions.js"'),"game.html 加载 companions.js");
-assert(html.includes("cmpFrame"),"game.html 有同伴 HUD");
+assert(html.includes("partyFrame")||html.includes("cmpFrame"),"game.html 有队伍/同伴 HUD");
 assert(coreSrc.includes("companion:{")||coreSrc.includes("companion:"),"BALANCE 含 companion 表");
+assert(coreSrc.includes("party:")&&coreSrc.includes("xpMul"),"BALANCE 含 party 小队表");
 assert(combatSrc.includes("getFocusTarget")&&combatSrc.includes("currentTarget"),"combat.js 有集火目标 API");
+assert(combatSrc.includes("partyAliveCount")||combatSrc.includes("BAL.party"),"combat.js 小队经验加成");
 
 /* STEP 21 哀嚎洞穴冒烟 */
 const wailingSrc=fs.readFileSync(path.join(__dirname,"wailing.js"),"utf8");

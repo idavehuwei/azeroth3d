@@ -116,7 +116,14 @@ function validateSave(raw){
   const z=typeof pos.z==="number"&&isFinite(pos.z)?pos.z:52;
   const zoneId=normalizeSaveZoneId(raw.zoneId||raw.zone);
   let companion=null;
-  if(raw.companion&&typeof raw.companion==="object"&&CLASSES[raw.companion.classKey]){
+  if(Array.isArray(raw.companion)){
+    companion=raw.companion.filter(r=>r&&CLASSES[r.classKey]).map(r=>({
+      classKey:r.classKey,
+      hp:typeof r.hp==="number"&&isFinite(r.hp)?r.hp:null,
+      role:r.role||null,
+    }));
+    if(!companion.length)companion=null;
+  }else if(raw.companion&&typeof raw.companion==="object"&&CLASSES[raw.companion.classKey]){
     companion={
       classKey:raw.companion.classKey,
       hp:typeof raw.companion.hp==="number"&&isFinite(raw.companion.hp)?raw.companion.hp:null,

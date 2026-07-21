@@ -43,11 +43,13 @@
   #playerFrame .pname{font-size:13px;font-weight:700;color:#a8d8ff;letter-spacing:2px;margin-bottom:3px;
     text-shadow:0 0 8px rgba(90,160,255,.6),0 1px 2px #000}
   #playerFrame .barShell{height:16px;margin-bottom:4px}
-  #cmpFrame{position:fixed;left:16px;bottom:210px;width:min(260px,40vw);z-index:10;display:none}
-  #cmpFrame .pname{font-size:11px;font-weight:700;color:#9ec9ff;letter-spacing:1px;margin-bottom:2px;
+  #cmpFrame,#partyFrame{position:fixed;left:16px;bottom:210px;width:min(260px,40vw);z-index:10;display:none}
+  #partyFrame .party-slot{margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(120,160,220,.2)}
+  #partyFrame .party-slot:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+  #cmpFrame .pname,#partyFrame .pname{font-size:11px;font-weight:700;color:#9ec9ff;letter-spacing:1px;margin-bottom:2px;
     text-shadow:0 0 8px rgba(80,140,220,.5),0 1px 2px #000}
-  #cmpFrame .barShell{height:12px;margin-bottom:2px}
-  #cmpFrame .cmp-st{font-size:9px;color:#8aa0b8;margin-top:1px}
+  #cmpFrame .barShell,#partyFrame .barShell{height:12px;margin-bottom:2px}
+  #cmpFrame .cmp-st,#partyFrame .cmp-st{font-size:9px;color:#8aa0b8;margin-top:1px}
   #pGold{font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:4px;
     text-shadow:0 1px 2px #000;display:flex;gap:8px;flex-wrap:wrap}
   #pGold .g{color:#ffd76a} #pGold .s{color:#d0d8e0} #pGold .c{color:#c98a4a}
@@ -323,10 +325,17 @@
   <div class="barShell" style="height:11px"><div class="barFill mpP" id="pRage"></div><div class="barText" id="pRageTx" style="font-size:9px"></div></div>
   <div class="barShell" style="height:10px;margin-top:4px"><div class="barFill xpP" id="pXp"></div><div class="barText" id="pXpTx" style="font-size:8px"></div></div>
 </div>
-<div id="cmpFrame">
-  <div class="pname" id="cmpName">同伴</div>
-  <div class="barShell"><div class="barFill hpP" id="cmpHp"></div><div class="barText" id="cmpHpTx"></div></div>
-  <div class="cmp-st" id="cmpState">—</div>
+<div id="partyFrame">
+  <div class="party-slot" id="partySlot0">
+    <div class="pname">同伴</div>
+    <div class="barShell"><div class="barFill hpP"></div><div class="barText"></div></div>
+    <div class="cmp-st">—</div>
+  </div>
+  <div class="party-slot" id="partySlot1">
+    <div class="pname">同伴</div>
+    <div class="barShell"><div class="barFill hpP"></div><div class="barText"></div></div>
+    <div class="cmp-st">—</div>
+  </div>
 </div>
  
 <div id="skillBar">

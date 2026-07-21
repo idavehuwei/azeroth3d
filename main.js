@@ -269,10 +269,11 @@ function tick(){
             m.atkT-=dt;
             if(m.atkT<=0){
               m.atkT=st.atkCd;
-              const hitCmp=typeof companionAlive==="function"&&companionAlive()
-                &&Math.hypot(COMPANION.mesh.position.x-m.mesh.position.x,COMPANION.mesh.position.z-m.mesh.position.z)<st.meleeR
-                &&rand()<BAL.companion.mobHitChance;
-              if(hitCmp)companionHit(R(st.dmg),m.name);
+              const near=typeof pickNearestCompanion==="function"
+                ?pickNearestCompanion(m.mesh.position,st.meleeR)
+                :(typeof companionAlive==="function"&&companionAlive()&&COMPANION?COMPANION:null);
+              const hitCmp=near&&rand()<BAL.companion.mobHitChance;
+              if(hitCmp)companionHit(R(st.dmg),m.name,near);
               else playerHit(R(st.dmg),m.name);
             }
           }

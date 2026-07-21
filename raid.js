@@ -656,10 +656,11 @@ function runBossSkill(sk){
         let mul=1;
         if(sk.phaseMul&&sk.phaseMul[B.phase])mul=st[sk.phaseMul[B.phase]]||1;
         if(distToBoss()<st.hitRange&&S.p.alive){
-          const hitCmp=typeof companionAlive==="function"&&companionAlive()
-            &&Math.hypot(COMPANION.mesh.position.x-boss.position.x,COMPANION.mesh.position.z-boss.position.z)<st.hitRange
-            &&rand()<BAL.companion.mobHitChance;
-          if(hitCmp)companionHit(R(st.dmg)*mul,label);
+          const near=typeof pickNearestCompanion==="function"
+            ?pickNearestCompanion(boss.position,st.hitRange)
+            :(typeof companionAlive==="function"&&companionAlive()&&COMPANION?COMPANION:null);
+          const hitCmp=near&&rand()<BAL.companion.mobHitChance;
+          if(hitCmp)companionHit(R(st.dmg)*mul,label,near);
           else{
             playerHit(R(st.dmg)*mul,label);
             if(vfx)VFX.spawn(vfx,{pos:player.position.clone().setY(.5)});

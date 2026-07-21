@@ -280,29 +280,47 @@ const BALANCE={
     exitPortalEnterR:5.5,
     lockedHintCd:4,   /* 等级不足时靠近/踩入重复提示冷却（秒） */
   },
-  /* AI 队友（STEP 20）：单人伪组队；数值集中于此 */
+  /* AI 队友（STEP 20）· 小队（STEP 26：玩家 + 最多 2 AI = 3 人） */
   companion:{
-    followDist:5.2,          /* 超过此距开始跟上 */
-    followStop:2.6,          /* 进入此距停下 */
-    combatEngageR:24,        /* 参战索敌半径（相对玩家） */
+    followDist:5.2,
+    followStop:2.6,
+    combatEngageR:24,
     meleeR:4.2,
     speedMul:1.08,
-    retreatSpeedMul:1.15,    /* 撤退态移速倍率（叠在 speedMul 上） */
-    dmgMul:.82,              /* 相对职业自动攻击 */
-    healMul:.9,              /* 牧师治疗量相对 BAL.skills */
-    hpMul:.72,               /* 同伴生命 = 职业 hp × 此值 */
-    retreatHpPct:.28,        /* 低于此比例撤退 */
-    retreatRecoverPct:.45,   /* 回血至此再出战 */
-    reviveHpPct:.45,         /* 倒下起身后生命比例 */
-    regenPct:.04,            /* 非战斗每秒回复最大生命比例 */
-    healPlayerHpPct:.40,     /* 牧师：玩家低于此比例优先治疗 */
+    retreatSpeedMul:1.15,
+    dmgMul:.82,
+    healMul:.9,
+    hpMul:.72,
+    retreatHpPct:.28,
+    retreatRecoverPct:.45,
+    reviveHpPct:.45,
+    regenPct:.04,
+    healPlayerHpPct:.40,
     healSelfHpPct:.50,
+    healAllyHpPct:.45,       /* STEP 26：治疗其他同伴 */
     healCd:5,
-    attackCdMul:1.15,        /* 自动攻击略慢于玩家 */
-    atkTimerStart:.4,        /* 招募后首次攻击延迟 */
-    mobHitChance:.35,        /* 近战野怪有概率打队友 */
-    reviveT:10,              /* 倒下后自动起身秒数 */
+    attackCdMul:1.15,
+    atkTimerStart:.4,
+    mobHitChance:.35,
+    reviveT:10,
     spawnOffset:{x:2.2,z:1.4},
+  },
+  party:{
+    size:3,                  /* 含玩家 */
+    aiSlots:2,
+    xpMul:1.15,              /* 有 AI 同伴时经验加成（3 人小队缩水系数） */
+    spawnOffsets:[
+      {x:2.4,z:1.6},
+      {x:-2.2,z:1.8},
+    ],
+    /* 一键成队：按玩家职业补齐坦克/治疗/DPS */
+    fill:{
+      warrior:[{role:"healer",classKey:"priest"},{role:"dps",classKey:"mage"}],
+      mage:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
+      archer:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
+      priest:[{role:"tank",classKey:"warrior"},{role:"dps",classKey:"archer"}],
+    },
+    roleLabel:{tank:"坦克",healer:"治疗",dps:"输出"},
   },
 };
 const BAL=BALANCE;

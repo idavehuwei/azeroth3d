@@ -515,6 +515,8 @@ function playerHit(amount,source){
 function gainXP(amount){
   const P=S.p,L=BAL.levels;
   if(P.level>=L.max)return;
+  if(typeof partyAliveCount==="function"&&partyAliveCount()>0&&BAL.party&&BAL.party.xpMul)
+    amount=Math.round(amount*BAL.party.xpMul);
   P.xp+=amount;
   fct(player.position.clone().setY(3.6),`+${amount} 经验`,"#c9a0ff",14);
   while(P.level<L.max&&P.xp>=P.xpMax){

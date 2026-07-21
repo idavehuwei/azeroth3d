@@ -704,9 +704,9 @@ function openDialogue(){
 
   if(typeof openRecruitDialogue==="function"){
     if(typeof companionAlive==="function"&&companionAlive())
-      btn("解散 / 更换同伴",()=>openRecruitDialogue());
+      btn("解散 / 管理小队",()=>openRecruitDialogue());
     else
-      btn("✦ 招募同伴同行",()=>openRecruitDialogue());
+      btn("✦ 组建小队同行",()=>openRecruitDialogue());
   }
   btn("离开",closeDialogue);
 }
