@@ -247,14 +247,16 @@ function buildBarrensZone(scn){
   });
   crossroadsSentinel.position.set(2,0,-2); crossroadsSentinel.rotation.y=Math.PI;
   root.add(crossroadsSentinel);
-  crossroadsLabel=makeLabel("哨兵 · 碎牙",7,"#e8c898","rgba(160,100,40,.9)");
+  crossroadsLabel=makeNameplate("哨兵 · 碎牙",BAL.npcLevel.crossroads,{w:7,friendly:true,color:"#e8c898"});
   crossroadsLabel.position.set(2,5.6,-2); root.add(crossroadsLabel);
+  updateNameplateHp(crossroadsLabel,1,1);
 
   barrensSpirit=buildSpiritHealer();
   barrensSpirit.position.set(-8,0,5); barrensSpirit.rotation.y=Math.PI*.6;
   root.add(barrensSpirit);
-  barrensSpiritLabel=makeLabel("灵魂医者 · 尘语",7,"#c8e8ff","rgba(80,160,255,.95)");
+  barrensSpiritLabel=makeNameplate("灵魂医者 · 尘语",BAL.npcLevel.spirit,{w:7.2,friendly:true,color:"#c8e8ff",glow:"rgba(80,160,255,.95)"});
   barrensSpiritLabel.position.set(-8,5.6,5); root.add(barrensSpiritLabel);
+  updateNameplateHp(barrensSpiritLabel,1,1);
 
   barrensMarkerExcl=makeLabel("❗",3.2,"#ffd76a","rgba(255,160,0,.95)");
   barrensMarkerExcl.position.set(2,6.8,-2); root.add(barrensMarkerExcl);

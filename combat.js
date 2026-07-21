@@ -51,6 +51,7 @@ const S={
   inv:[],      /* 背包（STEP 2 起：拾取的物品 id 列表） */
   eq:{weapon:null,armor:null},   /* 装备位（STEP 4）：物品 id */
   god:false,   /* 上帝模式：启程时由首页勾选决定（hitEntity 消费） */
+  cam:{dist:16,pitch:.38,yawOff:0,lmb:false,rmb:false,lx:0,ly:0}, /* 魔兽式视角状态 */
   vendorOpen:false,
   deathUi:false, /* STEP 15：死亡面板打开中 */
 };
@@ -201,6 +202,57 @@ document.getElementById("interactBtn").addEventListener("pointerdown",()=>tryInt
 document.querySelectorAll(".skill").forEach(el=>{
   el.addEventListener("pointerdown",()=>useSkill(+el.dataset.sk));
 });
+
+/* ---- 魔兽式相机：滚轮远近 · 左键环绕 · 右键转向/俯仰 · 双键前进 ---- */
+function camOnCanvas(e){
+  const c=typeof renderer!=="undefined"&&renderer.domElement;
+  return !!(c&&(e.target===c));
+}
+function camApplyDrag(dx,dy){
+  if(!S.started||!S.cam)return;
+  const C=BAL.camera||{}, sens=C.mouseSens||.0042;
+  if(S.cam.rmb){
+    /* 右键：鼠标转向（角色朝向=镜头），俯仰 */
+    S.p.face-=dx*sens;
+    S.cam.yawOff=0;
+    S.cam.pitch=clamp(S.cam.pitch+dy*sens,C.pitchMin||.12,C.pitchMax||.78);
+  }else if(S.cam.lmb){
+    /* 左键：仅环绕镜头，不改角色朝向 */
+    S.cam.yawOff-=dx*sens;
+    S.cam.pitch=clamp(S.cam.pitch+dy*sens,C.pitchMin||.12,C.pitchMax||.78);
+  }
+}
+addEventListener("wheel",e=>{
+  if(!S.started||!S.cam)return;
+  if(!camOnCanvas(e)&&e.target&&e.target.closest&&e.target.closest(".hudPanel,#bag,#dlg,#overlay"))return;
+  const C=BAL.camera;
+  const step=(C.zoomStep||1.15)*(e.deltaY>0?1:-1);
+  S.cam.dist=clamp(S.cam.dist+step,C.distMin||6,C.distMax||32);
+},{passive:true});
+addEventListener("pointerdown",e=>{
+  if(!S.started||!S.cam)return;
+  if(e.button===0){
+    if(!camOnCanvas(e))return;
+    S.cam.lmb=true; S.cam.lx=e.clientX; S.cam.ly=e.clientY;
+    try{e.target.setPointerCapture&&e.target.setPointerCapture(e.pointerId);}catch(_){}
+  }else if(e.button===2){
+    S.cam.rmb=true; S.cam.lx=e.clientX; S.cam.ly=e.clientY;
+  }
+});
+addEventListener("pointerup",e=>{
+  if(!S.cam)return;
+  if(e.button===0)S.cam.lmb=false;
+  if(e.button===2)S.cam.rmb=false;
+});
+addEventListener("pointercancel",()=>{if(S.cam){S.cam.lmb=false;S.cam.rmb=false;}});
+addEventListener("pointermove",e=>{
+  if(!S.cam||!S.started)return;
+  if(!S.cam.lmb&&!S.cam.rmb)return;
+  const dx=e.clientX-S.cam.lx, dy=e.clientY-S.cam.ly;
+  S.cam.lx=e.clientX; S.cam.ly=e.clientY;
+  camApplyDrag(dx,dy);
+});
+addEventListener("contextmenu",e=>{if(S.started)e.preventDefault();});
 /* 触屏摇杆 */
 const joy={x:0,y:0,active:false};
 const joyEl=$("#joy"),knob=$("#joyKnob");

@@ -127,11 +127,12 @@ function recruitCompanion(classKey,opts){
   scene.add(mesh);
   const role=opts.role||guessRole(classKey);
   const name=CMP_NAMES[classKey]||"同伴";
-  const label=makeLabel(`${ROLE_ICON[role]||""} ${name}`,5.8,"#b8e0ff","rgba(80,140,220,.9)");
+  const label=makeNameplate(`${ROLE_ICON[role]||""} ${name}`,S.p.level,{w:5.8,friendly:true,color:"#b8e0ff",glow:"rgba(80,140,220,.9)"});
   label.position.set(mesh.position.x,3.6,mesh.position.z);
   scene.add(label);
 
   const hpMax=Math.round(cls.hp*(C.hpMul||.72));
+  updateNameplateHp(label,hpMax,hpMax);
   const member={
     classKey, role, mesh, label, cls,
     hp:hpMax, hpMax,
@@ -211,7 +212,10 @@ function transferCompanionZone(toScene,gate){
     const off=spawnOffsetForIndex(i);
     c.mesh.position.set(gx+(off.x||2),0,gz+(off.z||1.5));
     if(typeof clampArena==="function")clampArena(c.mesh.position);
-    if(c.label)c.label.position.set(c.mesh.position.x,3.6,c.mesh.position.z);
+    if(c.label){
+      c.label.position.set(c.mesh.position.x,3.6,c.mesh.position.z);
+      if(typeof updateNameplateHp==="function")updateNameplateHp(c.label,c.hp,c.hpMax);
+    }
     if(c.alive)c.state="FOLLOW";
   });
 }
@@ -404,7 +408,10 @@ function tickOneCompanion(c,dt){
       log(`${CMP_NAMES[c.classKey]}振作起来了！`,"lg-heal");
       if(typeof VFX!=="undefined")VFX.spawn("heal_cross",{pos:c.mesh.position.clone().setY(1.5)});
     }
-    if(c.label)c.label.position.set(c.mesh.position.x,3.6,c.mesh.position.z);
+    if(c.label){
+      c.label.position.set(c.mesh.position.x,3.6,c.mesh.position.z);
+      if(typeof updateNameplateHp==="function")updateNameplateHp(c.label,c.hp,c.hpMax);
+    }
     return;
   }
 
@@ -464,7 +471,10 @@ function tickOneCompanion(c,dt){
     U.armL.rotation.x=c.moving?-Math.sin(c.walkPhase)*.3:0;
   }
   c.mesh.position.y=c.moving?Math.abs(Math.sin(S.t*9+c.walkPhase))*.12:0;
-  if(c.label)c.label.position.set(c.mesh.position.x,3.6,c.mesh.position.z);
+  if(c.label){
+    c.label.position.set(c.mesh.position.x,3.6,c.mesh.position.z);
+    if(typeof updateNameplateHp==="function")updateNameplateHp(c.label,c.hp,c.hpMax);
+  }
 }
 
 function tickCompanion(dt){

@@ -7,7 +7,7 @@
    [导出] $ clamp rand R srand worldRng BALANCE BAL WORLD_SEED
           hashZoneId getZoneSeed setZoneSeed
           sceneRaid scene camera renderer lavaUniforms ARENA_R embers
-          EMBERS emberVel makeLabel
+          EMBERS emberVel makeLabel makeNameplate updateNameplateHp disposeNameplate
    ============================================================ */
 /* ============================================================
    熔火之心 · 最终 Boss 战斗模拟
@@ -46,23 +46,23 @@ const BALANCE={
   },
   /* 野怪族群数值表（STEP 5）：加新怪 = 加一条；aggroR:0 = 中立被动（只反击） */
   mobs:{
-    boar    :{hp:650, dmg:[55,85],  atkCd:2.2, meleeR:2.4, aggroR:7,  leashR:34, wanderSpd:3,  chaseSpd:5.5, respawnT:25,  xp:80,  copper:[8,18]},
-    wolf    :{hp:520, dmg:[45,70],  atkCd:1.8, meleeR:2.3, aggroR:9,  leashR:38, wanderSpd:3.5,chaseSpd:6.5, respawnT:30,  xp:90,  socialR:18, copper:[10,22]},
-    bird    :{hp:480, dmg:[40,60],  atkCd:1.6, meleeR:2.2, aggroR:0,  leashR:30, wanderSpd:4.5,chaseSpd:8,   respawnT:25,  xp:70,  copper:[6,14]},
-    harpy   :{hp:4200,dmg:[90,130], atkCd:2.4, meleeR:3.2, aggroR:12, leashR:44, wanderSpd:2.5,chaseSpd:5,   respawnT:60,  xp:450, copper:[80,140], socialR:24,
+    boar    :{level:3, hp:650, dmg:[55,85],  atkCd:2.2, meleeR:2.4, aggroR:7,  leashR:34, wanderSpd:3,  chaseSpd:5.5, respawnT:25,  xp:80,  copper:[8,18]},
+    wolf    :{level:4, hp:520, dmg:[45,70],  atkCd:1.8, meleeR:2.3, aggroR:9,  leashR:38, wanderSpd:3.5,chaseSpd:6.5, respawnT:30,  xp:90,  socialR:18, copper:[10,22]},
+    bird    :{level:2, hp:480, dmg:[40,60],  atkCd:1.6, meleeR:2.2, aggroR:0,  leashR:30, wanderSpd:4.5,chaseSpd:8,   respawnT:25,  xp:70,  copper:[6,14]},
+    harpy   :{level:8, hp:4200,dmg:[90,130], atkCd:2.4, meleeR:3.2, aggroR:12, leashR:44, wanderSpd:2.5,chaseSpd:5,   respawnT:60,  xp:450, copper:[80,140], socialR:24,
               cast:{name:"女妖之火",dmg:[220,300],dur:1.5,cd:6,range:20,speed:16,hitR:3}},
-    boarKing:{hp:3200,dmg:[110,160],atkCd:2.4, meleeR:3.2, aggroR:8,  leashR:40, wanderSpd:2.2,chaseSpd:5,   respawnT:120, xp:500, copper:[120,200], socialR:22},
+    boarKing:{level:9, hp:3200,dmg:[110,160],atkCd:2.4, meleeR:3.2, aggroR:8,  leashR:40, wanderSpd:2.2,chaseSpd:5,   respawnT:120, xp:500, copper:[120,200], socialR:22},
     /* —— STEP 18 贫瘠之地 —— */
-    quilboar:{hp:1200,dmg:[75,110], atkCd:2.0, meleeR:2.6, aggroR:8,  leashR:36, wanderSpd:2.8,chaseSpd:5.8, respawnT:28,  xp:140, copper:[18,35]},
-    centaur :{hp:1800,dmg:[95,140], atkCd:2.2, meleeR:3.0, aggroR:10, leashR:40, wanderSpd:2.6,chaseSpd:5.5, respawnT:35,  xp:180, copper:[28,50], socialR:20},
-    zebra   :{hp:700, dmg:[50,75],  atkCd:1.7, meleeR:2.3, aggroR:0,  leashR:32, wanderSpd:4.2,chaseSpd:7.5, respawnT:26,  xp:90,  copper:[10,20]},
+    quilboar:{level:11, hp:1200,dmg:[75,110], atkCd:2.0, meleeR:2.6, aggroR:8,  leashR:36, wanderSpd:2.8,chaseSpd:5.8, respawnT:28,  xp:140, copper:[18,35]},
+    centaur :{level:13, hp:1800,dmg:[95,140], atkCd:2.2, meleeR:3.0, aggroR:10, leashR:40, wanderSpd:2.6,chaseSpd:5.5, respawnT:35,  xp:180, copper:[28,50], socialR:20},
+    zebra   :{level:10, hp:700, dmg:[50,75],  atkCd:1.7, meleeR:2.3, aggroR:0,  leashR:32, wanderSpd:4.2,chaseSpd:7.5, respawnT:26,  xp:90,  copper:[10,20]},
     /* —— V1-B1 赭岩谷 —— */
-    scorp     :{hp:1100,dmg:[80,115], atkCd:1.9, meleeR:2.5, aggroR:9,  leashR:34, wanderSpd:2.6,chaseSpd:6.0, respawnT:26,  xp:150, copper:[20,38]},
-    razorback :{hp:1600,dmg:[95,135], atkCd:2.1, meleeR:2.8, aggroR:9,  leashR:38, wanderSpd:2.5,chaseSpd:5.6, respawnT:32,  xp:190, copper:[26,48]},
-    cliffHarpy:{hp:5200,dmg:[110,155],atkCd:2.3, meleeR:3.3, aggroR:13, leashR:46, wanderSpd:2.4,chaseSpd:5.2, respawnT:70,  xp:520, copper:[100,160], socialR:24,
+    scorp     :{level:12, hp:1100,dmg:[80,115], atkCd:1.9, meleeR:2.5, aggroR:9,  leashR:34, wanderSpd:2.6,chaseSpd:6.0, respawnT:26,  xp:150, copper:[20,38]},
+    razorback :{level:13, hp:1600,dmg:[95,135], atkCd:2.1, meleeR:2.8, aggroR:9,  leashR:38, wanderSpd:2.5,chaseSpd:5.6, respawnT:32,  xp:190, copper:[26,48]},
+    cliffHarpy:{level:14, hp:5200,dmg:[110,155],atkCd:2.3, meleeR:3.3, aggroR:13, leashR:46, wanderSpd:2.4,chaseSpd:5.2, respawnT:70,  xp:520, copper:[100,160], socialR:24,
               cast:{name:"崖风火矢",dmg:[260,340],dur:1.4,cd:5.5,range:22,speed:17,hitR:3.1}},
     /* —— STEP 24 世界 Boss —— */
-    centaurHerald:{hp:9000,dmg:[140,200],atkCd:2.1,meleeR:3.4,aggroR:14,leashR:48,
+    centaurHerald:{level:16, hp:9000,dmg:[140,200],atkCd:2.1,meleeR:3.4,aggroR:14,leashR:48,
       wanderSpd:2.2,chaseSpd:5.2,respawnT:240,xp:900,copper:[200,320],socialR:26,
       cast:{name:"战矛投掷",dmg:[280,360],dur:1.4,cd:7,range:22,speed:18,hitR:3.2}},
   },
@@ -122,7 +122,7 @@ const BALANCE={
     wingFlap:{freq:1.4, amp:.35},
   },
   /* 烈焰之子 */
-  add:{hp:1400, dmg:[130,190], atkCd:2, speed:4.6, meleeR:3, stopR:2.6, copper:[12,28]},
+  add:{level:15, hp:1400, dmg:[130,190], atkCd:2, speed:4.6, meleeR:3, stopR:2.6, copper:[12,28]},
   /* 炎魔领主 · 拉戈斯 */
   boss:{hp:120000, phase2At:.5, phase3At:.3, submergeT:25, addCount:4, copper:2500,
     melee   :{dmg:[300,420], p2Mul:1.25, p3Mul:1.5, cd:[3,4.2], range:12, hitRange:13, delayMs:450},
@@ -317,6 +317,25 @@ const BALANCE={
       fogTint:0x1a3020, fogBlend:.28, fogDensityMul:1.06,
     },
   },
+  /* 相机 / 转向（相对角色朝向） */
+  camera:{
+    dist:16, distMin:6, distMax:32,
+    height:9.5, lookY:2.2,
+    turnSpd:2.6,            /* A/D 键盘转向 弧度/秒 */
+    zoomStep:1.15,
+    pitchMin:.12, pitchMax:.78, pitch:.38,
+    follow:12,              /* 相机跟手速度 */
+    mouseSens:.0042,        /* 鼠标灵敏度 */
+    recenterSpd:3.2,        /* 前进时视角回正（LMB 环绕后） */
+    bothBtnForward:true,    /* 左右键同按 = 朝镜头前进（魔兽） */
+  },
+  /* 头顶姓名板（血条 + 等级） */
+  nameplate:{
+    barW:1.9, barH:.16,
+    enemy:"#d84828", friend:"#3a9a48", bg:"#1a1208",
+    enemyGlow:"rgba(180,40,20,.9)", friendGlow:"rgba(40,120,50,.9)",
+  },
+  npcLevel:{elder:40, vendor:25, spirit:55, crossroads:30, ochre:28, companion:null},
   /* 经验与等级（STEP 3）：经验来源 / 升级曲线 / 每级成长 */
   levels:{max:18, xp:{quest:300, boss:2000, magmadar:800, barrensQuest:400, durotarQuest:380, cobrahn:900, verdan:1600, onyxia:2200},
     /* 野怪经验在 mobs 表；xpMax[i] = 第 i+1 级升下一级所需（共 max-1 档） */
@@ -496,6 +515,61 @@ function makeLabel(text,w,color="#ffd9a0",glow="rgba(255,90,0,.95)"){
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),
     transparent:true,depthWrite:false}));
   sp.scale.set(w,w/4,1); return sp;
+}
+
+/** 纯色精灵（姓名板血条） */
+function makeBarSprite(hex,w,h){
+  const cv=document.createElement("canvas");cv.width=64;cv.height=16;
+  const cx=cv.getContext("2d");
+  cx.fillStyle=hex;cx.fillRect(0,0,64,16);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),
+    transparent:true,depthWrite:false}));
+  sp.scale.set(w,h,1);
+  return sp;
+}
+
+/**
+ * 头顶姓名板：等级 + 名字 + 血条
+ * @returns {THREE.Group} 兼容旧 label 的 position/visible
+ */
+function makeNameplate(name,level,opts){
+  opts=opts||{};
+  const NP=BAL.nameplate||{};
+  const friendly=!!opts.friendly;
+  const color=opts.color||(friendly?"#a8e8c0":"#ffd9a0");
+  const glow=opts.glow||(friendly?(NP.friendGlow||"rgba(40,120,50,.9)"):(NP.enemyGlow||"rgba(180,40,20,.9)"));
+  const barW=opts.barW!=null?opts.barW:(NP.barW||1.9);
+  const barH=opts.barH!=null?opts.barH:(NP.barH||.16);
+  const g=new THREE.Group();
+  const title=(level!=null&&level!==""?`Lv.${level}  `:"")+name;
+  const lab=makeLabel(title,opts.w||5.2,color,glow);
+  lab.position.y=.28;
+  g.add(lab);
+  const bg=makeBarSprite(NP.bg||"#1a1208",barW,barH);
+  bg.position.y=-.12;
+  g.add(bg);
+  const fill=makeBarSprite(friendly?(NP.friend||"#3a9a48"):(NP.enemy||"#d84828"),barW,barH);
+  fill.center.set(0,.5);
+  fill.position.set(-barW/2,-.12,0.01);
+  g.add(fill);
+  g.userData={lab,bg,fill,barW,barH,friendly,level,name};
+  return g;
+}
+function updateNameplateHp(root,hp,hpMax){
+  if(!root||!root.userData||!root.userData.fill)return;
+  const ratio=hpMax>0?Math.max(0,Math.min(1,hp/hpMax)):0;
+  const barW=root.userData.barW||1.9;
+  root.userData.fill.scale.x=Math.max(0.001,barW*ratio);
+}
+function disposeNameplate(root){
+  if(!root)return;
+  root.traverse(o=>{
+    if(o.material){
+      if(o.material.map)o.material.map.dispose();
+      o.material.dispose();
+    }
+  });
+  if(root.parent)root.parent.remove(root);
 }
 
 /* ---------------- 场景基础（双场景：莫高雷 / 熔火之心） ---------------- */

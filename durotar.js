@@ -128,14 +128,16 @@ function buildDurotarZone(scn){
   });
   ochreOutpost.position.set(2,0,-2); ochreOutpost.rotation.y=Math.PI;
   root.add(ochreOutpost);
-  ochreOutpostLabel=makeLabel("斥候 · 赤牙",7,"#ffb070","rgba(140,50,20,.9)");
+  ochreOutpostLabel=makeNameplate("斥候 · 赤牙",BAL.npcLevel.ochre,{w:7,friendly:true,color:"#ffb070"});
   ochreOutpostLabel.position.set(2,5.6,-2); root.add(ochreOutpostLabel);
+  updateNameplateHp(ochreOutpostLabel,1,1);
 
   durotarSpirit=buildSpiritHealer();
   durotarSpirit.position.set(0,0,6); durotarSpirit.rotation.y=Math.PI;
   root.add(durotarSpirit);
-  durotarSpiritLabel=makeLabel("灵魂医者 · 焦风",7,"#a8d8ff","rgba(40,80,120,.9)");
+  durotarSpiritLabel=makeNameplate("灵魂医者 · 焦风",BAL.npcLevel.spirit,{w:7.2,friendly:true,color:"#a8d8ff",glow:"rgba(40,80,120,.9)"});
   durotarSpiritLabel.position.set(0,5.6,6); root.add(durotarSpiritLabel);
+  updateNameplateHp(durotarSpiritLabel,1,1);
 
   durotarMarkerExcl=makeLabel("❗",4,"#ffd76a","rgba(0,0,0,.55)");
   durotarMarkerExcl.position.set(2,6.8,-2); root.add(durotarMarkerExcl);

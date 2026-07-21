@@ -307,6 +307,7 @@ function tick(){
         m.mesh.position.y=m.moving?Math.abs(Math.sin(S.t*9+m.home.x))*bobAmp:0;
         if(typeof updateMobAnim==="function")updateMobAnim(m,dt);
         m.label.position.set(m.mesh.position.x,m.labelY,m.mesh.position.z);
+        if(typeof updateNameplateHp==="function")updateNameplateHp(m.label,m.hp,m.hpMax);
         /* 精英光环脉动 */
         if(m.elite&&m.aura&&m.state!=="dead"){
           const pulse=BAL.elite.aura.pulse||.3;
@@ -382,11 +383,40 @@ function tick(){
         :nearS?"👻 灵魂医者（F）":nearC?"🗼 对话（F）":nearV?"🛒 交易（F）":"💬 对 话（F）";
       if(S.mode!=="world"||!S.p.alive)ib.style.display="none";
     }
-    /* ---- 玩家移动 ---- */
-    let mx=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
-    let mz=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
-    mx+=joy.x; mz+=joy.y;
-    const ml=Math.hypot(mx,mz);
+    /* ---- 玩家移动（魔兽默认：W/S 进退 · A/D 转向 · Q/E 平移；右键时 A/D 也变平移） ---- */
+    const Cam=BAL.camera||{};
+    const mouselook=!!(S.cam&&S.cam.rmb);
+    let turn=0, strafe=0, forward=0;
+    if(S.p.alive&&!S.p.knock&&!S.p.fear){
+      if(mouselook){
+        /* 右键按住：A/D 与 Q/E 均为平移（魔兽） */
+        strafe=((keys.e||keys.d||keys.arrowright?1:0)-(keys.q||keys.a||keys.arrowleft?1:0));
+      }else{
+        turn=((keys.a||keys.arrowleft?1:0)-(keys.d||keys.arrowright?1:0));
+        strafe=((keys.e?1:0)-(keys.q?1:0));
+      }
+      forward=((keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0));
+      /* 左右键同按：朝镜头方向前进 */
+      if(Cam.bothBtnForward!==false&&S.cam&&S.cam.lmb&&S.cam.rmb)forward=Math.max(forward,1);
+      if(turn)S.p.face+=turn*(Cam.turnSpd||2.6)*dt;
+    }
+    /* 摇杆：上推前进，左右在非鼠标转向时=转向感改为平移更适合触屏 */
+    strafe+=joy.x;
+    forward+=-joy.y;
+    const ml=Math.hypot(strafe,forward);
+    const face=S.p.face;
+    const fSin=Math.sin(face), fCos=Math.cos(face);
+    let mx=0,mz=0;
+    if(ml>.1){
+      const nx=strafe/ml, nz=forward/ml;
+      mx=fSin*nz+fCos*nx;
+      mz=fCos*nz-fSin*nx;
+    }
+    /* 前进时把 LMB 环绕视角缓缓回正到角色背后 */
+    if(S.cam&&!S.cam.lmb&&!S.cam.rmb&&forward>.2&&Math.abs(S.cam.yawOff||0)>.01){
+      const k=1-Math.exp(-(Cam.recenterSpd||3.2)*dt);
+      S.cam.yawOff+=(0-S.cam.yawOff)*k;
+    }
     /* 虚弱计时（STEP 15） */
     let moveSpd=S.p.speed;
     if(S.p.weaknessT>0){
@@ -432,15 +462,11 @@ function tick(){
       S.p.walkPhase+=dt*14;
       if(S.p.fear.t<=0)S.p.fear=null;
     }else if(ml>.1){
-      mx/=Math.max(1,ml);mz/=Math.max(1,ml);
       player.position.x+=mx*moveSpd*dt;
       player.position.z+=mz*moveSpd*dt;
       clampArena(player.position);
-      S.p.face=Math.atan2(mx,mz);
       S.p.walkPhase+=dt*11;
     }else{
-      /* 站立时面向 Boss */
-      if(bossTargetable())S.p.face=Math.atan2(boss.position.x-player.position.x,boss.position.z-player.position.z);
       S.p.walkPhase*=1-dt*8;
     }
     if(S.p.alive)player.rotation.y=S.p.face;
@@ -548,7 +574,11 @@ function tick(){
       if(a.corpseT>0){
         if(typeof updateMobAnim==="function")updateMobAnim(a,dt);
         a.corpseT-=dt;
-        if(a.corpseT<=0){scene.remove(a.mesh);S.adds.splice(i,1);}
+        if(a.corpseT<=0){
+          scene.remove(a.mesh);
+          if(a.label){scene.remove(a.label);if(typeof disposeNameplate==="function")disposeNameplate(a.label);}
+          S.adds.splice(i,1);
+        }
         continue;
       }
       const st=a.stats||BAL.add;
@@ -570,6 +600,10 @@ function tick(){
         playerHit(R(st.dmg||BAL.add.dmg),a.name||"小怪");
       }
       if(typeof updateMobAnim==="function")updateMobAnim(a,dt);
+      if(a.label){
+        a.label.position.set(a.mesh.position.x,2.8,a.mesh.position.z);
+        if(typeof updateNameplateHp==="function")updateNameplateHp(a.label,a.hp,a.hpMax);
+      }
     }
 
     /* ---- 投射物 ---- */
@@ -649,17 +683,27 @@ function tick(){
     }
   }
 
-  /* ---- 相机跟随 ---- */
-  if(S.mode==="raid"){
+  /* ---- 相机跟随（魔兽第三人称：默认背后；左键环绕偏移；右键与朝向锁定） ---- */
+  {
+    const C=BAL.camera||{};
+    if(S.cam.dist==null)S.cam.dist=C.dist||16;
+    if(S.cam.pitch==null)S.cam.pitch=C.pitch||.38;
+    if(S.cam.yawOff==null)S.cam.yawOff=0;
+    const dist=S.cam.dist;
+    const pitch=S.cam.pitch;
+    const yaw=S.p.face+(S.cam.rmb?0:(S.cam.yawOff||0));
+    const flat=Math.cos(pitch)*dist;
+    const lift=(C.height||9.5)+Math.sin(pitch)*dist*.55;
     const camTarget=new THREE.Vector3(
-      player.position.x*.7+boss.position.x*.15,13,
-      player.position.z*.7+boss.position.z*.15+22);
-    camera.position.lerp(camTarget,dt*3);
-    camera.lookAt(player.position.x*.6,3.5,player.position.z*.6-6);
-  }else{
-    const camTarget=new THREE.Vector3(player.position.x,12,player.position.z+17);
-    camera.position.lerp(camTarget,dt*3);
-    camera.lookAt(player.position.x,2.5,player.position.z-4);
+      player.position.x-Math.sin(yaw)*flat,
+      lift,
+      player.position.z-Math.cos(yaw)*flat
+    );
+    const followK=1-Math.exp(-(C.follow||12)*dt);
+    camera.position.x+= (camTarget.x-camera.position.x)*followK;
+    camera.position.y+= (camTarget.y-camera.position.y)*followK;
+    camera.position.z+= (camTarget.z-camera.position.z)*followK;
+    camera.lookAt(player.position.x,C.lookY||2.2,player.position.z);
   }
 
   /* ---- UI 刷新 ---- */

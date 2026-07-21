@@ -150,6 +150,10 @@ assert(questsSrc.includes("function getQuestLogEntries")&&questsSrc.includes("fu
 assert(questsSrc.includes("function applyQuestSave")&&questsSrc.includes("function syncLegacyQuestAliases"),"quests.js 有读档迁移");
 assert(coreSrc.includes("side:")&&coreSrc.includes("plains_patrol"),"BALANCE.quest.side 支线奖励表");
 assert(questsSrc.includes('type:"deliver"')&&questsSrc.includes('type:"use"')&&questsSrc.includes('type:"arrive"')&&questsSrc.includes('type:"escort"'),"V1-B2 四类新目标");
+assert(coreSrc.includes("function makeNameplate")&&coreSrc.includes("function updateNameplateHp"),"姓名板工厂");
+assert(coreSrc.includes("camera:")&&coreSrc.includes("turnSpd"),"BALANCE.camera 转向/视角");
+assert(coreSrc.includes("level:3")||coreSrc.includes("boar    :{level:"),"野怪含 level");
+assert(html.includes("Q/E 平移")||html.includes("A/D 转向"),"操作提示含魔兽式键位");
 assert(questsSrc.includes("function tickQuestWorld")&&questsSrc.includes("function onQuestUseItem"),"V1-B2 到达/使用/护送 API");
 assert(questsSrc.includes("flags:")&&questsSrc.includes("collectQuestSave"),"任务存档含 flags");
 assert(coreSrc.includes("radius:184")||coreSrc.includes("radius:176"),"V1-B2 开放区半径扩大");
@@ -210,6 +214,9 @@ assert(DEEDS_COUNT_OK(deedsSrc),"DEEDS 条目不少于 15");
 /* STEP 27 仇恨与职责冒烟 */
 const threatSrc=fs.readFileSync(path.join(__dirname,"threat.js"),"utf8");
 const mainSrc=fs.readFileSync(path.join(__dirname,"main.js"),"utf8");
+assert(mainSrc.includes("mouselook")&&mainSrc.includes("strafe")&&mainSrc.includes("keys.q"),"魔兽式 A/D 转向 · Q/E 平移");
+assert(mainSrc.includes("recenterSpd")||mainSrc.includes("yawOff"),"前进回正视角");
+assert(combatSrc.includes("camApplyDrag")||combatSrc.includes("S.cam.lmb"),"左键环绕 / 右键转向");
 assert(html.includes('src="threat.js"'),"game.html 加载 threat.js");
 assert(threatSrc.includes("function addThreat")&&threatSrc.includes("function getTopThreatActor"),"threat.js 有 addThreat/getTopThreatActor");
 assert(threatSrc.includes("function meleeHitFromThreat")&&threatSrc.includes("function checkPartyWipe"),"threat.js 有 meleeHitFromThreat/checkPartyWipe");

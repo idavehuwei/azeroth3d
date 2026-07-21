@@ -936,7 +936,8 @@ function spawnAdd(x,z,opts){
   mesh.position.set(clamp(x,-Rlim+3,Rlim-3),0,clamp(z,-Rlim+3,Rlim-3));
   scene.add(mesh);
   S.adds.push({
-    mesh,name:conf.name||"烈焰之子",hp:bal.hp,hpMax:bal.hp,atkT:0,corpseT:0,
+    mesh,name:conf.name||"烈焰之子",level:(bal.level!=null?bal.level:15),
+    hp:bal.hp,hpMax:bal.hp,atkT:0,corpseT:0,
     stats:bal, moving:false, attackAnim:0, state:"alive",
     hitKind:conf.hitKind||"flame",
     lootTable:conf.lootTable||"add",
@@ -947,6 +948,11 @@ function spawnAdd(x,z,opts){
     fctPos(){return this.mesh.position.clone().setY(2.6);},
     onDeath(){addDie(this);},
   });
+  const a=S.adds[S.adds.length-1];
+  a.label=makeNameplate(a.name,a.level,{w:4.8});
+  a.label.position.set(mesh.position.x,2.8,mesh.position.z);
+  scene.add(a.label);
+  updateNameplateHp(a.label,a.hp,a.hpMax);
   VFX.spawn("melee_impact",{pos:mesh.position.clone().setY(1),color:conf.burstColor||0xff5a1a,count:20,spread:1.6});
 }
 function addDamage(a,amount,opts){hitEntity(a,amount,undefined,opts);}
@@ -954,6 +960,7 @@ function addDie(a){
   VFX.spawn("melee_impact",{pos:a.mesh.position.clone().setY(1),color:a.burstColor||0xffa040,count:26,spread:2});
   a.mesh.traverse(o=>{if(o.isMesh){o.userData.liveMat=o.material;o.material=corpseMat;}});
   a.state="dead"; a.moving=false;
+  if(a.label)a.label.visible=false;
   if(typeof beginDeathRoll==="function")beginDeathRoll(a);
   else{a.mesh.rotation.z=Math.PI/2; a.mesh.position.y=.25;}
   a.corpseT=BAL.loot.corpseT;
