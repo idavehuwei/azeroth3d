@@ -9,6 +9,8 @@
           world.js（player boss MOBS QUEST mobDamage updateQuest tryInteract）
           main.js 运行时（clampArena）
           vfx.js 运行时（VFX spawnBurst）
+          talents.js 运行时（getSkillCd grantTalentPointOnLevel initTalentsForClass
+            toggleTalentPanel；N 键）
           raid.js 运行时（bossAI distToBoss bossTargetable fireProjectile
             spawnAdd addDamage addDie bossDie playerDie resetBoss BOSS_ENT DUNGEON）
    [导出] S SKILLS CLASSES CLS setClass log announce fct hurtFlash keys joy
@@ -78,12 +80,15 @@ function setClass(key){
   S.p.hpMax=CLS.hp; S.p.hp=CLS.hp;
   S.p.rageMax=CLS.resMax; S.p.rage=CLS.resStart; S.p.speed=CLS.speed;
   SKILLS=CLS.skills;
+  if(typeof initTalentsForClass==="function")initTalentsForClass(key);
+  else updateLevelUI();
   updateLevelUI();
   $("#pRage").style.background=CLS.barCss;
   document.querySelectorAll(".skill").forEach((el,i)=>{
     el.querySelector(".ic").textContent=SKILLS[i].icon;
     el.querySelector(".nm").textContent=SKILLS[i].name;
   });
+  if(typeof updateSkillBarStats==="function")updateSkillBarStats();
 }
 setClass("warrior");
 
@@ -114,6 +119,7 @@ addEventListener("keydown",e=>{
   if(["1","2","3","4"].includes(e.key))useSkill(+e.key-1);
   if(e.key.toLowerCase()==="f")tryInteract();
   if(e.key.toLowerCase()==="b")toggleBag();
+  if(e.key.toLowerCase()==="n")toggleTalentPanel();
 });
 addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
 document.getElementById("interactBtn").addEventListener("pointerdown",()=>tryInteract());
@@ -144,7 +150,7 @@ function useSkill(i){
   if(S.cds[i]>0||S.gcd>0)return;
   const sk=SKILLS[i];
   if(S.p.rage<sk.rage){log(`${CLS.resName}不足！（${sk.name} 需要 ${sk.rage} ${CLS.resName}）`,"lg-sys");return;}
-  if(sk.fn()){S.p.rage-=sk.rage;S.cds[i]=sk.cd;S.gcd=.8;}
+  if(sk.fn()){S.p.rage-=sk.rage;S.cds[i]=typeof getSkillCd==="function"?getSkillCd(i):sk.cd;S.gcd=.8;}
 }
 /* bossTargetable 在 raid.js 定义 */
 
@@ -384,6 +390,7 @@ function gainXP(amount){
     announce(`升 级 ！ Lv.${P.level}`);
     log(`你升到了 ${P.level} 级！生命上限 +${hpGain}，基础伤害 +${Math.round(L.perLevel.dmgMul*100)}%。`,"lg-heal");
     VFX.spawn("loot_spark",{pos:player.position.clone().setY(1.5),color:0xffd76a,count:60,spread:3});
+    if(typeof grantTalentPointOnLevel==="function")grantTalentPointOnLevel(P.level);
   }
   updateLevelUI();
 }

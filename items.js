@@ -6,9 +6,10 @@
    [依赖] THREE · core.js（$ rand BAL makeLabel；运行时读 scene）
           icons.js（Icons）· models.js 运行时（setWeapon）
           combat.js 运行时（S log fct）· world.js 运行时（player）· vfx.js 运行时（VFX）
+          talents.js 运行时（talentOpen closeTalentPanel；与背包互斥）
    [导出] QUALITY ITEMS LOOT rollLoot dropLoot updateDrops nearestDrop
           tryLoot removeDropOf logLoot DROPS
-          equipItem unequipItem toggleBag renderBag applyEquipStats（STEP 4）
+          equipItem unequipItem toggleBag renderBag applyEquipStats bagOpen（STEP 4）
    ============================================================ */
 "use strict";
 /* ---------------- 品质表：颜色即一切（描边/名字/方块光） ---------------- */
@@ -214,7 +215,9 @@ function unequipItem(slot){
 function bagOpen(){return $("#bag").style.display==="block";}
 function toggleBag(){
   if(!S.started)return;
-  $("#bag").style.display=bagOpen()?"none":"block";
+  if(bagOpen()){$("#bag").style.display="none";return;}
+  if(typeof talentOpen==="function"&&talentOpen())closeTalentPanel();
+  $("#bag").style.display="block";
   renderBag();
 }
 function itemTitle(it){

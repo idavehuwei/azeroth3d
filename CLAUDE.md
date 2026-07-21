@@ -32,6 +32,7 @@
 | `world.js` | 莫高雷世界 | player, boss, MOBS, QUEST, enterRaid, mobDie, setCorpse, tryInteract |
 | `combat.js` | 战斗系统 | S, CLASSES, SKILLS, hitEntity, useSkill |
 | `vfx.js` | 特效注册表 | VFX, fireProjectile, spawnTelegraph, spawnBurst, disposeVfxMesh |
+| `talents.js` | 天赋数据层 | TALENTS, spendTalent, getSkillCd, cheatTalent |
 | `raid.js` | 副本系统 | BOSSES, createBoss, bossAI, DUNGEON, buildRaidScene, spawnAdd |
 | `main.js` | 主循环 | tick, clampArena |
 | `sfx.js` | 程序化音效 | SFX.init, SFX.play, SFX.music |

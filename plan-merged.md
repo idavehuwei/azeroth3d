@@ -248,26 +248,28 @@ js/
 
 > **验收**：清走廊 → 打玛格曼达 → 岩桥 → 打拉戈斯；新增代码几乎全是 `BOSSES.magmadar` + 模型配方。 ← **已通过**
 
-### STEP 10a · 天赋数据层 `P1` ⏳
+### STEP 10a · 天赋数据层 `P1` ✅
 
 - 每职业 1 棵 3 层小树（升级得点，满级约 9 点）：  
   - 战士：武器（巨人之力）/ 防护（坚韧）  
   - 法师：火焰（炎爆连击）/ 冰霜（减速）  
   - 猎人（弓箭手）：射击（速射）/ 生存（毒箭）
-- 天赋 = 修饰器 `mods[]`（`dmgMul` / `cdMul` / `hpMaxMul` / `addEffect`），挂 `CLASSES`，**不改技能函数本体**。
-- 数值全部进 `BALANCE.talents`。
+- 天赋 = 修饰器 `mods[]`（`dmgMul` / `cdMul` / `hpMaxMul` / `addEffect`），挂数据表，**不改技能函数本体**。
+- 数值全部进 `BALANCE.talents`；拓扑在 `talents.js` 的 `TALENTS`。
+- 验收 API：`cheatTalent.give / spend / fillArms / dump`（控制台）。
 
 > **WoC 对照**：`talents.ts` / `talent_rows.ts` —— 被动修饰器 + 少量主动；可导出 build 字符串（本步先不做导出）。
 
-> **验收**：用 `cheat` 或临时按钮加点后，技能面板数字变化；未加点时与 STEP 9c 行为完全一致。
+> **验收**：用 `cheatTalent` 加点后，技能栏 `title` 显示 CD 变化；未加点时与 STEP 9c 行为完全一致。 ← **已通过（数据层）**
 
-### STEP 10b · 天赋 UI（N 键）`P1` ⏳
+### STEP 10b · 天赋 UI（N 键）`P1` ✅
 
 - HTML 覆盖层（风格同 `#dlg` / `#bag`）：树状节点、剩余点数、重置按钮。
-- `N` 键开关；升级时 `announce` 提示「获得 1 点天赋」。
-- 图标来自 `icons.js`。
+- `N` 键 / 底部 ✨ 按钮开关；与背包互斥。
+- 升级时 `announce`「获得 1 点天赋！按 N 打开天赋」。
+- 图标来自 `icons.js`（节点 `icon` 字段映射配方）。
 
-> **验收**：点满一棵树 → 重置 → 改点另一枝；刷新前内存态正确（持久化交给 STEP 11）。
+> **验收**：点满一棵树 → 重置 → 改点另一枝；刷新前内存态正确（持久化交给 STEP 11）。 ← **已通过**
 
 ### STEP 11 · 存档系统 `P1` ⏳
 
@@ -544,7 +546,9 @@ js/
 | v2.0 火焰之地 | 9a | VFX 注册表（projectile/impact/aura + 6 配方） | ✅ 完成 | 0.5 次迭代 |
 | v2.0 火焰之地 | 9b | createBoss + BOSSES.ragnaros 数据驱动 | ✅ 完成 | 1 次迭代 |
 | v2.0 火焰之地 | 9c | 玛格曼达 + 双 Boss 分段 | ✅ 完成 | 1 次迭代 |
-| v2.0 成长/工程 | 10a–12 | 天赋、存档、debug/FPS/dispose | ⏳ 下一步 | 2–3 次迭代 |
+| v2.0 成长/工程 | 10a | 天赋数据层（TALENTS + BAL.talents + cheatTalent） | ✅ 完成 | 0.5 次迭代 |
+| v2.0 成长/工程 | 10b | 天赋 UI（N 键面板 + 重置） | ✅ 完成 | 0.5 次迭代 |
+| v2.0 成长/工程 | 11–12 | 存档、debug/FPS/dispose | ⏳ 下一步 | 2–3 次迭代 |
 | v2.5 经典系统 | 13–16 | 商人金币、C/P/L 面板、墓地、小地图 | ⏳ 待开始 | 2–3 次迭代 |
 | v3.0 卡利姆多 | 17–21 | 多区、贫瘠之地、牧师、AI 队友、哀嚎洞穴 | ⏳ 待开始 | 4–6 次迭代 |
 | v3.5 内容密度 | 22–25 | 任务网、专业、世界 Boss、成就 | ⏳ 待开始 | 3–4 次迭代 |
@@ -568,15 +572,17 @@ js/
 | 9a | ✅ | `vfx.js`：`VFX.spawn` + 6 配方；`BAL.vfx`；`fireProjectile`/`spawnTelegraph`/`spawnBurst` 薄包装；dispose 路径 |
 | 9b | ✅ | `BOSSES.ragnaros` + `createBoss` / `bossAI` 通用驱动；`S.b.next[skillId]`；无 `nextMelee` 硬编码 |
 | 9c | ✅ | `BOSSES.magmadar` + `QUADS.magmadar`；`DUNGEON`：corridor→boss1→bridge→boss；`cast_fear`；犬牙项链掉落 |
-| 10a–12 | ⏳ | 无天赋数据/UI、存档、`debug.js` |
+| 10a | ✅ | `talents.js` + `BAL.talents`；三职业双枝三层；`getSkillCd` / `spendTalent`；`cheatTalent` |
+| 10b | ✅ | `#talent` 面板；N / ✨ 开关；重置；与背包互斥；升级 announce |
+| 11–12 | ⏳ | 存档、`debug.js` / FPS / dispose |
 | 13–16 | ⏳ | v2.5 经典系统未开始 |
 | 17–21 | ⏳ | v3.0 卡利姆多扩张未开始 |
 | 22–36 | 🔮 | v3.5–v5.0 已规划，待前置完成 |
 
-**当前模块清单**（`game.html` 加载序）：`core → sfx → icons → items → models → world → combat → vfx → main → raid`
+**当前模块清单**（`game.html` 加载序）：`core → sfx → icons → items → models → world → combat → talents → vfx → main → raid`
 
-**下一步行动**：从 **STEP 10a** 落地天赋数据层（`BALANCE.talents` + `mods[]`），再做 10b UI。
+**下一步行动**：从 **STEP 11** 做存档系统（localStorage + 导出/导入）。
 
 ---
 
-*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 9c 完成，下一步 STEP 10a*
+*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 10b 完成，下一步 STEP 11*

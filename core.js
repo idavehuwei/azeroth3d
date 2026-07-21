@@ -97,6 +97,36 @@ const BALANCE={
     loot_spark:{color:0xffd76a,count:24,spread:1.6,size:.45},
     impact:{size:.45,life:1.1},   /* 通用粒子爆发默认 */
   },
+  /* 天赋（STEP 10a）：点数规则 + 每节点每级修饰量；树形拓扑在 talents.js */
+  talents:{
+    firstPointLevel:2,   /* 升到 2 级起每级 1 点；1→10 共 9 点 */
+    pointsPerLevel:1,
+    /* 每职业节点：perRank 为每投入 1 点叠加的修饰 */
+    warrior:{
+      giant_str :{dmgMul:.05},                          /* 巨人之力 */
+      whirl_master:{skillCd:{i:1,mul:.90}},             /* 旋风掌握：旋风斩 CD ×0.9/级 */
+      massacre  :{dmgMul:.04},                          /* 杀戮 */
+      tough     :{hpMaxMul:.06},                        /* 坚韧 */
+      iron_will :{hpMaxMul:.05},                        /* 钢铁意志 */
+      bulwark   :{hpMaxMul:.07,cdMul:.97},              /* 壁垒：生命 + 全局 CD 微减 */
+    },
+    mage:{
+      pyro_chain:{skillCd:{i:0,mul:.88},fx:{pyroBurst:1}}, /* 炎爆连击：炎爆 CD ↓ */
+      ignite    :{dmgMul:.05},
+      combustion:{dmgMul:.04,skillCd:{i:0,mul:.95}},
+      frostbite :{fx:{frostSlow:.35}},                  /* 冰霜减速（标记，技能本体不改） */
+      ice_ward  :{hpMaxMul:.05,skillCd:{i:1,mul:.90}},  /* 冰霜新星 CD ↓ */
+      deep_freeze:{fx:{frostSlow:.15},cdMul:.97},
+    },
+    archer:{
+      rapid     :{skillCd:{i:0,mul:.90},cdMul:.97},     /* 速射：瞄准 CD ↓ + 全局微减 */
+      focus     :{dmgMul:.05},
+      sniper    :{dmgMul:.04,skillCd:{i:0,mul:.95}},
+      venom     :{fx:{poisonArrow:1}},                  /* 毒箭标记 */
+      survival  :{hpMaxMul:.05},
+      trickle   :{hpMaxMul:.06,skillCd:{i:1,mul:.92}},  /* 多重 CD ↓ */
+    },
+  },
 };
 const BAL=BALANCE;
 
