@@ -51,7 +51,7 @@
 | `finder.js` | 本地地下城查找器 | toggleDungeonFinderPanel, queueDungeonFinder |
 | `save.js` | 存档系统 | saveGame, loadGame, exportSaveCode, importSaveCode |
 | `main.js` | 主循环 | tick, clampArena |
-| `sfx.js` | 程序化音效 | SFX.init, SFX.play, SFX.music |
+| `sfx.js` | 程序化音效 | SFX.init, play, playFoot, playHit, music |
 
 ## 命令
 

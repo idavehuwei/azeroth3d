@@ -331,7 +331,7 @@ defineBoss({
       countKey:{1:"count",2:"p2Count"},fanKey:"fan"},
     /* 直线喷吐：Boss→玩家方向铺预警环 */
     {id:"breath",type:"cast_line",bal:"breath",name:"熔岩吐息",firstDelay:7,
-      vfx:"eruption_ring",
+      sfx:"breath_fire",vfx:"eruption_ring",
       announce:"熔岩吐息 · 躲开直线！",log:"玛格曼达深吸一口气，岩浆沿直线喷涌！",
       exclusive:true,segsKey:{1:"segs",2:"p2Segs"}},
     /* 践踏：脚下大圈 + 随机落点 */
@@ -394,6 +394,7 @@ defineBoss({
       vfx:"venom_bolt",log:"考布莱恩喷出扇形毒液！",exclusive:true,
       countKey:{1:"count",2:"p2Count"},fanKey:"fan"},
     {id:"breath",type:"cast_line",bal:"breath",name:"酸液吐息",firstDelay:7,
+      sfx:"breath_poison",
       vfx:"venom_ring",
       announce:"酸液吐息 · 躲开直线！",log:"考布莱恩张开巨口，酸液沿直线喷涌！",
       exclusive:true,segsKey:{1:"segs",2:"p2Segs"}},
@@ -499,7 +500,7 @@ defineBoss({
       vfx:"lava_bolt",log:"奥妮克希亚喷出扇形暗焰！",exclusive:true,
       countKey:{1:"count",2:"p2Count",3:"p3Count"},fanKey:"fan"},
     {id:"breath",type:"cast_line",bal:"breath",name:"火焰吐息",firstDelay:7.5,
-      vfx:"eruption_ring",
+      sfx:"breath_fire",vfx:"eruption_ring",
       announce:"火焰吐息 · 躲开直线！",log:"黑龙张开巨口，烈焰沿直线喷涌！",
       exclusive:true,segsKey:{1:"segs",2:"p2Segs",3:"p3Segs"}},
     {id:"wing",type:"cast_telegraph",bal:"wing",name:"翼击落火",firstDelay:11,
@@ -507,7 +508,7 @@ defineBoss({
       countKey:{1:"count",2:"p2Count",3:"p3Count"},
       announce:"翼击落火 · 快躲开红圈！",log:"龙翼扇起火雨——地面燃起红圈！",exclusive:true},
     {id:"deepBreath",type:"cast_line",bal:"deepBreath",name:"深呼吸",firstDelay:28,
-      vfx:"eruption_ring",
+      sfx:"breath_fire",vfx:"eruption_ring",
       announce:"深呼吸 · 立刻躲开整条直线！！",log:"奥妮克希亚深深吸气——毁灭性的直线烈焰即将释放！",
       exclusive:true,segsKey:{1:"segs",2:"p2Segs",3:"p3Segs"}},
   ],
@@ -744,6 +745,8 @@ function tickBossSubmerged(dt){
 
 function runBossSkill(sk){
   const B=S.b, st=skillBal(sk), d=distToBoss();
+  /* V1-A5：Boss 技能音色（吐息等） */
+  if(sk.type!=="melee"&&sk.sfx&&typeof SFX!=="undefined")SFX.play(sk.sfx);
   if(sk.type==="melee"){
     B.next[sk.id]=S.t+R(st.cd);
     /* STEP 28：飞天阶段不近战 */
@@ -935,6 +938,7 @@ function spawnAdd(x,z,opts){
   S.adds.push({
     mesh,name:conf.name||"烈焰之子",hp:bal.hp,hpMax:bal.hp,atkT:0,corpseT:0,
     stats:bal, moving:false, attackAnim:0, state:"alive",
+    hitKind:conf.hitKind||"flame",
     lootTable:conf.lootTable||"add",
     dieLog:conf.dieLog||"一只烈焰之子被消灭了！",
     burstColor:conf.burstColor!=null?conf.burstColor:0xff5a1a,

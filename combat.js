@@ -243,6 +243,12 @@ function hitEntity(ent,amount,label,opts){
   amount=S.god?BAL.god.dmg:Math.round(amount*S.p.dmgMul*(v?rand(v[0],v[1]):1));
   ent.hp=Math.max(0,ent.hp-amount);
   fct(ent.fctPos(),`-${amount}`,"#ffdf8a",ent.fctSize?ent.fctSize(label):14);
+  /* V1-A5：受击分层（肉体/甲壳） */
+  if(typeof SFX!=="undefined"&&SFX.playHit){
+    let kind=ent.type||ent.hitKind||"hit";
+    if(typeof BOSS_ENT!=="undefined"&&ent===BOSS_ENT&&S.b&&S.b.id)kind=S.b.id;
+    SFX.playHit(kind);
+  }
   if(ent.onHit)ent.onHit(amount,label);
   /* STEP 27：默认记玩家仇恨；同伴须传 opts.sourceKey */
   if(typeof addThreat==="function"&&!(opts&&opts.noThreat)){

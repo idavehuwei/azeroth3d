@@ -98,6 +98,14 @@ const BALANCE={
       barrens:{x:-8,z:5},
     },
   },
+  /* plan-v1 · V1-A5 音效（可关） */
+  sfx:{
+    enabled:true,
+    footVol:1,
+    footThrottleMs:100,
+    mobHit:null,
+    woodPts:[[0,55,10],[6,49,7],[-10,50,7]],
+  },
   /* plan-v1 · V1-A3 生物动画挂点（仅表现，不改伤害/仇恨） */
   anim:{
     walkFreq:9, walkAmp:.55, walkDecay:8,

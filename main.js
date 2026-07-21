@@ -36,6 +36,20 @@ function clampArena(pos){
   if(d>lim){const s=lim/d;pos.x*=s;pos.z*=s;}
   return pos;
 }
+
+/** V1-A5：区 → 脚步表面（草/石/木） */
+function zoneFootSurface(zid){
+  const id=zid||(typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore");
+  if(id==="molten_core"||id==="onyxias_lair"||id==="wailing_caverns")return "stone";
+  if(id==="mulgore"&&typeof player!=="undefined"&&BAL.sfx&&BAL.sfx.woodPts){
+    for(const pt of BAL.sfx.woodPts){
+      const r=pt[2]!=null?pt[2]:8;
+      if(Math.hypot(player.position.x-pt[0],player.position.z-pt[1])<r)return "wood";
+    }
+  }
+  return "grass";
+}
+
 const clock=new THREE.Clock();
 
 /* ---------------- FPS 叠层（STEP 12） ---------------- */
@@ -415,13 +429,21 @@ function tick(){
     if(S.p.alive)player.rotation.y=S.p.face;
     /* 走路摆腿 & 披风 */
     const U=player.userData,sw=Math.sin(S.p.walkPhase)*.55;
-    U.legR.rotation.x=sw; U.legL.rotation.x=-sw;
-    U.cape.rotation.x=.12+Math.abs(sw)*.25+Math.sin(S.t*3)*.04;
-    /* 攻击挥剑动画 */
-    if(S.p.attackAnim>0){S.p.attackAnim-=dt*4;
-      U.armR.rotation.x=-2.4*Math.sin(Math.min(1,S.p.attackAnim)*Math.PI);}
-    else U.armR.rotation.x=Math.sin(S.p.walkPhase)*.3;
-    U.armL.rotation.x=-Math.sin(S.p.walkPhase)*.3;
+    if(S.p.alive){
+      U.legR.rotation.x=sw; U.legL.rotation.x=-sw;
+      U.cape.rotation.x=.12+Math.abs(sw)*.25+Math.sin(S.t*3)*.04;
+      /* 攻击挥剑动画 */
+      if(S.p.attackAnim>0){S.p.attackAnim-=dt*4;
+        U.armR.rotation.x=-2.4*Math.sin(Math.min(1,S.p.attackAnim)*Math.PI);}
+      else U.armR.rotation.x=Math.sin(S.p.walkPhase)*.3;
+      U.armL.rotation.x=-Math.sin(S.p.walkPhase)*.3;
+      /* V1-A5：脚步（walkPhase 过零） */
+      const sFoot=Math.sin(S.p.walkPhase);
+      if(ml>.1&&S.p._prevFootSin!=null&&S.p._prevFootSin<0&&sFoot>=0){
+        if(typeof SFX!=="undefined"&&SFX.playFoot)SFX.playFoot(zoneFootSurface());
+      }
+      S.p._prevFootSin=sFoot;
+    }
     /* 萨弗拉斯之柄火焰摇曳（STEP 4：仅装备橙锤时遍历） */
     if(S.eq.weapon==="sulfuras_haft")
       player.traverse(o=>{if(o.userData.flame)o.scale.y=1+Math.sin(S.t*7+o.position.x*5)*.25;});

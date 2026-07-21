@@ -289,6 +289,18 @@ assert(zonesSrc.includes("setWeather"),"enterZone 挂接 setWeather");
 assert(mainSrc.includes("updateWeather"),"main.js tick 更新天气");
 assert(!/aggroR|leashR|dmg\[/.test(weatherSrc),"weather.js 不碰战斗数值");
 
+/* plan-v1 · V1-A5 SFX 扩表 + 材质脚步冒烟 */
+assert(sfxSrc.includes("foot_grass")&&sfxSrc.includes("foot_stone")&&sfxSrc.includes("foot_wood"),"脚步草/石/木");
+assert(sfxSrc.includes("hit_flesh")&&sfxSrc.includes("hit_shell"),"受击肉体/甲壳");
+assert(sfxSrc.includes("breath_fire")&&sfxSrc.includes("breath_poison"),"龙息/毒液音色");
+assert(sfxSrc.includes("function playFoot")&&sfxSrc.includes("function playHit"),"SFX.playFoot/playHit");
+assert(coreSrc.includes("sfx:")&&coreSrc.includes("footThrottleMs"),"BALANCE.sfx");
+assert(mainSrc.includes("zoneFootSurface")&&mainSrc.includes("playFoot"),"main 脚步接线");
+assert(combatSrc.includes("playHit"),"hitEntity 受击分层");
+assert(raidSrc.includes('sfx:"breath_fire"')&&raidSrc.includes('sfx:"breath_poison"'),"Boss 吐息绑音色");
+const rootAudio=fs.readdirSync(__dirname).filter(f=>/\.(mp3|ogg|wav)$/i.test(f));
+assert(rootAudio.length===0,"无音频二进制");
+
 function DEEDS_COUNT_OK(src){
   const m=src.match(/id:"[^"]+"/g)||[];
   /* DEEDS 表内 id 约 18；过滤 DEED_BY_ID 等 */
@@ -299,4 +311,4 @@ if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–29 … / V1-A1–A4 冒烟");
+console.log("\n全部通过 · STEP 17–29 … / V1-A1–A5 冒烟");
