@@ -1,6 +1,6 @@
 /* ============================================================
    熔火之心 · main.js
-   主循环与启动：范围钳制 / 每帧更新 / 相机 / UI 刷新 / 职业选择
+   主循环与启动：范围钳制 / 每帧更新 / 相机 / UI 刷新 / 职业选择 / FPS
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ clamp rand R BAL camera renderer scene ARENA_R
           lavaUniforms embers EMBERS emberVel）
@@ -15,7 +15,7 @@
           raid.js 运行时（bossAI distToBoss bossTargetable DUNGEON）
           world.js 运行时（heli sun fireflies FIREFLIES ffPhases）
           save.js 运行时（启程 / 继续冒险）
-   [导出] clampArena tick chosenClass
+   [导出] clampArena tick chosenClass toggleFps
    ============================================================ */
 "use strict";
 /* ============================================================
@@ -28,10 +28,50 @@ function clampArena(pos){
   return pos;
 }
 const clock=new THREE.Clock();
+
+/* ---------------- FPS 叠层（STEP 12） ---------------- */
+const FPS={show:false,frames:0,acc:0,value:0,el:null};
+function isMobilePointer(){return matchMedia("(pointer:coarse)").matches;}
+function fpsTarget(){return isMobilePointer()?BAL.fps.mobileTarget:BAL.fps.desktopTarget;}
+function applyFpsVisibility(){
+  if(!FPS.el)FPS.el=$("#fps");
+  if(!FPS.el)return;
+  FPS.el.style.display=FPS.show?"block":"none";
+  if(FPS.show){FPS.frames=0;FPS.acc=0;}
+}
+function toggleFps(force){
+  FPS.show=force==null?!FPS.show:!!force;
+  applyFpsVisibility();
+  if(S.started)log(FPS.show?`FPS 显示开启（目标 ${fpsTarget()}+）`:"FPS 显示关闭","lg-sys");
+}
+function updateFps(dt){
+  if(!FPS.show||!FPS.el)return;
+  FPS.frames++; FPS.acc+=dt;
+  if(FPS.acc<BAL.fps.updateInterval)return;
+  FPS.value=Math.round(FPS.frames/FPS.acc);
+  FPS.frames=0; FPS.acc=0;
+  const target=fpsTarget();
+  FPS.el.textContent=FPS.value+" FPS";
+  FPS.el.classList.toggle("low",FPS.value<target*.75);
+  FPS.el.title=`目标 ${target}+ · Ctrl+F 开关`;
+}
+(function initFps(){
+  FPS.el=$("#fps");
+  const q=new URLSearchParams(location.search);
+  FPS.show=q.has("dev")||q.get("fps")==="1";
+  applyFpsVisibility();
+  addEventListener("keydown",e=>{
+    if(!(e.ctrlKey||e.metaKey)||e.key.toLowerCase()!=="f")return;
+    e.preventDefault();
+    toggleFps();
+  });
+})();
+
 function tick(){
   requestAnimationFrame(tick);
   const dt=Math.min(clock.getDelta(),.05);
   S.t+=dt; lavaUniforms.uTime.value=S.t; portalUni.uTime.value=S.t;
+  updateFps(dt);
 
   /* 出口传送门动画 */
   if(exitPortal){exitPortal.discUni.value=S.t;exitPortal.glowPts.rotation.y+=dt*.8;}

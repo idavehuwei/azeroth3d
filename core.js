@@ -129,6 +129,8 @@ const BALANCE={
   },
   /* 存档（STEP 11）：localStorage 键与 schema 版本；改键会与旧存档隔离 */
   save:{key:"azeroth3d_save_v1",version:1},
+  /* FPS 叠层（STEP 12）：刷新间隔秒；着色对照目标帧率 */
+  fps:{updateInterval:.5,desktopTarget:60,mobileTarget:30},
 };
 const BAL=BALANCE;
 
