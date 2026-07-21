@@ -8,6 +8,7 @@
           world.js（spawnMob MOBS）
           combat.js 运行时（S log announce）
           quests.js 运行时（acceptQuest turnInQuest questsForNpc）
+          professions.js 运行时（spawnGatherNodesForZone）
           save.js 运行时（saveGame）· panels.js 运行时（renderQuestLog）
    [导出] sceneBarrens BARRENS_R BARRENS_QUEST BARRENS_PORTAL_N BARRENS_PORTAL_S
           barrensHeli barrensSun barrensFlames
@@ -220,6 +221,13 @@ function buildBarrensZone(scn){
   });
 
   updateBarrensMarkers();
+  if(typeof spawnGatherNodesForZone==="function"){
+    spawnGatherNodesForZone("barrens",root,{
+      radius:BARRENS_R,
+      camp:{x:0,z:-2},
+      portals:[{x:BARRENS_PORTAL_N.x,z:BARRENS_PORTAL_N.z},{x:BARRENS_PORTAL_S.x,z:BARRENS_PORTAL_S.z}],
+    });
+  }
   const z=ZONES.barrens;
   if(z)z.lights={heli:barrensHeli,sun:barrensSun,flames:barrensFlames};
 }

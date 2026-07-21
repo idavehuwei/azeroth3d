@@ -208,6 +208,45 @@ const RECIPES={
     cx.beginPath();cx.moveTo(40,14);cx.lineTo(48,22);cx.lineTo(42,28);cx.lineTo(50,36);
     cx.stroke();
   },
+  /* 🌿 草药（STEP 23） */
+  herb(cx){
+    P.bg(cx,"#1a3a18","#081208");
+    P.glow(cx,32,36,18,"rgba(100,220,80,.55)");
+    cx.fillStyle="#5a9a40";
+    cx.beginPath();cx.moveTo(32,14);cx.quadraticCurveTo(48,28,36,48);cx.quadraticCurveTo(32,36,28,48);cx.quadraticCurveTo(16,28,32,14);cx.fill();
+    cx.fillStyle="#8ad060";
+    cx.beginPath();cx.ellipse(24,30,7,4,-.4,0,6.283);cx.fill();
+    cx.beginPath();cx.ellipse(40,28,7,4,.4,0,6.283);cx.fill();
+  },
+  /* ⛏ 矿石（STEP 23） */
+  ore(cx){
+    P.bg(cx,"#2a2420","#100c08");
+    P.glow(cx,32,34,16,"rgba(180,160,100,.4)");
+    cx.fillStyle="#8a7860";
+    cx.beginPath();cx.moveTo(18,42);cx.lineTo(28,18);cx.lineTo(44,22);cx.lineTo(50,42);cx.closePath();cx.fill();
+    cx.fillStyle="#c9b070";
+    cx.beginPath();cx.moveTo(26,30);cx.lineTo(34,20);cx.lineTo(40,32);cx.closePath();cx.fill();
+  },
+  /* 🧪 药水（STEP 23） */
+  potion(cx){
+    P.bg(cx,"#1a2840","#080e18");
+    P.glow(cx,32,34,18,"rgba(80,180,255,.55)");
+    cx.fillStyle="#6a90c0";
+    cx.fillRect(26,14,12,10);
+    cx.fillStyle="#3a8acc";
+    cx.beginPath();cx.moveTo(20,24);cx.lineTo(44,24);cx.lineTo(40,50);cx.lineTo(24,50);cx.closePath();cx.fill();
+    cx.fillStyle="rgba(180,230,255,.45)";
+    cx.fillRect(28,30,6,12);
+  },
+  /* 🪨 磨刀石（STEP 23） */
+  whetstone(cx){
+    P.bg(cx,"#2a2218","#100c08");
+    cx.fillStyle="#9a8870";
+    cx.beginPath();cx.ellipse(32,34,18,12,0,0,6.283);cx.fill();
+    cx.strokeStyle="#6a5840";cx.lineWidth=2;cx.stroke();
+    cx.strokeStyle="#d8c8a0";cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(18,34);cx.lineTo(46,30);cx.stroke();
+  },
 };
 
 /* ---------------- 工厂出口 ---------------- */

@@ -303,9 +303,11 @@ function tick(){
         markerExcl.position.y=6.8+Math.sin(S.t*2.4)*.3;
         markerQ.position.y=markerExcl.position.y;
         const nearR=BAL.economy.interactR;
-        const nearNpc=S.p.alive&&(elderDist()<nearR||vendorDist()<nearR||spiritDist()<nearR);
+        const nearCraft=typeof workbenchDist==="function"&&workbenchDist()<(BAL.professions.interactR||nearR);
+        const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||nearR);
+        const nearNpc=S.p.alive&&(elderDist()<nearR||vendorDist()<nearR||spiritDist()<nearR||nearCraft||nearGather);
         $("#interactBtn").style.display=(nearNpc&&$("#dlg").style.display!=="block")?"block":"none";
-        if(elderDist()>8&&vendorDist()>8&&spiritDist()>8)closeDialogue();
+        if(elderDist()>8&&vendorDist()>8&&spiritDist()>8&&!(nearCraft||nearGather))closeDialogue();
       }else if(zid==="barrens"&&typeof crossroadsDist==="function"){
         if(crossroadsSentinel){
           crossroadsSentinel.rotation.y=Math.PI+Math.sin(S.t*.7)*.08;
@@ -314,9 +316,10 @@ function tick(){
         if(barrensMarkerExcl)barrensMarkerExcl.position.y=6.8+Math.sin(S.t*2.4)*.3;
         if(barrensMarkerQ)barrensMarkerQ.position.y=barrensMarkerExcl?barrensMarkerExcl.position.y:6.8;
         const nearR=BAL.economy.interactR;
-        const nearNpc=S.p.alive&&(crossroadsDist()<nearR||barrensSpiritDist()<nearR);
+        const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||nearR);
+        const nearNpc=S.p.alive&&(crossroadsDist()<nearR||barrensSpiritDist()<nearR||nearGather);
         $("#interactBtn").style.display=(nearNpc&&$("#dlg").style.display!=="block")?"block":"none";
-        if(crossroadsDist()>8&&barrensSpiritDist()>8)closeDialogue();
+        if(crossroadsDist()>8&&barrensSpiritDist()>8&&!nearGather)closeDialogue();
       }
     }
     /* ---- 掉落动画 & 拾取按钮（世界/副本通用，STEP 2） ---- */
@@ -332,7 +335,11 @@ function tick(){
         :spiritDist()<BAL.economy.interactR;
       const nearV=zid==="barrens"?false:vendorDist()<BAL.economy.interactR;
       const nearC=zid==="barrens"&&typeof crossroadsDist==="function"&&crossroadsDist()<BAL.economy.interactR;
-      ib.textContent=nearS?"👻 灵魂医者（F）":nearC?"🗼 对话（F）":nearV?"🛒 交易（F）":"💬 对 话（F）";
+      const nearCraft=zid==="mulgore"&&typeof workbenchDist==="function"&&workbenchDist()<(BAL.professions.interactR||4);
+      const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||4);
+      ib.textContent=nearGather?(nearestGatherNode(BAL.professions.interactR).kind==="ore"?"⛏ 开采（F）":"🌿 采集（F）")
+        :nearCraft?"🔨 制作（F）"
+        :nearS?"👻 灵魂医者（F）":nearC?"🗼 对话（F）":nearV?"🛒 交易（F）":"💬 对 话（F）";
       if(S.mode!=="world"||!S.p.alive)ib.style.display="none";
     }
     /* ---- 玩家移动 ---- */
@@ -347,8 +354,8 @@ function tick(){
       moveSpd*=BAL.death.moveSpeedMul;
       if(S.p.weaknessT<=0)log("虚弱效果结束。","lg-sys");
     }
-    /* 进食 / 包扎：移动打断（STEP 13） */
-    if(S.p.alive&&(S.p.eating||S.p.bandaging)&&ml>.12&&!S.p.knock&&!S.p.fear)cancelConsume();
+    /* 进食 / 包扎 / 采集：移动打断（STEP 13 / 23） */
+    if(S.p.alive&&(S.p.eating||S.p.bandaging||S.p.gathering)&&ml>.12&&!S.p.knock&&!S.p.fear)cancelConsume();
     if(S.p.alive&&S.p.eating){
       S.p.eating.t-=dt;
       S.p.hp=Math.min(S.p.hpMax,S.p.hp+S.p.eating.healPerSec*dt);
@@ -368,6 +375,7 @@ function tick(){
         VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.4)});
       }
     }
+    if(typeof tickGatherNodes==="function")tickGatherNodes(dt);
     if(!S.p.alive){
       /* 死亡倒地：不处理位移 */
     }else if(S.p.knock){

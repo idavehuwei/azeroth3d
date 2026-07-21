@@ -11,10 +11,11 @@
           zones.js 运行时（enterZone）
           companions.js 运行时（getCompanionSave restoreCompanion dismissCompanion）
           quests.js 运行时（collectQuestSave applyQuestSave resetAllQuests）
+          professions.js 运行时（collectMatsSave applyMatsSave resetMats）
    [导出] saveGame loadGame hasSave clearSave collectSaveData applySaveData
           exportSaveCode importSaveCode beginNewGame beginContinue
           refreshStartMenu
-          （存档字段含 companion · quests{} · STEP 20/22）
+          （存档字段含 companion · quests{} · mats{} · STEP 20/22/23）
    ============================================================ */
 "use strict";
 
@@ -66,6 +67,7 @@ function collectSaveData(){
       ?{x:+player.position.x.toFixed(2),z:+player.position.z.toFixed(2)}
       :{x:0,z:52},
     companion:typeof getCompanionSave==="function"?getCompanionSave():null,
+    mats:typeof collectMatsSave==="function"?collectMatsSave():{},
     savedAt:Date.now(),
   };
 }
@@ -129,6 +131,15 @@ function validateSave(raw){
       quests[id]={status,kills:Math.max(0,r.kills|0)};
     }
   }
+  let mats={};
+  if(raw.mats&&typeof raw.mats==="object"&&typeof MATS!=="undefined"){
+    const max=(BAL.professions&&BAL.professions.matsMax)|0||99;
+    for(const id in raw.mats){
+      if(!MATS[id])continue;
+      const n=Math.max(0,Math.min(max,raw.mats[id]|0));
+      if(n)mats[id]=n;
+    }
+  }
   return {
     ok:true,
     data:{
@@ -141,6 +152,7 @@ function validateSave(raw){
       quest:{state,kills},
       barrensQuest:{state:bqState,kills:bqKills},
       quests,
+      mats,
       zone:zoneId==="molten_core"?"raid":"world",
       zoneId,
       pos:{x,z},
@@ -227,6 +239,8 @@ function applySaveData(data){
 
   S.inv=data.inv.slice();
   S.eq={weapon:null,armor:null};
+  if(typeof applyMatsSave==="function")applyMatsSave(data.mats);
+  else S.mats={...(data.mats||{})};
   for(const slot of SAVE_SLOTS){
     const id=data.eq[slot];
     if(!id||!ITEMS[id])continue;
@@ -242,6 +256,10 @@ function applySaveData(data){
   S.p.rage=CLS.resStart;
   S.p.hp=data.hp!=null?clamp(data.hp,1,S.p.hpMax):S.p.hpMax;
   S.p.knock=null; S.p.fear=null;
+  S.p.eating=null; S.p.bandaging=null; S.p.gathering=null;
+  if(S.p.whetstoneAdd){S.p.dmgMul-=S.p.whetstoneAdd;S.p.whetstoneAdd=0;}
+  S.p.whetstoneT=0;
+  S.craftOpen=false;
 
   player.position.set(data.pos.x,0,data.pos.z);
   player.rotation.y=0;
@@ -341,6 +359,8 @@ function beginNewGame(classKey){
     if(typeof BARRENS_QUEST!=="undefined"){BARRENS_QUEST.state=0;BARRENS_QUEST.kills=0;}
   }
   if(typeof dismissCompanion==="function")dismissCompanion({silent:true,noSave:true});
+  if(typeof resetMats==="function")resetMats({silent:true});
+  else S.mats={};
   S.inv=[]; S.eq={weapon:null,armor:null};
   S.p.gold=0; S.over=false; S.mode="world"; S.zoneId="mulgore";
   S.currentTarget=null;

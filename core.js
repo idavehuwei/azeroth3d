@@ -151,7 +151,26 @@ const BALANCE={
     vendorStock:["plain_bread","linen_bandage"],
     food:{healPct:.35,duration:6},       /* 坐下进食：持续回复最大生命比例 */
     bandage:{healPct:.28,cast:1.6},      /* 绷带：引导施放 */
+    minorPotion:{healPct:.18},           /* 初级药水：瞬时回复（STEP 23） */
+    whetstone:{dmgMulAdd:.08,duration:120}, /* 磨刀石：临时伤害加成 */
     interactR:5.5,
+  },
+  /* 专业技能（STEP 23）：采集点 + 营地制作 */
+  professions:{
+    interactR:4.2,
+    gatherCast:1.5,
+    respawn:75,
+    yieldMin:1, yieldMax:2,
+    herbCount:{mulgore:6, barrens:5},
+    oreCount:{mulgore:5, barrens:6},
+    campR:18,          /* 采集点避开营地半径 */
+    portalR:14,        /* 避开传送门 */
+    matsMax:99,
+    nodeGap:6,
+    placeTries:40,
+    workbench:{x:18,z:46},
+    herbChance:{mulgore:.55, barrens:.5},
+    oreChance:{mulgore:.7, barrens:.45},
   },
   /* 上帝模式（首页勾选）：玩家每次攻击的固定伤害 */
   god:{dmg:5000},

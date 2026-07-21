@@ -152,8 +152,22 @@ assert(saveSrc.includes("collectQuestSave")&&saveSrc.includes("applyQuestSave"),
 assert(panelsSrc.includes("getQuestLogEntries"),"panels.js 多条目任务日志");
 assert(zonesSrc.includes("onQuestZoneEnter"),"zones.js 切入触发区域任务");
 
+/* STEP 23 专业技能冒烟 */
+const profSrc=fs.readFileSync(path.join(__dirname,"professions.js"),"utf8");
+assert(html.includes('src="professions.js"'),"game.html 加载 professions.js");
+assert(profSrc.includes("const MATS=")&&profSrc.includes("const RECIPES="),"professions.js 有材料与配方表");
+assert(profSrc.includes("function spawnGatherNodesForZone")&&profSrc.includes("function tryCraft"),"professions.js 有采集/制作 API");
+assert(profSrc.includes("function buildWorkbench")&&profSrc.includes("function tickGatherNodes"),"professions.js 有制作台与 tick");
+assert(coreSrc.includes("professions:")&&coreSrc.includes("minorPotion")&&coreSrc.includes("whetstone:"),"BALANCE 含 professions / 药水 / 磨刀石");
+assert(itemsSrc.includes("minor_potion")&&itemsSrc.includes("whetstone"),"items.js 有制作产出物");
+assert(itemsSrc.includes('use:"potion"')&&itemsSrc.includes('use:"whetstone"'),"items.js 有 potion/whetstone 使用");
+assert(saveSrc.includes("collectMatsSave")&&saveSrc.includes("applyMatsSave"),"save.js 读写 mats");
+assert(worldSrc.includes("buildWorkbench")||worldSrc.includes("spawnGatherNodesForZone"),"world.js 挂接制作台/采集");
+assert(barrensSrc.includes("spawnGatherNodesForZone"),"barrens.js 挂接采集点");
+assert(combatSrc.includes("mats:{}")||combatSrc.includes("mats:"),"combat S 含 mats");
+
 if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–22 分区 / 牧师 / 队友 / 哀嚎 / 任务枢纽冒烟");
+console.log("\n全部通过 · STEP 17–23 分区 / 牧师 / 队友 / 哀嚎 / 任务 / 专业技能冒烟");

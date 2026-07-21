@@ -56,6 +56,11 @@ const ITEMS={
                  stats:null, vendorBuy:25, vendorSell:5},
   linen_bandage:{id:"linen_bandage",name:"亚麻绷带",    icon:"bandage",quality:"common", slot:"consumable",use:"bandage",
                  stats:null, vendorBuy:40, vendorSell:8},
+  /* —— STEP 23 制作产出 —— */
+  minor_potion :{id:"minor_potion", name:"初级治疗药水",icon:"potion", quality:"common", slot:"consumable",use:"potion",
+                 stats:null, vendorSell:12},
+  whetstone    :{id:"whetstone",    name:"磨刀石",      icon:"whetstone",quality:"common",slot:"consumable",use:"whetstone",
+                 stats:null, vendorSell:10},
 };
 
 /* ---------------- 掉落表：品质三档池，权重见 BALANCE.loot.weights ---------------- */
@@ -228,6 +233,7 @@ function applyEquipStats(it,sign){
 function cancelConsume(){
   if(S.p.eating){S.p.eating=null;log("进食被打断。","lg-sys");}
   if(S.p.bandaging){S.p.bandaging=null;log("包扎被打断。","lg-sys");}
+  if(S.p.gathering){S.p.gathering=null;log("采集被打断。","lg-sys");}
 }
 function useItem(id){
   const it=ITEMS[id];
@@ -235,7 +241,7 @@ function useItem(id){
   if(!S.p.alive||S.over)return false;
   const idx=S.inv.indexOf(id); if(idx<0)return false;
   if(it.use==="food"){
-    if(S.p.eating||S.p.bandaging){log("你正在忙碌中。","lg-sys");return false;}
+    if(S.p.eating||S.p.bandaging||S.p.gathering){log("你正在忙碌中。","lg-sys");return false;}
     if(S.p.hp>=S.p.hpMax){log("生命已满。","lg-sys");return false;}
     S.inv.splice(idx,1);
     const E=BAL.economy.food;
@@ -248,7 +254,7 @@ function useItem(id){
     return true;
   }
   if(it.use==="bandage"){
-    if(S.p.eating||S.p.bandaging){log("你正在忙碌中。","lg-sys");return false;}
+    if(S.p.eating||S.p.bandaging||S.p.gathering){log("你正在忙碌中。","lg-sys");return false;}
     if(S.p.hp>=S.p.hpMax){log("生命已满。","lg-sys");return false;}
     S.inv.splice(idx,1);
     const E=BAL.economy.bandage;
@@ -256,6 +262,32 @@ function useItem(id){
     S.p.bandaging={t:E.cast,heal,name:it.name};
     announce("包扎中…");
     log(`开始使用【${it.name}】（移动会打断）。`,"lg-heal");
+    renderBag();
+    if(typeof saveGame==="function")saveGame(true);
+    return true;
+  }
+  if(it.use==="potion"){
+    if(S.p.hp>=S.p.hpMax){log("生命已满。","lg-sys");return false;}
+    S.inv.splice(idx,1);
+    const heal=Math.round(S.p.hpMax*(BAL.economy.minorPotion.healPct||.18));
+    S.p.hp=Math.min(S.p.hpMax,S.p.hp+heal);
+    fct(player.position.clone().setY(2.2),`+${heal}`,"#7dff9a");
+    log(`饮用【${it.name}】，回复 ${heal} 点生命。`,"lg-heal");
+    if(typeof SFX!=="undefined")SFX.play("heal");
+    renderBag();
+    if(typeof saveGame==="function")saveGame(true);
+    return true;
+  }
+  if(it.use==="whetstone"){
+    S.inv.splice(idx,1);
+    const W=BAL.economy.whetstone;
+    const add=+(W.dmgMulAdd||0);
+    if(S.p.whetstoneT>0&&S.p.whetstoneAdd)S.p.dmgMul-=S.p.whetstoneAdd;
+    S.p.whetstoneAdd=add;
+    S.p.whetstoneT=W.duration|0;
+    S.p.dmgMul+=add;
+    announce("磨刀石 · 锋利");
+    log(`使用【${it.name}】，伤害提升 ${Math.round(add*100)}%（${W.duration|0} 秒）。`,"lg-sys");
     renderBag();
     if(typeof saveGame==="function")saveGame(true);
     return true;

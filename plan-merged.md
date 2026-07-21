@@ -405,12 +405,13 @@ js/
 
 > **验收**：主线贯通三章；读档不双加奖励；L 多条目。 ← **已通过**（`node test_step01.js`）
 
-### STEP 23 · 专业技能（采集/制作精简版）`P2` ⏳
+### STEP 23 · 专业技能（采集/制作精简版）`P2` ✅
 
-- 采集点：草药 / 矿脉（SeededRng 摆放）；制作：绷带、初级药水、磨刀石。
-- 营地制作台交互；配方表数据化。
+- 新建 `professions.js`：草药/矿脉（`srand` 摆放，莫高雷+贫瘠）；营地制作台；`RECIPES` 数据化。
+- 材料堆叠 `S.mats`（不占背包）；配方产出绷带 / 初级治疗药水 / 磨刀石。
+- 存档字段 `mats{}`；移动打断采集；磨刀石临时伤害 buff。
 
-> **WoC 对照**：`gather_nodes.ts` + `professions.ts` + 世界市场（市场留到 v5）；我们只做单人制作。
+> **验收**：野外采集 → 营地制作 → 消耗品可用。 ← **已通过**（`node test_step01.js`）
 
 ### STEP 24 · 世界 Boss + 稀有精英框架 `P1` ⏳
 
@@ -598,8 +599,8 @@ js/
 
 **当前模块清单**（`game.html` 加载序）：`core → zones → sfx → icons → items → models → world → barrens → combat → companions → talents → panels → map → vfx → main → raid → wailing → save`
 
-**下一步行动**：从 **STEP 23** 做专业技能（采集/制作精简版）。
+**下一步行动**：从 **STEP 24** 做世界 Boss + 稀有精英框架。
 
 ---
 
-*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 22 完成，下一步 STEP 23*
+*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 23 完成，下一步 STEP 24*

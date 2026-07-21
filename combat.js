@@ -32,11 +32,14 @@ const S={
   portalHinted:false,portalHints:{},portalLockT:0,
   currentTarget:null,   /* STEP 20：玩家集火目标，供 AI 队友共用 */
   quests:{},            /* STEP 22：任务运行时 {id:{status,kills,flags}} */
+  mats:{},              /* STEP 23：采集材料堆叠 {matId:count} */
+  craftOpen:false,
   p:{hp:5200,hpMax:5200,rage:20,rageMax:100,speed:10.5,alive:true,dmgMul:1,
      atkTimer:0,attackAnim:0,walkPhase:0,face:0,invuln:0,
      absorb:0,absorbT:0,shieldMesh:null,   /* STEP 19 真言术：盾 */
      level:1,xp:0,xpMax:BAL.levels.xpMax[0],gold:0,   /* 经验与等级（STEP 3）· 金币铜（STEP 13） */
-     eating:null,bandaging:null,weaknessT:0},
+     eating:null,bandaging:null,gathering:null,weaknessT:0,
+     whetstoneT:0,whetstoneAdd:0},
   b:{id:"ragnaros",hp:BAL.boss.hp,hpMax:BAL.boss.hp,alive:true,rising:true,riseT:0,
      phase:1,swingT:0,casting:null,castT:0,castDur:0,
      next:{},submerged:false,submergeT:0,canLeave:false,nextAddSpawn:0,addWave:null},

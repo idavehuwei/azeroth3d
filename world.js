@@ -10,6 +10,7 @@
             gainCopper rollCopperRange …）
           companions.js 运行时（openRecruitDialogue companionAlive）
           quests.js 运行时（acceptQuest turnInQuest onQuestMobKill questsForNpc）
+          professions.js 运行时（buildWorkbench spawnGatherNodesForZone tryProfessionInteract）
           vfx.js 运行时（VFX spawnBurst）
           save.js 运行时（saveGame；接任务/交任务/离本）
    [导出] player boss BOSS_MESHES WORLD_R sceneWorld heli sun worldFlames PORTAL_POS portalUni
@@ -210,6 +211,16 @@ const southPortalLabel=makeLabel("贫瘠之地",12,"#e8c898","rgba(160,100,40,.9
 southPortalLabel.position.set(PORTAL_BARRENS.x,12.2,PORTAL_BARRENS.z); sceneWorld.add(southPortalLabel);
 const southPortalLabel2=makeLabel(`十字路口 · 需要 Lv.${BAL.barrens.minLevel}+`,7,"#ffb060","rgba(160,80,20,.9)");
 southPortalLabel2.position.set(PORTAL_BARRENS.x,10.8,PORTAL_BARRENS.z); sceneWorld.add(southPortalLabel2);
+
+/* STEP 23：营地制作台 + 莫高雷采集点（在传送门坐标定义之后） */
+if(typeof buildWorkbench==="function")buildWorkbench(sceneWorld);
+if(typeof spawnGatherNodesForZone==="function"){
+  spawnGatherNodesForZone("mulgore",sceneWorld,{
+    radius:WORLD_R,
+    camp:{x:0,z:55},
+    portals:[{x:PORTAL_POS.x,z:PORTAL_POS.z},{x:PORTAL_BARRENS.x,z:PORTAL_BARRENS.z}],
+  });
+}
 
 /* ---------------- 萤火虫粒子（STEP 7 昼夜）：夜晚浮现，白天透明 ---------------- */
 const FIREFLIES=80;
@@ -582,6 +593,7 @@ function tryInteract(){
     leaveRaid(); return;
   }
   if(S.mode!=="world")return;
+  if(typeof tryProfessionInteract==="function"&&tryProfessionInteract())return;
   if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="barrens"
     &&typeof tryInteractBarrens==="function"){tryInteractBarrens();return;}
   const R=BAL.economy.interactR;
@@ -603,6 +615,7 @@ function openSpiritDialogue(){
 function closeDialogue(){
   $("#dlg").style.display="none";
   S.vendorOpen=false;
+  S.craftOpen=false;
   if(typeof renderBag==="function")renderBag();
 }
 function refreshVendorPanel(){

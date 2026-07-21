@@ -1010,7 +1010,8 @@ function resurrectPlayer(spawn,opts){
   S.p.absorb=0; S.p.absorbT=0;
   if(typeof clearShieldVisual==="function")clearShieldVisual();
   S.p.knock=null; S.p.fear=null;
-  S.p.eating=null; S.p.bandaging=null;
+  S.p.eating=null; S.p.bandaging=null; S.p.gathering=null;
+  if(S.p.whetstoneT>0&&S.p.whetstoneAdd){S.p.dmgMul-=S.p.whetstoneAdd;S.p.whetstoneAdd=0;S.p.whetstoneT=0;}
   S.p.weaknessT=D.weaknessT||0;
   player.rotation.z=0; player.position.y=0;
   if(spawn)player.position.set(spawn.x,0,spawn.z);
