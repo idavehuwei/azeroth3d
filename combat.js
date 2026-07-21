@@ -12,6 +12,7 @@
           talents.js 运行时（getSkillCd grantTalentPointOnLevel initTalentsForClass
             toggleTalentPanel；N 键）
           panels.js 运行时（toggleCharPanel toggleSpellPanel toggleQuestLog；C/P/L）
+          map.js 运行时（toggleWorldMap；M 键）
           save.js 运行时（saveGame；升级自动存）
           raid.js 运行时（bossAI distToBoss bossTargetable fireProjectile
             spawnAdd addDamage addDie bossDie playerDie resetBoss BOSS_ENT DUNGEON）
@@ -142,6 +143,8 @@ addEventListener("keydown",e=>{
   if(e.key.toLowerCase()==="c")toggleCharPanel();
   if(e.key.toLowerCase()==="p")toggleSpellPanel();
   if(e.key.toLowerCase()==="l")toggleQuestLog();
+  if(e.key.toLowerCase()==="m")toggleWorldMap();
+  if(e.key==="Escape"&&typeof worldMapOpen==="function"&&worldMapOpen())closeWorldMap();
 });
 addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
 document.getElementById("interactBtn").addEventListener("pointerdown",()=>tryInteract());

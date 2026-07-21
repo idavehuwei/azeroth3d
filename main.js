@@ -16,6 +16,7 @@
           raid.js 运行时（bossAI distToBoss bossTargetable DUNGEON）
           world.js 运行时（heli sun fireflies FIREFLIES ffPhases）
           save.js 运行时（启程 / 继续冒险）
+          map.js 运行时（updateMinimap）
    [导出] clampArena tick chosenClass toggleFps
    ============================================================ */
 "use strict";
@@ -500,6 +501,7 @@ function tick(){
   $("#pRageTx").textContent=`${CLS.resName} ${Math.round(S.p.rage)}`;
   $("#pXp").style.transform=`scaleX(${S.p.level>=BAL.levels.max?1:S.p.xp/S.p.xpMax})`;
   $("#pXpTx").textContent=S.p.level>=BAL.levels.max?"满 级":`经验 ${Math.floor(S.p.xp)} / ${S.p.xpMax}`;
+  if(typeof updateMinimap==="function")updateMinimap();
 
   renderer.render(scene,camera);
 }

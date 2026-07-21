@@ -163,12 +163,35 @@
   .ql-item .st{font-size:10px;color:#8aff9a;letter-spacing:1px;margin-top:4px}
   .ql-item.done .ttl{color:#8aff9a}
   .ql-empty{font-size:12px;color:#8b7a5e;letter-spacing:1px;line-height:1.8;padding:8px 0}
-  #quest{position:fixed;top:14px;right:14px;z-index:9;display:none;min-width:190px;max-width:240px;
-    background:var(--ui-bg);border:1px solid var(--ui-line);padding:10px 14px;
-    font-size:12px;line-height:1.9;color:#e8d8bc;box-shadow:0 0 16px rgba(255,90,0,.2)}
+  #quest{position:fixed;top:178px;right:14px;z-index:9;display:none;min-width:148px;max-width:160px;
+    background:var(--ui-bg);border:1px solid var(--ui-line);padding:10px 12px;
+    font-size:11px;line-height:1.8;color:#e8d8bc;box-shadow:0 0 16px rgba(255,90,0,.2)}
   #quest .qt{color:#ffd9a0;letter-spacing:1px;font-weight:800;font-size:11px;margin-bottom:2px}
   #quest .qo{color:#e8d8bc}
   #quest .qd{color:#8aff9a;font-weight:700}
+  /* ---------- 小地图 / 世界地图（STEP 16） ---------- */
+  #minimapWrap{position:fixed;top:14px;right:14px;z-index:9;width:148px;display:none;
+    background:var(--ui-bg);border:1px solid var(--ui-line);padding:4px;
+    box-shadow:0 0 16px rgba(255,90,0,.25)}
+  #minimapWrap .mm-title{font-size:9px;color:#ff9a55;letter-spacing:2px;font-weight:800;
+    text-align:center;margin-bottom:2px}
+  #minimap{display:block;width:140px;height:140px;border:1px solid rgba(255,140,60,.25);
+    background:rgba(8,12,6,.85);cursor:pointer}
+  #worldMapOv{position:fixed;inset:0;z-index:24;display:none;align-items:center;justify-content:center;
+    background:rgba(5,2,1,.72);padding:16px}
+  #worldMapOv.show{display:flex}
+  #worldMapBox{background:var(--ui-bg);border:1px solid #ffcf90;padding:12px 14px;
+    box-shadow:0 0 36px rgba(255,120,20,.4);max-width:94vw}
+  #worldMapBox .bag-title{font-weight:800;font-size:14px;color:#ffd9a0;letter-spacing:2px;margin-bottom:8px;
+    display:flex;justify-content:space-between;align-items:center}
+  #worldMapBox .bag-close{cursor:pointer;color:#8b7a5e}
+  #worldMapBox .bag-close:hover{color:#ffd9a0}
+  #worldMap{display:block;width:min(520px,86vw);height:auto;aspect-ratio:1;
+    border:1px solid var(--ui-line);background:#0c1008}
+  #worldMapLeg{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:8px;font-size:10px;color:#b09a7a;letter-spacing:1px}
+  #worldMapLeg span{display:inline-flex;align-items:center;gap:4px}
+  #worldMapLeg i{display:inline-block;width:8px;height:8px;border-radius:50%}
+  .ph-hint.mm{margin-top:6px;font-size:10px;color:#8b7a5e;letter-spacing:1px}
  
   /* ---------- 中央大字提示 ---------- */
   #announce{position:fixed;top:24%;left:50%;transform:translateX(-50%);z-index:20;pointer-events:none;
@@ -291,7 +314,27 @@
 <div id="log"></div>
 <div id="announce"></div>
 <div id="joy"><div id="joyKnob"></div></div>
+<div id="minimapWrap">
+  <div class="mm-title">莫 高 雷</div>
+  <canvas id="minimap" width="140" height="140" title="点击或按 M 打开世界地图"></canvas>
+</div>
 <div id="quest"></div>
+<div id="worldMapOv">
+  <div id="worldMapBox">
+    <div class="bag-title">🗺 世界地图 · 莫高雷<span class="bag-close" id="worldMapClose">✕</span></div>
+    <canvas id="worldMap" width="520" height="520"></canvas>
+    <div id="worldMapLeg">
+      <span><i style="background:#7ab8ff"></i>你</span>
+      <span><i style="background:#ffd9a0"></i>长老</span>
+      <span><i style="background:#8aff9a"></i>商人</span>
+      <span><i style="background:#a8d8ff"></i>灵魂医者</span>
+      <span><i style="background:#ff8a4a"></i>传送门</span>
+      <span><i style="background:#ffd700"></i>稀有精英</span>
+      <span><i style="background:#ff9ad0"></i>精英</span>
+    </div>
+    <div class="ph-hint mm">M 键开关 · 多区域图层接口已预留（STEP 17）</div>
+  </div>
+</div>
 <div id="bag">
   <div class="bag-title">🎒 背包与装备<span class="bag-close" id="bagClose">✕</span></div>
   <div class="bag-eq">
@@ -368,7 +411,7 @@
       <button type="button" class="btn sm ghost" id="btnExportSave" style="display:none">导出存档码</button>
     </div>
   </div>
-  <div class="hint">WASD 移动 · 1-4 技能 · F 交互 · B 背包 · N 天赋 · C 角色 · P 法术书 · L 任务日志<br>
+  <div class="hint">WASD 移动 · 1-4 技能 · F 交互 · B 背包 · N 天赋 · C 角色 · P 法术书 · L 任务 · M 地图<br>
        在莫高雷沿土路北行，走进传送门旋涡即进入副本 · 副本内走出地面红圈躲避熔岩喷发</div>
 </div>
  
@@ -397,6 +440,7 @@
 <script src="combat.js"></script>
 <script src="talents.js"></script>
 <script src="panels.js"></script>
+<script src="map.js"></script>
 <script src="vfx.js"></script>
 <script src="main.js"></script>
 <script src="raid.js"></script>

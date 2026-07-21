@@ -330,14 +330,15 @@ js/
 
 > **验收**：野外死亡 → 复活 → 继续任务；副本团灭可重来且进度（走廊已清）按 `DUNGEON.wipePolicy` 保留。 ← **已通过**
 
-### STEP 16 · 小地图 + 简易世界地图 `P2` ⏳
+### STEP 16 · 小地图 + 简易世界地图 `P2` ✅
 
 - 右上角 Canvas 小地图：玩家、任务 NPC、传送门、稀有精英点。
 - `M` 打开世界地图（手绘风程序化：莫高雷轮廓 + 标注）；多区域预留图层接口。
+- 实现于 `map.js`（`MAP_ZONES` / `updateMinimap` / `toggleWorldMap`）；`BAL.map`；任务追踪下移避让。
 
 > **WoC 对照**：minimap blips + world map；我们保持程序化，零贴图。
 
-> **验收**：靠小地图能找到传送门与长老；地图开关无泄漏。
+> **验收**：靠小地图能找到传送门与长老；地图开关无泄漏。 ← **已通过**
 
 ---
 
@@ -556,7 +557,7 @@ js/
 | v2.5 经典系统 | 13 | 金币经济 + 营地商人 | ✅ 完成 | 1 次迭代 |
 | v2.5 经典系统 | 14 | 角色 / 法术书 / 任务日志（C P L） | ✅ 完成 | 0.5 次迭代 |
 | v2.5 经典系统 | 15 | 死亡与灵魂医者 | ✅ 完成 | 1 次迭代 |
-| v2.5 经典系统 | 16 | 小地图 | ⏳ 下一步 | 1 次迭代 |
+| v2.5 经典系统 | 16 | 小地图 | ✅ 完成 | 1 次迭代 |
 | v3.0 卡利姆多 | 17–21 | 多区、贫瘠之地、牧师、AI 队友、哀嚎洞穴 | ⏳ 待开始 | 4–6 次迭代 |
 | v3.5 内容密度 | 22–25 | 任务网、专业、世界 Boss、成就 | ⏳ 待开始 | 3–4 次迭代 |
 | v4.0 开荒团 | 26–29 | 5 AI、仇恨职责、短团本、本地查找器 | ⏳ 待开始 | 4–5 次迭代 |
@@ -587,14 +588,14 @@ js/
 | 13 | ✅ | 金币 HUD；野怪/Boss/任务掉铜；商人火蹄；食物/绷带；右键出售 |
 | 14 | ✅ | `panels.js`：C 角色 / P 法术书 / L 任务日志；追踪器规范化 |
 | 15 | ✅ | 释放灵魂复活；灵魂医者；副本走廊复活 / 退出；虚弱 debuff |
-| 16 | ⏳ | 小地图 |
+| 16 | ✅ | `map.js`：小地图 blip + M 世界地图；`MAP_ZONES` 预留 |
 | 17–21 | ⏳ | v3.0 卡利姆多扩张未开始 |
 | 22–36 | 🔮 | v3.5–v5.0 已规划，待前置完成 |
 
-**当前模块清单**（`game.html` 加载序）：`core → sfx → icons → items → models → world → combat → talents → panels → vfx → main → raid → save`
+**当前模块清单**（`game.html` 加载序）：`core → sfx → icons → items → models → world → combat → talents → panels → map → vfx → main → raid → save`
 
-**下一步行动**：从 **STEP 16** 做小地图 + 简易世界地图。
+**下一步行动**：从 **STEP 17** 做多场景注册表（`ZONES` / `enterZone`）。
 
 ---
 
-*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 15 完成，下一步 STEP 16*
+*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 16 完成，下一步 STEP 17*

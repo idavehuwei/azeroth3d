@@ -6,6 +6,7 @@
    [依赖] core.js（$ BAL）· combat.js（S CLS SKILLS formatCopperText）
           items.js（ITEMS QUALITY bagOpen）· talents.js（getSkillCd talentOpen）
           world.js（QUEST updateQuest）· icons.js（Icons）
+          map.js 运行时（worldMapOpen；关闭世界地图）
    [导出] toggleCharPanel toggleSpellPanel toggleQuestLog
           renderCharPanel renderSpellPanel renderQuestLog
           closeAllHudPanels equipScore itemScore
@@ -21,6 +22,9 @@ function closeAllHudPanels(except){
   if(except!=="quest")setPanel("#questLog",false);
   if(except!=="bag"&&typeof bagOpen==="function"&&bagOpen())$("#bag").style.display="none";
   if(except!=="talent"&&typeof talentOpen==="function"&&talentOpen())closeTalentPanel();
+  if(except!=="map"&&typeof worldMapOpen==="function"&&worldMapOpen()){
+    const ov=$("#worldMapOv"); if(ov)ov.classList.remove("show");
+  }
 }
 
 function itemScore(it){

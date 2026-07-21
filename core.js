@@ -165,6 +165,14 @@ const BALANCE={
     dmgMul:200,   /* (dmgMul-1) × 此系数 */
     hpMax:.05,    /* hpMax × 此系数 */
   },
+  /* 小地图 / 世界地图（STEP 16） */
+  map:{
+    miniSize:140,           /* canvas 边长（外框含 padding 约 148） */
+    worldSize:520,          /* 世界地图 canvas 边长 */
+    padding:10,
+    worldPad:18,            /* 世界地图内边距（留标签） */
+    showInRaid:true,        /* 副本内显示局部小地图 */
+  },
 };
 const BAL=BALANCE;
 

@@ -34,6 +34,7 @@
 | `vfx.js` | 特效注册表 | VFX, fireProjectile, spawnTelegraph, spawnBurst, disposeVfxMesh |
 | `talents.js` | 天赋数据层 | TALENTS, spendTalent, getSkillCd, cheatTalent |
 | `panels.js` | HUD 面板 | toggleCharPanel, toggleSpellPanel, toggleQuestLog |
+| `map.js` | 小地图 / 世界地图 | updateMinimap, toggleWorldMap, MAP_ZONES |
 | `save.js` | 存档系统 | saveGame, loadGame, exportSaveCode, importSaveCode |
 | `raid.js` | 副本系统 | BOSSES, createBoss, bossAI, DUNGEON, buildRaidScene, spawnAdd |
 | `main.js` | 主循环 | tick, clampArena |
