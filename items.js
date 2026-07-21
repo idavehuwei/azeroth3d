@@ -10,7 +10,8 @@
           save.js 运行时（saveGame；换装自动存）
    [导出] QUALITY ITEMS LOOT rollLoot dropLoot updateDrops nearestDrop
           tryLoot removeDropOf logLoot DROPS
-          equipItem unequipItem toggleBag renderBag applyEquipStats bagOpen（STEP 4）
+          equipItem unequipItem toggleBag renderBag applyEquipStats bagOpen
+          useItem sellItem buyVendorItem cancelConsume（STEP 13）
    ============================================================ */
 "use strict";
 /* ---------------- 品质表：颜色即一切（描边/名字/方块光） ---------------- */
@@ -21,32 +22,37 @@ const QUALITY={
   legendary:{name:"传说",color:"#ff8000",hex:0xff8000},
 };
 
-/* ---------------- 物品定义：{id,name,icon,quality,slot,stats} ----------------
-   stats 暂不生效（STEP 4 背包装备时消费 dmgMul/hpMax） */
+/* ---------------- 物品定义：{id,name,icon,quality,slot,stats,vendorBuy?,vendorSell?,use?}
+   slot: weapon|armor|misc|consumable；铜价见 vendorBuy/vendorSell（STEP 13） */
 const ITEMS={
-  boar_meat    :{id:"boar_meat",    name:"野猪肋排",    icon:"meat",  quality:"common",   slot:"misc",  stats:null},
-  boar_tusk    :{id:"boar_tusk",    name:"破损的獠牙",  icon:"tusk",  quality:"common",   slot:"misc",  stats:null},
-  boar_hide    :{id:"boar_hide",    name:"粗糙的兽皮",  icon:"hide",  quality:"common",   slot:"misc",  stats:null},
-  tusk_blade   :{id:"tusk_blade",   name:"獠牙短刃",    icon:"sword", quality:"uncommon", slot:"weapon",stats:{dmgMul:1.05},model:"sword"},
-  hide_vest    :{id:"hide_vest",    name:"硬化皮甲",    icon:"armor", quality:"uncommon", slot:"armor", stats:{hpMax:250}},
-  plains_blade :{id:"plains_blade", name:"草原猎手战刃",icon:"sword", quality:"rare",     slot:"weapon",stats:{dmgMul:1.12},model:"sword"},
-  mesa_guard   :{id:"mesa_guard",   name:"红岩守卫胸甲",icon:"armor", quality:"rare",     slot:"armor", stats:{hpMax:600}},
-  sulf_ash     :{id:"sulf_ash",     name:"熔岩灰烬",    icon:"hide",  quality:"common",   slot:"misc",  stats:null},
-  sulf_core    :{id:"sulf_core",    name:"灼热核心",    icon:"fireball",quality:"common", slot:"misc",  stats:null},
-  sulf_ring    :{id:"sulf_ring",    name:"烈焰指环",    icon:"armor", quality:"uncommon", slot:"armor", stats:{hpMax:180}},
-  sulf_blade   :{id:"sulf_blade",   name:"熔火利刃",    icon:"sword", quality:"rare",     slot:"weapon",stats:{dmgMul:1.08},model:"sword"},
-  sulfuras_haft:{id:"sulfuras_haft",name:"萨弗拉斯之柄",icon:"hammer",quality:"legendary",slot:"weapon",stats:{dmgMul:1.3},model:"sulfuras"},
+  boar_meat    :{id:"boar_meat",    name:"野猪肋排",    icon:"meat",  quality:"common",   slot:"misc",  stats:null, vendorSell:6},
+  boar_tusk    :{id:"boar_tusk",    name:"破损的獠牙",  icon:"tusk",  quality:"common",   slot:"misc",  stats:null, vendorSell:4},
+  boar_hide    :{id:"boar_hide",    name:"粗糙的兽皮",  icon:"hide",  quality:"common",   slot:"misc",  stats:null, vendorSell:8},
+  tusk_blade   :{id:"tusk_blade",   name:"獠牙短刃",    icon:"sword", quality:"uncommon", slot:"weapon",stats:{dmgMul:1.05},model:"sword",vendorSell:45},
+  hide_vest    :{id:"hide_vest",    name:"硬化皮甲",    icon:"armor", quality:"uncommon", slot:"armor", stats:{hpMax:250},vendorSell:50},
+  plains_blade :{id:"plains_blade", name:"草原猎手战刃",icon:"sword", quality:"rare",     slot:"weapon",stats:{dmgMul:1.12},model:"sword",vendorSell:180},
+  mesa_guard   :{id:"mesa_guard",   name:"红岩守卫胸甲",icon:"armor", quality:"rare",     slot:"armor", stats:{hpMax:600},vendorSell:200},
+  sulf_ash     :{id:"sulf_ash",     name:"熔岩灰烬",    icon:"hide",  quality:"common",   slot:"misc",  stats:null, vendorSell:10},
+  sulf_core    :{id:"sulf_core",    name:"灼热核心",    icon:"fireball",quality:"common", slot:"misc",  stats:null, vendorSell:14},
+  sulf_ring    :{id:"sulf_ring",    name:"烈焰指环",    icon:"armor", quality:"uncommon", slot:"armor", stats:{hpMax:180},vendorSell:70},
+  sulf_blade   :{id:"sulf_blade",   name:"熔火利刃",    icon:"sword", quality:"rare",     slot:"weapon",stats:{dmgMul:1.08},model:"sword",vendorSell:220},
+  sulfuras_haft:{id:"sulfuras_haft",name:"萨弗拉斯之柄",icon:"hammer",quality:"legendary",slot:"weapon",stats:{dmgMul:1.3},model:"sulfuras",vendorSell:2500},
   /* —— STEP 5 新怪掉落 —— */
-  wolf_pelt    :{id:"wolf_pelt",    name:"灰狼皮",      icon:"hide",   quality:"common",  slot:"misc",  stats:null},
-  wolf_fang    :{id:"wolf_fang",    name:"锋利的狼牙",  icon:"tusk",   quality:"common",  slot:"misc",  stats:null},
-  bird_feather :{id:"bird_feather", name:"陆行鸟羽毛",  icon:"feather",quality:"common",  slot:"misc",  stats:null},
-  bird_meat    :{id:"bird_meat",    name:"陆行鸟腿肉",  icon:"meat",   quality:"common",  slot:"misc",  stats:null},
-  wind_blade   :{id:"wind_blade",   name:"疾风之刃",    icon:"sword",  quality:"uncommon",slot:"weapon",stats:{dmgMul:1.06},model:"sword"},
-  harpy_charm  :{id:"harpy_charm",  name:"鹰羽护符",    icon:"feather",quality:"uncommon",slot:"armor", stats:{hpMax:220}},
-  greyjaw_tusk :{id:"greyjaw_tusk", name:"老灰鬃的獠牙刃",icon:"sword",quality:"rare",    slot:"weapon",stats:{dmgMul:1.15},model:"sword"},
+  wolf_pelt    :{id:"wolf_pelt",    name:"灰狼皮",      icon:"hide",   quality:"common",  slot:"misc",  stats:null, vendorSell:7},
+  wolf_fang    :{id:"wolf_fang",    name:"锋利的狼牙",  icon:"tusk",   quality:"common",  slot:"misc",  stats:null, vendorSell:5},
+  bird_feather :{id:"bird_feather", name:"陆行鸟羽毛",  icon:"feather",quality:"common",  slot:"misc",  stats:null, vendorSell:5},
+  bird_meat    :{id:"bird_meat",    name:"陆行鸟腿肉",  icon:"meat",   quality:"common",  slot:"misc",  stats:null, vendorSell:6},
+  wind_blade   :{id:"wind_blade",   name:"疾风之刃",    icon:"sword",  quality:"uncommon",slot:"weapon",stats:{dmgMul:1.06},model:"sword",vendorSell:55},
+  harpy_charm  :{id:"harpy_charm",  name:"鹰羽护符",    icon:"feather",quality:"uncommon",slot:"armor", stats:{hpMax:220},vendorSell:60},
+  greyjaw_tusk :{id:"greyjaw_tusk", name:"老灰鬃的獠牙刃",icon:"sword",quality:"rare",    slot:"weapon",stats:{dmgMul:1.15},model:"sword",vendorSell:240},
   /* —— STEP 9c 玛格曼达 —— */
-  magma_fang   :{id:"magma_fang",   name:"熔岩犬牙项链",icon:"tusk",  quality:"uncommon",slot:"armor", stats:{hpMax:320}},
-  magma_collar :{id:"magma_collar", name:"焚犬项圈",    icon:"armor", quality:"rare",    slot:"armor", stats:{hpMax:520}},
+  magma_fang   :{id:"magma_fang",   name:"熔岩犬牙项链",icon:"tusk",  quality:"uncommon",slot:"armor", stats:{hpMax:320},vendorSell:90},
+  magma_collar :{id:"magma_collar", name:"焚犬项圈",    icon:"armor", quality:"rare",    slot:"armor", stats:{hpMax:520},vendorSell:260},
+  /* —— STEP 13 商人消耗品 —— */
+  plain_bread  :{id:"plain_bread",  name:"硬面饼",      icon:"bread",  quality:"common", slot:"consumable",use:"food",
+                 stats:null, vendorBuy:25, vendorSell:5},
+  linen_bandage:{id:"linen_bandage",name:"亚麻绷带",    icon:"bandage",quality:"common", slot:"consumable",use:"bandage",
+                 stats:null, vendorBuy:40, vendorSell:8},
 };
 
 /* ---------------- 掉落表：品质三档池，权重见 BALANCE.loot.weights ---------------- */
@@ -180,6 +186,7 @@ function logLoot(item){
    背包与装备栏（STEP 4）：B 键开关，16 格 + 武器/护甲两个装备位
    武器加 dmgMul（叠加制，与等级/任务奖励同路）、护甲加 hpMax；
    换装时只换武器组：setWeapon(player, item.model)
+   STEP 13：消耗品左键使用；商人打开时右键出售
    ============================================================ */
 function applyEquipStats(it,sign){
   const st=it.stats||{};
@@ -188,6 +195,79 @@ function applyEquipStats(it,sign){
     S.p.hpMax+=st.hpMax*sign;
     S.p.hp=sign>0?Math.min(S.p.hpMax,S.p.hp+st.hpMax):Math.min(S.p.hp,S.p.hpMax);
   }
+}
+function cancelConsume(){
+  if(S.p.eating){S.p.eating=null;log("进食被打断。","lg-sys");}
+  if(S.p.bandaging){S.p.bandaging=null;log("包扎被打断。","lg-sys");}
+}
+function useItem(id){
+  const it=ITEMS[id];
+  if(!it||it.slot!=="consumable"){log("该物品无法使用。","lg-sys");return false;}
+  if(!S.p.alive||S.over)return false;
+  const idx=S.inv.indexOf(id); if(idx<0)return false;
+  if(it.use==="food"){
+    if(S.p.eating||S.p.bandaging){log("你正在忙碌中。","lg-sys");return false;}
+    if(S.p.hp>=S.p.hpMax){log("生命已满。","lg-sys");return false;}
+    S.inv.splice(idx,1);
+    const E=BAL.economy.food;
+    const total=Math.round(S.p.hpMax*E.healPct);
+    S.p.eating={t:E.duration,healPerSec:total/E.duration,name:it.name};
+    announce("坐下进食…");
+    log(`开始食用【${it.name}】（移动会打断）。`,"lg-heal");
+    renderBag();
+    if(typeof saveGame==="function")saveGame(true);
+    return true;
+  }
+  if(it.use==="bandage"){
+    if(S.p.eating||S.p.bandaging){log("你正在忙碌中。","lg-sys");return false;}
+    if(S.p.hp>=S.p.hpMax){log("生命已满。","lg-sys");return false;}
+    S.inv.splice(idx,1);
+    const E=BAL.economy.bandage;
+    const heal=Math.round(S.p.hpMax*E.healPct);
+    S.p.bandaging={t:E.cast,heal,name:it.name};
+    announce("包扎中…");
+    log(`开始使用【${it.name}】（移动会打断）。`,"lg-heal");
+    renderBag();
+    if(typeof saveGame==="function")saveGame(true);
+    return true;
+  }
+  return false;
+}
+function sellItem(id){
+  if(!S.vendorOpen){log("需要在商人处才能出售。","lg-sys");return false;}
+  const it=ITEMS[id];
+  if(!it||it.vendorSell==null){log("该物品无法出售。","lg-sys");return false;}
+  const idx=S.inv.indexOf(id); if(idx<0)return false;
+  S.inv.splice(idx,1);
+  gainCopper(it.vendorSell,{silent:true});
+  log(`出售【${it.name}】，获得 ${formatCopperText(it.vendorSell)}。`,"lg-sys");
+  SFX.play("pickup");
+  renderBag();
+  if(typeof refreshVendorPanel==="function")refreshVendorPanel();
+  if(typeof saveGame==="function")saveGame(true);
+  return true;
+}
+function buyVendorItem(id){
+  if(!S.vendorOpen)return false;
+  const it=ITEMS[id];
+  if(!it||it.vendorBuy==null){log("无法购买。","lg-sys");return false;}
+  if(S.inv.length>=BAL.bag.size){log("背包已满。","lg-sys");return false;}
+  if(!spendCopper(it.vendorBuy)){
+    log(`金币不足（需要 ${formatCopperText(it.vendorBuy)}）。`,"lg-sys");
+    return false;
+  }
+  S.inv.push(id);
+  log(`购买【${it.name}】，花费 ${formatCopperText(it.vendorBuy)}。`,"lg-sys");
+  SFX.play("pickup");
+  renderBag();
+  if(typeof refreshVendorPanel==="function")refreshVendorPanel();
+  if(typeof saveGame==="function")saveGame(true);
+  return true;
+}
+function onBagItemClick(id){
+  const it=ITEMS[id]; if(!it)return;
+  if(it.slot==="consumable")useItem(id);
+  else if(it.slot==="weapon"||it.slot==="armor")equipItem(id);
 }
 function equipItem(id){
   const it=ITEMS[id];
@@ -228,6 +308,10 @@ function itemTitle(it){
   const st=it.stats||{}, parts=[];
   if(st.dmgMul)parts.push(`伤害 +${Math.round((st.dmgMul-1)*100)}%`);
   if(st.hpMax)parts.push(`生命上限 +${st.hpMax}`);
+  if(it.slot==="consumable"&&it.use==="food")parts.push("坐下回血");
+  if(it.slot==="consumable"&&it.use==="bandage")parts.push("包扎回血");
+  if(it.vendorSell!=null)parts.push(`售价 ${formatCopperText(it.vendorSell)}`);
+  if(it.vendorBuy!=null)parts.push(`买入 ${formatCopperText(it.vendorBuy)}`);
   return `${it.name}（${QUALITY[it.quality].name}）${parts.length?" · "+parts.join(" · "):""}`;
 }
 function renderBag(){
@@ -253,8 +337,16 @@ function renderBag(){
       const it=ITEMS[id], q=QUALITY[it.quality];
       const img=document.createElement("img");
       img.src=Icons.get(it.icon,q.color); img.style.borderColor=q.color;
-      img.title=itemTitle(it)+((it.slot==="weapon"||it.slot==="armor")?" · 点击装备":"");
-      img.addEventListener("click",()=>equipItem(id));
+      let tip=itemTitle(it);
+      if(it.slot==="weapon"||it.slot==="armor")tip+=" · 点击装备";
+      else if(it.slot==="consumable")tip+=" · 点击使用";
+      if(S.vendorOpen&&it.vendorSell!=null)tip+=" · 右键出售";
+      img.title=tip;
+      img.addEventListener("click",()=>onBagItemClick(id));
+      img.addEventListener("contextmenu",e=>{
+        e.preventDefault();
+        sellItem(id);
+      });
       cell.appendChild(img);
     }
     grid.appendChild(cell);

@@ -4,7 +4,7 @@
    [依赖] THREE · core.js（rand）
    [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS
           buildQuadruped buildHumanoidMob QUADS MOB_HUMANOIDS（STEP 5 族群工厂）
-          buildPlayer buildMage buildArcher buildBoss buildElder
+          buildPlayer buildMage buildArcher buildBoss buildElder buildVendor
           buildBoar buildFlameSpawn
    ------------------------------------------------------------
    3D 模型库（全部程序化几何体，零模型文件）
@@ -498,5 +498,16 @@ function buildElder(){
     fe.position.set(1.4+(i-1)*.18,3.9,.42); fe.rotation.x=Math.PI; g.add(fe);
   }
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  return g;
+}
+/* 营地商人：复用长老骨架，布料改青绿 */
+function buildVendor(){
+  const g=buildElder();
+  g.traverse(o=>{
+    if(!o.isMesh||!o.material||!o.material.color)return;
+    o.material=o.material.clone();
+    const h=o.material.color.getHex();
+    if(h===0x8a4a2a)o.material.color.setHex(0x2a6a4a);
+  });
   return g;
 }

@@ -298,15 +298,16 @@ js/
 
 > WoC 在三区开放世界之前，已有完整 HUD：角色、法术书、任务日志、小地图、商人、墓地。本阶段把这些经典骨架补齐，**仍单地图（莫高雷）+ 熔火之心**，为多地图做 UI/数据准备。
 
-### STEP 13 · 金币经济 + 营地商人 `P1` ⏳
+### STEP 13 · 金币经济 + 营地商人 `P1` ✅
 
-- `S.p.gold`（铜为最小单位，显示金/银/铜）；野怪/任务/Boss 掉铜。
-- 营地商人 NPC（复用长老对话 UI）：出售白装消耗品（食物/绷带）、回购。
-- 物品加 `vendorBuy` / `vendorSell`；背包右键出售。
+- `S.p.gold`（铜为最小单位，显示金/银/铜）；野怪/任务/Boss/小怪掉铜。
+- 营地商人「火蹄」（复用 `#dlg`）：出售硬面饼 / 亚麻绷带；打开时背包右键回购。
+- 物品加 `vendorBuy` / `vendorSell`；消耗品左键使用（坐下进食 / 包扎，移动打断）。
+- 存档已含金币（STEP 11）。
 
 > **WoC 对照**：Vendor + bags UI 全是 HTML 覆盖层；金币展示经典三段。
 
-> **验收**：杀猪有铜 → 买食物坐下回血 → 卖垃圾装；存档含金币。
+> **验收**：杀猪有铜 → 买食物坐下回血 → 卖垃圾装；存档含金币。 ← **已通过**
 
 ### STEP 14 · 角色面板 / 法术书 / 任务日志 `P1` ⏳
 
@@ -550,7 +551,8 @@ js/
 | v2.0 成长/工程 | 10b | 天赋 UI（N 键面板 + 重置） | ✅ 完成 | 0.5 次迭代 |
 | v2.0 成长/工程 | 11 | 存档（localStorage + Base64 导入导出） | ✅ 完成 | 1 次迭代 |
 | v2.0 成长/工程 | 12 | debug/FPS/dispose | ⏳ 下一步 | 1–2 次迭代 |
-| v2.5 经典系统 | 13–16 | 商人金币、C/P/L 面板、墓地、小地图 | ⏳ 待开始 | 2–3 次迭代 |
+| v2.5 经典系统 | 13 | 金币经济 + 营地商人 | ✅ 完成 | 1 次迭代 |
+| v2.5 经典系统 | 14–16 | C/P/L 面板、墓地、小地图 | ⏳ 下一步 | 2–3 次迭代 |
 | v3.0 卡利姆多 | 17–21 | 多区、贫瘠之地、牧师、AI 队友、哀嚎洞穴 | ⏳ 待开始 | 4–6 次迭代 |
 | v3.5 内容密度 | 22–25 | 任务网、专业、世界 Boss、成就 | ⏳ 待开始 | 3–4 次迭代 |
 | v4.0 开荒团 | 26–29 | 5 AI、仇恨职责、短团本、本地查找器 | ⏳ 待开始 | 4–5 次迭代 |
@@ -578,14 +580,15 @@ js/
 | 11 | ✅ | `save.js`：localStorage + Base64；继续/新旅程；自动存挂点；`cheatSave` |
 | 12 | ✅ | `#fps` + `Ctrl+F`；`BAL.fps`；`?dev` 默认开 |
 | 12+ | ⏳ | `debug.js` / dispose / 移动端（原 STEP 12 余项） |
-| 13–16 | ⏳ | v2.5 经典系统未开始 |
+| 13 | ✅ | 金币 HUD；野怪/Boss/任务掉铜；商人火蹄；食物/绷带；右键出售 |
+| 14–16 | ⏳ | C/P/L 面板、墓地、小地图 |
 | 17–21 | ⏳ | v3.0 卡利姆多扩张未开始 |
 | 22–36 | 🔮 | v3.5–v5.0 已规划，待前置完成 |
 
 **当前模块清单**（`game.html` 加载序）：`core → sfx → icons → items → models → world → combat → talents → vfx → main → raid → save`
 
-**下一步行动**：从 **STEP 13** 做金币经济 + 营地商人（或先补 12+ debug/dispose）。
+**下一步行动**：从 **STEP 14** 做角色面板 / 法术书 / 任务日志（C/P/L）。
 
 ---
 
-*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 12 FPS 完成，下一步 STEP 13*
+*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 13 完成，下一步 STEP 14*

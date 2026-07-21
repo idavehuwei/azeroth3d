@@ -6,11 +6,12 @@
           lavaUniforms embers EMBERS emberVel）
           items.js（updateDrops nearestDrop removeDropOf）
           world.js（player boss WORLD_R PORTAL_POS portalUni portalLabel worldFlames
-          MOBS elder elderDist enterRaid leaveRaid closeDialogue moveToward mobDamage setCorpse
+          MOBS elder elderDist vendor vendorDist enterRaid leaveRaid closeDialogue moveToward mobDamage setCorpse
           exitPortal EXIT_PORTAL_POS spawnExitPortal removeExitPortal）
           combat.js（S CLS SKILLS keys joy setClass bossAI bossTargetable distToBoss
           pickTarget firePlayerShot dmgBoss addDamage mobDamage playerHit
           log announce fct）
+          items.js（updateDrops nearestDrop removeDropOf cancelConsume）
           vfx.js（VFX spawnBurst fireProjectile disposeVfxMesh）
           raid.js 运行时（bossAI distToBoss bossTargetable DUNGEON）
           world.js 运行时（heli sun fireflies FIREFLIES ffPhases）
@@ -206,15 +207,18 @@ function tick(){
         m.mesh.position.y=m.moving?Math.abs(Math.sin(S.t*9+m.home.x))*.22:0;
         m.label.position.set(m.mesh.position.x,m.labelY,m.mesh.position.z);
       }
-      /* 长老待机动画 & 任务标记浮动 */
+      /* 长老 / 商人待机动画 & 任务标记浮动 */
       elder.rotation.y=Math.PI*.85+Math.sin(S.t*.8)*.08;
       elder.position.y=Math.sin(S.t*1.6)*.04;
+      vendor.rotation.y=Math.PI*1.15+Math.sin(S.t*.7+1)*.08;
+      vendor.position.y=Math.sin(S.t*1.5+2)*.04;
       markerExcl.position.y=6.8+Math.sin(S.t*2.4)*.3;
       markerQ.position.y=markerExcl.position.y;
       /* 对话按钮显隐 / 走远自动关闭对话 */
-      const nearElder=elderDist()<5.5;
-      $("#interactBtn").style.display=(nearElder&&$("#dlg").style.display!=="block")?"block":"none";
-      if(!nearElder&&elderDist()>8)closeDialogue();
+      const nearR=BAL.economy.interactR;
+      const nearNpc=elderDist()<nearR||vendorDist()<nearR;
+      $("#interactBtn").style.display=(nearNpc&&$("#dlg").style.display!=="block")?"block":"none";
+      if(elderDist()>8&&vendorDist()>8)closeDialogue();
     }
     /* ---- 掉落动画 & 拾取按钮（世界/副本通用，STEP 2） ---- */
     updateDrops(dt);
@@ -222,12 +226,36 @@ function tick(){
     if(nd){ib.textContent="✨ 拾 取（F）";ib.style.display="block";}
     else if(S.mode==="raid"&&S.b.canLeave&&exitPortal&&player.position.distanceTo(EXIT_PORTAL_POS)<5.5){
       ib.textContent="🚪 走进传送门";ib.style.display="block";
-    }else{ib.textContent="💬 对 话（F）";if(S.mode!=="world")ib.style.display="none";}
+    }else{
+      ib.textContent=vendorDist()<BAL.economy.interactR?"🛒 交易（F）":"💬 对 话（F）";
+      if(S.mode!=="world")ib.style.display="none";
+    }
     /* ---- 玩家移动 ---- */
     let mx=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
     let mz=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
     mx+=joy.x; mz+=joy.y;
     const ml=Math.hypot(mx,mz);
+    /* 进食 / 包扎：移动打断（STEP 13） */
+    if((S.p.eating||S.p.bandaging)&&ml>.12&&!S.p.knock&&!S.p.fear)cancelConsume();
+    if(S.p.eating){
+      S.p.eating.t-=dt;
+      S.p.hp=Math.min(S.p.hpMax,S.p.hp+S.p.eating.healPerSec*dt);
+      if(S.p.eating.t<=0){
+        log(`【${S.p.eating.name}】食用完毕。`,"lg-heal");
+        S.p.eating=null;
+        VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.4)});
+      }
+    }else if(S.p.bandaging){
+      S.p.bandaging.t-=dt;
+      if(S.p.bandaging.t<=0){
+        const h=S.p.bandaging.heal;
+        S.p.hp=Math.min(S.p.hpMax,S.p.hp+h);
+        fct(player.position.clone().setY(2.4),`+${h}`,"#7cff6a",15);
+        log(`【${S.p.bandaging.name}】包扎完成，回复 ${h} 点生命。`,"lg-heal");
+        S.p.bandaging=null;
+        VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.4)});
+      }
+    }
     if(S.p.knock){
       player.position.add(S.p.knock.dir.clone().multiplyScalar(dt*28));
       S.p.knock.t-=dt; if(S.p.knock.t<=0)S.p.knock=null;

@@ -27,10 +27,10 @@
 |------|------|------|
 | `core.js` | 基础设施 | BALANCE, SeededRng, srand, makeLabel, scene, camera, renderer |
 | `icons.js` | 图标画布工厂 | Icons.canvas, Icons.get |
-| `items.js` | 物品与掉落 | QUALITY, ITEMS, LOOT, dropLoot, tryLoot |
-| `models.js` | 3D 模型工厂 | buildPlayer, buildMage, buildArcher, buildBoss, buildBoar, buildFlameSpawn, buildElder |
-| `world.js` | 莫高雷世界 | player, boss, MOBS, QUEST, enterRaid, mobDie, setCorpse, tryInteract |
-| `combat.js` | 战斗系统 | S, CLASSES, SKILLS, hitEntity, useSkill |
+| `items.js` | 物品与掉落 | QUALITY, ITEMS, LOOT, dropLoot, tryLoot, useItem, sellItem |
+| `models.js` | 3D 模型工厂 | buildPlayer, buildMage, buildArcher, buildBoss, buildBoar, buildFlameSpawn, buildElder, buildVendor |
+| `world.js` | 莫高雷世界 | player, boss, MOBS, QUEST, enterRaid, mobDie, setCorpse, tryInteract, vendor |
+| `combat.js` | 战斗系统 | S, CLASSES, SKILLS, hitEntity, useSkill, gainCopper |
 | `vfx.js` | 特效注册表 | VFX, fireProjectile, spawnTelegraph, spawnBurst, disposeVfxMesh |
 | `talents.js` | 天赋数据层 | TALENTS, spendTalent, getSkillCd, cheatTalent |
 | `save.js` | 存档系统 | saveGame, loadGame, exportSaveCode, importSaveCode |

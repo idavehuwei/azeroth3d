@@ -152,6 +152,26 @@ const RECIPES={
     cx.beginPath();cx.arc(-3,5,3.4,0,6.283);cx.arc(3,5,3.4,0,6.283);cx.fill();
     cx.restore();
   },
+  /* 🩹 绷带：白卷布 */
+  bandage(cx){
+    P.bg(cx,"#2a3028","#0c100c");
+    cx.fillStyle="#d8e0d0";
+    cx.beginPath();cx.ellipse(32,30,16,10,0,0,6.283);cx.fill();
+    cx.fillStyle="#f4f6f0";
+    cx.fillRect(18,26,28,10);
+    cx.strokeStyle="#8a9880";cx.lineWidth=1.5;cx.strokeRect(18,26,28,10);
+    cx.fillStyle="#6a8a60";
+    cx.fillRect(30,24,4,14);
+  },
+  /* 🍞 面包：椭圆条 */
+  bread(cx){
+    P.bg(cx,"#3a2810","#140c04");
+    cx.fillStyle=P.lin(cx,16,40,48,20,[[0,"#a86828"],[1,"#e8c070"]]);
+    cx.beginPath();cx.ellipse(32,34,20,12,0,0,6.283);cx.fill();
+    cx.strokeStyle="#6a4018";cx.lineWidth=2;cx.stroke();
+    cx.fillStyle="rgba(255,230,180,.35)";
+    cx.beginPath();cx.ellipse(28,30,8,4,-.2,0,6.283);cx.fill();
+  },
 };
 
 /* ---------------- 工厂出口 ---------------- */

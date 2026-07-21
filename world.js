@@ -3,16 +3,18 @@
    莫高雷世界：实体放置 / 草原与营地 / 传送门与进本 / 野怪与 NPC 任务系统
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ rand srand worldRng BAL makeLabel scene camera）
-          models.js（buildPlayer buildBoss buildElder buildBoar）
-          items.js（dropLoot rollLoot LOOT tryLoot）
-          combat.js 运行时（S log announce fct spawnBurst hitEntity closeDialogue …）
+          models.js（buildPlayer buildBoss buildElder buildVendor buildBoar）
+          items.js（dropLoot rollLoot LOOT tryLoot buyVendorItem）
+          combat.js 运行时（S log announce fct spawnBurst hitEntity closeDialogue
+            gainCopper rollCopperRange …）
           vfx.js 运行时（VFX spawnBurst）
           save.js 运行时（saveGame；接任务/交任务/离本）
    [导出] player boss BOSS_MESHES WORLD_R sceneWorld heli sun worldFlames PORTAL_POS portalUni
           portalLabel enterRaid fadeTo MOBS QUEST moveToward mobDamage mobDie
           setCorpse updateQuest setMarker tryInteract openDialogue closeDialogue
+          openVendor refreshVendorPanel
           leaveRaid resetBoss spawnExitPortal removeExitPortal exitPortal
-          fireflies FIREFLIES ffPhases elder elderDist
+          fireflies FIREFLIES ffPhases elder elderDist vendor vendorDist
    ============================================================ */
 "use strict";
 /* ---------------- 实体放置 ---------------- */
@@ -313,6 +315,11 @@ function setMarker(){
   markerExcl.visible=(QUEST.state===0);
   markerQ.visible=(QUEST.state===1&&QUEST.kills>=3);
 }
+/* 营地商人（STEP 13） */
+const vendor=buildVendor();
+vendor.position.set(-10,0,50); vendor.rotation.y=Math.PI*1.15; sceneWorld.add(vendor);
+const vendorLabel=makeLabel("商人 · 火蹄",7,"#a8e8c0","rgba(40,180,100,.9)");
+vendorLabel.position.set(-10,5.6,50); sceneWorld.add(vendorLabel);
 
 /* ============================================================
    野怪类型表（STEP 5）：模型配方 + 数值 + 掉落表 + 名字标签
@@ -414,6 +421,8 @@ function mobDie(m){
   dropLoot(m.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),
     [rollLoot(m.loot,m.elite?BAL.loot.eliteWeights:null)],m);
   gainXP(m.stats.xp);
+  const cu=rollCopperRange(m.stats.copper);
+  if(cu)gainCopper(cu);
   if(m.type==="boar"&&QUEST.state===1&&QUEST.kills<BAL.quest.boarKills){
     QUEST.kills++; updateQuest();
     if(QUEST.kills>=BAL.quest.boarKills){announce("任务目标完成 · 回去找长老"); setMarker();}
@@ -433,6 +442,7 @@ function updateQuest(){
 
 /* ---------------- NPC 对话 ---------------- */
 function elderDist(){return Math.hypot(player.position.x-elder.position.x,player.position.z-elder.position.z);}
+function vendorDist(){return Math.hypot(player.position.x-vendor.position.x,player.position.z-vendor.position.z);}
 function tryInteract(){
   if(!S.started||S.over)return;
   if(tryLoot())return;   /* 尸体旁的战利品优先（STEP 2），世界/副本通用 */
@@ -440,11 +450,44 @@ function tryInteract(){
   if(S.mode==="raid"&&S.b.canLeave&&exitPortal&&player.position.distanceTo(EXIT_PORTAL_POS)<4.5){
     leaveRaid(); return;
   }
-  if(S.mode==="world"&&elderDist()<5.5)openDialogue();
+  if(S.mode!=="world")return;
+  const R=BAL.economy.interactR;
+  const dE=elderDist(), dV=vendorDist();
+  if(dV<R&&dV<=dE){openVendor();return;}
+  if(dE<R)openDialogue();
 }
-function closeDialogue(){$("#dlg").style.display="none";}
+function closeDialogue(){
+  $("#dlg").style.display="none";
+  S.vendorOpen=false;
+  if(typeof renderBag==="function")renderBag();
+}
+function refreshVendorPanel(){
+  if(!S.vendorOpen)return;
+  const tx=$("#dlgText"),bts=$("#dlgBtns");
+  const nameEl=$("#dlg .dname");
+  if(nameEl)nameEl.textContent="🏕️ 商人 · 火蹄";
+  tx.textContent=`看看货物吧，旅人。你的钱袋：${formatCopperText(S.p.gold|0)}。打开背包右键可出售物品。`;
+  bts.innerHTML="";
+  const btn=(t,fn)=>{const b=document.createElement("button");
+    b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
+  for(const id of BAL.economy.vendorStock){
+    const it=ITEMS[id]; if(!it||it.vendorBuy==null)continue;
+    btn(`🛒 购买【${it.name}】 · ${formatCopperText(it.vendorBuy)}`,()=>buyVendorItem(id));
+  }
+  btn("打开背包（B）",()=>{if(!bagOpen())toggleBag();});
+  btn("离开",closeDialogue);
+}
+function openVendor(){
+  S.vendorOpen=true;
+  $("#dlg").style.display="block";
+  if(!bagOpen())toggleBag();
+  refreshVendorPanel();
+}
 function openDialogue(){
+  S.vendorOpen=false;
   const dlg=$("#dlg"),tx=$("#dlgText"),bts=$("#dlgBtns");
+  const nameEl=$("#dlg .dname");
+  if(nameEl)nameEl.textContent="🐂 长老 · 岩蹄";
   dlg.style.display="block"; bts.innerHTML="";
   const btn=(t,fn)=>{const b=document.createElement("button");
     b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
@@ -466,6 +509,7 @@ function openDialogue(){
       /* 伤害奖励改为叠加（STEP 3 起）：不能覆盖等级带来的 dmgMul 成长 */
       S.p.hpMax+=BAL.quest.rewardHp; S.p.hp=S.p.hpMax; S.p.dmgMul+=BAL.quest.rewardDmgMul-1;
       gainXP(BAL.levels.xp.quest);   /* 经验（STEP 3）：任务 +300 */
+      if(BAL.quest.rewardCopper)gainCopper(BAL.quest.rewardCopper,{noSave:true});
       QUEST.state=2; updateQuest(); setMarker(); closeDialogue();
       spawnBurst(player.position.clone().setY(1.5),0x8aff9a,30,2);
       announce("获得 · 大地母亲的祝福");

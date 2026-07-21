@@ -40,26 +40,26 @@ const BALANCE={
   },
   /* 野怪族群数值表（STEP 5）：加新怪 = 加一条；aggroR:0 = 中立被动（只反击） */
   mobs:{
-    boar    :{hp:650, dmg:[55,85],  atkCd:2.2, meleeR:2.4, aggroR:7,  leashR:34, wanderSpd:3,  chaseSpd:5.5, respawnT:25,  xp:80},
-    wolf    :{hp:520, dmg:[45,70],  atkCd:1.8, meleeR:2.3, aggroR:9,  leashR:38, wanderSpd:3.5,chaseSpd:6.5, respawnT:30,  xp:90,  socialR:18},
-    bird    :{hp:480, dmg:[40,60],  atkCd:1.6, meleeR:2.2, aggroR:0,  leashR:30, wanderSpd:4.5,chaseSpd:8,   respawnT:25,  xp:70},
-    harpy   :{hp:4200,dmg:[90,130], atkCd:2.4, meleeR:3.2, aggroR:12, leashR:44, wanderSpd:2.5,chaseSpd:5,   respawnT:60,  xp:450,
+    boar    :{hp:650, dmg:[55,85],  atkCd:2.2, meleeR:2.4, aggroR:7,  leashR:34, wanderSpd:3,  chaseSpd:5.5, respawnT:25,  xp:80,  copper:[8,18]},
+    wolf    :{hp:520, dmg:[45,70],  atkCd:1.8, meleeR:2.3, aggroR:9,  leashR:38, wanderSpd:3.5,chaseSpd:6.5, respawnT:30,  xp:90,  socialR:18, copper:[10,22]},
+    bird    :{hp:480, dmg:[40,60],  atkCd:1.6, meleeR:2.2, aggroR:0,  leashR:30, wanderSpd:4.5,chaseSpd:8,   respawnT:25,  xp:70,  copper:[6,14]},
+    harpy   :{hp:4200,dmg:[90,130], atkCd:2.4, meleeR:3.2, aggroR:12, leashR:44, wanderSpd:2.5,chaseSpd:5,   respawnT:60,  xp:450, copper:[80,140],
               cast:{name:"女妖之火",dmg:[220,300],dur:1.5,cd:6,range:20,speed:16,hitR:3}},
-    boarKing:{hp:3200,dmg:[110,160],atkCd:2.4, meleeR:3.2, aggroR:8,  leashR:40, wanderSpd:2.2,chaseSpd:5,   respawnT:120, xp:500},
+    boarKing:{hp:3200,dmg:[110,160],atkCd:2.4, meleeR:3.2, aggroR:8,  leashR:40, wanderSpd:2.2,chaseSpd:5,   respawnT:120, xp:500, copper:[120,200]},
   },
   /* 脱战回巢（STEP 5 规范化）：回巢途中每秒回复最大生命的百分比，且免疫伤害 */
   leash:{regenPct:.5},
   /* 烈焰之子 */
-  add:{hp:1400, dmg:[130,190], atkCd:2, speed:4.6, meleeR:3, stopR:2.6},
+  add:{hp:1400, dmg:[130,190], atkCd:2, speed:4.6, meleeR:3, stopR:2.6, copper:[12,28]},
   /* 炎魔领主 · 拉戈斯 */
-  boss:{hp:120000, phase2At:.5, phase3At:.3, submergeT:25, addCount:4,
+  boss:{hp:120000, phase2At:.5, phase3At:.3, submergeT:25, addCount:4, copper:2500,
     melee   :{dmg:[300,420], p2Mul:1.25, p3Mul:1.5, cd:[3,4.2], range:12, hitRange:13, delayMs:450},
     fireball:{dmg:[520,680], cast:1.8, cd:[8,11], hitR:4, speed:22},
     eruption:{dmg:[600,780], cast:1.5, cd:[9,12], count:3, p2Count:5, p3Count:8, delay:2.2},
     wrath   :{dmg:[380,520], cast:2.2, cd:[16,20], range:16},
   },
   /* 玛格曼达 · 熔火之心一号位（STEP 9c） */
-  magmadar:{hp:56000, phase2At:.5, addCount:3,
+  magmadar:{hp:56000, phase2At:.5, addCount:3, copper:800,
     melee :{dmg:[220,300], p2Mul:1.35, cd:[2.4,3.2], range:9, hitRange:10, delayMs:260},
     spit  :{dmg:[260,340], cast:1.5, cd:[6,8.5], hitR:3.2, speed:18, count:3, p2Count:5, fan:0.42},
     breath:{dmg:[420,560], cast:1.8, cd:[11,14], delay:1.6, segs:5, step:4.2, ringR:3.4, p2Segs:7},
@@ -67,12 +67,21 @@ const BALANCE={
     fear  :{dmg:[140,200], cast:1.6, cd:[13,16], range:16, fearT:2.6, knockT:.35, panicRings:3, panicR:4.5, delay:1.5},
   },
   /* 任务 · 狂躁的野猪 / 讨伐拉戈斯 */
-  quest:{boarKills:3, rewardHp:600, rewardDmgMul:1.15},
+  quest:{boarKills:3, rewardHp:600, rewardDmgMul:1.15, rewardCopper:150},
   /* 掉落与尸体拾取（STEP 2）：品质权重 70/25/5 · 尸体停留秒数 · 拾取距离 */
   loot:{weights:{common:70,uncommon:25,rare:5}, corpseT:8, pickupR:3.5,
         eliteWeights:{uncommon:72,rare:28}},   /* 精英必掉优秀以上（STEP 5） */
   /* 背包（STEP 4）：格数 */
   bag:{size:16},
+  /* 金币经济 + 商人（STEP 13）：铜为最小单位；1金=100银=10000铜 */
+  economy:{
+    copperPerSilver:100,
+    copperPerGold:10000,
+    vendorStock:["plain_bread","linen_bandage"],
+    food:{healPct:.35,duration:6},       /* 坐下进食：持续回复最大生命比例 */
+    bandage:{healPct:.28,cast:1.6},      /* 绷带：引导施放 */
+    interactR:5.5,
+  },
   /* 上帝模式（首页勾选）：玩家每次攻击的固定伤害 */
   god:{dmg:5000},
   /* 昼夜循环（STEP 7）：10 分钟一昼夜，render-only，不碰任何数值 */

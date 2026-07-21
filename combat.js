@@ -16,7 +16,7 @@
             spawnAdd addDamage addDie bossDie playerDie resetBoss BOSS_ENT DUNGEON）
    [导出] S SKILLS CLASSES CLS setClass log announce fct hurtFlash keys joy
           useSkill hitEntity dmgBoss pickTarget firePlayerShot playerHit
-          gainXP updateLevelUI
+          gainXP updateLevelUI gainCopper spendCopper formatCopperText updateGoldUI
    ============================================================ */
 "use strict";
 /* ============================================================
@@ -26,7 +26,8 @@ const S={
   started:false,over:false,t:0,mode:"world",portalHinted:false,
   p:{hp:5200,hpMax:5200,rage:20,rageMax:100,speed:10.5,alive:true,dmgMul:1,
      atkTimer:0,attackAnim:0,walkPhase:0,face:0,invuln:0,
-     level:1,xp:0,xpMax:BAL.levels.xpMax[0],gold:0},   /* 经验与等级（STEP 3） */
+     level:1,xp:0,xpMax:BAL.levels.xpMax[0],gold:0,   /* 经验与等级（STEP 3）· 金币铜（STEP 13） */
+     eating:null,bandaging:null},
   b:{id:"ragnaros",hp:BAL.boss.hp,hpMax:BAL.boss.hp,alive:true,rising:true,riseT:0,
      phase:1,swingT:0,casting:null,castT:0,castDur:0,
      next:{},submerged:false,submergeT:0,canLeave:false,nextAddSpawn:0,addWave:null},
@@ -35,6 +36,7 @@ const S={
   inv:[],      /* 背包（STEP 2 起：拾取的物品 id 列表） */
   eq:{weapon:null,armor:null},   /* 装备位（STEP 4）：物品 id */
   god:false,   /* 上帝模式：启程时由首页勾选决定（hitEntity 消费） */
+  vendorOpen:false,
 };
 /* ============================================================
    职业系统：战士 / 法师 / 弓箭手
@@ -396,4 +398,58 @@ function gainXP(amount){
   updateLevelUI();
   if(typeof saveGame==="function")saveGame(true);
 }
-function updateLevelUI(){$("#pName").textContent=`${CLS.title} · Lv.${S.p.level}`;}
+
+/* ---------------- 金币（STEP 13）：铜为最小单位 ---------------- */
+function formatCopperParts(copper){
+  const E=BAL.economy;
+  let c=Math.max(0,copper|0);
+  const g=Math.floor(c/E.copperPerGold); c%=E.copperPerGold;
+  const s=Math.floor(c/E.copperPerSilver); c%=E.copperPerSilver;
+  return {g,s,c};
+}
+function formatCopperText(copper){
+  const {g,s,c}=formatCopperParts(copper);
+  const parts=[];
+  if(g)parts.push(`${g}金`);
+  if(s)parts.push(`${s}银`);
+  if(c||!parts.length)parts.push(`${c}铜`);
+  return parts.join(" ");
+}
+function formatCopperHtml(copper){
+  const {g,s,c}=formatCopperParts(copper);
+  let h="";
+  if(g)h+=`<span class="g">${g}金</span>`;
+  if(s||g)h+=`<span class="s">${s}银</span>`;
+  h+=`<span class="c">${c}铜</span>`;
+  return h;
+}
+function updateGoldUI(){
+  const el=$("#pGold"); if(!el)return;
+  el.innerHTML=formatCopperHtml(S.p.gold|0);
+}
+function gainCopper(amount,opts){
+  amount=Math.max(0,Math.round(amount));
+  if(!amount)return;
+  S.p.gold=(S.p.gold|0)+amount;
+  const silent=opts&&opts.silent;
+  if(!silent){
+    fct(player.position.clone().setY(2.8),`+${formatCopperText(amount)}`,"#ffd76a",13);
+    log(`获得 ${formatCopperText(amount)}。`,"lg-sys");
+  }
+  updateGoldUI();
+  if(!(opts&&opts.noSave)&&typeof saveGame==="function")saveGame(true);
+}
+function spendCopper(amount){
+  amount=Math.max(0,Math.round(amount));
+  if((S.p.gold|0)<amount)return false;
+  S.p.gold-=amount;
+  updateGoldUI();
+  return true;
+}
+function rollCopperRange(range){
+  if(range==null)return 0;
+  if(typeof range==="number")return range|0;
+  if(Array.isArray(range))return Math.round(rand(range[0],range[1]));
+  return 0;
+}
+function updateLevelUI(){$("#pName").textContent=`${CLS.title} · Lv.${S.p.level}`;updateGoldUI();}

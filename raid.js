@@ -11,6 +11,7 @@
           spawnExitPortal removeExitPortal leaveRaid）
           vfx.js（VFX fireProjectile spawnTelegraph spawnBurst disposeVfxMesh）
           save.js 运行时（saveGame；Boss 击杀自动存）
+          combat.js 运行时（gainCopper rollCopperRange）
    [导出] BOSSES createBoss defineBoss getBossCfg armBossSkills activateRaidBoss mountBossMesh
           bossAI startCast spawnAdd addDamage addDie bossDie playerDie resetBoss
           distToBoss bossTargetable BOSS_ENT DUNGEON buildRaidScene
@@ -665,6 +666,8 @@ function addDie(a){
   a.corpseT=BAL.loot.corpseT;
   dropLoot(a.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),[rollLoot(LOOT.add)],a);
   log("一只烈焰之子被消灭了！","lg-me");
+  const cu=rollCopperRange(BAL.add.copper);
+  if(cu)gainCopper(cu);
   if(DUNGEON.stage==="corridor"){
     DUNGEON.mobsAlive--;
     if(DUNGEON.mobsAlive<=0)DUNGEON.setStage("boss1");
@@ -685,6 +688,10 @@ function bossDie(){
   if(D.questComplete&&QUEST.state===2){QUEST.state=3;updateQuest();}
   const xp=D.xpKey?BAL.levels.xp[D.xpKey]:BAL.levels.xp.boss;
   if(xp)gainXP(xp);
+  const copperSrc=D.copperKey?BAL[D.copperKey]&&BAL[D.copperKey].copper
+    :(cfg.id==="magmadar"?BAL.magmadar.copper:BAL.boss.copper);
+  const cu=rollCopperRange(copperSrc);
+  if(cu)gainCopper(cu);
   if(D.burst){
     const b=D.burst;
     VFX.spawn(b.vfx,{pos:new THREE.Vector3(boss.position.x,b.y,boss.position.z),

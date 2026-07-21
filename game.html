@@ -43,6 +43,9 @@
   #playerFrame .pname{font-size:13px;font-weight:700;color:#a8d8ff;letter-spacing:2px;margin-bottom:3px;
     text-shadow:0 0 8px rgba(90,160,255,.6),0 1px 2px #000}
   #playerFrame .barShell{height:16px;margin-bottom:4px}
+  #pGold{font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:4px;
+    text-shadow:0 1px 2px #000;display:flex;gap:8px;flex-wrap:wrap}
+  #pGold .g{color:#ffd76a} #pGold .s{color:#d0d8e0} #pGold .c{color:#c98a4a}
  
   /* ---------- 技能栏 ---------- */
   #skillBar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:10px;z-index:10}
@@ -233,6 +236,7 @@
  
 <div id="playerFrame">
   <div class="pname" id="pName">⚔️ 你 · 人类战士</div>
+  <div id="pGold"><span class="c">0铜</span></div>
   <div class="barShell"><div class="barFill hpP" id="pHp"></div><div class="barText" id="pHpTx"></div></div>
   <div class="barShell" style="height:11px"><div class="barFill mpP" id="pRage"></div><div class="barText" id="pRageTx" style="font-size:9px"></div></div>
   <div class="barShell" style="height:10px;margin-top:4px"><div class="barFill xpP" id="pXp"></div><div class="barText" id="pXpTx" style="font-size:8px"></div></div>
@@ -256,7 +260,7 @@
     <div class="eqSlot" data-slot="armor"><span class="eqTag">护甲</span></div>
   </div>
   <div id="bagGrid"></div>
-  <div class="bag-hint">点击物品装备 · 点击装备位卸下 · B 键开关</div>
+  <div class="bag-hint">左键：装备/使用 · 商人处右键出售 · B 键开关</div>
 </div>
 <div id="talent">
   <div class="bag-title">✨ 天赋<span class="bag-close" id="talentClose">✕</span></div>
