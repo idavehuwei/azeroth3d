@@ -430,14 +430,23 @@ function mobDie(m){
   }
 }
 
-/* ---------------- 任务追踪 HUD ---------------- */
+/* ---------------- 任务追踪 HUD（右上角；详情见 L 任务日志） ---------------- */
 function updateQuest(){
   const q=$("#quest");
-  if(QUEST.state===1)q.innerHTML=`<b>任务 · 狂躁的野猪</b><br>猎杀草原野猪 ${Math.min(QUEST.kills,BAL.quest.boarKills)}/${BAL.quest.boarKills}`;
-  else if(QUEST.state===2)q.innerHTML=`<b>任务 · 讨伐拉戈斯</b><br>进入北方传送门<br>击败炎魔领主`;
-  else if(QUEST.state===3)q.innerHTML=`<b style="color:#8aff9a">✔ 任务完成 · 讨伐拉戈斯</b>`;
-  else{q.style.display="none";return;}
+  if(QUEST.state===1){
+    const n=Math.min(QUEST.kills,BAL.quest.boarKills);
+    const done=n>=BAL.quest.boarKills;
+    q.innerHTML=`<div class="qt">任务 · 狂躁的野猪</div>`+
+      `<div class="qo">猎杀草原野猪 <b>${n}/${BAL.quest.boarKills}</b></div>`+
+      (done?`<div class="qd">回去找长老交任务</div>`:"");
+  }else if(QUEST.state===2){
+    q.innerHTML=`<div class="qt">任务 · 讨伐拉戈斯</div>`+
+      `<div class="qo">进入北方传送门<br>击败炎魔领主</div>`;
+  }else if(QUEST.state===3){
+    q.innerHTML=`<div class="qt qd">✔ 任务完成</div><div class="qo">讨伐拉戈斯</div>`;
+  }else{q.style.display="none";if(typeof renderQuestLog==="function")renderQuestLog();return;}
   q.style.display="block";
+  if(typeof renderQuestLog==="function")renderQuestLog();
 }
 
 /* ---------------- NPC 对话 ---------------- */
@@ -479,6 +488,7 @@ function refreshVendorPanel(){
 }
 function openVendor(){
   S.vendorOpen=true;
+  if(typeof closeAllHudPanels==="function")closeAllHudPanels("bag");
   $("#dlg").style.display="block";
   if(!bagOpen())toggleBag();
   refreshVendorPanel();

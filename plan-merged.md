@@ -309,14 +309,15 @@ js/
 
 > **验收**：杀猪有铜 → 买食物坐下回血 → 卖垃圾装；存档含金币。 ← **已通过**
 
-### STEP 14 · 角色面板 / 法术书 / 任务日志 `P1` ⏳
+### STEP 14 · 角色面板 / 法术书 / 任务日志 `P1` ✅
 
 - `C` 角色面板（属性、装备评分摘要）、`P` 法术书（技能说明+天赋修饰后数值）、`L` 任务日志（当前目标追踪）。
-- 顶部任务追踪器（已有雏形则规范化）：显示「野猪 2/3」类进度。
+- 顶部任务追踪器规范化：显示「野猪 n/3」类进度；与 L 同步。
+- 实现于 `panels.js`；键位与背包/天赋互斥。
 
 > **WoC 对照**：经典键位 `C P L M B`；HUD 与 sim 解耦。
 
-> **验收**：三面板可同时理解「我是谁、我会什么、我在做什么」；不打开 3D 场景内 UI。
+> **验收**：三面板可同时理解「我是谁、我会什么、我在做什么」；不打开 3D 场景内 UI。 ← **已通过**
 
 ### STEP 15 · 死亡与灵魂医者 `P1` ⏳
 
@@ -552,7 +553,8 @@ js/
 | v2.0 成长/工程 | 11 | 存档（localStorage + Base64 导入导出） | ✅ 完成 | 1 次迭代 |
 | v2.0 成长/工程 | 12 | debug/FPS/dispose | ⏳ 下一步 | 1–2 次迭代 |
 | v2.5 经典系统 | 13 | 金币经济 + 营地商人 | ✅ 完成 | 1 次迭代 |
-| v2.5 经典系统 | 14–16 | C/P/L 面板、墓地、小地图 | ⏳ 下一步 | 2–3 次迭代 |
+| v2.5 经典系统 | 14 | 角色 / 法术书 / 任务日志（C P L） | ✅ 完成 | 0.5 次迭代 |
+| v2.5 经典系统 | 15–16 | 墓地、小地图 | ⏳ 下一步 | 1–2 次迭代 |
 | v3.0 卡利姆多 | 17–21 | 多区、贫瘠之地、牧师、AI 队友、哀嚎洞穴 | ⏳ 待开始 | 4–6 次迭代 |
 | v3.5 内容密度 | 22–25 | 任务网、专业、世界 Boss、成就 | ⏳ 待开始 | 3–4 次迭代 |
 | v4.0 开荒团 | 26–29 | 5 AI、仇恨职责、短团本、本地查找器 | ⏳ 待开始 | 4–5 次迭代 |
@@ -581,14 +583,15 @@ js/
 | 12 | ✅ | `#fps` + `Ctrl+F`；`BAL.fps`；`?dev` 默认开 |
 | 12+ | ⏳ | `debug.js` / dispose / 移动端（原 STEP 12 余项） |
 | 13 | ✅ | 金币 HUD；野怪/Boss/任务掉铜；商人火蹄；食物/绷带；右键出售 |
-| 14–16 | ⏳ | C/P/L 面板、墓地、小地图 |
+| 14 | ✅ | `panels.js`：C 角色 / P 法术书 / L 任务日志；追踪器规范化 |
+| 15–16 | ⏳ | 墓地、小地图 |
 | 17–21 | ⏳ | v3.0 卡利姆多扩张未开始 |
 | 22–36 | 🔮 | v3.5–v5.0 已规划，待前置完成 |
 
-**当前模块清单**（`game.html` 加载序）：`core → sfx → icons → items → models → world → combat → talents → vfx → main → raid → save`
+**当前模块清单**（`game.html` 加载序）：`core → sfx → icons → items → models → world → combat → talents → panels → vfx → main → raid → save`
 
-**下一步行动**：从 **STEP 14** 做角色面板 / 法术书 / 任务日志（C/P/L）。
+**下一步行动**：从 **STEP 15** 做死亡与灵魂医者。
 
 ---
 
-*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 13 完成，下一步 STEP 14*
+*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 14 完成，下一步 STEP 15*

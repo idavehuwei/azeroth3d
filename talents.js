@@ -190,6 +190,8 @@ function spendTalent(nodeId){
   const node=getTalentNode(ck,nodeId);
   log(`天赋【${node.name}】→ ${talentRank(nodeId)}/${node.maxRank}（剩余 ${talentPointsUnspent()} 点）`,"lg-heal");
   renderTalentPanel();
+  if(typeof renderCharPanel==="function")renderCharPanel();
+  if(typeof renderSpellPanel==="function")renderSpellPanel();
   if(typeof saveGame==="function")saveGame(true);
   return true;
 }
@@ -200,6 +202,8 @@ function resetTalents(){
   recomputeTalentMods();
   log(`天赋已重置。剩余 ${talentPointsUnspent()} 点可分配。`,"lg-sys");
   renderTalentPanel();
+  if(typeof renderCharPanel==="function")renderCharPanel();
+  if(typeof renderSpellPanel==="function")renderSpellPanel();
   if(typeof saveGame==="function")saveGame(true);
 }
 
@@ -218,7 +222,8 @@ function closeTalentPanel(){$("#talent").style.display="none";}
 function toggleTalentPanel(){
   if(!S.started)return;
   if(talentOpen()){closeTalentPanel();return;}
-  if(typeof bagOpen==="function"&&bagOpen())$("#bag").style.display="none";
+  if(typeof closeAllHudPanels==="function")closeAllHudPanels("talent");
+  else if(typeof bagOpen==="function"&&bagOpen())$("#bag").style.display="none";
   $("#talent").style.display="block";
   renderTalentPanel();
 }

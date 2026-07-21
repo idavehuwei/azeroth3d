@@ -140,6 +140,12 @@ const BALANCE={
   save:{key:"azeroth3d_save_v1",version:1},
   /* FPS 叠层（STEP 12）：刷新间隔秒；着色对照目标帧率 */
   fps:{updateInterval:.5,desktopTarget:60,mobileTarget:30},
+  /* 装备评分权重（STEP 14 角色面板） */
+  gearScore:{
+    quality:{common:10,uncommon:25,rare:55,legendary:120},
+    dmgMul:200,   /* (dmgMul-1) × 此系数 */
+    hpMax:.05,    /* hpMax × 此系数 */
+  },
 };
 const BAL=BALANCE;
 

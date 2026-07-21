@@ -129,6 +129,46 @@
   .tal-node .rank{font-size:11px;color:#ffcf98;font-weight:700;letter-spacing:1px;flex-shrink:0}
   .tal-hint{margin-top:10px;font-size:10px;color:#8b7a5e;letter-spacing:1px;line-height:1.7}
   @media (max-width:520px){.tal-branches{grid-template-columns:1fr}}
+
+  /* ---------- 角色 / 法术书 / 任务日志（STEP 14） ---------- */
+  .hudPanel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,92vw);
+    z-index:24;display:none;background:var(--ui-bg);border:1px solid #ffcf90;padding:14px 16px;
+    box-shadow:0 0 36px rgba(255,120,20,.4);max-height:min(78vh,560px);overflow:auto}
+  .hudPanel .bag-title{font-weight:800;font-size:14px;color:#ffd9a0;letter-spacing:2px;margin-bottom:10px;
+    display:flex;justify-content:space-between;align-items:center}
+  .hudPanel .bag-close{cursor:pointer;color:#8b7a5e}
+  .hudPanel .bag-close:hover{color:#ffd9a0}
+  .hudPanel .ph-hint{margin-top:10px;font-size:10px;color:#8b7a5e;letter-spacing:1px;line-height:1.7}
+  .ph-row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid rgba(255,120,40,.15);
+    font-size:12px;color:#e8d8bc;letter-spacing:1px}
+  .ph-row:last-child{border-bottom:none}
+  .ph-row .k{color:#8b7a5e}
+  .ph-row .v{color:#ffd9a0;font-weight:700;text-align:right}
+  .ph-sec{font-size:11px;color:#ff9a55;letter-spacing:3px;font-weight:800;margin:12px 0 6px}
+  .ph-eq{display:flex;gap:10px;margin:8px 0}
+  .ph-eq .slot{flex:1;border:1px dashed var(--ui-line);background:rgba(0,0,0,.35);padding:8px;min-height:52px;
+    display:flex;align-items:center;gap:8px;font-size:11px;color:#e8d8bc}
+  .ph-eq .slot img{width:36px;height:36px;border:1px solid #888;flex-shrink:0}
+  .ph-eq .empty{color:#8b7a5e}
+  .spell-card{display:flex;gap:10px;align-items:flex-start;padding:8px 6px;margin-bottom:6px;
+    border:1px solid var(--ui-line);background:rgba(0,0,0,.28)}
+  .spell-card .ic{font-size:22px;width:36px;text-align:center;flex-shrink:0;filter:drop-shadow(0 0 6px rgba(255,140,40,.4))}
+  .spell-card .body{flex:1;min-width:0}
+  .spell-card .nm{font-size:13px;font-weight:800;color:#ffd9a0;letter-spacing:1px}
+  .spell-card .meta{font-size:10px;color:#ffcf98;margin-top:2px;letter-spacing:1px}
+  .spell-card .desc{font-size:11px;color:#b09a7a;line-height:1.6;margin-top:4px}
+  .ql-item{padding:10px;border:1px solid var(--ui-line);background:rgba(0,0,0,.28);margin-bottom:8px}
+  .ql-item .ttl{font-size:13px;font-weight:800;color:#ffd9a0;letter-spacing:1px;margin-bottom:4px}
+  .ql-item .obj{font-size:12px;color:#e8d8bc;line-height:1.8}
+  .ql-item .st{font-size:10px;color:#8aff9a;letter-spacing:1px;margin-top:4px}
+  .ql-item.done .ttl{color:#8aff9a}
+  .ql-empty{font-size:12px;color:#8b7a5e;letter-spacing:1px;line-height:1.8;padding:8px 0}
+  #quest{position:fixed;top:14px;right:14px;z-index:9;display:none;min-width:190px;max-width:240px;
+    background:var(--ui-bg);border:1px solid var(--ui-line);padding:10px 14px;
+    font-size:12px;line-height:1.9;color:#e8d8bc;box-shadow:0 0 16px rgba(255,90,0,.2)}
+  #quest .qt{color:#ffd9a0;letter-spacing:1px;font-weight:800;font-size:11px;margin-bottom:2px}
+  #quest .qo{color:#e8d8bc}
+  #quest .qd{color:#8aff9a;font-weight:700}
  
   /* ---------- 中央大字提示 ---------- */
   #announce{position:fixed;top:24%;left:50%;transform:translateX(-50%);z-index:20;pointer-events:none;
@@ -204,10 +244,6 @@
   #fps.low{color:#ff8a4a}
  
   /* ---------- 任务追踪 & NPC 对话 ---------- */
-  #quest{position:fixed;top:14px;right:14px;z-index:9;display:none;min-width:190px;
-    background:var(--ui-bg);border:1px solid var(--ui-line);padding:10px 14px;
-    font-size:12px;line-height:1.9;color:#e8d8bc;box-shadow:0 0 16px rgba(255,90,0,.2)}
-  #quest b{color:#ffd9a0;letter-spacing:1px}
   #interactBtn{position:fixed;left:50%;bottom:94px;transform:translateX(-50%);z-index:12;display:none;
     padding:9px 26px;font-size:14px;font-weight:700;letter-spacing:3px;color:#2a1000;cursor:pointer;
     background:linear-gradient(180deg,#ffce7a,#e0812a 60%,#a34a08);border:1px solid #ffcf90;
@@ -271,6 +307,21 @@
   <div class="tal-branches" id="talentTree"></div>
   <div class="tal-hint">点击节点加点 · 需先点亮前置层 · N 键开关 · 满级共 9 点</div>
 </div>
+<div class="hudPanel" id="charPanel">
+  <div class="bag-title">👤 角色<span class="bag-close" id="charClose">✕</span></div>
+  <div id="charBody"></div>
+  <div class="ph-hint">C 键开关 · 属性含等级 / 装备 / 天赋加成</div>
+</div>
+<div class="hudPanel" id="spellPanel">
+  <div class="bag-title">📖 法术书<span class="bag-close" id="spellClose">✕</span></div>
+  <div id="spellBody"></div>
+  <div class="ph-hint">P 键开关 · 数值已含伤害加成与天赋冷却</div>
+</div>
+<div class="hudPanel" id="questLog">
+  <div class="bag-title">📜 任务日志<span class="bag-close" id="questLogClose">✕</span></div>
+  <div id="questLogBody"></div>
+  <div class="ph-hint">L 键开关 · 右上角为当前目标追踪</div>
+</div>
 <button id="bagBtn">🎒</button>
 <button id="muteBtn">🔊</button>
 <button id="talentBtn" title="天赋 (N)">✨</button>
@@ -314,7 +365,7 @@
       <button type="button" class="btn sm ghost" id="btnExportSave" style="display:none">导出存档码</button>
     </div>
   </div>
-  <div class="hint">WASD / 方向键 移动 · 数字键 1-4 或点击释放技能 · 击杀敌人后靠近尸体按 F 拾取战利品 · B 打开背包 · N 打开天赋<br>
+  <div class="hint">WASD 移动 · 1-4 技能 · F 交互 · B 背包 · N 天赋 · C 角色 · P 法术书 · L 任务日志<br>
        在莫高雷沿土路北行，走进传送门旋涡即进入副本 · 副本内走出地面红圈躲避熔岩喷发</div>
 </div>
  
@@ -332,6 +383,7 @@
 <script src="world.js"></script>
 <script src="combat.js"></script>
 <script src="talents.js"></script>
+<script src="panels.js"></script>
 <script src="vfx.js"></script>
 <script src="main.js"></script>
 <script src="raid.js"></script>

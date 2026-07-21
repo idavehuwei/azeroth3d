@@ -283,6 +283,7 @@ function equipItem(id){
   SFX.play("pickup");
   VFX.spawn("loot_spark",{pos:player.position.clone().setY(1.5),color:QUALITY[it.quality].hex,count:20,spread:1.4});
   renderBag();
+  if(typeof renderCharPanel==="function")renderCharPanel();
   if(typeof saveGame==="function")saveGame(true);
 }
 function unequipItem(slot){
@@ -292,6 +293,7 @@ function unequipItem(slot){
   if(slot==="weapon")setWeapon(player,player.userData.defaultWeapon);
   log(`卸下【${ITEMS[id].name}】。`,"lg-sys");
   renderBag();
+  if(typeof renderCharPanel==="function")renderCharPanel();
   if(typeof saveGame==="function")saveGame(true);
 }
 
@@ -300,7 +302,8 @@ function bagOpen(){return $("#bag").style.display==="block";}
 function toggleBag(){
   if(!S.started)return;
   if(bagOpen()){$("#bag").style.display="none";return;}
-  if(typeof talentOpen==="function"&&talentOpen())closeTalentPanel();
+  if(typeof closeAllHudPanels==="function")closeAllHudPanels("bag");
+  else if(typeof talentOpen==="function"&&talentOpen())closeTalentPanel();
   $("#bag").style.display="block";
   renderBag();
 }

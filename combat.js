@@ -11,6 +11,7 @@
           vfx.js 运行时（VFX spawnBurst）
           talents.js 运行时（getSkillCd grantTalentPointOnLevel initTalentsForClass
             toggleTalentPanel；N 键）
+          panels.js 运行时（toggleCharPanel toggleSpellPanel toggleQuestLog；C/P/L）
           save.js 运行时（saveGame；升级自动存）
           raid.js 运行时（bossAI distToBoss bossTargetable fireProjectile
             spawnAdd addDamage addDie bossDie playerDie resetBoss BOSS_ENT DUNGEON）
@@ -49,30 +50,42 @@ const CLASSES={
     barCss:"linear-gradient(180deg,#ffd76a,#c98a1f 60%,#7a4d0c)",
     tip:"提示：近身自动攻击积攒怒气；【冲锋】可迅速贴近目标并额外获得怒气。",
     skills:[
-      {name:"英勇打击",icon:"⚔️",cd:5, rage:20,fn:heroicStrike},
-      {name:"旋风斩",  icon:"🌀",cd:9, rage:30,fn:whirlwind},
-      {name:"冲锋",    icon:"💨",cd:12,rage:0, fn:charge},
-      {name:"治疗药水",icon:"🧪",cd:22,rage:0, fn:potion}]},
+      {name:"英勇打击",icon:"⚔️",cd:5, rage:20,fn:heroicStrike,bal:"heroicStrike",
+       desc:"奋力一击，对面前敌人造成物理伤害。"},
+      {name:"旋风斩",  icon:"🌀",cd:9, rage:30,fn:whirlwind,bal:"whirlwind",
+       desc:"旋转兵器，对周围敌人造成范围物理伤害。"},
+      {name:"冲锋",    icon:"💨",cd:12,rage:0, fn:charge,bal:"charge",
+       desc:"向目标冲锋并贴近，额外积攒怒气。"},
+      {name:"治疗药水",icon:"🧪",cd:22,rage:0, fn:potion,bal:"potion",
+       desc:"喝下药水，立即回复生命。"}]},
   mage:{title:"🔮 你 · 人类法师",hp:3800,resMax:100,resStart:100,resName:"法力",
     regen:7,hitGain:0,speed:10,ranged:true,range:30,sfx:"fireball",
     autoMin:175,autoMax:235,autoSpd:1.8,shotColor:0xff8a30,build:buildMage,
     barCss:"linear-gradient(180deg,#7ab8ff,#2a5ec9 60%,#123a7a)",
     tip:"提示：法力随时间恢复；远程自动施放火球，【闪现】拉开距离，危急时开【寒冰屏障】免疫伤害。",
     skills:[
-      {name:"炎爆术",  icon:"☄️",cd:7, rage:30,fn:pyroblast},
-      {name:"冰霜新星",icon:"❄️",cd:11,rage:25,fn:frostNova},
-      {name:"闪现",    icon:"✨",cd:12,rage:15,fn:blink},
-      {name:"寒冰屏障",icon:"🧊",cd:25,rage:0, fn:iceBlock}]},
+      {name:"炎爆术",  icon:"☄️",cd:7, rage:30,fn:pyroblast,bal:"pyroblast",
+       desc:"蓄力投出巨大火球，造成高额火焰伤害。"},
+      {name:"冰霜新星",icon:"❄️",cd:11,rage:25,fn:frostNova,bal:"frostNova",
+       desc:"冻结周围敌人并造成冰霜伤害，短暂定身。"},
+      {name:"闪现",    icon:"✨",cd:12,rage:15,fn:blink,bal:"blink",
+       desc:"瞬间向前传送一段距离。"},
+      {name:"寒冰屏障",icon:"🧊",cd:25,rage:0, fn:iceBlock,bal:"iceBlock",
+       desc:"把自己封进寒冰，短时间内免疫伤害。"}]},
   archer:{title:"🏹 你 · 精灵弓箭手",hp:4300,resMax:100,resStart:100,resName:"能量",
     regen:11,hitGain:0,speed:11.5,ranged:true,range:32,sfx:"arrow",
     autoMin:140,autoMax:190,autoSpd:1.25,shotColor:0xd0ffa0,build:buildArcher,
     barCss:"linear-gradient(180deg,#d8ff7a,#7fb32a 60%,#3d6a0c)",
     tip:"提示：能量随时间恢复；边走边射保持距离，【翻滚】可位移并短暂闪避一切伤害。",
     skills:[
-      {name:"瞄准射击",icon:"🎯",cd:6, rage:30,fn:aimedShot},
-      {name:"多重射击",icon:"🏹",cd:10,rage:35,fn:multiShot},
-      {name:"翻滚",    icon:"🤸",cd:9, rage:20,fn:roll},
-      {name:"治疗药水",icon:"🧪",cd:22,rage:0, fn:potion}]},
+      {name:"瞄准射击",icon:"🎯",cd:6, rage:30,fn:aimedShot,bal:"aimedShot",
+       desc:"精确瞄准，射出高伤害箭矢。"},
+      {name:"多重射击",icon:"🏹",cd:10,rage:35,fn:multiShot,bal:"multiShot",
+       desc:"同时射出多支箭，打击多个目标。"},
+      {name:"翻滚",    icon:"🤸",cd:9, rage:20,fn:roll,bal:"roll",
+       desc:"向前翻滚位移，短暂闪避一切伤害。"},
+      {name:"治疗药水",icon:"🧪",cd:22,rage:0, fn:potion,bal:"potion",
+       desc:"喝下药水，立即回复生命。"}]},
 };
 let CLS=CLASSES.warrior;
 function setClass(key){
@@ -92,6 +105,8 @@ function setClass(key){
     el.querySelector(".nm").textContent=SKILLS[i].name;
   });
   if(typeof updateSkillBarStats==="function")updateSkillBarStats();
+  if(typeof renderCharPanel==="function")renderCharPanel();
+  if(typeof renderSpellPanel==="function")renderSpellPanel();
 }
 setClass("warrior");
 
@@ -123,6 +138,9 @@ addEventListener("keydown",e=>{
   if(e.key.toLowerCase()==="f")tryInteract();
   if(e.key.toLowerCase()==="b")toggleBag();
   if(e.key.toLowerCase()==="n")toggleTalentPanel();
+  if(e.key.toLowerCase()==="c")toggleCharPanel();
+  if(e.key.toLowerCase()==="p")toggleSpellPanel();
+  if(e.key.toLowerCase()==="l")toggleQuestLog();
 });
 addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
 document.getElementById("interactBtn").addEventListener("pointerdown",()=>tryInteract());
