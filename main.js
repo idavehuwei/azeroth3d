@@ -11,6 +11,7 @@
           combat.js（S CLS SKILLS keys joy setClass bossAI bossTargetable distToBoss
           pickTarget firePlayerShot dmgBoss addDamage mobDamage playerHit
           spawnBurst log announce fct）
+          raid.js 运行时（bossAI distToBoss bossTargetable fireProjectile spawnBurst）
           world.js 运行时（heli sun fireflies FIREFLIES ffPhases）
    [导出] clampArena tick
    ============================================================ */

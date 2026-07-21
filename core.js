@@ -110,7 +110,7 @@ function makeLabel(text,w,color="#ffd9a0",glow="rgba(255,90,0,.95)"){
 /* ---------------- 场景基础（双场景：莫高雷 / 熔火之心） ---------------- */
 const sceneRaid=new THREE.Scene();
 sceneRaid.fog=new THREE.FogExp2(0x1a0602,0.016);
-let scene=sceneRaid;   /* 当前渲染场景；以下副本内容全部装入 sceneRaid */
+let scene=sceneRaid;   /* 当前渲染场景 */
 const camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,0.1,400);
 const renderer=new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth,innerHeight);
@@ -121,72 +121,11 @@ $("#game").appendChild(renderer.domElement);
 addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);});
 
-/* 光照：熔岩环境 */
-scene.add(new THREE.AmbientLight(0x662211,0.9));
-const lavaLight=new THREE.PointLight(0xff5a1a,1.6,140,1.6); lavaLight.position.set(0,6,-26); scene.add(lavaLight);
-const topLight=new THREE.DirectionalLight(0xffb070,0.55);
-topLight.position.set(18,40,20); topLight.castShadow=true;
-topLight.shadow.mapSize.set(2048,2048);
-topLight.shadow.camera.left=-50;topLight.shadow.camera.right=50;
-topLight.shadow.camera.top=50;topLight.shadow.camera.bottom=-50;
-scene.add(topLight);
+/* ---------------- 副本场景由 raid.js 的 buildRaidScene() 搭建 ---------------- */
+const lavaUniforms={uTime:{value:0}};  /* Shader uniform，供 raid.js 与 main.js 共用 */
 
-/* ---------------- 岩浆湖（Shader 动态熔岩） ---------------- */
-const lavaUniforms={uTime:{value:0}};
-const lavaMat=new THREE.ShaderMaterial({
-  uniforms:lavaUniforms,
-  vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-  fragmentShader:`
-    varying vec2 vUv;uniform float uTime;
-    float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.545);}
-    float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
-      return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
-    float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*n(p);p*=2.03;a*=.5;}return v;}
-    void main(){
-      vec2 p=vUv*14.;
-      float f=fbm(p+vec2(uTime*.12,uTime*.05)+fbm(p*.6-uTime*.07)*2.2);
-      vec3 dark=vec3(.12,.02,.0), mid=vec3(.85,.22,.02), hot=vec3(1.,.85,.35);
-      vec3 c=mix(dark,mid,smoothstep(.28,.62,f));
-      c=mix(c,hot,smoothstep(.68,.9,f));
-      gl_FragColor=vec4(c,1.);
-    }`
-});
-const lava=new THREE.Mesh(new THREE.PlaneGeometry(320,320,1,1),lavaMat);
-lava.rotation.x=-Math.PI/2; lava.position.y=-0.9; scene.add(lava);
-
-/* ---------------- 黑曜石战斗平台 ---------------- */
+/* ---------------- 火星粒子（副本场景共用，每帧动画） ---------------- */
 const ARENA_R=26;
-const platMat=new THREE.MeshStandardMaterial({color:0x1c1412,roughness:.92,metalness:.15});
-const platform=new THREE.Mesh(new THREE.CylinderGeometry(ARENA_R,ARENA_R+2.5,2.2,48),platMat);
-platform.position.y=-1.1; platform.receiveShadow=true; scene.add(platform);
-/* 平台边缘符文环 */
-const runeRing=new THREE.Mesh(new THREE.RingGeometry(ARENA_R-1.4,ARENA_R-0.6,64),
-  new THREE.MeshBasicMaterial({color:0xff6a1a,transparent:true,opacity:.35,side:THREE.DoubleSide}));
-runeRing.rotation.x=-Math.PI/2; runeRing.position.y=0.03; scene.add(runeRing);
-
-/* 环形岩柱群 */
-const rockMat=new THREE.MeshStandardMaterial({color:0x2b1a12,roughness:1,flatShading:true});
-const glowRockMat=new THREE.MeshStandardMaterial({color:0x3a1408,roughness:.9,flatShading:true,
-  emissive:0xff3b00,emissiveIntensity:.25});
-for(let i=0;i<14;i++){
-  const a=i/14*Math.PI*2+srand(-.1,.1), r=ARENA_R+srand(6,14);
-  const h=srand(6,17);
-  const rock=new THREE.Mesh(new THREE.CylinderGeometry(srand(.6,1.6),srand(2.2,3.6),h,6),
-    worldRng()<.4?glowRockMat:rockMat);
-  rock.position.set(Math.cos(a)*r,h/2-1.5,Math.sin(a)*r);
-  rock.rotation.set(srand(-.12,.12),srand(0,6),srand(-.12,.12));
-  rock.castShadow=true; scene.add(rock);
-}
-/* 平台上散落碎石 */
-for(let i=0;i<10;i++){
-  const a=srand(0,6.28),r=srand(8,ARENA_R-3);
-  const s=srand(.4,1.1);
-  const st=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0),rockMat);
-  st.position.set(Math.cos(a)*r,s*.4,Math.sin(a)*r);
-  st.castShadow=true;st.receiveShadow=true;scene.add(st);
-}
-
-/* ---------------- 火星粒子 ---------------- */
 const EMBERS=260;
 const emberGeo=new THREE.BufferGeometry();
 const emberPos=new Float32Array(EMBERS*3), emberVel=new Float32Array(EMBERS);
@@ -197,4 +136,4 @@ for(let i=0;i<EMBERS;i++){
 emberGeo.setAttribute("position",new THREE.BufferAttribute(emberPos,3));
 const embers=new THREE.Points(emberGeo,new THREE.PointsMaterial({color:0xffa040,size:.32,
   transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false}));
-scene.add(embers);
+/* 火星粒子在 buildRaidScene 中加到 sceneRaid */
