@@ -4,7 +4,7 @@
    [依赖] THREE · core.js（rand）
    [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS
           buildQuadruped buildHumanoidMob QUADS MOB_HUMANOIDS（STEP 5 族群工厂）
-          buildPlayer buildMage buildArcher buildBoss buildElder buildVendor
+          buildPlayer buildMage buildArcher buildBoss buildElder buildVendor buildSpiritHealer
           buildBoar buildFlameSpawn
    ------------------------------------------------------------
    3D 模型库（全部程序化几何体，零模型文件）
@@ -355,7 +355,7 @@ const QUADS={
   /* 陆行鸟：双足长颈，喙 + 冠羽 + 扇尾 */
   bird    :{fur:0xd8b060,furD:0xa87830,legs:2,neck:1.1,beak:true,crest:true,tail:'plume'},
   /* 老灰鬃野猪王：巨型灰鬃野猪（稀有精英） */
-  boarKing:{fur:0x8a8578,furD:0x55524a,tusks:true,tuskBig:true,mane:true,ears:true,tail:'up',size:1.55},
+  boarKing:{fur:0x8a8578,furD:0x55524a,tusks:true,tuskBig:true,mane:true,ears:true,tail:'up',size:2.15},
   /* 玛格曼达：巨型熔岩猎犬（STEP 9c） */
   magmadar:{fur:0x8a2208,furD:0x3a1008,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:5.1},
 };
@@ -425,7 +425,7 @@ function buildQuadruped(cfg){
 
 /* 人形怪族群：鹰身女妖 /（将来的小恶魔等）共用 */
 const MOB_HUMANOIDS={
-  harpy:{size:1.15,skin:0xc9a2b8,feather:0x5a3a6e,featherD:0x3a2450,hair:0x2a1a3e,claw:0xe8e0c8},
+  harpy:{size:1.55,skin:0xc9a2b8,feather:0x5a3a6e,featherD:0x3a2450,hair:0x2a1a3e,claw:0xe8e0c8},
 };
 function buildHumanoidMob(cfg){
   const c=Object.assign({size:1,wings:true},cfg);
@@ -508,6 +508,19 @@ function buildVendor(){
     o.material=o.material.clone();
     const h=o.material.color.getHex();
     if(h===0x8a4a2a)o.material.color.setHex(0x2a6a4a);
+  });
+  return g;
+}
+/* 灵魂医者（STEP 15）：苍白布料 + 微光 */
+function buildSpiritHealer(){
+  const g=buildElder();
+  g.traverse(o=>{
+    if(!o.isMesh||!o.material||!o.material.color)return;
+    o.material=o.material.clone();
+    const h=o.material.color.getHex();
+    if(h===0x8a4a2a){o.material.color.setHex(0xc8d8e8);o.material.emissive=new THREE.Color(0x446688);o.material.emissiveIntensity=.35;}
+    else if(h===0x6a4a30||h===0x4a3220){o.material.color.setHex(0xa8b8c8);}
+    else if(h===0xe8e0c8){o.material.color.setHex(0xffffff);o.material.emissive=new THREE.Color(0x88aacc);o.material.emissiveIntensity=.25;}
   });
   return g;
 }

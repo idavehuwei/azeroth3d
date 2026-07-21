@@ -3,7 +3,7 @@
    莫高雷世界：实体放置 / 草原与营地 / 传送门与进本 / 野怪与 NPC 任务系统
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ rand srand worldRng BAL makeLabel scene camera）
-          models.js（buildPlayer buildBoss buildElder buildVendor buildBoar）
+          models.js（buildPlayer buildBoss buildElder buildVendor buildSpiritHealer buildBoar）
           items.js（dropLoot rollLoot LOOT tryLoot buyVendorItem）
           combat.js 运行时（S log announce fct spawnBurst hitEntity closeDialogue
             gainCopper rollCopperRange …）
@@ -12,9 +12,10 @@
    [导出] player boss BOSS_MESHES WORLD_R sceneWorld heli sun worldFlames PORTAL_POS portalUni
           portalLabel enterRaid fadeTo MOBS QUEST moveToward mobDamage mobDie
           setCorpse updateQuest setMarker tryInteract openDialogue closeDialogue
-          openVendor refreshVendorPanel
+          openVendor refreshVendorPanel openSpiritDialogue
           leaveRaid resetBoss spawnExitPortal removeExitPortal exitPortal
           fireflies FIREFLIES ffPhases elder elderDist vendor vendorDist
+          spiritHealer spiritDist
    ============================================================ */
 "use strict";
 /* ---------------- 实体放置 ---------------- */
@@ -197,7 +198,7 @@ camera.position.set(0,14,72);
 /* ---------------- 进入副本（黑屏过渡） ---------------- */
 function fadeTo(op,cb){const f=$("#fade");f.style.opacity=op;if(cb)setTimeout(cb,650);}
 function enterRaid(){
-  if(S.mode!=="world")return;
+  if(S.mode!=="world"||!S.p.alive)return;
   S.mode="transition";
   announce("正在进入 · 熔火之心");
   fadeTo(1,()=>{
@@ -320,6 +321,12 @@ const vendor=buildVendor();
 vendor.position.set(-10,0,50); vendor.rotation.y=Math.PI*1.15; sceneWorld.add(vendor);
 const vendorLabel=makeLabel("商人 · 火蹄",7,"#a8e8c0","rgba(40,180,100,.9)");
 vendorLabel.position.set(-10,5.6,50); sceneWorld.add(vendorLabel);
+/* 灵魂医者（STEP 15） */
+const spiritHealer=buildSpiritHealer();
+spiritHealer.position.set(0,0,58); spiritHealer.rotation.y=Math.PI; sceneWorld.add(spiritHealer);
+const spiritLabel=makeLabel("灵魂医者 · 风语",7,"#c8e8ff","rgba(80,160,255,.95)");
+spiritLabel.position.set(0,5.6,58); sceneWorld.add(spiritLabel);
+function spiritDist(){return Math.hypot(player.position.x-spiritHealer.position.x,player.position.z-spiritHealer.position.z);}
 
 /* ============================================================
    野怪类型表（STEP 5）：模型配方 + 数值 + 掉落表 + 名字标签
@@ -329,30 +336,75 @@ const MOB_TYPES={
   boar    :{name:"草原野猪",    build:()=>buildQuadruped(QUADS.boar),    stats:"boar",    loot:"boar",    labelW:4.6,labelY:2.7},
   wolf    :{name:"草原狼",      build:()=>buildQuadruped(QUADS.wolf),    stats:"wolf",    loot:"wolf",    labelW:4.2,labelY:2.7},
   bird    :{name:"陆行鸟",      build:()=>buildQuadruped(QUADS.bird),    stats:"bird",    loot:"bird",    labelW:4.2,labelY:3.4},
-  harpy   :{name:"鹰身女妖首领",build:()=>buildHumanoidMob(MOB_HUMANOIDS.harpy),stats:"harpy",loot:"harpy",labelW:7,labelY:4.4,elite:true,color:"#ff9ad0"},
-  boarKing:{name:"老灰鬃野猪王",build:()=>buildQuadruped(QUADS.boarKing),stats:"boarKing",loot:"boarKing",labelW:7.5,labelY:4.2,elite:true,color:"#ffd700"},
+  harpy   :{name:"鹰身女妖首领",build:()=>buildHumanoidMob(MOB_HUMANOIDS.harpy),stats:"harpy",loot:"harpy",labelW:8.5,labelY:5.6,elite:true,color:"#ff9ad0",auraColor:0xff66bb},
+  boarKing:{name:"老灰鬃野猪王",build:()=>buildQuadruped(QUADS.boarKing),stats:"boarKing",loot:"boarKing",labelW:9,labelY:5.8,elite:true,color:"#ffd700",auraColor:0xffd76a},
 };
-function spawnMob(type,x,z,group){
+function attachEliteAura(m,colorHex){
+  const E=BAL.elite.aura;
+  const col=colorHex!=null?colorHex:E.color||0xffd76a;
+  const ring=new THREE.Mesh(
+    new THREE.RingGeometry(E.innerR,E.outerR,40),
+    new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:E.opacity,side:THREE.DoubleSide,depthWrite:false})
+  );
+  ring.rotation.x=-Math.PI/2; ring.position.y=.06;
+  ring.userData.eliteAura=true;
+  m.mesh.add(ring);
+  const glow=new THREE.Mesh(
+    new THREE.CircleGeometry(E.innerR*.85,28),
+    new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:E.opacity*.35,side:THREE.DoubleSide,depthWrite:false})
+  );
+  glow.rotation.x=-Math.PI/2; glow.position.y=.04;
+  glow.userData.eliteAura=true;
+  m.mesh.add(glow);
+  const light=new THREE.PointLight(col,1.4,14);
+  light.position.y=2.2;
+  light.userData.eliteAura=true;
+  m.mesh.add(light);
+  m.aura={ring,glow,light,baseOp:E.opacity};
+}
+function spawnEliteMinions(elite,typeKey){
+  const cfg=BAL.elite.minions[typeKey];
+  if(!cfg)return;
+  const group=elite.group||("elite_"+typeKey);
+  elite.group=group;
+  for(let i=0;i<cfg.count;i++){
+    const a=srand(0,Math.PI*2);
+    const r=srand(cfg.radius*.5,cfg.radius);
+    spawnMob(cfg.type, elite.home.x+Math.cos(a)*r, elite.home.z+Math.sin(a)*r, group, {minion:true});
+  }
+}
+function spawnMob(type,x,z,group,opts){
   const T=MOB_TYPES[type], st=BAL.mobs[T.stats];
   const mesh=T.build(); mesh.position.set(x,0,z);
-  mesh.rotation.y=srand(0,6.28); sceneWorld.add(mesh);
+  mesh.rotation.y=srand(0,6.28);
+  let labelY=T.labelY;
+  if(T.elite&&!(opts&&opts.minion)){
+    const mul=BAL.elite.scaleMul||1;
+    mesh.scale.multiplyScalar(mul);
+    labelY+=BAL.elite.labelYBonus||0;
+  }
+  sceneWorld.add(mesh);
   const label=makeLabel(T.name,T.labelW,T.color||"#ffd9a0",T.color||undefined);
-  label.position.set(x,T.labelY,z); sceneWorld.add(label);
-  const m={type,name:T.name,mesh,label,stats:st,loot:LOOT[T.loot],elite:!!T.elite,
-    group:group||null,labelY:T.labelY,
+  label.position.set(x,labelY,z); sceneWorld.add(label);
+  const m={type,name:T.name,mesh,label,stats:st,loot:LOOT[T.loot],elite:!!T.elite&&!(opts&&opts.minion),
+    group:group||null,labelY,
     hp:st.hp,hpMax:st.hp,state:"wander",home:{x,z},dest:null,wanderT:rand(0,3),
-    atkT:0,rootT:0,respawnT:0,corpseT:0,castCd:0,casting:null,moving:false,
+    atkT:0,rootT:0,respawnT:0,corpseT:0,castCd:0,casting:null,moving:false,aura:null,
     /* —— 统一实体接口（STEP 1，hitEntity 消费）；return = 脱战回巢，免疫伤害 —— */
     variance:BAL.variance.mob,
     dead(){return this.state==="dead"||this.state==="return";},
     fctPos(){return this.mesh.position.clone().setY(this.labelY-.4);},
-    fctSize(){return 14;},
+    fctSize(){return this.elite?16:14;},
     onHit(amount,label){
       if(this.state==="wander")aggroMob(this);   /* 被动怪（陆行鸟）也会被打反击 */
       if(label)log(`你的【${label}】命中${this.name}，造成 ${amount} 伤害。`,"lg-me");
     },
     onDeath(){mobDie(this);},
   };
+  if(m.elite){
+    attachEliteAura(m,T.auraColor);
+    spawnEliteMinions(m,type);
+  }
   MOBS.push(m); return m;
 }
 /* 可否被选中/命中：死亡与脱战回巢中的怪不可打 */
@@ -382,9 +434,9 @@ function aggroMob(m){
 [[-42,-26],[-38,-31],[-45,-33]].forEach(([x,z])=>spawnMob("wolf",x,z,"wolfpack"));
 /* 陆行鸟：湖边中立被动（不主动攻击，被打才反击，移速快） */
 [[-28,2],[-46,26],[-24,14]].forEach(([x,z])=>spawnMob("bird",x,z));
-/* 鹰身女妖首领：小精英，读条火球，必掉优秀装备 */
+/* 鹰身女妖首领：精英放大 + 光环 + 陆行鸟小弟 */
 spawnMob("harpy",48,-30);
-/* 稀有精英「老灰鬃野猪王」：长重生计时，金色名字，必掉优秀物品 */
+/* 稀有精英「老灰鬃野猪王」：放大光环 + 野猪小弟 */
 spawnMob("boarKing",14,-34);
 function moveToward(m,dest,spd,dt){
   const dx=dest.x-m.mesh.position.x,dz=dest.z-m.mesh.position.z;
@@ -403,10 +455,12 @@ function setCorpse(m,on){
   m.mesh.rotation.z=on?Math.PI/2:0;
   m.mesh.position.y=on?.25:0;
   m.mesh.traverse(o=>{
+    if(o.userData&&o.userData.eliteAura){o.visible=!on;return;}
     if(!o.isMesh)return;
     if(on){o.userData.liveMat=o.material;o.material=corpseMat;}
     else if(o.userData.liveMat){o.material=o.userData.liveMat;o.userData.liveMat=null;}
   });
+  if(m.aura&&m.aura.light)m.aura.light.visible=!on;
 }
 /* 野怪死亡（STEP 1 onDeath 唯一挂接点）：留尸 + 掉落（STEP 2）+ 经验（STEP 3）
    STEP 5 泛化：数值/掉落/经验全部来自实体自身配置；精英走 eliteWeights 必掉优秀以上 */
@@ -453,7 +507,7 @@ function updateQuest(){
 function elderDist(){return Math.hypot(player.position.x-elder.position.x,player.position.z-elder.position.z);}
 function vendorDist(){return Math.hypot(player.position.x-vendor.position.x,player.position.z-vendor.position.z);}
 function tryInteract(){
-  if(!S.started||S.over)return;
+  if(!S.started||!S.p.alive)return;
   if(tryLoot())return;   /* 尸体旁的战利品优先（STEP 2），世界/副本通用 */
   /* 副本内：击杀 Boss 后走进出口传送门自动离开 */
   if(S.mode==="raid"&&S.b.canLeave&&exitPortal&&player.position.distanceTo(EXIT_PORTAL_POS)<4.5){
@@ -461,9 +515,20 @@ function tryInteract(){
   }
   if(S.mode!=="world")return;
   const R=BAL.economy.interactR;
-  const dE=elderDist(), dV=vendorDist();
+  const dE=elderDist(), dV=vendorDist(), dS=spiritDist();
+  if(dS<R&&dS<=dE&&dS<=dV){openSpiritDialogue();return;}
   if(dV<R&&dV<=dE){openVendor();return;}
   if(dE<R)openDialogue();
+}
+function openSpiritDialogue(){
+  S.vendorOpen=false;
+  const dlg=$("#dlg"),tx=$("#dlgText"),bts=$("#dlgBtns");
+  const nameEl=$("#dlg .dname");
+  if(nameEl)nameEl.textContent="👻 灵魂医者 · 风语";
+  dlg.style.display="block"; bts.innerHTML="";
+  tx.textContent="旅人，若你在战场上倒下，释放灵魂后我会在此接引你归来。大地母亲护佑着所有勇敢的灵魂。";
+  const b=document.createElement("button");
+  b.className="dbtn";b.textContent="感谢您，医者";b.onclick=closeDialogue;bts.appendChild(b);
 }
 function closeDialogue(){
   $("#dlg").style.display="none";

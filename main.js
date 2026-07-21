@@ -6,7 +6,7 @@
           lavaUniforms embers EMBERS emberVel）
           items.js（updateDrops nearestDrop removeDropOf）
           world.js（player boss WORLD_R PORTAL_POS portalUni portalLabel worldFlames
-          MOBS elder elderDist vendor vendorDist enterRaid leaveRaid closeDialogue moveToward mobDamage setCorpse
+          MOBS elder elderDist vendor vendorDist spiritHealer spiritDist enterRaid leaveRaid closeDialogue moveToward mobDamage setCorpse
           exitPortal EXIT_PORTAL_POS spawnExitPortal removeExitPortal）
           combat.js（S CLS SKILLS keys joy setClass bossAI bossTargetable distToBoss
           pickTarget firePlayerShot dmgBoss addDamage mobDamage playerHit
@@ -136,7 +136,7 @@ function tick(){
     boss.userData.bossLight.intensity=2+Math.sin(S.t*5)*.5;
   }
 
-  if(S.started&&!S.over){
+  if(S.started){
     /* ---- 莫高雷：传送门检测 / 野怪 AI / NPC ---- */
     if(S.mode==="world"){
       const pd=Math.hypot(player.position.x-PORTAL_POS.x,player.position.z-PORTAL_POS.z);
@@ -206,19 +206,30 @@ function tick(){
         }
         m.mesh.position.y=m.moving?Math.abs(Math.sin(S.t*9+m.home.x))*.22:0;
         m.label.position.set(m.mesh.position.x,m.labelY,m.mesh.position.z);
+        /* 精英光环脉动 */
+        if(m.elite&&m.aura&&m.state!=="dead"){
+          const pulse=BAL.elite.aura.pulse||.3;
+          m.aura.ring.rotation.z+=dt*.7;
+          const op=m.aura.baseOp*(1+Math.sin(S.t*3.2+m.home.x)*.25);
+          m.aura.ring.material.opacity=op;
+          m.aura.glow.material.opacity=op*.4;
+          m.aura.light.intensity=1.2+Math.sin(S.t*4+m.home.z)*pulse;
+        }
       }
       /* 长老 / 商人待机动画 & 任务标记浮动 */
       elder.rotation.y=Math.PI*.85+Math.sin(S.t*.8)*.08;
       elder.position.y=Math.sin(S.t*1.6)*.04;
       vendor.rotation.y=Math.PI*1.15+Math.sin(S.t*.7+1)*.08;
       vendor.position.y=Math.sin(S.t*1.5+2)*.04;
+      spiritHealer.rotation.y=Math.PI+Math.sin(S.t*.6)*.06;
+      spiritHealer.position.y=Math.sin(S.t*1.4+1)*.05;
       markerExcl.position.y=6.8+Math.sin(S.t*2.4)*.3;
       markerQ.position.y=markerExcl.position.y;
       /* 对话按钮显隐 / 走远自动关闭对话 */
       const nearR=BAL.economy.interactR;
-      const nearNpc=elderDist()<nearR||vendorDist()<nearR;
+      const nearNpc=S.p.alive&&(elderDist()<nearR||vendorDist()<nearR||spiritDist()<nearR);
       $("#interactBtn").style.display=(nearNpc&&$("#dlg").style.display!=="block")?"block":"none";
-      if(elderDist()>8&&vendorDist()>8)closeDialogue();
+      if(elderDist()>8&&vendorDist()>8&&spiritDist()>8)closeDialogue();
     }
     /* ---- 掉落动画 & 拾取按钮（世界/副本通用，STEP 2） ---- */
     updateDrops(dt);
@@ -227,17 +238,26 @@ function tick(){
     else if(S.mode==="raid"&&S.b.canLeave&&exitPortal&&player.position.distanceTo(EXIT_PORTAL_POS)<5.5){
       ib.textContent="🚪 走进传送门";ib.style.display="block";
     }else{
-      ib.textContent=vendorDist()<BAL.economy.interactR?"🛒 交易（F）":"💬 对 话（F）";
-      if(S.mode!=="world")ib.style.display="none";
+      const nearS=spiritDist()<BAL.economy.interactR;
+      const nearV=vendorDist()<BAL.economy.interactR;
+      ib.textContent=nearS?"👻 灵魂医者（F）":nearV?"🛒 交易（F）":"💬 对 话（F）";
+      if(S.mode!=="world"||!S.p.alive)ib.style.display="none";
     }
     /* ---- 玩家移动 ---- */
     let mx=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
     let mz=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
     mx+=joy.x; mz+=joy.y;
     const ml=Math.hypot(mx,mz);
+    /* 虚弱计时（STEP 15） */
+    let moveSpd=S.p.speed;
+    if(S.p.weaknessT>0){
+      S.p.weaknessT=Math.max(0,S.p.weaknessT-dt);
+      moveSpd*=BAL.death.moveSpeedMul;
+      if(S.p.weaknessT<=0)log("虚弱效果结束。","lg-sys");
+    }
     /* 进食 / 包扎：移动打断（STEP 13） */
-    if((S.p.eating||S.p.bandaging)&&ml>.12&&!S.p.knock&&!S.p.fear)cancelConsume();
-    if(S.p.eating){
+    if(S.p.alive&&(S.p.eating||S.p.bandaging)&&ml>.12&&!S.p.knock&&!S.p.fear)cancelConsume();
+    if(S.p.alive&&S.p.eating){
       S.p.eating.t-=dt;
       S.p.hp=Math.min(S.p.hpMax,S.p.hp+S.p.eating.healPerSec*dt);
       if(S.p.eating.t<=0){
@@ -245,7 +265,7 @@ function tick(){
         S.p.eating=null;
         VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.4)});
       }
-    }else if(S.p.bandaging){
+    }else if(S.p.alive&&S.p.bandaging){
       S.p.bandaging.t-=dt;
       if(S.p.bandaging.t<=0){
         const h=S.p.bandaging.heal;
@@ -256,23 +276,25 @@ function tick(){
         VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.4)});
       }
     }
-    if(S.p.knock){
+    if(!S.p.alive){
+      /* 死亡倒地：不处理位移 */
+    }else if(S.p.knock){
       player.position.add(S.p.knock.dir.clone().multiplyScalar(dt*28));
       S.p.knock.t-=dt; if(S.p.knock.t<=0)S.p.knock=null;
       clampArena(player.position);
     }else if(S.p.fear){
       /* 恐惧：强制乱跑，忽略输入 */
       S.p.fear.t-=dt;
-      player.position.x+=Math.sin(S.t*9+1.7)*S.p.speed*.7*dt;
-      player.position.z+=Math.cos(S.t*7.3)*.7*S.p.speed*dt;
+      player.position.x+=Math.sin(S.t*9+1.7)*moveSpd*.7*dt;
+      player.position.z+=Math.cos(S.t*7.3)*.7*moveSpd*dt;
       clampArena(player.position);
       S.p.face=Math.atan2(Math.sin(S.t*9),Math.cos(S.t*7.3));
       S.p.walkPhase+=dt*14;
       if(S.p.fear.t<=0)S.p.fear=null;
-    }else if(ml>.1&&S.p.alive){
+    }else if(ml>.1){
       mx/=Math.max(1,ml);mz/=Math.max(1,ml);
-      player.position.x+=mx*S.p.speed*dt;
-      player.position.z+=mz*S.p.speed*dt;
+      player.position.x+=mx*moveSpd*dt;
+      player.position.z+=mz*moveSpd*dt;
       clampArena(player.position);
       S.p.face=Math.atan2(mx,mz);
       S.p.walkPhase+=dt*11;
@@ -281,7 +303,7 @@ function tick(){
       if(bossTargetable())S.p.face=Math.atan2(boss.position.x-player.position.x,boss.position.z-player.position.z);
       S.p.walkPhase*=1-dt*8;
     }
-    player.rotation.y=S.p.face;
+    if(S.p.alive)player.rotation.y=S.p.face;
     /* 走路摆腿 & 披风 */
     const U=player.userData,sw=Math.sin(S.p.walkPhase)*.55;
     U.legR.rotation.x=sw; U.legL.rotation.x=-sw;

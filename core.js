@@ -43,12 +43,31 @@ const BALANCE={
     boar    :{hp:650, dmg:[55,85],  atkCd:2.2, meleeR:2.4, aggroR:7,  leashR:34, wanderSpd:3,  chaseSpd:5.5, respawnT:25,  xp:80,  copper:[8,18]},
     wolf    :{hp:520, dmg:[45,70],  atkCd:1.8, meleeR:2.3, aggroR:9,  leashR:38, wanderSpd:3.5,chaseSpd:6.5, respawnT:30,  xp:90,  socialR:18, copper:[10,22]},
     bird    :{hp:480, dmg:[40,60],  atkCd:1.6, meleeR:2.2, aggroR:0,  leashR:30, wanderSpd:4.5,chaseSpd:8,   respawnT:25,  xp:70,  copper:[6,14]},
-    harpy   :{hp:4200,dmg:[90,130], atkCd:2.4, meleeR:3.2, aggroR:12, leashR:44, wanderSpd:2.5,chaseSpd:5,   respawnT:60,  xp:450, copper:[80,140],
+    harpy   :{hp:4200,dmg:[90,130], atkCd:2.4, meleeR:3.2, aggroR:12, leashR:44, wanderSpd:2.5,chaseSpd:5,   respawnT:60,  xp:450, copper:[80,140], socialR:24,
               cast:{name:"女妖之火",dmg:[220,300],dur:1.5,cd:6,range:20,speed:16,hitR:3}},
-    boarKing:{hp:3200,dmg:[110,160],atkCd:2.4, meleeR:3.2, aggroR:8,  leashR:40, wanderSpd:2.2,chaseSpd:5,   respawnT:120, xp:500, copper:[120,200]},
+    boarKing:{hp:3200,dmg:[110,160],atkCd:2.4, meleeR:3.2, aggroR:8,  leashR:40, wanderSpd:2.2,chaseSpd:5,   respawnT:120, xp:500, copper:[120,200], socialR:22},
   },
   /* 脱战回巢（STEP 5 规范化）：回巢途中每秒回复最大生命的百分比，且免疫伤害 */
   leash:{regenPct:.5},
+  /* 精英外观与随从（体型放大 / 脚下光环 / 周边小弟） */
+  elite:{
+    scaleMul:1.25,            /* 在模型 size 之上再放大 */
+    labelYBonus:1.4,
+    aura:{innerR:1.6,outerR:2.9,opacity:.55,pulse:0.35},
+    minions:{
+      harpy   :{type:"bird", count:3, radius:7},
+      boarKing:{type:"boar", count:3, radius:8},
+    },
+  },
+  /* 死亡与复活（STEP 15） */
+  death:{
+    respawnHpPct:.5,          /* 复活时生命比例 */
+    weaknessT:10,             /* 虚弱秒数 */
+    moveSpeedMul:.7,          /* 虚弱移速倍率（-30%） */
+    worldSpawn:{x:0,z:58},    /* 灵魂医者旁 */
+    raidSpawn:{x:0,z:18},     /* 副本走廊入口 */
+    corpseDelay:1.2,          /* 倒地后弹出死亡面板延迟 */
+  },
   /* 烈焰之子 */
   add:{hp:1400, dmg:[130,190], atkCd:2, speed:4.6, meleeR:3, stopR:2.6, copper:[12,28]},
   /* 炎魔领主 · 拉戈斯 */

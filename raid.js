@@ -14,6 +14,8 @@
           combat.js 运行时（gainCopper rollCopperRange）
    [导出] BOSSES createBoss defineBoss getBossCfg armBossSkills activateRaidBoss mountBossMesh
           bossAI startCast spawnAdd addDamage addDie bossDie playerDie resetBoss
+          releaseSpiritWorld releaseSpiritRaid releaseSpiritLeaveRaid resurrectPlayer
+          showDeathUi hideDeathUi clearRaidHazards applyWipeEncounter
           distToBoss bossTargetable BOSS_ENT DUNGEON buildRaidScene
    ============================================================ */
 "use strict";
@@ -124,6 +126,8 @@ const DUNGEON={
   mobsAlive:0,
   bridgeT:0,
   bridgeDone:false,
+  /* 团灭策略（STEP 15）：keep_stage=保留分段，复活时重置当前遭遇 */
+  wipePolicy:"keep_stage",
   setStage(s){
     if(s==="corridor"){
       this.stage="corridor"; this.bridgeDone=false;
@@ -488,7 +492,7 @@ function runBossSkill(sk){
     if(d<st.range){
       B.swingT=1;
       const label=sk.label||sk.name, vfx=sk.vfx;
-      setTimeout(()=>{ if(S.over)return;
+      setTimeout(()=>{ if(!S.p.alive)return;
         let mul=1;
         if(sk.phaseMul&&sk.phaseMul[B.phase])mul=st[sk.phaseMul[B.phase]]||1;
         if(distToBoss()<st.hitRange&&S.p.alive){
@@ -736,17 +740,140 @@ function bossDie(){
   if(typeof saveGame==="function")saveGame(true);
 }
 function playerDie(){
-  const F=(getBossCfg().defeat)||{};
-  S.p.alive=false;S.over=true;
+  if(!S.p.alive)return;
+  S.p.alive=false;
+  S.over=false;          /* STEP 15：不再锁死整局 */
+  S.deathUi=false;
+  S.p.knock=null; S.p.fear=null;
+  if(typeof cancelConsume==="function")cancelConsume();
+  clearBossCast();
   announce("你被击败了……");
-  player.rotation.z=Math.PI/2;player.position.y=.5;
+  log("你倒下了。释放灵魂即可在灵魂医者处重生。","lg-sys");
+  player.rotation.z=Math.PI/2; player.position.y=.5;
+  const delay=(BAL.death.corpseDelay||1.2)*1000;
   setTimeout(()=>{
-    $("#endTitle").textContent=F.endTitle||"团 灭";
-    $("#endTitle").style.color="#ff5a3c";
-    $("#endSub").textContent=F.endSub||"";
-    $("#endText").innerHTML=F.endHtml||"";
-    $("#endOv").classList.remove("hide");
-  },2200);
+    if(S.p.alive)return;
+    showDeathUi();
+  },delay);
+}
+
+function showDeathUi(){
+  S.deathUi=true;
+  const ov=$("#deathOv");
+  if(!ov)return;
+  const world=S.mode==="world";
+  $("#deathTitle").textContent="你 已 死 亡";
+  $("#deathSub").textContent=world?"灵魂将前往营地的灵魂医者处":"在熔火之心中倒下了……";
+  $("#deathText").textContent=world
+    ?"释放灵魂后，你将在灵魂医者旁复活（短暂虚弱）。"
+    :"可选择在走廊入口重整旗鼓，或退出副本回到营地。";
+  $("#btnReleaseWorld").style.display=world?"inline-block":"none";
+  $("#btnReleaseRaid").style.display=world?"none":"inline-block";
+  $("#btnLeaveRaidDead").style.display=world?"none":"inline-block";
+  ov.classList.remove("hide");
+}
+function hideDeathUi(){
+  S.deathUi=false;
+  const ov=$("#deathOv");
+  if(ov)ov.classList.add("hide");
+}
+
+/** 清理副本危险物（投射物/红圈/小怪），不改 DUNGEON.stage */
+function clearRaidHazards(){
+  for(const a of S.adds){if(a.mesh&&a.mesh.parent)a.mesh.parent.remove(a.mesh);}
+  S.adds.length=0;
+  for(const p of S.projectiles){if(p.mesh&&p.mesh.parent)p.mesh.parent.remove(p.mesh);disposeVfxMesh(p.mesh);}
+  S.projectiles.length=0;
+  for(const t of S.telegraphs){
+    if(t.ring&&t.ring.parent)t.ring.parent.remove(t.ring);
+    if(t.disc&&t.disc.parent)t.disc.parent.remove(t.disc);
+    disposeVfxMesh(t.ring);disposeVfxMesh(t.disc);
+  }
+  S.telegraphs.length=0;
+  clearBossCast();
+  S.b.casting=null;
+}
+
+/** 按 wipePolicy 重置当前遭遇（保留已推进的 stage） */
+function applyWipeEncounter(){
+  clearRaidHazards();
+  const pol=DUNGEON.wipePolicy||"keep_stage";
+  if(pol==="reset_to_corridor"){
+    resetBoss();
+    DUNGEON.setStage("corridor");
+    return;
+  }
+  /* keep_stage：当前 Boss 战重开；走廊重刷；桥段保持 */
+  if(DUNGEON.stage==="corridor"){
+    resetBoss();
+    DUNGEON.setStage("corridor");
+  }else if(DUNGEON.stage==="boss1"){
+    activateRaidBoss("magmadar");
+  }else if(DUNGEON.stage==="boss"){
+    activateRaidBoss("ragnaros");
+  }else if(DUNGEON.stage==="bridge"){
+    S.b.alive=false; if(boss)boss.visible=false;
+  }
+}
+
+function resurrectPlayer(spawn,opts){
+  const D=BAL.death;
+  S.p.alive=true;
+  S.over=false;
+  S.p.hp=Math.max(1,Math.round(S.p.hpMax*(D.respawnHpPct!=null?D.respawnHpPct:.5)));
+  S.p.rage=CLS.resStart;
+  S.p.invuln=.8;
+  S.p.knock=null; S.p.fear=null;
+  S.p.eating=null; S.p.bandaging=null;
+  S.p.weaknessT=D.weaknessT||0;
+  player.rotation.z=0; player.position.y=0;
+  if(spawn)player.position.set(spawn.x,0,spawn.z);
+  hideDeathUi();
+  if(!(opts&&opts.silent)){
+    announce("你复活了！");
+    log(`复活成功。虚弱 ${D.weaknessT} 秒（移速降低）。`,"lg-heal");
+    VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.5)});
+  }
+  if(typeof saveGame==="function")saveGame(true);
+}
+
+function releaseSpiritWorld(){
+  if(S.p.alive||S.mode!=="world")return;
+  const sp=BAL.death.worldSpawn;
+  resurrectPlayer(sp);
+  log("灵魂医者的光芒包裹了你……","lg-sys");
+}
+
+function releaseSpiritRaid(){
+  if(S.p.alive||S.mode!=="raid")return;
+  applyWipeEncounter();
+  resurrectPlayer(BAL.death.raidSpawn);
+  log("你在走廊入口重整旗鼓。当前副本分段已保留，遭遇已重置。","lg-sys");
+}
+
+function releaseSpiritLeaveRaid(){
+  if(S.p.alive||S.mode!=="raid")return;
+  clearRaidHazards();
+  hideDeathUi();
+  /* 同步离本（跳过淡出等待中的操作冲突） */
+  S.mode="transition";
+  fadeTo(1,()=>{
+    closeDialogue(); $("#interactBtn").style.display="none";
+    S.pShots.forEach(s=>s.mesh.parent&&s.mesh.parent.remove(s.mesh));
+    S.pShots.length=0;
+    if(player.parent)player.parent.remove(player);
+    sceneWorld.add(player);
+    scene=sceneWorld;
+    S.mode="world";
+    removeExitPortal();
+    $("#bossFrame").classList.remove("show");
+    if(typeof SFX!=="undefined")SFX.music("world");
+    resurrectPlayer(BAL.death.worldSpawn,{silent:true});
+    announce("你回到了营地");
+    log("你退出熔火之心，在灵魂医者旁苏醒。","lg-sys");
+    fadeTo(0);
+    if(typeof saveGame==="function")saveGame(true);
+  });
 }
 
 /* 重置遭遇：场景清理；进本时由 setStage("corridor") 重新开打 */
@@ -772,3 +899,8 @@ function resetBoss(){
 /* 模块加载：预载终局 Boss 数据（网格已在 world.js 建好） */
 createBoss("ragnaros");
 S.b.alive=false;
+
+/* 死亡面板按钮（STEP 15） */
+$("#btnReleaseWorld").addEventListener("click",()=>releaseSpiritWorld());
+$("#btnReleaseRaid").addEventListener("click",()=>releaseSpiritRaid());
+$("#btnLeaveRaidDead").addEventListener("click",()=>releaseSpiritLeaveRaid());

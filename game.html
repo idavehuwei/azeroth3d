@@ -237,6 +237,9 @@
     box-shadow:inset 0 0 180px rgba(120,20,0,.55)}
   #hurtFlash{position:fixed;inset:0;pointer-events:none;z-index:8;background:radial-gradient(ellipse,transparent 55%,rgba(255,30,0,.45));opacity:0}
   #fade{position:fixed;inset:0;z-index:26;background:#000;opacity:0;transition:opacity .65s;pointer-events:none}
+  /* ---------- 死亡面板（STEP 15） ---------- */
+  #deathOv .btn-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:8px}
+  #deathOv .btn.ghost{background:rgba(40,20,10,.7);color:#ffcf98;box-shadow:0 0 14px rgba(255,120,20,.25)}
   /* ---------- FPS（STEP 12）：Ctrl+F 开关；?dev 默认开 ---------- */
   #fps{position:fixed;top:10px;left:12px;z-index:25;display:none;pointer-events:none;
     font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;letter-spacing:1px;
@@ -372,6 +375,16 @@
 <div class="overlay hide" id="endOv">
   <h1 id="endTitle"></h1><h2 id="endSub"></h2><p id="endText"></p>
   <button class="btn" onclick="location.reload()">再 战 一 次</button>
+</div>
+<div class="overlay hide" id="deathOv">
+  <h1 id="deathTitle" style="color:#ff5a3c">你 已 死 亡</h1>
+  <h2 id="deathSub"></h2>
+  <p id="deathText"></p>
+  <div class="btn-row">
+    <button type="button" class="btn" id="btnReleaseWorld">释放灵魂 · 营地复活</button>
+    <button type="button" class="btn" id="btnReleaseRaid" style="display:none">回走廊入口复活</button>
+    <button type="button" class="btn ghost" id="btnLeaveRaidDead" style="display:none">退出副本回营地</button>
+  </div>
 </div>
  
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

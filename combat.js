@@ -28,7 +28,7 @@ const S={
   p:{hp:5200,hpMax:5200,rage:20,rageMax:100,speed:10.5,alive:true,dmgMul:1,
      atkTimer:0,attackAnim:0,walkPhase:0,face:0,invuln:0,
      level:1,xp:0,xpMax:BAL.levels.xpMax[0],gold:0,   /* 经验与等级（STEP 3）· 金币铜（STEP 13） */
-     eating:null,bandaging:null},
+     eating:null,bandaging:null,weaknessT:0},
   b:{id:"ragnaros",hp:BAL.boss.hp,hpMax:BAL.boss.hp,alive:true,rising:true,riseT:0,
      phase:1,swingT:0,casting:null,castT:0,castDur:0,
      next:{},submerged:false,submergeT:0,canLeave:false,nextAddSpawn:0,addWave:null},
@@ -38,6 +38,7 @@ const S={
   eq:{weapon:null,armor:null},   /* 装备位（STEP 4）：物品 id */
   god:false,   /* 上帝模式：启程时由首页勾选决定（hitEntity 消费） */
   vendorOpen:false,
+  deathUi:false, /* STEP 15：死亡面板打开中 */
 };
 /* ============================================================
    职业系统：战士 / 法师 / 弓箭手
