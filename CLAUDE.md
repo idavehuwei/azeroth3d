@@ -28,7 +28,7 @@
 | `core.js` | 基础设施 | BALANCE, SeededRng, srand, makeLabel, scene, camera, renderer |
 | `icons.js` | 图标画布工厂 | Icons.canvas, Icons.get |
 | `items.js` | 物品与掉落 | QUALITY, ITEMS, LOOT, dropLoot, tryLoot, useItem, sellItem |
-| `models.js` | 3D 模型工厂 | buildPlayer, buildMage, buildArcher, buildBoss, buildBoar, buildFlameSpawn, buildElder, buildVendor |
+| `models.js` | 3D 模型工厂 | buildPlayer…, buildHut/Tent/Fence/Watchtower, QUADS |
 | `world.js` | 莫高雷世界 | player, boss, MOBS, QUEST, enterRaid, mobDie, setCorpse, tryInteract, vendor, spiritHealer |
 | `combat.js` | 战斗系统 | S, CLASSES, SKILLS, hitEntity, useSkill, gainCopper, getFocusTarget |
 | `companions.js` | AI 队友 / 3 人小队 | PARTY, formParty, recruitCompanion, tickCompanion |
@@ -58,7 +58,8 @@
 
 ## 开发进度
 
-详见 `plan-merged.md` 的 13 个 STEP 可执行计划。
+- 已执行账本：`plan-merged.md`（STEP 0–29 / v4.0 完成）
+- **下一阶段单机路线：`plan-v1.md`**（对照 WoC 补齐美术/内容/系统；默认不做联机）
 
 ## 协作流程
 

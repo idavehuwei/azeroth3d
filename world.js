@@ -4,7 +4,8 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ rand srand worldRng BAL makeLabel scene camera setZoneSeed）
           zones.js（registerZone enterZone）
-          models.js（buildPlayer buildBoss buildElder buildVendor buildSpiritHealer buildBoar）
+          models.js（buildPlayer buildBoss buildElder buildVendor buildSpiritHealer buildBoar
+            buildHut buildTent buildFence buildWatchtower BUILD_PAL placeProp）
           items.js（dropLoot rollLoot LOOT tryLoot buyVendorItem）
           combat.js 运行时（S log announce fct spawnBurst hitEntity closeDialogue
             gainCopper rollCopperRange …）
@@ -411,6 +412,20 @@ spiritHealer.position.set(0,0,58); spiritHealer.rotation.y=Math.PI; sceneWorld.a
 const spiritLabel=makeLabel("灵魂医者 · 风语",7,"#c8e8ff","rgba(80,160,255,.95)");
 spiritLabel.position.set(0,5.6,58); sceneWorld.add(spiritLabel);
 function spiritDist(){return Math.hypot(player.position.x-spiritHealer.position.x,player.position.z-spiritHealer.position.z);}
+
+/* ---------------- 营地建筑（plan-v1 · V1-A1）：固定坐标 ⇒ 刷新不变 ---------------- */
+(function placeMulgoreCampBuildings(){
+  const P=BUILD_PAL.mulgore;
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.05}),12,44,.35);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:.92}),-16,45,-.55);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x7a4a28,w:3.6,d:3.2,h:2.3,size:.88}),8,58,Math.PI*.95);
+  placeProp(sceneWorld,buildTent({hide:P.hide,stake:P.stake,r:2.8,h:3.8,size:1}),-5,43,.2);
+  placeProp(sceneWorld,buildTent({hide:0xb89060,stake:P.stake,r:2.4,h:3.4,size:.9}),14,52,-.7);
+  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.82}),-18,56,.25);
+  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:9,posts:6}),-1,41,0);
+  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:7,posts:5}),7,41.2,.12);
+  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:11,posts:7}),-20,49,Math.PI/2);
+})();
 
 /* ============================================================
    野怪类型表（STEP 5）：模型配方 + 数值 + 掉落表 + 名字标签

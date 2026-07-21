@@ -3,6 +3,7 @@
    功绩之书（STEP 25）：DEEDS[] · 称号前缀 · 外观边框 · Shift+Z 面板
    ------------------------------------------------------------
    [依赖] core.js（BAL $）
+          icons.js（Icons）
           combat.js（S CLS announce log updateLevelUI）
           panels.js 运行时（closeAllHudPanels panelOpen setPanel）
           save.js 运行时（saveGame）
@@ -12,7 +13,7 @@
           setActiveTitle setActiveBorder
           collectDeedsSave applyDeedsSave resetDeeds
           toggleDeedsPanel renderDeedsPanel deedsOpen
-          updatePlayerNameplate
+          updatePlayerNameplate DEED_CAT_ICON
    ============================================================ */
 "use strict";
 
@@ -290,6 +291,10 @@ function deedProgressText(d){
 
 function deedsOpen(){return panelOpen("#deedsPanel");}
 
+/** V1-A2：功绩分类 → Icons 配方名 */
+const DEED_CAT_ICON={kill:"sword",rare:"tusk",quest:"scroll",explore:"map",
+  dungeon:"dungeon",level:"star",talent:"title"};
+
 function renderDeedsPanel(){
   if(!deedsOpen())return;
   const body=$("#deedsBody");
@@ -311,8 +316,10 @@ function renderDeedsPanel(){
     const rew=[];
     if(d.reward&&d.reward.title)rew.push(`称号「${d.reward.title}」`);
     if(d.reward&&d.reward.border)rew.push("外观边框");
+    const icName=DEED_CAT_ICON[d.cat]||"star";
+    const border=done?"#e8b34a":"#6a5a40";
     html+=`<div class="ql-item deed-item${done?" done":""}" data-deed="${d.id}">`+
-      `<div class="ttl">${done?"✔ ":""}${d.title}</div>`+
+      `<div class="ttl"><img class="deed-ic" src="${Icons.get(icName,border)}" alt=""> ${d.title}</div>`+
       `<div class="obj">${d.desc}</div>`+
       `<div class="st">${deedProgressText(d)}${rew.length?" · "+rew.join(" · "):""}</div>`+
       (done?`<div class="deed-acts"></div>`:"")+

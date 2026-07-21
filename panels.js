@@ -132,7 +132,7 @@ function renderSpellPanel(){
     const card=document.createElement("div");
     card.className="spell-card";
     card.innerHTML=
-      `<div class="ic">${sk.icon}</div>`+
+      `<img class="ic" src="${Icons.get(sk.icon||"sword",typeof SKILL_ICON_BORDER!=="undefined"?SKILL_ICON_BORDER:"#e8b34a")}" alt="">`+
       `<div class="body">`+
         `<div class="nm">${i+1}. ${sk.name}</div>`+
         `<div class="meta">${cdTx} · ${cost}</div>`+

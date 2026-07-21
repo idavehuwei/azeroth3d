@@ -240,6 +240,29 @@ assert(panelsSrc.includes('"finder"')||panelsSrc.includes("'finder'"),"panels.js
 assert(finderSrc.includes("normal"),"仅普通难度");
 assert(finderSrc.includes("getLfgMinLevel")||finderSrc.includes("minLevel"),"等级门槛检查");
 
+/* plan-v1 · V1-A1 城镇建筑工厂冒烟 */
+const modelsSrcA1=fs.readFileSync(path.join(__dirname,"models.js"),"utf8");
+assert(modelsSrcA1.includes("function buildHut")&&modelsSrcA1.includes("function buildTent"),"models.js 有 buildHut/buildTent");
+assert(modelsSrcA1.includes("function buildFence")&&modelsSrcA1.includes("function buildWatchtower"),"models.js 有 buildFence/buildWatchtower");
+assert(modelsSrcA1.includes("BUILD_PAL")&&modelsSrcA1.includes("function placeProp"),"models.js 有 BUILD_PAL/placeProp");
+assert(worldSrc.includes("placeMulgoreCampBuildings")||worldSrc.includes("buildHut"),"world.js 莫高雷营地落建筑");
+assert(barrensSrc.includes("buildWatchtower")&&barrensSrc.includes("buildHut"),"barrens.js 十字路口用建筑工厂");
+assert(!modelsSrcA1.match(/function buildHut[\s\S]*?Math\.random/),"建筑工厂几何不含 Math.random");
+
+/* plan-v1 · V1-A2 图标全面替换冒烟 */
+const iconsSrcA2=fs.readFileSync(path.join(__dirname,"icons.js"),"utf8");
+assert(iconsSrcA2.includes("whirlwind(cx)")&&iconsSrcA2.includes("ice_block(cx)"),"icons.js 有旋风/寒冰屏障配方");
+assert(iconsSrcA2.includes("dungeon(cx)")&&iconsSrcA2.includes("venom(cx)"),"icons.js 有副本/毒液配方");
+assert(combatSrc.includes('icon:"sword"')&&combatSrc.includes('icon:"fireball"'),"CLASSES.skills 用配方名非 emoji");
+assert(combatSrc.includes("function applySkillBarIcons")&&combatSrc.includes("Icons.get"),"combat 技能栏走 Icons.get");
+assert(html.includes('id="skillBar"')&&html.includes('<img class="ic"'),"技能栏槽位为 <img>");
+assert(!/<div class="skill"[^>]*>[\s\S]*?<span class="ic">/.test(html),"技能栏无 span.ic emoji");
+assert(panelsSrc.includes("Icons.get(sk.icon")||panelsSrc.includes('Icons.get(sk.icon'),"法术书面板用 Icons");
+assert(finderSrc.includes("Icons.get(e.icon")||finderSrc.includes("Icons.get("),"查找器标题用 Icons");
+assert(deedsSrc.includes("DEED_CAT_ICON")&&deedsSrc.includes("Icons.get"),"功绩面板分类图标用 Icons");
+assert(itemsSrc.includes('epic')&&itemsSrc.includes("#a335ee"),"QUALITY.epic 史诗紫边框");
+assert(talentsSrc.includes('icon:"frost"')&&talentsSrc.includes('icon:"ice_block"'),"法师霜枝用 frost/ice_block 图标");
+
 function DEEDS_COUNT_OK(src){
   const m=src.match(/id:"[^"]+"/g)||[];
   /* DEEDS 表内 id 约 18；过滤 DEED_BY_ID 等 */
@@ -250,4 +273,4 @@ if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–29 … / 地下城查找器冒烟");
+console.log("\n全部通过 · STEP 17–29 … / V1-A1–A2 冒烟");

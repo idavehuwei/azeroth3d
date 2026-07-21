@@ -611,8 +611,8 @@ js/
 
 **当前模块清单**（`game.html` 加载序）：`core → zones → … → panels → deeds → map → … → save`
 
-**下一步行动**：从 **STEP 30** 抽出 `sim/` 纯逻辑层。
+**下一步行动**：单机内容补齐见 **`plan-v1.md`**（对照 WoC）。旧十/十一章（sim 联机）默认跳过。
 
 ---
 
-*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 29 完成，下一步 STEP 30*
+*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 29 完成；后续见 plan-v1.md*

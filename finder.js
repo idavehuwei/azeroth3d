@@ -3,6 +3,7 @@
    本地地下城查找器（STEP 29）：Shift+I · 选本 · 普通难度 · 一键组队传送
    ------------------------------------------------------------
    [依赖] core.js（BAL $）
+          icons.js（Icons）
           combat.js（S announce log）
           companions.js（formParty）
           zones.js（enterZone getCurrentZoneId）
@@ -53,7 +54,7 @@ function renderDungeonFinderPanel(){
       return lab;
     }).join(" · ")||"自动补齐";
     html+=`<div class="ql-item finder-item${locked?" locked":""}" data-dung="${e.id}">`+
-      `<div class="ttl">${e.icon||"🗺"} ${e.name}</div>`+
+      `<div class="ttl"><img class="finder-ic" src="${Icons.get(e.icon||"dungeon","#e8b34a")}" alt=""> ${e.name}</div>`+
       `<div class="obj">${e.blurb||""}</div>`+
       `<div class="st">${locked?`需要 Lv.${need}+ · 当前 Lv.${lvl}`:`建议 Lv.${need||1}+ · 职责：${roleTxt}`}</div>`+
       `<div class="finder-acts"></div>`+

@@ -37,9 +37,9 @@ const TALENTS={
         {id:"combustion",tier:3,name:"燃烧",maxRank:3,icon:"fireball",req:"ignite",reqRank:1,desc:"伤害提高，炎爆冷却再减"},
       ]},
       {id:"frost",name:"冰霜",nodes:[
-        {id:"frostbite",tier:1,name:"冰霜减速",maxRank:3,icon:"heal",desc:"冰霜效果增强（标记）"},
-        {id:"ice_ward",tier:2,name:"冰霜护体",maxRank:3,icon:"heal",req:"frostbite",reqRank:1,desc:"生命提高，冰霜新星冷却缩短"},
-        {id:"deep_freeze",tier:3,name:"深度冻结",maxRank:3,icon:"heal",req:"ice_ward",reqRank:1,desc:"减速增强，全局冷却微减"},
+        {id:"frostbite",tier:1,name:"冰霜减速",maxRank:3,icon:"frost",desc:"冰霜效果增强（标记）"},
+        {id:"ice_ward",tier:2,name:"冰霜护体",maxRank:3,icon:"frost",req:"frostbite",reqRank:1,desc:"生命提高，冰霜新星冷却缩短"},
+        {id:"deep_freeze",tier:3,name:"深度冻结",maxRank:3,icon:"ice_block",req:"ice_ward",reqRank:1,desc:"减速增强，全局冷却微减"},
       ]},
     ],
   },

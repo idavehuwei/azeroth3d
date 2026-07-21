@@ -4,6 +4,7 @@
             统一受击入口 hitEntity / 玩家胜负
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ clamp rand R BAL scene camera ARENA_R）
+          icons.js（Icons）
           models.js（buildPlayer buildMage buildArcher buildPriest buildFlameSpawn）
           items.js（ITEMS DROPS removeDrop dropLoot）
           world.js（player boss MOBS QUEST mobDamage updateQuest tryInteract）
@@ -17,7 +18,7 @@
           raid.js 运行时（bossAI distToBoss bossTargetable fireProjectile
             spawnAdd addDamage addDie bossDie playerDie resetBoss BOSS_ENT DUNGEON）
           threat.js 运行时（addThreat）
-   [导出] S SKILLS CLASSES CLS setClass log announce fct hurtFlash keys joy
+   [导出] S SKILLS CLASSES CLS setClass applySkillBarIcons log announce fct hurtFlash keys joy
           useSkill hitEntity dmgBoss pickTarget firePlayerShot playerHit
           isTargetAlive setCurrentTarget getFocusTarget
           gainXP updateLevelUI gainCopper spendCopper formatCopperText updateGoldUI
@@ -64,13 +65,13 @@ const CLASSES={
     barCss:"linear-gradient(180deg,#ffd76a,#c98a1f 60%,#7a4d0c)",
     tip:"提示：近身自动攻击积攒怒气；【冲锋】可迅速贴近目标并额外获得怒气。",
     skills:[
-      {name:"英勇打击",icon:"⚔️",cd:5, rage:20,fn:heroicStrike,bal:"heroicStrike",
+      {name:"英勇打击",icon:"sword",cd:5, rage:20,fn:heroicStrike,bal:"heroicStrike",
        desc:"奋力一击，对面前敌人造成物理伤害。"},
-      {name:"旋风斩",  icon:"🌀",cd:9, rage:30,fn:whirlwind,bal:"whirlwind",
+      {name:"旋风斩",  icon:"whirlwind",cd:9, rage:30,fn:whirlwind,bal:"whirlwind",
        desc:"旋转兵器，对周围敌人造成范围物理伤害。"},
-      {name:"冲锋",    icon:"💨",cd:12,rage:0, fn:charge,bal:"charge",
+      {name:"冲锋",    icon:"charge",cd:12,rage:0, fn:charge,bal:"charge",
        desc:"向目标冲锋并贴近，额外积攒怒气。"},
-      {name:"治疗药水",icon:"🧪",cd:22,rage:0, fn:potion,bal:"potion",
+      {name:"治疗药水",icon:"potion",cd:22,rage:0, fn:potion,bal:"potion",
        desc:"喝下药水，立即回复生命。"}]},
   mage:{title:"🔮 你 · 人类法师",hp:3800,resMax:100,resStart:100,resName:"法力",
     regen:7,hitGain:0,speed:10,ranged:true,range:30,sfx:"fireball",
@@ -78,13 +79,13 @@ const CLASSES={
     barCss:"linear-gradient(180deg,#7ab8ff,#2a5ec9 60%,#123a7a)",
     tip:"提示：法力随时间恢复；远程自动施放火球，【闪现】拉开距离，危急时开【寒冰屏障】免疫伤害。",
     skills:[
-      {name:"炎爆术",  icon:"☄️",cd:7, rage:30,fn:pyroblast,bal:"pyroblast",
+      {name:"炎爆术",  icon:"fireball",cd:7, rage:30,fn:pyroblast,bal:"pyroblast",
        desc:"蓄力投出巨大火球，造成高额火焰伤害。"},
-      {name:"冰霜新星",icon:"❄️",cd:11,rage:25,fn:frostNova,bal:"frostNova",
+      {name:"冰霜新星",icon:"frost",cd:11,rage:25,fn:frostNova,bal:"frostNova",
        desc:"冻结周围敌人并造成冰霜伤害，短暂定身。"},
-      {name:"闪现",    icon:"✨",cd:12,rage:15,fn:blink,bal:"blink",
+      {name:"闪现",    icon:"blink",cd:12,rage:15,fn:blink,bal:"blink",
        desc:"瞬间向前传送一段距离。"},
-      {name:"寒冰屏障",icon:"🧊",cd:25,rage:0, fn:iceBlock,bal:"iceBlock",
+      {name:"寒冰屏障",icon:"ice_block",cd:25,rage:0, fn:iceBlock,bal:"iceBlock",
        desc:"把自己封进寒冰，短时间内免疫伤害。"}]},
   archer:{title:"🏹 你 · 精灵弓箭手",hp:4300,resMax:100,resStart:100,resName:"能量",
     regen:11,hitGain:0,speed:11.5,ranged:true,range:32,sfx:"arrow",
@@ -92,13 +93,13 @@ const CLASSES={
     barCss:"linear-gradient(180deg,#d8ff7a,#7fb32a 60%,#3d6a0c)",
     tip:"提示：能量随时间恢复；边走边射保持距离，【翻滚】可位移并短暂闪避一切伤害。",
     skills:[
-      {name:"瞄准射击",icon:"🎯",cd:6, rage:30,fn:aimedShot,bal:"aimedShot",
+      {name:"瞄准射击",icon:"aimed",cd:6, rage:30,fn:aimedShot,bal:"aimedShot",
        desc:"精确瞄准，射出高伤害箭矢。"},
-      {name:"多重射击",icon:"🏹",cd:10,rage:35,fn:multiShot,bal:"multiShot",
+      {name:"多重射击",icon:"multi_shot",cd:10,rage:35,fn:multiShot,bal:"multiShot",
        desc:"同时射出多支箭，打击多个目标。"},
-      {name:"翻滚",    icon:"🤸",cd:9, rage:20,fn:roll,bal:"roll",
+      {name:"翻滚",    icon:"roll",cd:9, rage:20,fn:roll,bal:"roll",
        desc:"向前翻滚位移，短暂闪避一切伤害。"},
-      {name:"治疗药水",icon:"🧪",cd:22,rage:0, fn:potion,bal:"potion",
+      {name:"治疗药水",icon:"potion",cd:22,rage:0, fn:potion,bal:"potion",
        desc:"喝下药水，立即回复生命。"}]},
   priest:{title:"✨ 你 · 人类牧师",hp:4000,resMax:100,resStart:100,resName:"法力",
     regen:8,hitGain:0,speed:10,ranged:true,range:28,sfx:"holy",
@@ -106,13 +107,13 @@ const CLASSES={
     barCss:"linear-gradient(180deg,#fff8d0,#d4af37 60%,#8a7020)",
     tip:"提示：法力随时间恢复；远程自动施放神圣惩击；【治疗术】续航，【真言术：盾】先吸收伤害。",
     skills:[
-      {name:"治疗术",    icon:"✚", cd:8,  rage:35,fn:heal,           bal:"heal",
+      {name:"治疗术",    icon:"heal", cd:8,  rage:35,fn:heal,           bal:"heal",
        desc:"施放圣光，恢复大量生命。"},
-      {name:"快速治疗",  icon:"💚", cd:4,  rage:20,fn:flashHeal,     bal:"flashHeal",
+      {name:"快速治疗",  icon:"flash_heal", cd:4,  rage:20,fn:flashHeal,     bal:"flashHeal",
        desc:"迅速施法，立即恢复中等生命。"},
-      {name:"神圣惩击",  icon:"⚡", cd:6,  rage:25,fn:smite,         bal:"smite",
+      {name:"神圣惩击",  icon:"holy", cd:6,  rage:25,fn:smite,         bal:"smite",
        desc:"对目标造成神圣伤害。"},
-      {name:"真言术：盾",icon:"🛡", cd:12, rage:30,fn:powerWordShield,bal:"powerWordShield",
+      {name:"真言术：盾",icon:"holy_shield", cd:12, rage:30,fn:powerWordShield,bal:"powerWordShield",
        desc:"为自己施加吸收护盾，持续一段时间。"}]},
 };
 let CLS=CLASSES.warrior;
@@ -130,15 +131,33 @@ function setClass(key){
   else updateLevelUI();
   updateLevelUI();
   $("#pRage").style.background=CLS.barCss;
-  document.querySelectorAll(".skill").forEach((el,i)=>{
-    el.querySelector(".ic").textContent=SKILLS[i].icon;
-    el.querySelector(".nm").textContent=SKILLS[i].name;
-  });
+  applySkillBarIcons();
   if(typeof updateSkillBarStats==="function")updateSkillBarStats();
   if(typeof renderCharPanel==="function")renderCharPanel();
   if(typeof renderSpellPanel==="function")renderSpellPanel();
 }
 setClass("warrior");
+
+/** V1-A2：技能栏 / 法术书用 Icons 画布，不再写 emoji */
+const SKILL_ICON_BORDER="#e8b34a";
+function applySkillBarIcons(){
+  document.querySelectorAll(".skill").forEach((el,i)=>{
+    const sk=SKILLS[i]; if(!sk)return;
+    const nm=el.querySelector(".nm"); if(nm)nm.textContent=sk.name;
+    let ic=el.querySelector(".ic");
+    if(!ic)return;
+    if(ic.tagName!=="IMG"){
+      const img=document.createElement("img");
+      img.className="ic";
+      ic.replaceWith(img);
+      ic=img;
+    }
+    if(typeof Icons!=="undefined"){
+      ic.src=Icons.get(sk.icon||"sword",SKILL_ICON_BORDER);
+      ic.alt=sk.name;
+    }
+  });
+}
 
 /* ---------------- UI 工具 ---------------- */
 function log(msg,cls="lg-sys"){

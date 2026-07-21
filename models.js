@@ -6,12 +6,14 @@
           buildQuadruped buildHumanoidMob buildCentaur QUADS MOB_HUMANOIDS（STEP 5/18 族群工厂）
           buildPlayer buildMage buildArcher buildPriest buildBoss buildOnyxia buildElder buildVendor buildSpiritHealer
           buildBoar buildFlameSpawn
+          buildHut buildTent buildFence buildWatchtower BUILD_PAL placeProp（plan-v1 · V1-A1）
    ------------------------------------------------------------
-   3D 模型库（全部程序化几何体，零模型文件）
+    3D 模型库（全部程序化几何体，零模型文件）
    STEP 4：人形基座 buildHumanoid(config)——躯干/四肢/头/披风 + 动画挂点，
    四职业收敛为 HUMANOIDS 数据配置；武器独立为 WEAPONS 配方表，
    武器组打 userData.weapon 标，换装时 setWeapon 只换武器组。
    加新职业 = 加一条 HUMANOIDS 配置；加新武器 = 加一条 WEAPONS 配方。
+   城镇建筑（V1-A1）：工厂纯几何无随机；摆放由调用方用固定坐标或 srand。
    ============================================================ */
 "use strict";
 /* ============================================================
@@ -672,3 +674,132 @@ function buildSpiritHealer(){
   });
   return g;
 }
+
+/* ============================================================
+   城镇建筑工厂（plan-v1 · V1-A1）
+   几何不含随机；调色盘分区；摆放由 placeProp / 调用方负责
+   ============================================================ */
+const BUILD_PAL={
+  mulgore:{wood:0x6a4a28,woodD:0x3a2810,roof:0x8a5a30,hide:0xc9a06a,flag:0xc04020,stake:0x4a3020},
+  barrens:{wood:0x7a5a30,woodD:0x4a3020,roof:0xa87840,hide:0xb89050,flag:0xc04020,stake:0x5a3820},
+};
+
+function placeProp(root,mesh,x,z,rotY){
+  if(!root||!mesh)return mesh;
+  mesh.position.set(x,0,z);
+  if(rotY!=null)mesh.rotation.y=rotY;
+  root.add(mesh);
+  return mesh;
+}
+
+/** 木屋：墙体 + 双坡茅草顶 + 门洞 */
+function buildHut(cfg){
+  const c=Object.assign({
+    wood:BUILD_PAL.mulgore.wood, woodD:BUILD_PAL.mulgore.woodD,
+    roof:BUILD_PAL.mulgore.roof, w:4.2, d:3.6, h:2.6, size:1, door:true,
+  },cfg||{});
+  const g=new THREE.Group();
+  const wood=new THREE.MeshStandardMaterial({color:c.wood,roughness:.92,flatShading:true});
+  const woodD=new THREE.MeshStandardMaterial({color:c.woodD,roughness:.95,flatShading:true});
+  const roofM=new THREE.MeshStandardMaterial({color:c.roof,roughness:1,flatShading:true});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(c.w,c.h,c.d),wood);
+  body.position.y=c.h/2; g.add(body);
+  /* 四角立柱 */
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{
+    const post=new THREE.Mesh(new THREE.BoxGeometry(.28,c.h+.2,.28),woodD);
+    post.position.set(sx*(c.w/2-.15),c.h/2+.1,sz*(c.d/2-.15)); g.add(post);
+  });
+  /* 双坡顶 */
+  const roofL=new THREE.Mesh(new THREE.BoxGeometry(c.w+0.6,.22,c.d*.72),roofM);
+  roofL.position.set(0,c.h+.35,-c.d*.18); roofL.rotation.x=.42; g.add(roofL);
+  const roofR=new THREE.Mesh(new THREE.BoxGeometry(c.w+0.6,.22,c.d*.72),roofM);
+  roofR.position.set(0,c.h+.35,c.d*.18); roofR.rotation.x=-.42; g.add(roofR);
+  const ridge=new THREE.Mesh(new THREE.BoxGeometry(c.w+.4,.18,.35),woodD);
+  ridge.position.set(0,c.h+.75,0); g.add(ridge);
+  if(c.door){
+    const door=new THREE.Mesh(new THREE.BoxGeometry(1.1,1.7,.12),woodD);
+    door.position.set(0,.85,c.d/2+.02); g.add(door);
+  }
+  g.scale.setScalar(c.size);
+  g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  g.userData.building="hut";
+  return g;
+}
+
+/** 兽皮帐篷：锥顶 + 一圈木桩 */
+function buildTent(cfg){
+  const c=Object.assign({
+    hide:BUILD_PAL.mulgore.hide, stake:BUILD_PAL.mulgore.stake,
+    r:3.0, h:4.2, stakes:6, size:1,
+  },cfg||{});
+  const g=new THREE.Group();
+  const hide=new THREE.MeshStandardMaterial({color:c.hide,roughness:.95,flatShading:true});
+  const stakeM=new THREE.MeshStandardMaterial({color:c.stake,roughness:1,flatShading:true});
+  const cone=new THREE.Mesh(new THREE.ConeGeometry(c.r,c.h,7),hide);
+  cone.position.y=c.h/2; g.add(cone);
+  const n=Math.max(3,c.stakes|0);
+  for(let k=0;k<n;k++){
+    const a=k/n*Math.PI*2;
+    const st=new THREE.Mesh(new THREE.ConeGeometry(.18,c.h*.55,5),stakeM);
+    st.position.set(Math.cos(a)*c.r*.92,c.h*.22,Math.sin(a)*c.r*.92);
+    g.add(st);
+  }
+  g.scale.setScalar(c.size);
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  g.userData.building="tent";
+  return g;
+}
+
+/** 木栅栏：沿本地 +X 延伸的一段 */
+function buildFence(cfg){
+  const c=Object.assign({
+    wood:BUILD_PAL.mulgore.wood, woodD:BUILD_PAL.mulgore.woodD,
+    length:8, posts:5, h:1.6, size:1,
+  },cfg||{});
+  const g=new THREE.Group();
+  const wood=new THREE.MeshStandardMaterial({color:c.wood,roughness:.92,flatShading:true});
+  const woodD=new THREE.MeshStandardMaterial({color:c.woodD,roughness:.95,flatShading:true});
+  const n=Math.max(2,c.posts|0);
+  const step=c.length/(n-1);
+  for(let i=0;i<n;i++){
+    const post=new THREE.Mesh(new THREE.CylinderGeometry(.1,.12,c.h,5),woodD);
+    post.position.set(i*step-c.length/2,c.h/2,0); g.add(post);
+  }
+  for(const y of [c.h*.35,c.h*.7]){
+    const rail=new THREE.Mesh(new THREE.BoxGeometry(c.length,.12,.1),wood);
+    rail.position.set(0,y,0); g.add(rail);
+  }
+  g.scale.setScalar(c.size);
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  g.userData.building="fence";
+  return g;
+}
+
+/** 瞭望塔：基座 + 塔身 + 顶台 + 旗帜 */
+function buildWatchtower(cfg){
+  const c=Object.assign({
+    wood:BUILD_PAL.barrens.wood, woodD:BUILD_PAL.barrens.woodD,
+    flag:BUILD_PAL.barrens.flag, size:1,
+  },cfg||{});
+  const g=new THREE.Group();
+  const wood=new THREE.MeshStandardMaterial({color:c.wood,roughness:.9,flatShading:true});
+  const woodD=new THREE.MeshStandardMaterial({color:c.woodD,roughness:.92,flatShading:true});
+  const flagM=new THREE.MeshStandardMaterial({color:c.flag,roughness:.8});
+  const base=new THREE.Mesh(new THREE.BoxGeometry(4.2,1.2,4.2),wood); base.position.y=.6; g.add(base);
+  const mid=new THREE.Mesh(new THREE.BoxGeometry(3.2,4.5,3.2),woodD); mid.position.y=3.5; g.add(mid);
+  const top=new THREE.Mesh(new THREE.BoxGeometry(4.5,.5,4.5),wood); top.position.y=5.9; g.add(top);
+  /* 栏杆 */
+  [[-1.9,-1.9],[1.9,-1.9],[-1.9,1.9],[1.9,1.9]].forEach(([x,z])=>{
+    const p=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,1.1,5),woodD);
+    p.position.set(x,6.5,z); g.add(p);
+  });
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,2.2,5),wood);
+  pole.position.set(.3,7.0,0); g.add(pole);
+  const flag=new THREE.Mesh(new THREE.BoxGeometry(1.8,.9,.08),flagM);
+  flag.position.set(1.2,7.2,0); g.add(flag);
+  g.scale.setScalar(c.size);
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  g.userData.building="watchtower";
+  return g;
+}
+

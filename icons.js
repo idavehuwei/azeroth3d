@@ -247,6 +247,122 @@ const RECIPES={
     cx.strokeStyle="#d8c8a0";cx.lineWidth=2;
     cx.beginPath();cx.moveTo(18,34);cx.lineTo(46,30);cx.stroke();
   },
+  /* —— V1-A2 技能 / UI 图标 —— */
+  whirlwind(cx){
+    P.bg(cx,"#1a3048","#081018");
+    P.glow(cx,32,32,22,"rgba(140,200,255,.55)");
+    cx.strokeStyle="#c8e8ff";cx.lineWidth=3;
+    for(let i=0;i<3;i++){
+      cx.beginPath();cx.arc(32,32,10+i*6,i*.4,i*.4+4.2);cx.stroke();
+    }
+    cx.fillStyle="#9ad0ff";
+    cx.beginPath();cx.arc(32,32,5,0,6.283);cx.fill();
+  },
+  charge(cx){
+    P.bg(cx,"#3a2810","#140c04");
+    P.glow(cx,40,28,16,"rgba(255,220,120,.5)");
+    cx.fillStyle="#ffe9a0";
+    cx.beginPath();cx.moveTo(12,36);cx.lineTo(44,18);cx.lineTo(40,28);cx.lineTo(52,32);cx.lineTo(36,40);cx.lineTo(42,34);cx.closePath();cx.fill();
+  },
+  frost(cx){
+    P.bg(cx,"#143050","#060e18");
+    P.glow(cx,32,32,22,"rgba(120,200,255,.7)");
+    cx.strokeStyle="#d0f0ff";cx.lineWidth=2.5;
+    for(let i=0;i<6;i++){
+      const a=i*Math.PI/3;
+      cx.beginPath();cx.moveTo(32,32);cx.lineTo(32+Math.cos(a)*22,32+Math.sin(a)*22);cx.stroke();
+    }
+    cx.fillStyle="#e8f8ff";
+    cx.beginPath();cx.arc(32,32,6,0,6.283);cx.fill();
+  },
+  blink(cx){
+    P.bg(cx,"#2a1840","#0c0618");
+    P.glow(cx,32,32,20,"rgba(200,160,255,.65)");
+    cx.fillStyle="#e8d0ff";
+    for(const[x,y,r]of[[22,28,5],[32,22,7],[42,30,5],[34,38,4]]){
+      cx.beginPath();cx.arc(x,y,r,0,6.283);cx.fill();
+    }
+  },
+  ice_block(cx){
+    P.bg(cx,"#183848","#081018");
+    P.glow(cx,32,32,18,"rgba(160,220,255,.45)");
+    cx.fillStyle="rgba(180,230,255,.55)";
+    cx.fillRect(16,14,32,38);
+    cx.strokeStyle="#a8d8f0";cx.lineWidth=2;cx.strokeRect(16,14,32,38);
+    cx.strokeStyle="rgba(255,255,255,.5)";cx.lineWidth=1.5;
+    cx.beginPath();cx.moveTo(16,28);cx.lineTo(48,22);cx.moveTo(20,42);cx.lineTo(46,36);cx.stroke();
+  },
+  aimed(cx){
+    P.bg(cx,"#203018","#0a1008");
+    P.glow(cx,32,32,18,"rgba(180,255,120,.4)");
+    cx.strokeStyle="#d0ffa0";cx.lineWidth=2.5;
+    cx.beginPath();cx.arc(32,32,16,0,6.283);cx.stroke();
+    cx.beginPath();cx.arc(32,32,8,0,6.283);cx.stroke();
+    cx.beginPath();cx.moveTo(32,8);cx.lineTo(32,56);cx.moveTo(8,32);cx.lineTo(56,32);cx.stroke();
+  },
+  multi_shot(cx){
+    P.bg(cx,"#283018","#0c1008");
+    cx.strokeStyle="#c8e890";cx.lineWidth=2.5;
+    for(const a of[-.35,0,.35]){
+      cx.save();cx.translate(32,32);cx.rotate(a);
+      cx.beginPath();cx.moveTo(-4,18);cx.lineTo(0,-20);cx.lineTo(4,18);cx.stroke();
+      cx.restore();
+    }
+  },
+  roll(cx){
+    P.bg(cx,"#303020","#101008");
+    P.glow(cx,36,34,14,"rgba(255,220,100,.35)");
+    cx.strokeStyle="#e8d080";cx.lineWidth=3;
+    cx.beginPath();cx.arc(32,34,14,-.2,4.5);cx.stroke();
+    cx.fillStyle="#ffe9a0";
+    cx.beginPath();cx.moveTo(42,22);cx.lineTo(52,28);cx.lineTo(44,32);cx.closePath();cx.fill();
+  },
+  map(cx){
+    P.bg(cx,"#1a2818","#0a1008");
+    cx.fillStyle="#6a8a50";cx.fillRect(12,14,40,36);
+    cx.strokeStyle="#c8e8a0";cx.lineWidth=2;cx.strokeRect(12,14,40,36);
+    cx.strokeStyle="#a8c878";cx.lineWidth=1.5;
+    cx.beginPath();cx.moveTo(18,40);cx.lineTo(28,28);cx.lineTo(36,34);cx.lineTo(46,22);cx.stroke();
+    cx.fillStyle="#ff9060";cx.beginPath();cx.arc(40,24,3,0,6.283);cx.fill();
+  },
+  dungeon(cx){
+    P.bg(cx,"#281810","#0c0804");
+    P.glow(cx,32,28,16,"rgba(255,120,40,.45)");
+    cx.fillStyle="#5a4030";
+    cx.fillRect(14,22,36,28);
+    cx.fillStyle="#1a1008";cx.fillRect(26,34,12,16);
+    cx.fillStyle="#ff8a40";cx.fillRect(18,18,28,8);
+  },
+  scroll(cx){
+    P.bg(cx,"#2a2418","#100c08");
+    cx.fillStyle="#e8d8b0";cx.fillRect(16,12,32,42);
+    cx.strokeStyle="#8a7850";cx.lineWidth=2;cx.strokeRect(16,12,32,42);
+    cx.strokeStyle="#6a5840";cx.lineWidth=1.5;
+    for(const y of[22,30,38,46]){cx.beginPath();cx.moveTo(22,y);cx.lineTo(42,y);cx.stroke();}
+  },
+  star(cx){
+    P.bg(cx,"#3a3010","#140e04");
+    P.glow(cx,32,32,20,"rgba(255,220,100,.55)");
+    const pts=[];
+    for(let i=0;i<5;i++){
+      const a=-Math.PI/2+i*4*Math.PI/5;
+      pts.push([32+Math.cos(a)*18,32+Math.sin(a)*18]);
+    }
+    P.poly(cx,pts,"#ffe080","#c9a040",2);
+  },
+  title(cx){
+    P.bg(cx,"#2a2010","#100a04");
+    P.glow(cx,32,28,16,"rgba(255,200,80,.4)");
+    cx.fillStyle="#d9a441";
+    cx.beginPath();cx.moveTo(32,10);cx.lineTo(40,26);cx.lineTo(54,28);cx.lineTo(44,38);cx.lineTo(48,52);cx.lineTo(32,44);cx.lineTo(16,52);cx.lineTo(20,38);cx.lineTo(10,28);cx.lineTo(24,26);cx.closePath();cx.fill();
+  },
+  venom(cx){
+    P.bg(cx,"#143018","#061008");
+    P.glow(cx,32,34,18,"rgba(80,220,100,.5)");
+    cx.fillStyle="#44aa44";
+    cx.beginPath();cx.moveTo(32,12);cx.quadraticCurveTo(48,28,36,52);cx.quadraticCurveTo(32,40,28,52);cx.quadraticCurveTo(16,28,32,12);cx.fill();
+    cx.fillStyle="#a0ff80";cx.beginPath();cx.arc(32,30,5,0,6.283);cx.fill();
+  },
 };
 
 /* ---------------- 工厂出口 ---------------- */

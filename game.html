@@ -60,7 +60,9 @@
     cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;
     box-shadow:0 0 14px rgba(255,90,0,.18),inset 0 0 10px rgba(0,0,0,.8);transition:transform .08s}
   .skill:active{transform:scale(.93)}
-  .skill .ic{font-size:22px;line-height:1;filter:drop-shadow(0 0 6px rgba(255,140,40,.7))}
+  .skill .ic{width:28px;height:28px;display:block;margin:2px auto 0;border:1px solid rgba(232,179,74,.55);
+    border-radius:2px;background:#0a0604;object-fit:contain;image-rendering:auto;
+    box-shadow:0 0 8px rgba(255,140,40,.35)}
   .skill .nm{font-size:9px;margin-top:3px;color:#ffcf98;letter-spacing:1px}
   .skill .key{position:absolute;top:2px;left:4px;font-size:9px;color:#8b7a5e}
   .skill .cd{position:absolute;inset:0;background:rgba(0,0,0,.78);display:flex;align-items:center;
@@ -113,6 +115,9 @@
     box-shadow:0 0 14px rgba(255,90,0,.25)}
   .finder-item.locked{opacity:.55}
   .finder-item .finder-acts{margin-top:6px}
+  .finder-item .ttl,.deed-item .ttl{display:flex;align-items:center;gap:8px}
+  .finder-ic,.deed-ic{width:22px;height:22px;flex-shrink:0;border:1px solid rgba(232,179,74,.45);
+    border-radius:2px;background:#0a0604;object-fit:contain}
 
   /* ---------- 天赋面板（STEP 10b） ---------- */
   #talent{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,94vw);
@@ -167,7 +172,8 @@
   .ph-eq .empty{color:#8b7a5e}
   .spell-card{display:flex;gap:10px;align-items:flex-start;padding:8px 6px;margin-bottom:6px;
     border:1px solid var(--ui-line);background:rgba(0,0,0,.28)}
-  .spell-card .ic{font-size:22px;width:36px;text-align:center;flex-shrink:0;filter:drop-shadow(0 0 6px rgba(255,140,40,.4))}
+  .spell-card .ic{width:36px;height:36px;flex-shrink:0;border:1px solid rgba(232,179,74,.5);border-radius:2px;
+    background:#0a0604;object-fit:contain;box-shadow:0 0 6px rgba(255,140,40,.3)}
   .spell-card .body{flex:1;min-width:0}
   .spell-card .nm{font-size:13px;font-weight:800;color:#ffd9a0;letter-spacing:1px}
   .spell-card .meta{font-size:10px;color:#ffcf98;margin-top:2px;letter-spacing:1px}
@@ -344,10 +350,10 @@
 </div>
  
 <div id="skillBar">
-  <div class="skill" data-sk="0"><span class="key">1</span><span class="ic">⚔️</span><span class="nm">英勇打击</span><div class="cd"></div></div>
-  <div class="skill" data-sk="1"><span class="key">2</span><span class="ic">🌀</span><span class="nm">旋风斩</span><div class="cd"></div></div>
-  <div class="skill" data-sk="2"><span class="key">3</span><span class="ic">💨</span><span class="nm">冲锋</span><div class="cd"></div></div>
-  <div class="skill" data-sk="3"><span class="key">4</span><span class="ic">🧪</span><span class="nm">治疗药水</span><div class="cd"></div></div>
+  <div class="skill" data-sk="0"><span class="key">1</span><img class="ic" alt=""><span class="nm">英勇打击</span><div class="cd"></div></div>
+  <div class="skill" data-sk="1"><span class="key">2</span><img class="ic" alt=""><span class="nm">旋风斩</span><div class="cd"></div></div>
+  <div class="skill" data-sk="2"><span class="key">3</span><img class="ic" alt=""><span class="nm">冲锋</span><div class="cd"></div></div>
+  <div class="skill" data-sk="3"><span class="key">4</span><img class="ic" alt=""><span class="nm">治疗药水</span><div class="cd"></div></div>
 </div>
  
 <div id="log"></div>

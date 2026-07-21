@@ -4,7 +4,8 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ srand worldRng BAL makeLabel setZoneSeed）
           zones.js（registerZone）
-          models.js（buildQuadruped buildCentaur buildVendor buildSpiritHealer QUADS）
+          models.js（buildQuadruped buildCentaur buildVendor buildSpiritHealer QUADS
+            buildHut buildTent buildFence buildWatchtower BUILD_PAL placeProp）
           world.js（spawnMob MOBS）
           combat.js 运行时（S log announce）
           quests.js 运行时（acceptQuest turnInQuest questsForNpc）
@@ -84,22 +85,14 @@ function buildBarrensZone(scn){
     }
   }
 
-  const stakeMat=new THREE.MeshStandardMaterial({color:0x4a3020,roughness:1});
-  const tentMat=new THREE.MeshStandardMaterial({color:0xb89050,roughness:.95});
+  const P=BUILD_PAL.barrens;
+  /* 野猪人前哨：兽皮帐篷圈 */
   [[-32,-12],[-28,-18],[-36,-8]].forEach(([cx,cz])=>{
-    for(let k=0;k<6;k++){
-      const a=k/6*Math.PI*2;
-      const st=new THREE.Mesh(new THREE.ConeGeometry(.2,2.2,5),stakeMat);
-      st.position.set(cx+Math.cos(a)*4.5,1.1,cz+Math.sin(a)*4.5); root.add(st);
-    }
-    const tent=new THREE.Mesh(new THREE.ConeGeometry(3.2,4.5,7),tentMat);
-    tent.position.set(cx,2.2,cz); tent.castShadow=true; root.add(tent);
+    placeProp(root,buildTent({hide:P.hide,stake:P.stake,r:3.0,h:4.2,stakes:6,size:1}),cx,cz,0);
   });
-
-  const hideMat=new THREE.MeshStandardMaterial({color:0xa87840,roughness:.95});
-  [[38,22],[44,28],[32,30]].forEach(([x,z])=>{
-    const tent=new THREE.Mesh(new THREE.ConeGeometry(3.8,5.5,8),hideMat);
-    tent.position.set(x,2.7,z); tent.castShadow=true; root.add(tent);
+  /* 半人马营地帐篷 */
+  [[38,22],[44,28],[32,30]].forEach(([x,z],i)=>{
+    placeProp(root,buildTent({hide:0xa87840,stake:P.stake,r:3.4,h:5.0,stakes:7,size:1.05}),x,z,i*.4);
   });
   [[40,25]].forEach(([x,z])=>{
     for(let k=0;k<5;k++){
@@ -115,18 +108,16 @@ function buildBarrensZone(scn){
     barrensFlames.push({fl,li});
   });
 
-  const wood=new THREE.MeshStandardMaterial({color:0x7a5a30,roughness:.9});
-  const tower=new THREE.Group();
-  const base=new THREE.Mesh(new THREE.BoxGeometry(4.2,1.2,4.2),wood); base.position.y=.6; tower.add(base);
-  const mid=new THREE.Mesh(new THREE.BoxGeometry(3.2,4.5,3.2),wood); mid.position.y=3.5; tower.add(mid);
-  const top=new THREE.Mesh(new THREE.BoxGeometry(4.5,.5,4.5),wood); top.position.y=5.9; tower.add(top);
-  const flag=new THREE.Mesh(new THREE.BoxGeometry(1.8,.9,.08),
-    new THREE.MeshStandardMaterial({color:0xc04020,roughness:.8}));
-  flag.position.set(1.2,7.2,0); tower.add(flag);
-  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,2.2,5),wood);
-  pole.position.set(.3,7.0,0); tower.add(pole);
-  tower.position.set(0,0,0); tower.traverse(o=>{if(o.isMesh)o.castShadow=true;});
-  root.add(tower);
+  /* 十字路口：瞭望塔 + 木屋街区（V1-A1） */
+  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1}),0,0,0);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),-11,7,.4);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:.95}),13,5,-.55);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:0x9a6840,w:3.8,d:3.4,size:.9}),-9,-11,Math.PI*.65);
+  placeProp(root,buildTent({hide:P.hide,stake:P.stake,r:2.6,h:3.6,size:.95}),9,-9,.3);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:.85}),14,-6,Math.PI*1.1);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:10,posts:6}),-16,2,Math.PI/2);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:8,posts:5}),4,-14,0);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:9,posts:6}),16,1,-Math.PI/2);
 
   const gateMat=new THREE.MeshStandardMaterial({color:0x5a4028,roughness:.9,flatShading:true,
     emissive:0x4a6a30,emissiveIntensity:.15});
