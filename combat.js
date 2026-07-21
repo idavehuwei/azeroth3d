@@ -8,11 +8,11 @@
           items.js（ITEMS DROPS removeDrop dropLoot）
           world.js（player boss MOBS QUEST mobDamage updateQuest tryInteract）
           main.js 运行时（clampArena）
-          raid.js 运行时（bossDie playerDie resetBoss addDamage …）
+          raid.js 运行时（bossAI distToBoss bossTargetable fireProjectile
+            spawnBurst spawnAdd addDamage addDie bossDie playerDie resetBoss BOSS_ENT DUNGEON）
    [导出] S SKILLS CLASSES CLS setClass log announce fct hurtFlash keys joy
-          useSkill hitEntity BOSS_ENT dmgBoss addDamage addDie spawnAdd
-          pickTarget firePlayerShot playerHit bossAI startCast fireProjectile
-          spawnTelegraph spawnBurst bossDie playerDie resetBoss distToBoss bossTargetable
+          useSkill hitEntity dmgBoss pickTarget firePlayerShot playerHit
+          gainXP updateLevelUI
    ============================================================ */
 "use strict";
 /* ============================================================
@@ -26,7 +26,7 @@ const S={
   b:{hp:BAL.boss.hp,hpMax:BAL.boss.hp,alive:true,rising:true,riseT:0,
      phase:1,swingT:0,casting:null,castT:0,castDur:0,
      nextMelee:2.5,nextFireball:6,nextEruption:10,nextWrath:18,
-     submerged:false,submergeT:0,canLeave:false},
+     submerged:false,submergeT:0,canLeave:false,nextAddSpawn:0},
   adds:[],projectiles:[],pShots:[],telegraphs:[],bursts:[],
   cds:[0,0,0,0],gcd:0,
   inv:[],      /* 背包（STEP 2 起：拾取的物品 id 列表） */
@@ -388,4 +388,3 @@ function gainXP(amount){
   updateLevelUI();
 }
 function updateLevelUI(){$("#pName").textContent=`${CLS.title} · Lv.${S.p.level}`;}
-/* bossDie / playerDie / resetBoss 已迁入 raid.js */

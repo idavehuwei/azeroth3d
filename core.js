@@ -52,10 +52,10 @@ const BALANCE={
   /* 烈焰之子 */
   add:{hp:1400, dmg:[130,190], atkCd:2, speed:4.6, meleeR:3, stopR:2.6},
   /* 炎魔领主 · 拉戈斯 */
-  boss:{hp:120000, phase2At:.5, submergeT:25, addCount:4,
-    melee   :{dmg:[300,420], p2Mul:1.25, cd:[3,4.2], range:12, hitRange:13, delayMs:450},
+  boss:{hp:120000, phase2At:.5, phase3At:.3, submergeT:25, addCount:4,
+    melee   :{dmg:[300,420], p2Mul:1.25, p3Mul:1.5, cd:[3,4.2], range:12, hitRange:13, delayMs:450},
     fireball:{dmg:[520,680], cast:1.8, cd:[8,11], hitR:4, speed:22},
-    eruption:{dmg:[600,780], cast:1.5, cd:[9,12], count:3, p2Count:5, delay:2.2},
+    eruption:{dmg:[600,780], cast:1.5, cd:[9,12], count:3, p2Count:5, p3Count:8, delay:2.2},
     wrath   :{dmg:[380,520], cast:2.2, cd:[16,20], range:16},
   },
   /* 任务 · 狂躁的野猪 / 讨伐拉戈斯 */
@@ -66,7 +66,7 @@ const BALANCE={
   /* 背包（STEP 4）：格数 */
   bag:{size:16},
   /* 上帝模式（首页勾选）：玩家每次攻击的固定伤害 */
-  god:{dmg:9999999},
+  god:{dmg:5000},
   /* 昼夜循环（STEP 7）：10 分钟一昼夜，render-only，不碰任何数值 */
   dayNight:{duration:600,  /* 10 分钟一昼夜（秒） */
     day:{sky:0x8fc0e8, fog:0xa8c8e0, fogDensity:0.0062, sunColor:0xfff2d8, sunIntensity:1.05,

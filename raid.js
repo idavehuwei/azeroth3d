@@ -85,18 +85,47 @@ function buildRaidScene(){
   }
   /* 火星粒子加入副本场景 */
   sceneRaid.add(embers);
+  /* 岩桥屏障 */
+  buildBridge();
+}
+
+/* ---- 岩桥屏障（STEP 8）：全局变量，供 buildRaidScene 写入 + DUNGEON 动画消费 ---- */
+const bridgeSegs=[];
+const BRIDGE_SINK_Y=-2.5;
+function buildBridge(){
+  const bridgeMat=new THREE.MeshStandardMaterial({color:0x2a1a10,roughness:1,flatShading:true,
+    emissive:0x551100,emissiveIntensity:.15});
+  for(let i=0;i<7;i++){
+    const a=i/7*Math.PI*2+(-.15+i*.05);
+    const r=6.5;
+    const seg=new THREE.Mesh(new THREE.CylinderGeometry(.8,1.2,4.5,6),bridgeMat);
+    seg.position.set(Math.cos(a)*r,2.25,Math.sin(a)*r);
+    seg.castShadow=true; sceneRaid.add(seg);
+    bridgeSegs.push(seg);
+  }
+  /* 桥面石板（装饰性） */
+  const slabMat=new THREE.MeshStandardMaterial({color:0x3a2818,roughness:.95,flatShading:true});
+  for(let i=0;i<4;i++){
+    const a=i/4*Math.PI*2;
+    const slab=new THREE.Mesh(new THREE.BoxGeometry(1.8,.25,1.8),slabMat);
+    slab.position.set(Math.cos(a)*4.5,.12,Math.sin(a)*4.5);
+    slab.receiveShadow=true; sceneRaid.add(slab);
+  }
 }
 
 /* ============================================================
    副本分段系统（STEP 8）
-   DUNGEON.stage 状态推进：corridor（走廊）→ boss（Boss 战）
+   DUNGEON.stage 状态推进：corridor（走廊）→ bridge（岩桥）→ boss（Boss 战）
+   岩桥下沉动画：bridgeSegs 从 buildRaidScene 闭包引用
    ============================================================ */
 const DUNGEON={
-  stage:"boss",      /* "corridor" | "boss"（未来扩展："bridge"等） */
+  stage:"boss",      /* "corridor" | "bridge" | "boss" */
   mobsAlive:0,       /* 当前阶段存活小怪数 */
+  bridgeT:0,         /* 岩桥下沉进度 */
+  bridgeDone:false,  /* 岩桥是否已完成下沉 */
   setStage(s){
     if(s==="corridor"){
-      this.stage="corridor";
+      this.stage="corridor"; this.bridgeDone=false;
       /* 走廊熔岩犬 x2，复用烈焰之子 AI 但用不同数据 */
       for(let i=0;i<2;i++){
         const a=i*Math.PI+rand(-.5,.5);
@@ -105,10 +134,30 @@ const DUNGEON={
       }
       this.mobsAlive=2;
       log("走廊中涌出熔岩犬！消灭它们才能开启 Boss 战。","lg-sys");
+    }else if(s==="bridge"){
+      this.stage="bridge"; this.bridgeT=0; this.bridgeDone=false;
+      announce("岩桥正在升起！");
+      log("最后一只熔岩犬倒下，黑曜石岩柱缓缓沉入地面……","lg-sys");
     }else if(s==="boss"){
-      this.stage="boss";
+      this.stage="boss"; this.bridgeDone=true;
       announce("Boss 战已解锁！");
       log("熔岩散去，通往拉戈斯平台的道路已经打开。","lg-sys");
+    }
+  },
+  /* 在主循环中每帧调用，驱动岩桥下沉动画 */
+  tickBridge(dt){
+    if(this.stage!=="bridge"||this.bridgeDone)return;
+    this.bridgeT=Math.min(1,this.bridgeT+dt*.5);
+    const t=this.bridgeT;
+    for(let i=0;i<bridgeSegs.length;i++){
+      const seg=bridgeSegs[i];
+      seg.position.y=2.25-t*(2.25-BRIDGE_SINK_Y);
+      seg.material.opacity=1-t*.3;
+      seg.material.transparent=t>.5;
+    }
+    if(t>=1){
+      this.bridgeDone=true;
+      this.setStage("boss");
     }
   },
 };
@@ -176,6 +225,27 @@ function bossAI(dt){
     }
     return;
   }
+  /* 阶段三：30% 血量狂暴——小怪死亡后无限刷新，技能更密集 */
+  if(B.phase===2&&B.hp<=B.hpMax*BAL.boss.phase3At){
+    B.phase=3;
+    SFX.play("roar");
+    announce("⚠️ 阶段三 · 拉戈斯狂暴！");
+    log("拉戈斯发出震天咆哮——岩浆沸腾，烈焰之子将不断重生！","lg-boss");
+    /* 清除所有读条，立刻进入狂暴循环 */
+    B.casting=null; $("#castShell").style.display="none";
+    /* 压缩技能冷却 */
+    B.nextMelee=Math.min(B.nextMelee,S.t+1.5);
+    B.nextFireball=Math.min(B.nextFireball,S.t+3);
+    B.nextEruption=Math.min(B.nextEruption,S.t+2.5);
+    B.nextWrath=Math.min(B.nextWrath,S.t+6);
+    spawnBurst(new THREE.Vector3(boss.position.x,6,boss.position.z),0xff2200,80,8);
+    /* 立即召唤一批小怪 */
+    for(let i=0;i<3;i++){
+      const a=i/3*Math.PI*2+rand(0,1);
+      spawnAdd(Math.cos(a)*rand(8,14),Math.sin(a)*rand(8,14)-4);
+    }
+    return;
+  }
 
   /* 读条处理 */
   if(B.casting){
@@ -188,13 +258,23 @@ function bossAI(dt){
   }
 
   const d=distToBoss();
-  /* 近战：熔火重击 */
+  /* 阶段三：每 5 秒自动刷新 2 只烈焰之子 */
+  if(B.phase===3&&S.t>B.nextAddSpawn){
+    B.nextAddSpawn=S.t+5;
+    for(let i=0;i<2;i++){
+      const a=rand(0,6.28), r=rand(10,16);
+      spawnAdd(Math.cos(a)*r,Math.sin(a)*r-4);
+    }
+    log("熔岩翻涌——新的烈焰之子从岩浆中爬出！","lg-boss");
+  }
+  /* 近战：熔火重击（阶段三 CD 更短 + 伤害更高） */
   if(S.t>B.nextMelee){
     B.nextMelee=S.t+R(BAL.boss.melee.cd);
     if(d<BAL.boss.melee.range){
       B.swingT=1;
       setTimeout(()=>{ if(S.over)return;
-        if(distToBoss()<BAL.boss.melee.hitRange&&S.p.alive){playerHit(R(BAL.boss.melee.dmg)*(B.phase===2?BAL.boss.melee.p2Mul:1),"拉戈斯的熔火重击");
+        const dmgMul=B.phase===3?BAL.boss.melee.p3Mul:(B.phase===2?BAL.boss.melee.p2Mul:1);
+        if(distToBoss()<BAL.boss.melee.hitRange&&S.p.alive){playerHit(R(BAL.boss.melee.dmg)*dmgMul,"拉戈斯的熔火重击");
           spawnBurst(player.position.clone().setY(.5),0xff6a1a,14,1.2);}
       },BAL.boss.melee.delayMs);
     }
@@ -208,13 +288,13 @@ function bossAI(dt){
     });
     return;
   }
-  /* 熔岩喷发（地面红圈 AoE） */
+  /* 熔岩喷发（地面红圈 AoE，阶段三数量翻倍） */
   if(S.t>B.nextEruption){
     B.nextEruption=S.t+R(BAL.boss.eruption.cd);
     startCast("熔岩喷发",BAL.boss.eruption.cast,()=>{
       announce("熔岩喷发 · 快躲开红圈！");
       log("大地震颤，熔岩即将喷发！","lg-boss");
-      const n=B.phase===2?BAL.boss.eruption.p2Count:BAL.boss.eruption.count;
+      const n=B.phase===3?BAL.boss.eruption.p3Count:(B.phase===2?BAL.boss.eruption.p2Count:BAL.boss.eruption.count);
       spawnTelegraph(player.position.x,player.position.z,4.5,BAL.boss.eruption.delay);
       for(let i=0;i<n;i++){
         const a=rand(0,6.28),r=rand(3,ARENA_R-4);
@@ -287,7 +367,7 @@ function spawnAdd(x,z){
   scene.add(mesh);
   S.adds.push({mesh,name:"烈焰之子",hp:BAL.add.hp,hpMax:BAL.add.hp,atkT:0,corpseT:0,
     variance:null,
-    dead(){return !S.adds.includes(this);},
+    dead(){return this.corpseT>0||!S.adds.includes(this);},
     fctPos(){return this.mesh.position.clone().setY(2.6);},
     onDeath(){addDie(this);},
   });
@@ -301,10 +381,10 @@ function addDie(a){
   a.corpseT=BAL.loot.corpseT;
   dropLoot(a.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),[rollLoot(LOOT.add)],a);
   log("一只烈焰之子被消灭了！","lg-me");
-  /* 走廊模式：减计数 */
+  /* 走廊模式：减计数，清完触发岩桥下沉 */
   if(DUNGEON.stage==="corridor"){
     DUNGEON.mobsAlive--;
-    if(DUNGEON.mobsAlive<=0)DUNGEON.setStage("boss");
+    if(DUNGEON.mobsAlive<=0)DUNGEON.setStage("bridge");
   }
 }
 
@@ -364,7 +444,12 @@ function resetBoss(){
   S.b.nextMelee=S.t+6; S.b.nextFireball=S.t+10;
   S.b.nextEruption=S.t+14; S.b.nextWrath=S.t+22;
   removeExitPortal();
-  DUNGEON.stage="boss"; DUNGEON.mobsAlive=0;
+  DUNGEON.stage="boss"; DUNGEON.mobsAlive=0; DUNGEON.bridgeDone=false; DUNGEON.bridgeT=0;
+  /* 重置岩桥视觉 */
+  for(let i=0;i<bridgeSegs.length;i++){
+    const seg=bridgeSegs[i];
+    seg.position.y=2.25; seg.material.opacity=1; seg.material.transparent=false;
+  }
   for(const a of S.adds)scene.remove(a.mesh);
   S.adds.length=0;
   for(const p of S.projectiles)scene.remove(p.mesh);

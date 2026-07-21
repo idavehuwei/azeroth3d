@@ -208,7 +208,8 @@ function enterRaid(){
       resetBoss();
       log("你再次踏入熔火之心——火焰重新燃起，拉戈斯再度苏醒。","lg-sys");
     }else{
-      /* 首次进入：重置 Boss 技能计时 */
+      /* 首次进入：走廊分段 + 重置 Boss 技能计时 */
+      DUNGEON.setStage("corridor");
       S.b.nextMelee=S.t+6; S.b.nextFireball=S.t+10;
       S.b.nextEruption=S.t+14; S.b.nextWrath=S.t+22;
       log("你踏入传送门——热浪扑面而来，岩浆在脚下沸腾！","lg-sys");

@@ -11,7 +11,7 @@
           combat.js（S CLS SKILLS keys joy setClass bossAI bossTargetable distToBoss
           pickTarget firePlayerShot dmgBoss addDamage mobDamage playerHit
           spawnBurst log announce fct）
-          raid.js 运行时（bossAI distToBoss bossTargetable fireProjectile spawnBurst）
+          raid.js 运行时（bossAI distToBoss bossTargetable fireProjectile spawnBurst DUNGEON）
           world.js 运行时（heli sun fireflies FIREFLIES ffPhases）
    [导出] clampArena tick
    ============================================================ */
@@ -254,8 +254,8 @@ function tick(){
       if(S.cds[i]>0)el.querySelector(".cd").textContent=Math.ceil(S.cds[i]);
     });
 
-    /* ---- Boss（仅副本内激活） ---- */
-    if(S.mode==="raid")bossAI(dt);
+    /* ---- Boss（仅副本内 Boss 阶段激活） ---- */
+    if(S.mode==="raid"){DUNGEON.tickBridge(dt);if(DUNGEON.stage==="boss")bossAI(dt);}
     /* Boss 挥锤动画 */
     if(S.b.swingT>0){S.b.swingT-=dt*1.6;
       boss.userData.armR.rotation.x=-2.1*Math.sin(Math.min(1,S.b.swingT)*Math.PI);}
