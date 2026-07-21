@@ -90,6 +90,22 @@ const LOOT={
     uncommon:["magma_fang","sulf_ring"],
     rare    :["magma_collar","sulf_blade"],
   },
+  /* —— STEP 18 贫瘠之地 —— */
+  quilboar:{
+    common  :["boar_meat","boar_tusk","boar_hide"],
+    uncommon:["tusk_blade","hide_vest"],
+    rare    :["plains_blade"],
+  },
+  centaur:{
+    common  :["wolf_pelt","bird_feather"],
+    uncommon:["wind_blade","hide_vest"],
+    rare    :["plains_blade","mesa_guard"],
+  },
+  zebra:{
+    common  :["bird_meat","bird_feather"],
+    uncommon:["hide_vest"],
+    rare    :["plains_blade"],
+  },
 };
 /* 按权重掷品质档（可传 BAL.loot.eliteWeights 等），再从该档均匀取一件（玩法随机 → rand 路线） */
 function rollLoot(table,weights){

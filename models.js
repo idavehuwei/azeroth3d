@@ -3,7 +3,7 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（rand）
    [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS
-          buildQuadruped buildHumanoidMob QUADS MOB_HUMANOIDS（STEP 5 族群工厂）
+          buildQuadruped buildHumanoidMob buildCentaur QUADS MOB_HUMANOIDS（STEP 5/18 族群工厂）
           buildPlayer buildMage buildArcher buildBoss buildElder buildVendor buildSpiritHealer
           buildBoar buildFlameSpawn
    ------------------------------------------------------------
@@ -358,10 +358,13 @@ const QUADS={
   boarKing:{fur:0x8a8578,furD:0x55524a,tusks:true,tuskBig:true,mane:true,ears:true,tail:'up',size:2.15},
   /* 玛格曼达：巨型熔岩猎犬（STEP 9c） */
   magmadar:{fur:0x8a2208,furD:0x3a1008,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:5.1},
+  /* —— STEP 18 贫瘠之地 —— */
+  zebra   :{fur:0xe8e0d0,furD:0x3a3028,ears:true,mane:true,tail:'bushy',size:1.05},
+  quilboar:{fur:0xc4783a,furD:0x8a5020,tusks:true,mane:true,ears:true,tail:'up',size:1.15,quills:true},
 };
 function buildQuadruped(cfg){
   const c=Object.assign({size:1,legs:4,tusks:false,tuskBig:false,ears:true,mane:false,
-    neck:0,beak:false,crest:false,tail:'up',snoutLong:false},cfg);
+    neck:0,beak:false,crest:false,tail:'up',snoutLong:false,quills:false},cfg);
   const g=new THREE.Group();
   const fur=new THREE.MeshStandardMaterial({color:c.fur,roughness:1});
   const furD=new THREE.MeshStandardMaterial({color:c.furD,roughness:1});
@@ -418,6 +421,43 @@ function buildQuadruped(cfg){
       fe.position.set((i-1)*.16,1.5,-.95); fe.rotation.x=-2.3; g.add(fe);
     }
   }
+  /* 野猪人背刺 */
+  if(c.quills){
+    for(let i=0;i<5;i++){
+      const q=new THREE.Mesh(new THREE.ConeGeometry(.06,.55,4),furD);
+      q.position.set((i-2)*.12,1.75,.15-i*.08); q.rotation.x=-.55; g.add(q);
+    }
+  }
+  g.scale.setScalar(c.size);
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  return g;
+}
+
+/* 半人马（STEP 18）：四足马身 + 人形上半身 */
+function buildCentaur(cfg){
+  const c=Object.assign({fur:0x8a6a40,furD:0x5a4028,skin:0xc9a080,cloth:0x6a4030,size:1.2},cfg||{});
+  const g=new THREE.Group();
+  const horse=buildQuadruped({fur:c.fur,furD:c.furD,ears:true,mane:true,tail:'bushy',size:1});
+  g.add(horse);
+  const skin=new THREE.MeshStandardMaterial({color:c.skin,roughness:.85});
+  const cloth=new THREE.MeshStandardMaterial({color:c.cloth,roughness:.9});
+  const torso=new THREE.Mesh(new THREE.BoxGeometry(.55,.9,.4),cloth);
+  torso.position.set(0,2.55,.3); g.add(torso);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(.38,.38,.36),skin);
+  head.position.set(0,3.3,.35); g.add(head);
+  const hair=new THREE.Mesh(new THREE.ConeGeometry(.28,.5,6),
+    new THREE.MeshStandardMaterial({color:c.furD,roughness:1}));
+  hair.position.set(0,3.65,.28); g.add(hair);
+  [-1,1].forEach(s=>{
+    const arm=new THREE.Mesh(new THREE.BoxGeometry(.16,.7,.16),skin);
+    arm.position.set(s*.42,2.7,.35); arm.rotation.z=s*.35; g.add(arm);
+  });
+  const spear=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,2.2,5),
+    new THREE.MeshStandardMaterial({color:0x6a5030,roughness:.8}));
+  spear.position.set(.55,3.1,.6); spear.rotation.z=-.4; g.add(spear);
+  const tip=new THREE.Mesh(new THREE.ConeGeometry(.08,.28,5),
+    new THREE.MeshStandardMaterial({color:0xc0c0c0,roughness:.4,metalness:.6}));
+  tip.position.set(.85,3.85,.85); tip.rotation.z=-.4; g.add(tip);
   g.scale.setScalar(c.size);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   return g;
@@ -426,6 +466,7 @@ function buildQuadruped(cfg){
 /* 人形怪族群：鹰身女妖 /（将来的小恶魔等）共用 */
 const MOB_HUMANOIDS={
   harpy:{size:1.55,skin:0xc9a2b8,feather:0x5a3a6e,featherD:0x3a2450,hair:0x2a1a3e,claw:0xe8e0c8},
+  centaur:{size:1.2,skin:0xc9a080,fur:0x8a6a40,furD:0x5a4028,cloth:0x6a4030},
 };
 function buildHumanoidMob(cfg){
   const c=Object.assign({size:1,wings:true},cfg);

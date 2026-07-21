@@ -23,6 +23,7 @@ const MAP_ZONES={
       {id:"vendor", label:"商人",   x:-10,z:50, color:"#8aff9a", kind:"npc"},
       {id:"spirit", label:"灵魂医者",x:0,  z:58, color:"#a8d8ff", kind:"npc"},
       {id:"portal", label:"熔火之心",x:0,  z:-62,color:"#ff8a4a", kind:"portal"},
+      {id:"barrens",label:"贫瘠之地",x:0,  z:80, color:"#e8c898", kind:"portal"},
       {id:"camp",   label:"营地",   x:0,  z:55, color:"#c9a06a", kind:"camp"},
     ],
     /* 稀有/精英固定点（与 world 放置一致；存活时改画动态点） */
@@ -46,6 +47,30 @@ const MAP_ZONES={
       [0,-1],[.7,-.7],[1,0],[.7,.7],[0,1],[-.7,.7],[-1,0],[-.7,-.7],
     ],
   },
+  barrens:{
+    id:"barrens",
+    name:"贫瘠之地",
+    radius:()=>typeof BARRENS_R==="number"?BARRENS_R:(BAL.barrens&&BAL.barrens.radius)||92,
+    landmarks:[
+      {id:"crossroads",label:"十字路口",x:0,z:0,color:"#e8c080",kind:"camp"},
+      {id:"portal_n",label:"莫高雷",x:0,z:-84,color:"#c9a06a",kind:"portal"},
+      {id:"portal_s",label:"哀嚎洞穴",x:0,z:80,color:"#8a9a6a",kind:"portal"},
+      {id:"spirit",label:"灵魂医者",x:-8,z:5,color:"#a8d8ff",kind:"npc"},
+      {id:"quilboar",label:"野猪人前哨",x:-32,z:-12,color:"#c4783a",kind:"camp"},
+      {id:"centaur",label:"半人马营地",x:40,z:25,color:"#a87840",kind:"camp"},
+    ],
+    elites:[],
+    outline:[
+      [0,-1],[.4,-.9],[.75,-.55],[.95,-.1],[.9,.4],[.55,.8],[.1,.98],
+      [-.35,.9],[-.7,.55],[-.95,.1],[-.85,-.4],[-.5,-.8],[-.15,-.95],
+    ],
+    terrain:{
+      bg:"#1a1408",
+      fill:"rgba(120,90,40,.4)",
+      stroke:"rgba(200,160,80,.5)",
+      road:[["crossroads","portal_n"],["crossroads","portal_s"]],
+    },
+  },
 };
 let _mapZoneId="mulgore";
 function getActiveMapZone(){return MAP_ZONES[_mapZoneId]||MAP_ZONES.mulgore;}
@@ -61,17 +86,29 @@ function mapWorldToCanvas(x,z,size,pad,R){
 function liveLandmarkPos(lm){
   if(lm.id==="elder"&&typeof elder!=="undefined")return {x:elder.position.x,z:elder.position.z};
   if(lm.id==="vendor"&&typeof vendor!=="undefined")return {x:vendor.position.x,z:vendor.position.z};
-  if(lm.id==="spirit"&&typeof spiritHealer!=="undefined")return {x:spiritHealer.position.x,z:spiritHealer.position.z};
+  if(lm.id==="spirit"){
+    if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="barrens"&&typeof barrensSpirit!=="undefined"&&barrensSpirit)
+      return {x:barrensSpirit.position.x,z:barrensSpirit.position.z};
+    if(typeof spiritHealer!=="undefined")return {x:spiritHealer.position.x,z:spiritHealer.position.z};
+  }
   if(lm.id==="portal"&&typeof PORTAL_POS!=="undefined")return {x:PORTAL_POS.x,z:PORTAL_POS.z};
+  if(lm.id==="portal_n"&&typeof BARRENS_PORTAL_N!=="undefined")return {x:BARRENS_PORTAL_N.x,z:BARRENS_PORTAL_N.z};
+  if(lm.id==="crossroads"&&typeof crossroadsSentinel!=="undefined"&&crossroadsSentinel)
+    return {x:crossroadsSentinel.position.x,z:crossroadsSentinel.position.z};
   return {x:lm.x,z:lm.z};
 }
 
 function drawTerrain(ctx,size,pad,zone){
   const R=zone.radius();
-  ctx.fillStyle="#0c1208";
+  const T=zone.terrain||{};
+  ctx.fillStyle=T.bg||"#0c1208";
   ctx.fillRect(0,0,size,size);
   const g=ctx.createRadialGradient(size/2,size/2,size*.1,size/2,size/2,size*.7);
-  g.addColorStop(0,"#2a3a1a"); g.addColorStop(.55,"#1a2810"); g.addColorStop(1,"#0c1008");
+  if(zone.id==="barrens"){
+    g.addColorStop(0,"#3a2a14"); g.addColorStop(.55,"#241808"); g.addColorStop(1,"#120e06");
+  }else{
+    g.addColorStop(0,"#2a3a1a"); g.addColorStop(.55,"#1a2810"); g.addColorStop(1,"#0c1008");
+  }
   ctx.fillStyle=g; ctx.fillRect(0,0,size,size);
   ctx.beginPath();
   zone.outline.forEach((p,i)=>{
@@ -79,16 +116,27 @@ function drawTerrain(ctx,size,pad,zone){
     if(i===0)ctx.moveTo(pt.u,pt.v); else ctx.lineTo(pt.u,pt.v);
   });
   ctx.closePath();
-  ctx.fillStyle="rgba(60,90,35,.35)";
+  ctx.fillStyle=T.fill||"rgba(60,90,35,.35)";
   ctx.fill();
-  ctx.strokeStyle="rgba(200,160,80,.45)";
+  ctx.strokeStyle=T.stroke||"rgba(200,160,80,.45)";
   ctx.lineWidth=1.5;
   ctx.stroke();
-  const camp=mapWorldToCanvas(0,55,size,pad,R);
-  const portal=mapWorldToCanvas(0,-62,size,pad,R);
   ctx.strokeStyle="rgba(140,100,50,.55)";
   ctx.lineWidth=Math.max(1.5,size/80);
-  ctx.beginPath(); ctx.moveTo(camp.u,camp.v); ctx.lineTo(portal.u,portal.v); ctx.stroke();
+  if(T.road&&Array.isArray(T.road)){
+    const byId={};
+    (zone.landmarks||[]).forEach(lm=>{byId[lm.id]=liveLandmarkPos(lm);});
+    T.road.forEach(([a,b])=>{
+      const pa=byId[a],pb=byId[b]; if(!pa||!pb)return;
+      const ca=mapWorldToCanvas(pa.x,pa.z,size,pad,R);
+      const cb=mapWorldToCanvas(pb.x,pb.z,size,pad,R);
+      ctx.beginPath(); ctx.moveTo(ca.u,ca.v); ctx.lineTo(cb.u,cb.v); ctx.stroke();
+    });
+  }else{
+    const camp=mapWorldToCanvas(0,55,size,pad,R);
+    const portal=mapWorldToCanvas(0,-62,size,pad,R);
+    ctx.beginPath(); ctx.moveTo(camp.u,camp.v); ctx.lineTo(portal.u,portal.v); ctx.stroke();
+  }
   const c0=mapWorldToCanvas(0,0,size,pad,R);
   const edge=mapWorldToCanvas(R,0,size,pad,R);
   ctx.beginPath();
@@ -131,8 +179,10 @@ function drawPlayerArrow(ctx,u,v,face,color){
 function collectDynamicElites(){
   const list=[];
   if(typeof MOBS==="undefined")return list;
+  const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore";
   for(const m of MOBS){
     if(!m.elite||m.state==="dead")continue;
+    if((m.zoneId||"mulgore")!==zid)continue;
     list.push({
       x:m.mesh.position.x, z:m.mesh.position.z,
       color:m.type==="boarKing"?"#ffd700":"#ff9ad0",

@@ -133,7 +133,6 @@ function renderSpellPanel(){
 
 function questEntries(){
   const entries=[];
-  if(QUEST.state===0)return entries;
   if(QUEST.state===1){
     const n=Math.min(QUEST.kills,BAL.quest.boarKills);
     entries.push({
@@ -156,6 +155,25 @@ function questEntries(){
       done:true,
       tip:"任务完成",
     });
+  }
+  if(typeof BARRENS_QUEST!=="undefined"&&BARRENS_QUEST.state>=1){
+    const need=BAL.quest.barrens.quilboarKills;
+    if(BARRENS_QUEST.state===1){
+      const n=Math.min(BARRENS_QUEST.kills,need);
+      entries.push({
+        title:"十字路口的麻烦",
+        obj:`清剿野猪人斥候 ${n}/${need}`,
+        done:n>=need,
+        tip:n>=need?"回十字路口找哨兵 · 碎牙领取奖励":"在贫瘠之地西边野猪人前哨清剿",
+      });
+    }else{
+      entries.push({
+        title:"十字路口的麻烦",
+        obj:"已肃清野猪人前哨",
+        done:true,
+        tip:"南方哀嚎洞穴即将开放",
+      });
+    }
   }
   return entries;
 }

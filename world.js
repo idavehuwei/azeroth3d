@@ -16,7 +16,7 @@
           openVendor refreshVendorPanel openSpiritDialogue
           leaveRaid resetBoss spawnExitPortal removeExitPortal exitPortal
           fireflies FIREFLIES ffPhases elder elderDist vendor vendorDist
-          spiritHealer spiritDist
+          spiritHealer spiritDist spawnMob MOBS MOB_TYPES PORTAL_BARRENS
    ============================================================ */
 "use strict";
 /* 莫高雷分区种子：地形 / 野怪摆放全部走此流（STEP 17） */
@@ -178,6 +178,37 @@ portalLabel.position.set(PORTAL_POS.x,13.6,PORTAL_POS.z); sceneWorld.add(portalL
 const portalLabel2=makeLabel("· 副本入口 ·",8);
 portalLabel2.position.set(PORTAL_POS.x,12,PORTAL_POS.z); sceneWorld.add(portalLabel2);
 
+/* ---------------- 贫瘠之地传送门（营地南，STEP 18）：Lv10+ 可见可进 ---------------- */
+const PORTAL_BARRENS=new THREE.Vector3(0,0,WORLD_R-8);
+const barrensGateMat=new THREE.MeshStandardMaterial({color:0x5a4028,roughness:.9,flatShading:true,
+  emissive:0x6a4a20,emissiveIntensity:.18});
+const bPlat=new THREE.Mesh(new THREE.CylinderGeometry(7,8.5,1,12),barrensGateMat);
+bPlat.position.set(PORTAL_BARRENS.x,.5,PORTAL_BARRENS.z); bPlat.receiveShadow=true; sceneWorld.add(bPlat);
+[[-3.4],[3.4]].forEach(([sx])=>{
+  const pil=new THREE.Mesh(new THREE.BoxGeometry(1.5,8.5,1.5),barrensGateMat);
+  pil.position.set(PORTAL_BARRENS.x+sx,4.8,PORTAL_BARRENS.z); pil.castShadow=true; sceneWorld.add(pil);
+});
+const bLintel=new THREE.Mesh(new THREE.BoxGeometry(9.2,1.4,1.6),barrensGateMat);
+bLintel.position.set(PORTAL_BARRENS.x,9.2,PORTAL_BARRENS.z); bLintel.castShadow=true; sceneWorld.add(bLintel);
+const southPortalUni={uTime:{value:0}};
+const barrensPortalDisc=new THREE.Mesh(new THREE.CircleGeometry(2.8,36),new THREE.ShaderMaterial({
+  uniforms:southPortalUni,transparent:true,side:THREE.DoubleSide,depthWrite:false,
+  vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`
+    varying vec2 vUv;uniform float uTime;
+    void main(){
+      vec2 p=vUv-.5; float r=length(p)*2.; float ang=atan(p.y,p.x);
+      float sw=sin(ang*2.5-uTime*2.4+r*7.);
+      vec3 c=mix(vec3(.95,.78,.4),vec3(.55,.35,.12),smoothstep(-.5,.7,sw));
+      c=mix(c,vec3(.12,.06,0.),smoothstep(.7,1.,r));
+      gl_FragColor=vec4(c*1.1,smoothstep(1.,.88,r));
+    }`}));
+barrensPortalDisc.position.set(PORTAL_BARRENS.x,4.6,PORTAL_BARRENS.z); sceneWorld.add(barrensPortalDisc);
+const southPortalLabel=makeLabel("贫瘠之地",12,"#e8c898","rgba(160,100,40,.9)");
+southPortalLabel.position.set(PORTAL_BARRENS.x,12.2,PORTAL_BARRENS.z); sceneWorld.add(southPortalLabel);
+const southPortalLabel2=makeLabel("· 十字路口 ·",7,"#d0b070","rgba(120,80,30,.85)");
+southPortalLabel2.position.set(PORTAL_BARRENS.x,10.8,PORTAL_BARRENS.z); sceneWorld.add(southPortalLabel2);
+
 /* ---------------- 萤火虫粒子（STEP 7 昼夜）：夜晚浮现，白天透明 ---------------- */
 const FIREFLIES=80;
 const fireflyGeo=new THREE.BufferGeometry();
@@ -230,6 +261,7 @@ registerZone({
   gates:{
     camp:{x:0,z:52},
     from_raid:{x:0,z:52},
+    from_barrens:{x:0,z:WORLD_R-12},
     spirit:{x:0,z:58},
     default:{x:0,z:52},
   },
@@ -244,12 +276,28 @@ registerZone({
     autoEnter:true,
     targetZone:"molten_core",
     targetGate:"entrance",
+  },{
+    id:"to_barrens",
+    pos:()=>PORTAL_BARRENS,
+    hintR:()=>BAL.zones.portalHintR,
+    enterR:()=>BAL.zones.portalEnterR,
+    announce:"贫瘠之地 · 十字路口",
+    logHint:"南行土路通往干燥荒原……靠近传送门即可前往贫瘠之地。",
+    requireAlive:true,
+    autoEnter:true,
+    visible:()=>S.p&&S.p.level>=BAL.barrens.minLevel,
+    targetZone:"barrens",
+    targetGate:"from_mulgore",
   }],
+  lights:{heli,sun,flames:worldFlames,fireflies},
   onEnter(fromId,gateId,opts){
     if(opts&&opts.silent)return;
     if(fromId==="molten_core"){
       log("你回到莫高雷草原，炎魔的咆哮在远方回荡……","lg-sys");
+    }else if(fromId==="barrens"){
+      log("你回到圣山草原，牛头人营地的炊烟在远处升起。","lg-sys");
     }
+    if(typeof updateQuest==="function")updateQuest();
   },
   onLeave(){},
 });
@@ -352,6 +400,9 @@ const MOB_TYPES={
   bird    :{name:"陆行鸟",      build:()=>buildQuadruped(QUADS.bird),    stats:"bird",    loot:"bird",    labelW:4.2,labelY:3.4},
   harpy   :{name:"鹰身女妖首领",build:()=>buildHumanoidMob(MOB_HUMANOIDS.harpy),stats:"harpy",loot:"harpy",labelW:8.5,labelY:5.6,elite:true,color:"#ff9ad0",auraColor:0xff66bb},
   boarKing:{name:"老灰鬃野猪王",build:()=>buildQuadruped(QUADS.boarKing),stats:"boarKing",loot:"boarKing",labelW:9,labelY:5.8,elite:true,color:"#ffd700",auraColor:0xffd76a},
+  quilboar:{name:"野猪人斥候",  build:()=>buildQuadruped(QUADS.quilboar),stats:"quilboar",loot:"quilboar",labelW:5.2,labelY:2.9},
+  centaur :{name:"半人马战士",  build:()=>buildCentaur(MOB_HUMANOIDS.centaur),stats:"centaur",loot:"centaur",labelW:6.5,labelY:4.8},
+  zebra   :{name:"平原斑马",    build:()=>buildQuadruped(QUADS.zebra),   stats:"zebra",   loot:"zebra",   labelW:4.6,labelY:2.8},
 };
 function attachEliteAura(m,colorHex){
   const E=BAL.elite.aura;
@@ -384,24 +435,27 @@ function spawnEliteMinions(elite,typeKey){
   for(let i=0;i<cfg.count;i++){
     const a=srand(0,Math.PI*2);
     const r=srand(cfg.radius*.5,cfg.radius);
-    spawnMob(cfg.type, elite.home.x+Math.cos(a)*r, elite.home.z+Math.sin(a)*r, group, {minion:true});
+    spawnMob(cfg.type, elite.home.x+Math.cos(a)*r, elite.home.z+Math.sin(a)*r, group, {minion:true,zoneId:elite.zoneId||"mulgore"});
   }
 }
 function spawnMob(type,x,z,group,opts){
+  opts=opts||{};
+  const zoneId=opts.zoneId||"mulgore";
   const T=MOB_TYPES[type], st=BAL.mobs[T.stats];
   const mesh=T.build(); mesh.position.set(x,0,z);
   mesh.rotation.y=srand(0,6.28);
   let labelY=T.labelY;
-  if(T.elite&&!(opts&&opts.minion)){
+  if(T.elite&&!opts.minion){
     const mul=BAL.elite.scaleMul||1;
     mesh.scale.multiplyScalar(mul);
     labelY+=BAL.elite.labelYBonus||0;
   }
-  sceneWorld.add(mesh);
+  const scn=(typeof ZONES!=="undefined"&&ZONES[zoneId]&&ZONES[zoneId].scene)||sceneWorld;
+  scn.add(mesh);
   const label=makeLabel(T.name,T.labelW,T.color||"#ffd9a0",T.color||undefined);
-  label.position.set(x,labelY,z); sceneWorld.add(label);
-  const m={type,name:T.name,mesh,label,stats:st,loot:LOOT[T.loot],elite:!!T.elite&&!(opts&&opts.minion),
-    group:group||null,labelY,
+  label.position.set(x,labelY,z); scn.add(label);
+  const m={type,name:T.name,mesh,label,stats:st,loot:LOOT[T.loot],elite:!!T.elite&&!opts.minion,
+    group:group||null,labelY,zoneId,
     hp:st.hp,hpMax:st.hp,state:"wander",home:{x,z},dest:null,wanderT:rand(0,3),
     atkT:0,rootT:0,respawnT:0,corpseT:0,castCd:0,casting:null,moving:false,aura:null,
     /* —— 统一实体接口（STEP 1，hitEntity 消费）；return = 脱战回巢，免疫伤害 —— */
@@ -496,11 +550,30 @@ function mobDie(m){
     if(QUEST.kills>=BAL.quest.boarKills){announce("任务目标完成 · 回去找长老"); setMarker();}
     if(typeof saveGame==="function")saveGame(true);
   }
+  if(typeof onBarrensQuestKill==="function")onBarrensQuestKill(m);
 }
 
 /* ---------------- 任务追踪 HUD（右上角；详情见 L 任务日志） ---------------- */
 function updateQuest(){
   const q=$("#quest");
+  const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore";
+  if(zid==="barrens"&&typeof BARRENS_QUEST!=="undefined"&&BARRENS_QUEST.state>=1){
+    if(BARRENS_QUEST.state===1){
+      const need=BAL.quest.barrens.quilboarKills;
+      const n=Math.min(BARRENS_QUEST.kills,need);
+      const done=n>=need;
+      q.innerHTML=`<div class="qt">任务 · 十字路口的麻烦</div>`+
+        `<div class="qo">清剿野猪人斥候 <b>${n}/${need}</b></div>`+
+        (done?`<div class="qd">回十字路口找哨兵交任务</div>`:"");
+      q.style.display="block";
+    }else if(BARRENS_QUEST.state>=2){
+      q.innerHTML=`<div class="qt qd">✔ 十字路口的麻烦</div>`+
+        `<div class="qo">南方哀嚎洞穴即将开放</div>`;
+      q.style.display="block";
+    }
+    if(typeof renderQuestLog==="function")renderQuestLog();
+    return;
+  }
   if(QUEST.state===1){
     const n=Math.min(QUEST.kills,BAL.quest.boarKills);
     const done=n>=BAL.quest.boarKills;
@@ -528,6 +601,8 @@ function tryInteract(){
     leaveRaid(); return;
   }
   if(S.mode!=="world")return;
+  if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="barrens"
+    &&typeof tryInteractBarrens==="function"){tryInteractBarrens();return;}
   const R=BAL.economy.interactR;
   const dE=elderDist(), dV=vendorDist(), dS=spiritDist();
   if(dS<R&&dS<=dE&&dS<=dV){openSpiritDialogue();return;}
@@ -607,7 +682,11 @@ function openDialogue(){
       if(typeof saveGame==="function")saveGame(true);
     });
   }else{
-    tx.textContent="北行吧，勇士。踏入旋涡，愿圣山的风与你同在。";
+    let tip="北行吧，勇士。踏入旋涡，愿圣山的风与你同在。";
+    if(S.p.level>=BAL.barrens.minLevel){
+      tip+=" 营地南边的土路已通向贫瘠之地的十字路口——那里需要新的帮手。";
+    }
+    tx.textContent=tip;
     btn("离开",closeDialogue);
   }
 }

@@ -879,7 +879,8 @@ function resurrectPlayer(spawn,opts){
 
 function releaseSpiritWorld(){
   if(S.p.alive||S.mode!=="world")return;
-  const sp=BAL.death.worldSpawn;
+  const zid=S.zoneId||"mulgore";
+  const sp=(BAL.death.spawns&&BAL.death.spawns[zid])||BAL.death.worldSpawn;
   resurrectPlayer(sp);
   log("灵魂医者的光芒包裹了你……","lg-sys");
 }

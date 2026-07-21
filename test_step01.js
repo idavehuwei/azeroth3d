@@ -47,6 +47,11 @@ assert(!sameArr(m1,r1),"mulgore 与 molten_core 种子互不干扰");
 assert(getZoneSeed("mulgore")!==getZoneSeed("molten_core"),"getZoneSeed 分区不同");
 assert(getZoneSeed("mulgore")===(WORLD_SEED^hashZoneId("mulgore"))>>>0,"种子公式 WORLD_SEED ^ hash(zoneId)");
 
+const b1=sample("barrens",N);
+const b2=sample("barrens",N);
+assert(sameArr(b1,b2),"barrens 两次采样序列相同");
+assert(!sameArr(b1,m1),"barrens 与 mulgore 种子互不干扰");
+
 /* 注册表形状冒烟（不加载 DOM/THREE，仅语法检查 zones 关键 API 文本） */
 const fs=require("fs");
 const path=require("path");
@@ -58,6 +63,12 @@ assert(zonesSrc.includes("function ensureAllZonesBuilt"),"zones.js 导出 ensure
 const worldSrc=fs.readFileSync(path.join(__dirname,"world.js"),"utf8");
 assert(worldSrc.includes('registerZone({')&&worldSrc.includes('id:"mulgore"'),"world.js 注册 mulgore");
 assert(worldSrc.includes("enterZone(\"molten_core\""),"enterRaid 走 enterZone");
+assert(worldSrc.includes("to_barrens")||worldSrc.includes("PORTAL_BARRENS"),"world.js 有贫瘠之地传送门");
+
+const barrensSrc=fs.readFileSync(path.join(__dirname,"barrens.js"),"utf8");
+assert(barrensSrc.includes('id:"barrens"'),"barrens.js 注册 barrens");
+assert(barrensSrc.includes("BARRENS_QUEST"),"barrens.js 有 BARRENS_QUEST");
+assert(barrensSrc.includes("buildBarrensZone"),"barrens.js 有 buildBarrensZone");
 
 const raidSrc=fs.readFileSync(path.join(__dirname,"raid.js"),"utf8");
 assert(raidSrc.includes('id:"molten_core"'),"raid.js 注册 molten_core");
@@ -65,10 +76,11 @@ assert(raidSrc.includes("buildMoltenCoreZone"),"raid.js 有 buildMoltenCoreZone"
 
 const html=fs.readFileSync(path.join(__dirname,"game.html"),"utf8");
 assert(html.includes('src="zones.js"'),"game.html 加载 zones.js");
+assert(html.includes('src="barrens.js"'),"game.html 加载 barrens.js");
 assert(html.includes("ensureAllZonesBuilt()"),"game.html 调用 ensureAllZonesBuilt");
 
 if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17 分区种子 / 注册表冒烟");
+console.log("\n全部通过 · STEP 17/18 分区种子 / 注册表冒烟");

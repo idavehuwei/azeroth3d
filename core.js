@@ -47,6 +47,10 @@ const BALANCE={
     harpy   :{hp:4200,dmg:[90,130], atkCd:2.4, meleeR:3.2, aggroR:12, leashR:44, wanderSpd:2.5,chaseSpd:5,   respawnT:60,  xp:450, copper:[80,140], socialR:24,
               cast:{name:"女妖之火",dmg:[220,300],dur:1.5,cd:6,range:20,speed:16,hitR:3}},
     boarKing:{hp:3200,dmg:[110,160],atkCd:2.4, meleeR:3.2, aggroR:8,  leashR:40, wanderSpd:2.2,chaseSpd:5,   respawnT:120, xp:500, copper:[120,200], socialR:22},
+    /* —— STEP 18 贫瘠之地 —— */
+    quilboar:{hp:1200,dmg:[75,110], atkCd:2.0, meleeR:2.6, aggroR:8,  leashR:36, wanderSpd:2.8,chaseSpd:5.8, respawnT:28,  xp:140, copper:[18,35]},
+    centaur :{hp:1800,dmg:[95,140], atkCd:2.2, meleeR:3.0, aggroR:10, leashR:40, wanderSpd:2.6,chaseSpd:5.5, respawnT:35,  xp:180, copper:[28,50], socialR:20},
+    zebra   :{hp:700, dmg:[50,75],  atkCd:1.7, meleeR:2.3, aggroR:0,  leashR:32, wanderSpd:4.2,chaseSpd:7.5, respawnT:26,  xp:90,  copper:[10,20]},
   },
   /* 脱战回巢（STEP 5 规范化）：回巢途中每秒回复最大生命的百分比，且免疫伤害 */
   leash:{regenPct:.5},
@@ -65,9 +69,13 @@ const BALANCE={
     respawnHpPct:.5,          /* 复活时生命比例 */
     weaknessT:10,             /* 虚弱秒数 */
     moveSpeedMul:.7,          /* 虚弱移速倍率（-30%） */
-    worldSpawn:{x:0,z:58},    /* 灵魂医者旁 */
+    worldSpawn:{x:0,z:58},    /* 灵魂医者旁（莫高雷默认） */
     raidSpawn:{x:0,z:18},     /* 副本走廊入口 */
     corpseDelay:1.2,          /* 倒地后弹出死亡面板延迟 */
+    spawns:{                  /* 分区复活点（STEP 18） */
+      mulgore:{x:0,z:58},
+      barrens:{x:-8,z:5},
+    },
   },
   /* 烈焰之子 */
   add:{hp:1400, dmg:[130,190], atkCd:2, speed:4.6, meleeR:3, stopR:2.6, copper:[12,28]},
@@ -86,8 +94,17 @@ const BALANCE={
     stomp :{dmg:[400,540], cast:1.3, cd:[9,12], count:3, p2Count:6, delay:1.9, ringR:6},
     fear  :{dmg:[140,200], cast:1.6, cd:[13,16], range:16, fearT:2.6, knockT:.35, panicRings:3, panicR:4.5, delay:1.5},
   },
-  /* 任务 · 狂躁的野猪 / 讨伐拉戈斯 */
-  quest:{boarKills:3, rewardHp:600, rewardDmgMul:1.15, rewardCopper:150},
+  /* 任务 · 狂躁的野猪 / 讨伐拉戈斯 / 贫瘠之地入口链（STEP 18；完整网 STEP 22） */
+  quest:{boarKills:3, rewardHp:600, rewardDmgMul:1.15, rewardCopper:150,
+    barrens:{quilboarKills:4, rewardXp:400, rewardCopper:200}},
+  /* 贫瘠之地（STEP 18） */
+  barrens:{
+    radius:92,
+    minLevel:10,
+    ground:0xc4a060, dirt:0x9a7848, sky:0xe8c898, fog:0xd8b880, fogDensity:0.0085,
+    hemiSky:0xf0d8a8, hemiGround:0x8a6a3a, hemiIntensity:0.95,
+    sunColor:0xffe0a0, sunIntensity:1.15,
+  },
   /* 掉落与尸体拾取（STEP 2）：品质权重 70/25/5 · 尸体停留秒数 · 拾取距离 */
   loot:{weights:{common:70,uncommon:25,rare:5}, corpseT:8, pickupR:3.5,
         eliteWeights:{uncommon:72,rare:28}},   /* 精英必掉优秀以上（STEP 5） */
@@ -113,9 +130,10 @@ const BALANCE={
     campfire:{base:1.4, nightBoost:2.6},  /* 白天 1.4，夜晚 1.4+2.6=4.0 */
   },
   /* 经验与等级（STEP 3）：经验来源 / 升级曲线 / 每级成长 */
-  levels:{max:10, xp:{quest:300, boss:2000, magmadar:800},   /* 野怪经验在 mobs 表逐条配置（STEP 5） */
-    xpMax:[200,300,450,650,900,1200,1600,2100,2700],  /* 第 n 级升下一级所需经验 */
-    perLevel:{dmgMul:.05, hpMax:.08}},                 /* 每级：基础伤害 +5% · 生命上限 +8% */
+  levels:{max:18, xp:{quest:300, boss:2000, magmadar:800, barrensQuest:400},
+    /* 野怪经验在 mobs 表；xpMax[i] = 第 i+1 级升下一级所需（共 max-1 档） */
+    xpMax:[200,300,450,650,900,1200,1600,2100,2700,3500,4200,5000,5900,6900,8000,9200,10500],
+    perLevel:{dmgMul:.05, hpMax:.08}},
   /* 特效配方默认参数（STEP 9a）：改观感只改这里；运行时 ctx 可覆盖 */
   vfx:{
     lava_bolt:{color:0xffa030,glow:0xff4400,glowOp:.4,radius:.9,glowR:1.4,segs:10,originScale:.7},

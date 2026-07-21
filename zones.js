@@ -125,7 +125,7 @@ function enterZone(id,gateId,opts){
 
     if(typeof opts.afterEnter==="function")opts.afterEnter(fromId,id,gateId);
 
-    if(from&&from.mode==="raid"&&to.mode==="world"&&!opts.skipSave){
+    if(from&&to&&from.id!==to.id&&!opts.skipSave){
       if(typeof saveGame==="function")saveGame(true);
     }
   };

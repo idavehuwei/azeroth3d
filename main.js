@@ -82,6 +82,9 @@ function tick(){
   if(exitPortal){exitPortal.discUni.value=S.t;exitPortal.glowPts.rotation.y+=dt*.8;}
 
   portalLabel.position.y=13.6+Math.sin(S.t*1.5)*.25;
+  if(typeof southPortalUni!=="undefined"&&southPortalUni)southPortalUni.uTime.value=S.t;
+  if(typeof southPortalLabel!=="undefined"&&southPortalLabel)southPortalLabel.position.y=12.2+Math.sin(S.t*1.4)*.2;
+  if(typeof barrensPortalUni!=="undefined"&&barrensPortalUni)barrensPortalUni.uTime.value=S.t;
 
   /* 火星上升 */
   const pp=embers.geometry.attributes.position.array;
@@ -92,43 +95,58 @@ function tick(){
   }
   embers.geometry.attributes.position.needsUpdate=true;
 
-  /* ---- 昼夜循环（STEP 7）：render-only，不碰任何数值/AI ---- */
-  const dn=BAL.dayNight, cycle=(S.t%dn.duration)/dn.duration, a=cycle*Math.PI*2;
-  const dayFactor=(Math.cos(a)+1)/2;  /* 1=正午，0=午夜 */
-  const nightFactor=1-dayFactor;
-  /* 太阳位置：绕圈，Y 随角度变化，正午最高，午夜沉入地平线以下 */
-  sun.position.x=Math.cos(a)*60;
-  sun.position.y=Math.sin(a)*50+25;  /* -25~75 */
-  sun.position.z=30;
-  /* 太阳颜色/强度 白天→夜晚 插值 */
-  const D=dn.day,N=dn.night;
-  sun.color.lerpColors(new THREE.Color(D.sunColor),new THREE.Color(N.sunColor),nightFactor);
-  sun.intensity=D.sunIntensity+nightFactor*(N.sunIntensity-D.sunIntensity);
-  /* 天空背景/雾色 */
-  const skyCol=new THREE.Color();
-  sceneWorld.background=skyCol.lerpColors(new THREE.Color(D.sky),new THREE.Color(N.sky),nightFactor);
-  sceneWorld.fog.color.copy(skyCol);
-  sceneWorld.fog.density=D.fogDensity+nightFactor*(N.fogDensity-D.fogDensity);
-  /* 半球光 */
-  heli.color.lerpColors(new THREE.Color(D.hemiSky),new THREE.Color(N.hemiSky),nightFactor);
-  heli.groundColor.lerpColors(new THREE.Color(D.hemiGround),new THREE.Color(N.hemiGround),nightFactor);
-  heli.intensity=D.hemiIntensity+nightFactor*(N.hemiIntensity-D.hemiIntensity);
-  /* 篝火/火盆夜晚强度提升 */
-  worldFlames.forEach((f,i)=>{
-    f.fl.scale.y=1+Math.sin(S.t*8+i*2)*.2;
-    f.li.intensity=1.2+Math.sin(S.t*9+i)*.35+nightFactor*dn.campfire.nightBoost;
-  });
-  /* 萤火虫：夜晚浮现，白天消失 */
-  fireflies.material.opacity=nightFactor*.7;
-  if(nightFactor>.1){
-    const fp=fireflies.geometry.attributes.position.array;
-    for(let i=0;i<FIREFLIES;i++){
-      fp[i*3+1]+=Math.sin(S.t*2+ffPhases[i])*dt*.6;
-      fp[i*3]+=Math.sin(S.t*1.3+ffPhases[i]*3)*dt*.3;
-      if(fp[i*3+1]>5)fp[i*3+1]=.5;
-      if(fp[i*3+1]<.5)fp[i*3+1]=5;
+  /* ---- 昼夜循环（STEP 7）：按当前 zone 灯光（STEP 18 多区） ---- */
+  const cz=typeof getCurrentZone==="function"?getCurrentZone():null;
+  if(cz&&cz.dayNight){
+    const dn=BAL.dayNight, cycle=(S.t%dn.duration)/dn.duration, a=cycle*Math.PI*2;
+    const dayFactor=(Math.cos(a)+1)/2;
+    const nightFactor=1-dayFactor;
+    const L=cz.lights||{};
+    const sunL=L.sun||(cz.id==="mulgore"?sun:null);
+    const hemiL=L.heli||(cz.id==="mulgore"?heli:null);
+    const scn=cz.scene;
+    if(sunL){
+      sunL.position.x=Math.cos(a)*60;
+      sunL.position.y=Math.sin(a)*50+25;
+      sunL.position.z=30;
+      const D=dn.day,N=dn.night;
+      sunL.color.lerpColors(new THREE.Color(D.sunColor),new THREE.Color(N.sunColor),nightFactor);
+      sunL.intensity=D.sunIntensity+nightFactor*(N.sunIntensity-D.sunIntensity);
     }
-    fireflies.geometry.attributes.position.needsUpdate=true;
+    if(scn&&scn.background&&scn.fog){
+      const D=dn.day,N=dn.night;
+      const skyCol=new THREE.Color();
+      /* 贫瘠之地基底偏黄，再与昼夜插值 */
+      const daySky=cz.id==="barrens"?BAL.barrens.sky:D.sky;
+      const dayFog=cz.id==="barrens"?BAL.barrens.fog:D.fog;
+      const dayDens=cz.id==="barrens"?BAL.barrens.fogDensity:D.fogDensity;
+      scn.background=skyCol.lerpColors(new THREE.Color(daySky),new THREE.Color(N.sky),nightFactor);
+      scn.fog.color.copy(skyCol);
+      scn.fog.density=dayDens+nightFactor*(N.fogDensity-dayDens);
+      if(hemiL){
+        hemiL.color.lerpColors(new THREE.Color(cz.id==="barrens"?BAL.barrens.hemiSky:D.hemiSky),new THREE.Color(N.hemiSky),nightFactor);
+        hemiL.groundColor.lerpColors(new THREE.Color(cz.id==="barrens"?BAL.barrens.hemiGround:D.hemiGround),new THREE.Color(N.hemiGround),nightFactor);
+        hemiL.intensity=(cz.id==="barrens"?BAL.barrens.hemiIntensity:D.hemiIntensity)+nightFactor*(N.hemiIntensity-(cz.id==="barrens"?BAL.barrens.hemiIntensity:D.hemiIntensity));
+      }
+    }
+    const flames=L.flames||(cz.id==="mulgore"?worldFlames:null);
+    if(flames)flames.forEach((f,i)=>{
+      f.fl.scale.y=1+Math.sin(S.t*8+i*2)*.2;
+      f.li.intensity=1.2+Math.sin(S.t*9+i)*.35+nightFactor*dn.campfire.nightBoost;
+    });
+    if(cz.id==="mulgore"&&fireflies){
+      fireflies.material.opacity=nightFactor*.7;
+      if(nightFactor>.1){
+        const fp=fireflies.geometry.attributes.position.array;
+        for(let i=0;i<FIREFLIES;i++){
+          fp[i*3+1]+=Math.sin(S.t*2+ffPhases[i])*dt*.6;
+          fp[i*3]+=Math.sin(S.t*1.3+ffPhases[i]*3)*dt*.3;
+          if(fp[i*3+1]>5)fp[i*3+1]=.5;
+          if(fp[i*3+1]<.5)fp[i*3+1]=5;
+        }
+        fireflies.geometry.attributes.position.needsUpdate=true;
+      }
+    }
   }
 
   /* Boss 火焰摇曳（仅拉戈斯等人形岩浆 Boss 有 core/bossLight） */
@@ -169,7 +187,9 @@ function tick(){
 
     /* ---- 莫高雷：野怪 AI / NPC ---- */
     if(S.mode==="world"){
+      const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore";
       for(const m of MOBS){
+        if((m.zoneId||"mulgore")!==zid)continue;
         const st=m.stats;
         if(m.state==="dead"){
           /* 尸体停留（STEP 2）：倒地灰化 8 秒后消失，掉落留至重生 */
@@ -238,19 +258,31 @@ function tick(){
         }
       }
       /* 长老 / 商人待机动画 & 任务标记浮动 */
-      elder.rotation.y=Math.PI*.85+Math.sin(S.t*.8)*.08;
-      elder.position.y=Math.sin(S.t*1.6)*.04;
-      vendor.rotation.y=Math.PI*1.15+Math.sin(S.t*.7+1)*.08;
-      vendor.position.y=Math.sin(S.t*1.5+2)*.04;
-      spiritHealer.rotation.y=Math.PI+Math.sin(S.t*.6)*.06;
-      spiritHealer.position.y=Math.sin(S.t*1.4+1)*.05;
-      markerExcl.position.y=6.8+Math.sin(S.t*2.4)*.3;
-      markerQ.position.y=markerExcl.position.y;
-      /* 对话按钮显隐 / 走远自动关闭对话 */
-      const nearR=BAL.economy.interactR;
-      const nearNpc=S.p.alive&&(elderDist()<nearR||vendorDist()<nearR||spiritDist()<nearR);
-      $("#interactBtn").style.display=(nearNpc&&$("#dlg").style.display!=="block")?"block":"none";
-      if(elderDist()>8&&vendorDist()>8&&spiritDist()>8)closeDialogue();
+      if(zid==="mulgore"){
+        elder.rotation.y=Math.PI*.85+Math.sin(S.t*.8)*.08;
+        elder.position.y=Math.sin(S.t*1.6)*.04;
+        vendor.rotation.y=Math.PI*1.15+Math.sin(S.t*.7+1)*.08;
+        vendor.position.y=Math.sin(S.t*1.5+2)*.04;
+        spiritHealer.rotation.y=Math.PI+Math.sin(S.t*.6)*.06;
+        spiritHealer.position.y=Math.sin(S.t*1.4+1)*.05;
+        markerExcl.position.y=6.8+Math.sin(S.t*2.4)*.3;
+        markerQ.position.y=markerExcl.position.y;
+        const nearR=BAL.economy.interactR;
+        const nearNpc=S.p.alive&&(elderDist()<nearR||vendorDist()<nearR||spiritDist()<nearR);
+        $("#interactBtn").style.display=(nearNpc&&$("#dlg").style.display!=="block")?"block":"none";
+        if(elderDist()>8&&vendorDist()>8&&spiritDist()>8)closeDialogue();
+      }else if(zid==="barrens"&&typeof crossroadsDist==="function"){
+        if(crossroadsSentinel){
+          crossroadsSentinel.rotation.y=Math.PI+Math.sin(S.t*.7)*.08;
+          crossroadsSentinel.position.y=Math.sin(S.t*1.5)*.04;
+        }
+        if(barrensMarkerExcl)barrensMarkerExcl.position.y=6.8+Math.sin(S.t*2.4)*.3;
+        if(barrensMarkerQ)barrensMarkerQ.position.y=barrensMarkerExcl?barrensMarkerExcl.position.y:6.8;
+        const nearR=BAL.economy.interactR;
+        const nearNpc=S.p.alive&&(crossroadsDist()<nearR||barrensSpiritDist()<nearR);
+        $("#interactBtn").style.display=(nearNpc&&$("#dlg").style.display!=="block")?"block":"none";
+        if(crossroadsDist()>8&&barrensSpiritDist()>8)closeDialogue();
+      }
     }
     /* ---- 掉落动画 & 拾取按钮（世界/副本通用，STEP 2） ---- */
     updateDrops(dt);
@@ -259,9 +291,13 @@ function tick(){
     else if(S.mode==="raid"&&S.b.canLeave&&exitPortal&&player.position.distanceTo(EXIT_PORTAL_POS)<BAL.zones.exitPortalEnterR){
       ib.textContent="🚪 走进传送门";ib.style.display="block";
     }else{
-      const nearS=spiritDist()<BAL.economy.interactR;
-      const nearV=vendorDist()<BAL.economy.interactR;
-      ib.textContent=nearS?"👻 灵魂医者（F）":nearV?"🛒 交易（F）":"💬 对 话（F）";
+      const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore";
+      const nearS=zid==="barrens"&&typeof barrensSpiritDist==="function"
+        ?barrensSpiritDist()<BAL.economy.interactR
+        :spiritDist()<BAL.economy.interactR;
+      const nearV=zid==="barrens"?false:vendorDist()<BAL.economy.interactR;
+      const nearC=zid==="barrens"&&typeof crossroadsDist==="function"&&crossroadsDist()<BAL.economy.interactR;
+      ib.textContent=nearS?"👻 灵魂医者（F）":nearC?"🗼 对话（F）":nearV?"🛒 交易（F）":"💬 对 话（F）";
       if(S.mode!=="world"||!S.p.alive)ib.style.display="none";
     }
     /* ---- 玩家移动 ---- */

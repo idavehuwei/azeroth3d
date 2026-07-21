@@ -359,13 +359,14 @@ js/
 
 > **验收**：莫高雷 ↔ 熔火之心走注册表；刷新后同区布局不变。 ← **已通过**（`node test_step01.js`）
 
-### STEP 18 · 新地图「贫瘠之地」`P0` ⏳
+### STEP 18 · 新地图「贫瘠之地」`P0` ✅
 
 - 新 zone：干燥大地色、巨型枯树、半人马营地、野猪人、斑马/疾行陆行鸟配方复用。
 - 枢纽 NPC：**十字路口**哨塔（任务链入口）；北接莫高雷土路传送门。
-- 任务 3–5 条：清野猪人前哨 → 取回被盗补给 → 揭开半人马袭击 → 指引前往哀嚎洞穴。
+- 本 STEP：1 条可玩任务「十字路口的麻烦」（清 4 野猪人）；补给/半人马/哀嚎洞穴为对话 stub（完整网 STEP 22）。
+- 实现于 `barrens.js`；等级上限 18；Lv10+ 开放莫高雷南口；存档含 `zoneId` + `barrensQuest`。
 
-> **验收**：10 级左右自然流向贫瘠之地；小地图/存档记录 `zoneId`。
+> **验收**：10 级左右自然流向贫瘠之地；小地图/存档记录 `zoneId`。 ← **已通过**（`node test_step01.js`）
 
 ### STEP 19 · 第四职业「牧师」`P1` ⏳
 
@@ -559,7 +560,7 @@ js/
 | v2.5 经典系统 | 14 | 角色 / 法术书 / 任务日志（C P L） | ✅ 完成 | 0.5 次迭代 |
 | v2.5 经典系统 | 15 | 死亡与灵魂医者 | ✅ 完成 | 1 次迭代 |
 | v2.5 经典系统 | 16 | 小地图 | ✅ 完成 | 1 次迭代 |
-| v3.0 卡利姆多 | 17–21 | 多区、贫瘠之地、牧师、AI 队友、哀嚎洞穴 | 🔄 STEP 17 完成 | 4–6 次迭代 |
+| v3.0 卡利姆多 | 17–21 | 多区、贫瘠之地、牧师、AI 队友、哀嚎洞穴 | 🔄 STEP 17–18 完成 | 4–6 次迭代 |
 | v3.5 内容密度 | 22–25 | 任务网、专业、世界 Boss、成就 | ⏳ 待开始 | 3–4 次迭代 |
 | v4.0 开荒团 | 26–29 | 5 AI、仇恨职责、短团本、本地查找器 | ⏳ 待开始 | 4–5 次迭代 |
 | v4.5 修路 | 30–31 | sim 抽离、无头 bot 回归 | ⏳ 待开始 | 2–3 次迭代 |
@@ -591,13 +592,14 @@ js/
 | 15 | ✅ | 释放灵魂复活；灵魂医者；副本走廊复活 / 退出；虚弱 debuff |
 | 16 | ✅ | `map.js`：小地图 blip + M 世界地图；`MAP_ZONES` 预留 |
 | 17 | ✅ | `zones.js`：`ZONES` / `enterZone`；分区种子 `WORLD_SEED ^ hash(zoneId)`；传送门数据化 |
-| 18–21 | ⏳ | 贫瘠之地 / 牧师 / AI 队友 / 哀嚎洞穴 |
+| 18 | ✅ | `barrens.js`：贫瘠之地 + 十字路口任务；南口 Lv10+；存档 `zoneId`/`barrensQuest` |
+| 19–21 | ⏳ | 牧师 / AI 队友 / 哀嚎洞穴 |
 | 22–36 | 🔮 | v3.5–v5.0 已规划，待前置完成 |
 
-**当前模块清单**（`game.html` 加载序）：`core → zones → sfx → icons → items → models → world → combat → talents → panels → map → vfx → main → raid → save`
+**当前模块清单**（`game.html` 加载序）：`core → zones → sfx → icons → items → models → world → barrens → combat → talents → panels → map → vfx → main → raid → save`
 
-**下一步行动**：从 **STEP 18** 做新地图「贫瘠之地」。
+**下一步行动**：从 **STEP 19** 做第四职业「牧师」，或 **STEP 21** 哀嚎洞穴（南口已占位）。
 
 ---
 
-*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 17 完成，下一步 STEP 18*
+*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 18 完成，下一步 STEP 19 / 21*

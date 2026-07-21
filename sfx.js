@@ -37,6 +37,8 @@ const SOUNDS={
 const MUSIC={
   world:{tempo:1100, wave:'triangle', vol:.13, noteDur:1.8, chance:.8,
          scale:[262,294,330,392,440,523,587,659]},        /* C 五声音阶两个八度 */
+  barrens:{tempo:980, wave:'triangle', vol:.12, noteDur:1.5, chance:.75,
+         scale:[294,330,370,440,494,587,659]},            /* STEP 18：偏干燥、略快的五声 */
   raid :{tempo:600,  wave:'sawtooth', vol:.1,  noteDur:.4, kick:true,
          scale:[65,73,82]},                                /* 低音鼓点 + 偶发低音 */
 };

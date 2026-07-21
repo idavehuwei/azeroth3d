@@ -19,6 +19,7 @@ const SAVE_SLOTS=["weapon","armor"];
 
 function normalizeSaveZoneId(z){
   if(z==="molten_core"||z==="raid")return "molten_core";
+  if(z==="barrens")return "barrens";
   if(z==="mulgore"||z==="world"||!z)return "mulgore";
   return(typeof ZONES!=="undefined"&&ZONES[z])?z:"mulgore";
 }
@@ -51,6 +52,9 @@ function collectSaveData(){
       bonusPoints:(S.talents&&S.talents.bonusPoints)|0,
     },
     quest:{state:QUEST.state|0,kills:QUEST.kills|0},
+    barrensQuest:typeof BARRENS_QUEST!=="undefined"
+      ?{state:BARRENS_QUEST.state|0,kills:BARRENS_QUEST.kills|0}
+      :{state:0,kills:0},
     zone:zoneId==="molten_core"?"raid":"world",   /* 旧字段兼容 */
     zoneId,
     pos:inWorld
@@ -94,6 +98,9 @@ function validateSave(raw){
   const q=raw.quest&&typeof raw.quest==="object"?raw.quest:{};
   const state=clamp(q.state|0,0,3);
   const kills=Math.max(0,q.kills|0);
+  const bq=raw.barrensQuest&&typeof raw.barrensQuest==="object"?raw.barrensQuest:{};
+  const bqState=clamp(bq.state|0,0,2);
+  const bqKills=Math.max(0,bq.kills|0);
   const pos=raw.pos&&typeof raw.pos==="object"?raw.pos:{};
   const x=typeof pos.x==="number"&&isFinite(pos.x)?pos.x:0;
   const z=typeof pos.z==="number"&&isFinite(pos.z)?pos.z:52;
@@ -108,6 +115,7 @@ function validateSave(raw){
       inv,eq,
       talents:{spent,bonusPoints:Math.max(0,(raw.talents&&raw.talents.bonusPoints)|0)},
       quest:{state,kills},
+      barrensQuest:{state:bqState,kills:bqKills},
       zone:zoneId==="molten_core"?"raid":"world",
       zoneId,
       pos:{x,z},
@@ -131,10 +139,13 @@ function rebuildLevelStats(level){
 }
 
 function applySaveData(data){
-  /* 确保在莫高雷场景重建角色（进本态不恢复遭遇，只回世界） */
-  if(S.mode==="raid"||scene!==sceneWorld){
+  /* 副本态不恢复遭遇，回世界；野外按 zoneId 重建 */
+  const wantZone=normalizeSaveZoneId(data.zoneId||data.zone);
+  const restoreZone=wantZone==="molten_core"?"mulgore":wantZone;
+  const gate=restoreZone==="barrens"?"crossroads":"camp";
+  if(S.mode==="raid"||(typeof getCurrentZoneId==="function"&&getCurrentZoneId()!==restoreZone)||scene!==(ZONES[restoreZone]&&ZONES[restoreZone].scene)){
     if(typeof enterZone==="function"){
-      enterZone("mulgore","camp",{skipFade:true,skipSave:true,silent:true,force:true});
+      enterZone(restoreZone,gate,{skipFade:true,skipSave:true,silent:true,force:true});
     }else if(typeof leaveRaid==="function"&&S.mode==="raid"){
       S.pShots.forEach(s=>s.mesh.parent&&s.mesh.parent.remove(s.mesh));
       S.pShots.length=0;
@@ -151,7 +162,7 @@ function applySaveData(data){
       S.mode="world";
     }
   }
-  S.zoneId="mulgore";
+  S.zoneId=restoreZone;
 
   setClass(data.classKey);
   rebuildLevelStats(data.level);
@@ -163,6 +174,12 @@ function applySaveData(data){
   if(QUEST.state>=2){
     S.p.hpMax+=BAL.quest.rewardHp;
     S.p.dmgMul+=BAL.quest.rewardDmgMul-1;
+  }
+  if(typeof BARRENS_QUEST!=="undefined"){
+    const bq=data.barrensQuest||{state:0,kills:0};
+    BARRENS_QUEST.state=bq.state|0;
+    BARRENS_QUEST.kills=bq.kills|0;
+    if(typeof updateBarrensMarkers==="function")updateBarrensMarkers();
   }
 
   S.talents={
@@ -281,11 +298,12 @@ function finishStart(msg){
 function beginNewGame(classKey){
   clearSave();
   QUEST.state=0; QUEST.kills=0;
+  if(typeof BARRENS_QUEST!=="undefined"){BARRENS_QUEST.state=0;BARRENS_QUEST.kills=0;}
   S.inv=[]; S.eq={weapon:null,armor:null};
   S.p.gold=0; S.over=false; S.mode="world"; S.zoneId="mulgore";
   setClass(classKey||"warrior");
   S.god=$("#godChk")&&$("#godChk").checked;
-  if(typeof enterZone==="function"&&(S.mode!=="world"||scene!==sceneWorld)){
+  if(typeof enterZone==="function"&&(typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore")!=="mulgore"){
     enterZone("mulgore","camp",{skipFade:true,skipSave:true,silent:true,force:true});
   }else if(player.parent!==sceneWorld){
     if(player.parent)player.parent.remove(player);
@@ -293,6 +311,7 @@ function beginNewGame(classKey){
   }
   player.position.set(0,0,52);
   updateQuest(); setMarker();
+  if(typeof updateBarrensMarkers==="function")updateBarrensMarkers();
   finishStart("莫高雷 · 圣山草原");
   log("你从牛头人营地出发。沿着土路向北，尽头矗立着通往熔火之心的传送门。","lg-sys");
   if(S.god)log(`⚡ 上帝模式已开启：你的每一次攻击都将造成 ${BAL.god.dmg.toLocaleString()} 点伤害。`,"lg-sys");
