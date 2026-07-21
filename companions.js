@@ -2,10 +2,12 @@
    熔火之心 · companions.js
    AI 队友（STEP 20）· 3 人小队框架（STEP 26）：玩家 + 最多 2 AI
    队伍栏 · 职责槽 · 共享集火 · 小队经验加成
+   治疗职责优先级（STEP 27）与 threat.js 协作
    ------------------------------------------------------------
    [依赖] THREE · core.js（BAL $ clamp rand R scene makeLabel）
-          combat.js（S CLASSES log announce fct getFocusTarget setCurrentTarget
+          combat.js（S CLASSES CLS log announce fct getFocusTarget setCurrentTarget
             isTargetAlive）
+          threat.js 运行时（threatKeyCompanion checkPartyWipe）
           world.js（player MOBS）· main/raid 运行时 · save.js · vfx/sfx
    [导出] PARTY COMPANION（兼容：首名同伴）
           recruitCompanion dismissCompanion dismissAllCompanions companionAlive
@@ -230,6 +232,7 @@ function companionHit(amount,source,target){
     if(c.label)c.label.visible=false;
     announce("同伴倒下了！");
     log(`${CMP_NAMES[c.classKey]||"同伴"}倒下了，将在 ${BAL.companion.reviveT} 秒后振作。`,"lg-sys");
+    if(typeof checkPartyWipe==="function")checkPartyWipe();
   }
   updateCompanionHud();
 }
@@ -250,9 +253,10 @@ function pickNearestCompanion(fromPos,maxR){
 function companionDeal(c,tgt,amount,label){
   if(!tgt)return;
   amount=Math.round(amount*(BAL.companion.dmgMul||1));
-  if(tgt.type==="mob")mobDamage(tgt.m,amount,label);
-  else if(tgt.type==="boss")dmgBoss(amount,label);
-  else if(tgt.type==="add")addDamage(tgt.a,amount);
+  const thr={sourceKey:typeof threatKeyCompanion==="function"?threatKeyCompanion(c):null,skillId:"companionAuto"};
+  if(tgt.type==="mob")mobDamage(tgt.m,amount,label,thr);
+  else if(tgt.type==="boss")dmgBoss(amount,label,thr);
+  else if(tgt.type==="add")addDamage(tgt.a,amount,thr);
 }
 
 function companionFireShot(c,tgt,dmg,label){
@@ -266,7 +270,11 @@ function companionFireShot(c,tgt,dmg,label){
   m.add(glow);
   m.position.copy(c.mesh.position); m.position.y=1.85;
   scene.add(m);
-  S.pShots.push({mesh:m,tgt,dmg:Math.round(dmg*(BAL.companion.dmgMul||1)),label,speed:26,shotColor:color});
+  S.pShots.push({
+    mesh:m,tgt,dmg:Math.round(dmg*(BAL.companion.dmgMul||1)),label,speed:26,shotColor:color,
+    sourceKey:typeof threatKeyCompanion==="function"?threatKeyCompanion(c):null,
+    skillId:"companionAuto",
+  });
 }
 
 function companionApplyHeal(healer,targetIsPlayer,ally,amount,label){
@@ -304,28 +312,56 @@ function companionMoveToward(c,dest,spd,dt){
 
 function companionTryHeal(c,dt){
   const C=BAL.companion;
+  const T=BAL.threat||{};
   if(c.classKey!=="priest"||c.healCd>0)return false;
-  const pLow=S.p.alive&&(S.p.hp/S.p.hpMax)<C.healPlayerHpPct;
-  const sLow=(c.hp/c.hpMax)<C.healSelfHpPct;
-  let allyLow=null,allyPct=1;
+  const tankPct=T.healTankHpPct!=null?T.healTankHpPct:.30;
+  const selfPct=T.healSelfHpPct!=null?T.healSelfHpPct:.40;
+  const dpsPct=T.healDpsHpPct!=null?T.healDpsHpPct:.50;
+
+  /* 找坦克职责同伴；若无坦克槽则战士玩家视为坦克 */
+  let tank=null;
   for(const o of PARTY){
-    if(!o||o===c||!o.alive)continue;
-    const pct=o.hp/o.hpMax;
-    if(pct<(C.healAllyHpPct||.45)&&pct<allyPct){allyPct=pct;allyLow=o;}
+    if(o&&o.alive&&o.role==="tank"){tank=o;break;}
   }
-  if(!pLow&&!sLow&&!allyLow)return false;
+  const playerIsTank=!tank&&CLS===CLASSES.warrior;
+
+  let amount,label,ok=false;
   c.state="HEAL";
   c.attackAnim=1;
-  let amount,label,ok;
-  if(pLow){
+
+  /* 1) 坦克 <30% */
+  if(tank&&(tank.hp/tank.hpMax)<tankPct){
+    amount=R(BAL.skills.heal.heal);
+    ok=companionApplyHeal(c,false,tank,amount,"治疗术");
+  }else if(playerIsTank&&S.p.alive&&(S.p.hp/S.p.hpMax)<tankPct){
     amount=R(BAL.skills.flashHeal.heal);
     ok=companionApplyHeal(c,true,null,amount,"快速治疗");
-  }else if(allyLow){
-    amount=R(BAL.skills.heal.heal);
-    ok=companionApplyHeal(c,false,allyLow,amount,"治疗术");
-  }else{
+  }
+  /* 2) 自己 <40% */
+  else if((c.hp/c.hpMax)<selfPct){
     amount=R(BAL.skills.heal.heal);
     ok=companionApplyHeal(c,false,c,amount,"治疗术");
+  }
+  /* 3) 最低血 DPS（含非坦克玩家） */
+  else{
+    let best=null,bestPct=1,bestIsPlayer=false;
+    if(S.p.alive&&!playerIsTank){
+      const pct=S.p.hp/S.p.hpMax;
+      if(pct<dpsPct&&pct<bestPct){bestPct=pct;best=null;bestIsPlayer=true;}
+    }
+    for(const o of PARTY){
+      if(!o||o===c||!o.alive)continue;
+      if(o.role==="tank"||o.role==="healer")continue;
+      const pct=o.hp/o.hpMax;
+      if(pct<dpsPct&&pct<bestPct){bestPct=pct;best=o;bestIsPlayer=false;}
+    }
+    if(bestIsPlayer){
+      amount=R(BAL.skills.flashHeal.heal);
+      ok=companionApplyHeal(c,true,null,amount,"快速治疗");
+    }else if(best){
+      amount=R(BAL.skills.heal.heal);
+      ok=companionApplyHeal(c,false,best,amount,"治疗术");
+    }else return false;
   }
   if(ok)c.healCd=C.healCd;
   return ok;

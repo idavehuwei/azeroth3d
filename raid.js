@@ -553,6 +553,7 @@ function createBoss(id){
   S.b.phaseCfg=null;
   armBossSkills();
   applyBossFrame(cfg);
+  if(typeof clearThreat==="function")clearThreat(BOSS_ENT);
   return cfg;
 }
 
@@ -562,6 +563,7 @@ function bossTargetable(){return S.b.alive&&!S.b.rising&&!S.b.submerged;}
 const BOSS_ENT={
   get hp(){return S.b.hp}, set hp(v){S.b.hp=v},
   variance:BAL.variance.boss,
+  threat:{},
   dead(){return !bossTargetable();},
   fctPos(){
     const y=getBossCfg().fctY!=null?getBossCfg().fctY:9;
@@ -649,22 +651,22 @@ function runBossSkill(sk){
   const B=S.b, st=skillBal(sk), d=distToBoss();
   if(sk.type==="melee"){
     B.next[sk.id]=S.t+R(st.cd);
-    if(d<st.range){
+    /* STEP 27：有仇恨目标或玩家在挥击距离内才出手 */
+    const threatNear=typeof getTopThreatActor==="function"
+      ?getTopThreatActor(BOSS_ENT,boss.position,st.range):null;
+    if(threatNear||d<st.range){
       B.swingT=1;
       const label=sk.label||sk.name, vfx=sk.vfx;
-      setTimeout(()=>{ if(!S.p.alive)return;
+      setTimeout(()=>{
+        if(!bossTargetable())return;
         let mul=1;
         if(sk.phaseMul&&sk.phaseMul[B.phase])mul=st[sk.phaseMul[B.phase]]||1;
-        if(distToBoss()<st.hitRange&&S.p.alive){
-          const near=typeof pickNearestCompanion==="function"
-            ?pickNearestCompanion(boss.position,st.hitRange)
-            :(typeof companionAlive==="function"&&companionAlive()&&COMPANION?COMPANION:null);
-          const hitCmp=near&&rand()<BAL.companion.mobHitChance;
-          if(hitCmp)companionHit(R(st.dmg)*mul,label,near);
-          else{
-            playerHit(R(st.dmg)*mul,label);
-            if(vfx)VFX.spawn(vfx,{pos:player.position.clone().setY(.5)});
-          }
+        if(typeof meleeHitFromThreat==="function"){
+          const hit=meleeHitFromThreat(BOSS_ENT,boss.position,st.hitRange,R(st.dmg)*mul,label);
+          if(hit&&vfx&&S.p.alive)VFX.spawn(vfx,{pos:player.position.clone().setY(.5)});
+        }else if(S.p.alive&&distToBoss()<st.hitRange){
+          playerHit(R(st.dmg)*mul,label);
+          if(vfx)VFX.spawn(vfx,{pos:player.position.clone().setY(.5)});
         }
       },st.delayMs);
     }
@@ -840,7 +842,7 @@ function spawnAdd(x,z,opts){
   });
   VFX.spawn("melee_impact",{pos:mesh.position.clone().setY(1),color:conf.burstColor||0xff5a1a,count:20,spread:1.6});
 }
-function addDamage(a,amount){hitEntity(a,amount);}
+function addDamage(a,amount,opts){hitEntity(a,amount,undefined,opts);}
 function addDie(a){
   VFX.spawn("melee_impact",{pos:a.mesh.position.clone().setY(1),color:a.burstColor||0xffa040,count:26,spread:2});
   a.mesh.traverse(o=>{if(o.isMesh){o.userData.liveMat=o.material;o.material=corpseMat;}});
@@ -865,6 +867,7 @@ function addDie(a){
 function bossDie(){
   const cfg=getBossCfg(), D=cfg.death||{};
   S.b.alive=false;
+  if(typeof clearThreat==="function")clearThreat(BOSS_ENT);
   clearBossCast();
   if(D.sfx)SFX.play(D.sfx);
   if(D.announce)announce(D.announce);
@@ -944,6 +947,7 @@ function playerDie(){
   announce("你被击败了……");
   log("你倒下了。释放灵魂即可在灵魂医者处重生。","lg-sys");
   player.rotation.z=Math.PI/2; player.position.y=.5;
+  if(typeof checkPartyWipe==="function")checkPartyWipe();
   const delay=(BAL.death.corpseDelay||1.2)*1000;
   setTimeout(()=>{
     if(S.p.alive)return;
@@ -1014,6 +1018,7 @@ function resurrectPlayer(spawn,opts){
   const D=BAL.death;
   S.p.alive=true;
   S.over=false;
+  if(typeof resetWipeFlag==="function")resetWipeFlag();
   S.p.hp=Math.max(1,Math.round(S.p.hpMax*(D.respawnHpPct!=null?D.respawnHpPct:.5)));
   S.p.rage=CLS.resStart;
   S.p.invuln=.8;
@@ -1089,6 +1094,7 @@ function resetBoss(){
   S.telegraphs.length=0;
   for(let i=DROPS.length-1;i>=0;i--)removeDrop(DROPS[i]);
   S.b.alive=false; S.b.canLeave=false; S.b.casting=null;
+  if(typeof clearThreat==="function")clearThreat(BOSS_ENT);
   if(boss){boss.visible=false;boss.rotation.z=0;}
   $("#castShell").style.display="none";
 }

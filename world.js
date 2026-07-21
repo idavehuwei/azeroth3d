@@ -547,7 +547,7 @@ function moveToward(m,dest,spd,dt){
   m.mesh.rotation.y=Math.atan2(dx,dz);
 }
 /* 野猪受击：薄包装 → 统一受击入口 hitEntity（STEP 1） */
-function mobDamage(m,amount,label){hitEntity(m,amount,label);}
+function mobDamage(m,amount,label,opts){hitEntity(m,amount,label,opts);}
 /* ---------------- 尸体灰化 / 复原（STEP 2）----------------
    死亡：倒地 + 全部材质换灰（原材质暂存 userData.liveMat）；重生时还原 */
 const corpseMat=new THREE.MeshStandardMaterial({color:0x8a8a8a,roughness:1,flatShading:true});
@@ -567,6 +567,7 @@ function setCorpse(m,on){
 function mobDie(m){
   m.state="dead"; m.respawnT=m.stats.respawnT; m.corpseT=BAL.loot.corpseT; m.moving=false;
   m.casting=null;
+  if(typeof clearThreat==="function")clearThreat(m);
   m.label.visible=false;
   setCorpse(m,true);
   spawnBurst(m.mesh.position.clone().setY(1),0xc9a06a,22,1.6);

@@ -306,14 +306,13 @@ const BALANCE={
     spawnOffset:{x:2.2,z:1.4},
   },
   party:{
-    size:3,                  /* 含玩家 */
+    size:3,
     aiSlots:2,
-    xpMul:1.15,              /* 有 AI 同伴时经验加成（3 人小队缩水系数） */
+    xpMul:1.15,
     spawnOffsets:[
       {x:2.4,z:1.6},
       {x:-2.2,z:1.8},
     ],
-    /* 一键成队：按玩家职业补齐坦克/治疗/DPS */
     fill:{
       warrior:[{role:"healer",classKey:"priest"},{role:"dps",classKey:"mage"}],
       mage:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
@@ -321,6 +320,16 @@ const BALANCE={
       priest:[{role:"tank",classKey:"warrior"},{role:"dps",classKey:"archer"}],
     },
     roleLabel:{tank:"坦克",healer:"治疗",dps:"输出"},
+  },
+  /* 仇恨与职责（STEP 27） */
+  threat:{
+    perDmg:1,
+    flat:{heroicStrike:120, whirlwind:50, charge:80, companionAuto:0},
+    roleMul:{player:1, tank:1.6, dps:1, healer:.75},
+    /* 治疗优先级阈值 */
+    healTankHpPct:.30,
+    healSelfHpPct:.40,
+    healDpsHpPct:.50,
   },
 };
 const BAL=BALANCE;

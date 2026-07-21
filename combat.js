@@ -16,6 +16,7 @@
           save.js 运行时（saveGame；升级自动存）
           raid.js 运行时（bossAI distToBoss bossTargetable fireProjectile
             spawnAdd addDamage addDie bossDie playerDie resetBoss BOSS_ENT DUNGEON）
+          threat.js 运行时（addThreat）
    [导出] S SKILLS CLASSES CLS setClass log announce fct hurtFlash keys joy
           useSkill hitEntity dmgBoss pickTarget firePlayerShot playerHit
           isTargetAlive setCurrentTarget getFocusTarget
@@ -214,7 +215,7 @@ function useSkill(i){
    野猪 / 烈焰之子 / Boss 全部走这一个函数；
    掉落（STEP 2）与经验（STEP 3）只需挂接各实体的 onDeath。
    ============================================================ */
-function hitEntity(ent,amount,label){
+function hitEntity(ent,amount,label,opts){
   if(ent.dead&&ent.dead())return;
   const v=ent.variance;
   /* 上帝模式：固定伤害，跳过系数与浮动 */
@@ -222,22 +223,27 @@ function hitEntity(ent,amount,label){
   ent.hp=Math.max(0,ent.hp-amount);
   fct(ent.fctPos(),`-${amount}`,"#ffdf8a",ent.fctSize?ent.fctSize(label):14);
   if(ent.onHit)ent.onHit(amount,label);
+  /* STEP 27：默认记玩家仇恨；同伴须传 opts.sourceKey */
+  if(typeof addThreat==="function"&&!(opts&&opts.noThreat)){
+    addThreat(ent,(opts&&opts.sourceKey)||"player",amount,opts&&opts.skillId);
+  }
   if(ent.hp<=0)ent.onDeath();
 }
 /* Boss 受击：薄包装（保留旧调用方签名） → BOSS_ENT 在 raid.js 定义 */
-function dmgBoss(amount,label){hitEntity(BOSS_ENT,amount,label);}
+function dmgBoss(amount,label,opts){hitEntity(BOSS_ENT,amount,label,opts);}
 function heroicStrike(){
   let hit=false;
+  const thr={skillId:"heroicStrike"};
   if(S.mode==="world"){
     for(const m of MOBS){
       if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<BAL.skills.heroicStrike.reach){
-        mobDamage(m,R(BAL.skills.heroicStrike.dmg),"英勇打击");hit=true;break;
+        mobDamage(m,R(BAL.skills.heroicStrike.dmg),"英勇打击",thr);hit=true;break;
       }
     }
   }else{
-    if(distToBoss()<=BAL.skills.heroicStrike.bossReach){dmgBoss(R(BAL.skills.heroicStrike.dmg),"英勇打击");hit=true;}
+    if(distToBoss()<=BAL.skills.heroicStrike.bossReach){dmgBoss(R(BAL.skills.heroicStrike.dmg),"英勇打击",thr);hit=true;}
     S.adds.forEach(a=>{
-      if(player.position.distanceTo(a.mesh.position)<BAL.skills.heroicStrike.addReach){addDamage(a,R(BAL.skills.heroicStrike.addDmg));hit=true;}
+      if(player.position.distanceTo(a.mesh.position)<BAL.skills.heroicStrike.addReach){addDamage(a,R(BAL.skills.heroicStrike.addDmg),thr);hit=true;}
     });
   }
   if(!hit){log("没有目标在近战范围内。");return false;}
@@ -250,16 +256,17 @@ function whirlwind(){
   SFX.play("swing");
   spawnBurst(player.position.clone().setY(1),0x9ad0ff,26,1.6);
   let any=false;
+  const thr={skillId:"whirlwind"};
   if(S.mode==="world"){
     MOBS.forEach(m=>{
       if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<BAL.skills.whirlwind.radius){
-        mobDamage(m,R(BAL.skills.whirlwind.dmg),"旋风斩");any=true;
+        mobDamage(m,R(BAL.skills.whirlwind.dmg),"旋风斩",thr);any=true;
       }
     });
   }else{
-    if(distToBoss()<=BAL.skills.whirlwind.bossRadius){dmgBoss(R(BAL.skills.whirlwind.bossDmg),"旋风斩");any=true;}
+    if(distToBoss()<=BAL.skills.whirlwind.bossRadius){dmgBoss(R(BAL.skills.whirlwind.bossDmg),"旋风斩",thr);any=true;}
     S.adds.forEach(a=>{
-      if(player.position.distanceTo(a.mesh.position)<BAL.skills.whirlwind.radius){addDamage(a,R(BAL.skills.whirlwind.dmg));any=true;}
+      if(player.position.distanceTo(a.mesh.position)<BAL.skills.whirlwind.radius){addDamage(a,R(BAL.skills.whirlwind.dmg),thr);any=true;}
     });
   }
   if(!any)log("旋风斩没有命中任何目标。");
@@ -284,6 +291,18 @@ function charge(){
   player.position.copy(clampArena(dest));
   S.p.rage=Math.min(S.p.rageMax,S.p.rage+BAL.skills.charge.rageGain);
   spawnBurst(player.position.clone().setY(.6),0xffe9a0,18,1.2);
+  /* STEP 27：冲锋产生瞬时仇恨 */
+  if(typeof addThreat==="function"){
+    if(S.mode==="world"){
+      let nearest=null,nd=1e9;
+      for(const m of MOBS){
+        if(!mobTargetable(m))continue;
+        const d=player.position.distanceTo(m.mesh.position);
+        if(d<nd){nd=d;nearest=m;}
+      }
+      if(nearest)addThreat(nearest,"player",0,"charge");
+    }else if(bossTargetable())addThreat(BOSS_ENT,"player",0,"charge");
+  }
   log(`你向敌人发起冲锋！获得 ${BAL.skills.charge.rageGain} 点怒气。`,"lg-me");
   return true;
 }

@@ -269,11 +269,9 @@ function tick(){
             m.atkT-=dt;
             if(m.atkT<=0){
               m.atkT=st.atkCd;
-              const near=typeof pickNearestCompanion==="function"
-                ?pickNearestCompanion(m.mesh.position,st.meleeR)
-                :(typeof companionAlive==="function"&&companionAlive()&&COMPANION?COMPANION:null);
-              const hitCmp=near&&rand()<BAL.companion.mobHitChance;
-              if(hitCmp)companionHit(R(st.dmg),m.name,near);
+              /* STEP 27：打仇恨最高者 */
+              if(typeof meleeHitFromThreat==="function")
+                meleeHitFromThreat(m,m.mesh.position,st.meleeR,R(st.dmg),m.name);
               else playerHit(R(st.dmg),m.name);
             }
           }
@@ -546,9 +544,11 @@ function tick(){
       const dir=tp.clone().sub(sh.mesh.position);
       if(dir.length()<2){
         spawnBurst(sh.mesh.position,sh.shotColor||CLS.shotColor,12,1);
-        if(sh.tgt.type==="boss")dmgBoss(sh.dmg,sh.label);
-        else if(sh.tgt.type==="mob")mobDamage(sh.tgt.m,sh.dmg,sh.label);
-        else addDamage(sh.tgt.a,sh.dmg*rand(.92,1.08));
+        const thrOpts=sh.sourceKey||sh.skillId
+          ?{sourceKey:sh.sourceKey||"player",skillId:sh.skillId}:undefined;
+        if(sh.tgt.type==="boss")dmgBoss(sh.dmg,sh.label,thrOpts);
+        else if(sh.tgt.type==="mob")mobDamage(sh.tgt.m,sh.dmg,sh.label,thrOpts);
+        else addDamage(sh.tgt.a,sh.dmg*rand(.92,1.08),thrOpts);
         scene.remove(sh.mesh);disposeVfxMesh(sh.mesh);S.pShots.splice(i,1);continue;
       }
       dir.normalize();sh.mesh.position.add(dir.multiplyScalar(sh.speed*dt));

@@ -197,6 +197,18 @@ assert(saveSrc.includes("collectDeedsSave")&&saveSrc.includes("applyDeedsSave"),
 assert(worldSrc.includes("onDeedMobKill"),"world.js 挂接功绩击杀");
 assert(DEEDS_COUNT_OK(deedsSrc),"DEEDS 条目不少于 15");
 
+/* STEP 27 仇恨与职责冒烟 */
+const threatSrc=fs.readFileSync(path.join(__dirname,"threat.js"),"utf8");
+const mainSrc=fs.readFileSync(path.join(__dirname,"main.js"),"utf8");
+assert(html.includes('src="threat.js"'),"game.html 加载 threat.js");
+assert(threatSrc.includes("function addThreat")&&threatSrc.includes("function getTopThreatActor"),"threat.js 有 addThreat/getTopThreatActor");
+assert(threatSrc.includes("function meleeHitFromThreat")&&threatSrc.includes("function checkPartyWipe"),"threat.js 有 meleeHitFromThreat/checkPartyWipe");
+assert(coreSrc.includes("threat:")&&coreSrc.includes("healTankHpPct"),"BALANCE 含 threat 表");
+assert(combatSrc.includes("addThreat")&&combatSrc.includes('skillId:"heroicStrike"'),"combat.js 挂接仇恨（英勇打击）");
+assert(cmpSrc.includes("healTankHpPct")||cmpSrc.includes("BAL.threat"),"companions.js 治疗走职责优先级");
+assert(raidSrc.includes("meleeHitFromThreat"),"raid.js Boss 近战打最高仇恨");
+assert(mainSrc.includes("meleeHitFromThreat"),"main.js 野怪近战打最高仇恨");
+
 function DEEDS_COUNT_OK(src){
   const m=src.match(/id:"[^"]+"/g)||[];
   /* DEEDS 表内 id 约 18；过滤 DEED_BY_ID 等 */
@@ -207,4 +219,4 @@ if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–25 … / 稀有 / 功绩之书冒烟");
+console.log("\n全部通过 · STEP 17–27 … / 仇恨与职责冒烟");
