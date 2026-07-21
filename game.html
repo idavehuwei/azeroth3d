@@ -6,8 +6,18 @@
 <title>熔火之心 · 炎魔之王决战</title>
 <style>
   :root{
-    --ember:#ff6a1a; --lava:#ff3b00; --gold:#e8b34a; --coal:#0b0705;
-    --ui-bg:rgba(14,8,5,.82); --ui-line:rgba(255,120,40,.35);
+    --ember:#ff6a1a; --lava:#ff3b00;
+    --gold:#e8b34a; --gold-bright:#ffd76a; --gold-dim:#a87830;
+    --coal:#0b0705; --slate:#16120e; --slate-deep:#0a0705;
+    --parchment:#f0e6d0; --parchment-muted:#9a8a6e;
+    --ui-bg:rgba(14,8,5,.88); --ui-line:rgba(255,120,40,.35);
+    --panel-bg:linear-gradient(170deg,rgba(28,18,12,.96) 0%,rgba(14,9,6,.97) 55%,rgba(8,5,3,.98) 100%);
+    --panel-border:#6f4a28; --panel-border-hi:#c9a06a;
+    --panel-inset:inset 0 0 0 1px rgba(232,179,74,.18), inset 0 0 28px rgba(0,0,0,.55);
+    --panel-glow:0 0 28px rgba(255,100,20,.28), 0 8px 32px rgba(0,0,0,.55);
+    --slot-bg:linear-gradient(180deg,rgba(30,18,10,.9),rgba(8,5,3,.95));
+    --row-line:rgba(232,179,74,.14);
+    --scrollbar-thumb:#7a5530; --scrollbar-track:rgba(8,5,3,.7);
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{width:100%;height:100%;overflow:hidden;background:var(--coal);
@@ -23,8 +33,8 @@
     text-shadow:0 0 12px rgba(255,90,0,.8),0 2px 3px #000}
   #bossName .n{font-size:20px;font-weight:900;letter-spacing:4px;color:#ffd9a0}
   #bossName .t{font-size:12px;color:#ff9a55;letter-spacing:2px}
-  .barShell{position:relative;height:22px;border:1px solid var(--ui-line);background:rgba(0,0,0,.65);
-    box-shadow:0 0 18px rgba(255,80,0,.25),inset 0 0 12px #000}
+  .barShell{position:relative;height:22px;border:1px solid var(--panel-border);background:rgba(0,0,0,.7);
+    box-shadow:0 0 14px rgba(255,80,0,.2),inset 0 0 12px #000, inset 0 0 0 1px rgba(232,179,74,.12)}
   .barFill{position:absolute;inset:1px;transform-origin:left;
     background:linear-gradient(180deg,#ff8a3c 0%,#e03a00 55%,#7a1500 100%)}
   .barFill.hpP{background:linear-gradient(180deg,#7cff6a,#1f9e2e 60%,#0c5a18)}
@@ -56,9 +66,9 @@
  
   /* ---------- 技能栏 ---------- */
   #skillBar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:10px;z-index:10}
-  .skill{width:58px;height:58px;border:1px solid var(--ui-line);background:var(--ui-bg);position:relative;
+  .skill{width:58px;height:58px;border:1px solid var(--panel-border-hi);background:var(--slot-bg);position:relative;
     cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    box-shadow:0 0 14px rgba(255,90,0,.18),inset 0 0 10px rgba(0,0,0,.8);transition:transform .08s}
+    box-shadow:0 0 14px rgba(255,90,0,.18),inset 0 0 12px rgba(0,0,0,.75);transition:transform .08s}
   .skill:active{transform:scale(.93)}
   .skill .ic{width:28px;height:28px;display:block;margin:2px auto 0;border:1px solid rgba(232,179,74,.55);
     border-radius:2px;background:#0a0604;object-fit:contain;image-rendering:auto;
@@ -80,116 +90,224 @@
   .lg-loot{display:flex;align-items:center;gap:6px}
   .lg-loot img{width:18px;height:18px;border:1px solid #888;background:#000;flex:none}
 
-  /* ---------- 背包与装备栏（STEP 4） ---------- */
-  #bag{position:fixed;right:14px;bottom:210px;width:250px;z-index:23;display:none;
-    background:var(--ui-bg);border:1px solid #ffcf90;padding:12px 14px;
-    box-shadow:0 0 32px rgba(255,120,20,.35)}
-  #bag .bag-title{font-weight:800;font-size:14px;color:#ffd9a0;letter-spacing:2px;margin-bottom:8px;
-    display:flex;justify-content:space-between}
-  #bag .bag-close{cursor:pointer;color:#8b7a5e}
-  #bag .bag-close:hover{color:#ffd9a0}
-  .bag-eq{display:flex;gap:10px;margin-bottom:10px}
-  .eqSlot{width:52px;height:52px;border:1px dashed var(--ui-line);position:relative;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35)}
-  .eqSlot .eqTag{position:absolute;bottom:2px;right:4px;font-size:9px;color:#8b7a5e;pointer-events:none}
-  .eqSlot img{width:44px;height:44px;border:1px solid #888}
-  #bagGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-  .bagCell{height:50px;border:1px solid var(--ui-line);background:rgba(0,0,0,.35);
-    display:flex;align-items:center;justify-content:center}
-  .bagCell img{width:44px;height:44px;border:1px solid #888;cursor:pointer}
-  .bag-hint{margin-top:8px;font-size:10px;color:#8b7a5e;letter-spacing:1px;line-height:1.7}
-  #bagBtn{position:fixed;left:16px;bottom:16px;z-index:12;width:46px;height:46px;font-size:20px;
-    background:var(--ui-bg);border:1px solid var(--ui-line);cursor:pointer;
-    box-shadow:0 0 14px rgba(255,90,0,.25)}
-  #muteBtn{position:fixed;left:70px;bottom:16px;z-index:12;width:46px;height:46px;font-size:20px;
-    background:var(--ui-bg);border:1px solid var(--ui-line);cursor:pointer;
-    box-shadow:0 0 14px rgba(255,90,0,.25)}
-  #talentBtn{position:fixed;left:124px;bottom:16px;z-index:12;width:46px;height:46px;font-size:20px;
-    background:var(--ui-bg);border:1px solid var(--ui-line);cursor:pointer;
-    box-shadow:0 0 14px rgba(255,90,0,.25)}
-  #deedsBtn{position:fixed;left:178px;bottom:16px;z-index:12;width:46px;height:46px;font-size:20px;
-    background:var(--ui-bg);border:1px solid var(--ui-line);cursor:pointer;
-    box-shadow:0 0 14px rgba(255,90,0,.25)}
-  #finderBtn{position:fixed;left:232px;bottom:16px;z-index:12;width:46px;height:46px;font-size:20px;
-    background:var(--ui-bg);border:1px solid var(--ui-line);cursor:pointer;
-    box-shadow:0 0 14px rgba(255,90,0,.25)}
+  /* ---------- 统一窗口铬（参考 WoC：深色石板 + 克制金边 + 羊皮纸字色） ---------- */
+  #bag, #talent, .hudPanel, #dlg, #worldMapBox, #itemTip, #quest, #minimapWrap, #vendorPanel{
+    background:var(--panel-bg);
+    border:1px solid var(--panel-border-hi);
+    box-shadow:var(--panel-glow), var(--panel-inset);
+    color:var(--parchment);
+  }
+  #bag, #talent, .hudPanel, #dlg, #worldMapBox, #vendorPanel{
+    border-image:none;
+    outline:1px solid rgba(80,50,25,.85);
+    outline-offset:-3px;
+  }
+  .bag-title, #dlg .dname, #bossName .n, #vendorTitle{
+    font-weight:800; letter-spacing:2px; color:var(--gold-bright);
+    text-shadow:0 0 12px rgba(255,160,40,.35), 0 1px 2px #000;
+  }
+  #bag .bag-title, #talent .bag-title, .hudPanel .bag-title, #worldMapBox .bag-title, #vendorPanel .bag-title{
+    position:relative;
+    display:flex;justify-content:space-between;align-items:center;
+    margin:0 -4px 12px; padding:4px 4px 10px;
+    border-bottom:1px solid rgba(232,179,74,.28);
+    background:linear-gradient(180deg,rgba(80,45,18,.22),transparent);
+  }
+  #bag .bag-title::after, #talent .bag-title::after, .hudPanel .bag-title::after, #worldMapBox .bag-title::after, #vendorPanel .bag-title::after{
+    content:""; position:absolute; left:8%; right:8%; bottom:-1px; height:1px;
+    background:linear-gradient(90deg,transparent,var(--gold-bright),transparent); opacity:.55;
+  }
+  .bag-close{cursor:pointer;color:var(--parchment-muted);font-size:14px;padding:2px 6px;
+    border:1px solid transparent;line-height:1}
+  .bag-close:hover{color:var(--gold-bright);border-color:rgba(232,179,74,.35);background:rgba(80,40,12,.35)}
+  .ph-hint, .bag-hint, .tal-hint{margin-top:10px;font-size:10px;color:var(--parchment-muted);
+    letter-spacing:1px;line-height:1.7;border-top:1px solid var(--row-line);padding-top:8px}
+  #bag::-webkit-scrollbar, #talent::-webkit-scrollbar, .hudPanel::-webkit-scrollbar,
+  #questLogBody::-webkit-scrollbar{width:8px}
+  #bag::-webkit-scrollbar-thumb, #talent::-webkit-scrollbar-thumb, .hudPanel::-webkit-scrollbar-thumb,
+  #questLogBody::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:4px}
+  #bag::-webkit-scrollbar-track, #talent::-webkit-scrollbar-track, .hudPanel::-webkit-scrollbar-track,
+  #questLogBody::-webkit-scrollbar-track{background:var(--scrollbar-track)}
+
+  /* ---------- 背包与装备栏 ---------- */
+  #bag{position:fixed;right:14px;bottom:150px;width:min(360px,92vw);z-index:23;display:none;
+    padding:12px 14px;max-height:min(74vh,580px);overflow:auto}
+  #bagGrid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+  .bagCell{height:48px;border:1px solid rgba(111,74,40,.85);background:var(--slot-bg);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:inset 0 0 8px rgba(0,0,0,.55)}
+  .bagCell:hover{border-color:rgba(232,179,74,.55)}
+  .bagCell img{width:40px;height:40px;border:1px solid #888;cursor:pointer}
+  .bagCell img:hover{filter:brightness(1.08)}
+  /* 物品悬停提示（羊皮纸浮层） */
+  #itemTip{position:fixed;z-index:40;display:none;pointer-events:none;
+    min-width:190px;max-width:min(290px,72vw);padding:12px 14px;
+    border-left:3px solid var(--gold-bright);font-size:12px;line-height:1.55}
+  #itemTip .it-name{font-weight:800;font-size:14px;letter-spacing:1px;margin-bottom:4px;
+    text-shadow:0 1px 2px #000}
+  #itemTip .it-meta{font-size:11px;color:var(--parchment-muted);margin-bottom:6px}
+  #itemTip .it-line{margin:2px 0}
+  #itemTip .it-stat{color:#8aff9a}
+  #itemTip .it-price{color:var(--gold-bright)}
+  #itemTip .it-hint{margin-top:6px;font-size:10px;color:#c9a06a;border-top:1px solid var(--row-line);padding-top:6px}
+  #itemTip .it-quest{color:#ff9a55}
+  #bagBtn,#muteBtn,#talentBtn,#deedsBtn,#finderBtn{
+    position:fixed;bottom:16px;z-index:12;width:46px;height:46px;font-size:20px;
+    background:var(--panel-bg);border:1px solid var(--panel-border-hi);cursor:pointer;
+    box-shadow:0 0 14px rgba(255,90,0,.22), inset 0 0 12px rgba(0,0,0,.45);
+    color:var(--parchment)}
+  #bagBtn{left:16px} #muteBtn{left:70px} #talentBtn{left:124px} #deedsBtn{left:178px} #finderBtn{left:232px}
+  #bagBtn:hover,#muteBtn:hover,#talentBtn:hover,#deedsBtn:hover,#finderBtn:hover{
+    border-color:var(--gold-bright);filter:brightness(1.08)}
   .finder-item.locked{opacity:.55}
   .finder-item .finder-acts{margin-top:6px}
   .finder-item .ttl,.deed-item .ttl{display:flex;align-items:center;gap:8px}
   .finder-ic,.deed-ic{width:22px;height:22px;flex-shrink:0;border:1px solid rgba(232,179,74,.45);
     border-radius:2px;background:#0a0604;object-fit:contain}
 
-  /* ---------- 天赋面板（STEP 10b） ---------- */
-  #talent{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,94vw);
-    z-index:24;display:none;background:var(--ui-bg);border:1px solid #ffcf90;padding:14px 16px;
-    box-shadow:0 0 36px rgba(255,120,20,.4);max-height:min(78vh,560px);overflow:auto}
-  #talent .bag-title{font-weight:800;font-size:14px;color:#ffd9a0;letter-spacing:2px;margin-bottom:10px;
-    display:flex;justify-content:space-between;align-items:center}
-  #talent .bag-close{cursor:pointer;color:#8b7a5e}
-  #talent .bag-close:hover{color:#ffd9a0}
+  /* ---------- 天赋面板 ---------- */
+  #talent{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(540px,94vw);
+    z-index:24;display:none;padding:14px 16px;max-height:min(78vh,580px);overflow:auto}
   .tal-meta{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;
-    font-size:12px;color:#e8d8bc;letter-spacing:1px}
-  .tal-meta b{color:#ffd9a0}
+    font-size:12px;color:var(--parchment);letter-spacing:1px;
+    padding:8px 10px;background:rgba(0,0,0,.28);border:1px solid rgba(232,179,74,.2)}
+  .tal-meta b{color:var(--gold-bright)}
   .tal-reset{padding:6px 12px;cursor:pointer;font-family:inherit;font-size:11px;letter-spacing:1px;
-    color:#ffcf98;background:rgba(120,50,10,.35);border:1px solid var(--ui-line)}
-  .tal-reset:hover{border-color:#ffcf90;background:rgba(160,70,15,.5)}
+    color:var(--gold-bright);background:rgba(80,40,12,.4);border:1px solid var(--panel-border)}
+  .tal-reset:hover{border-color:var(--gold-bright);background:rgba(120,55,15,.55)}
   .tal-branches{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  .tal-branch{border:1px solid var(--ui-line);background:rgba(0,0,0,.28);padding:10px}
-  .tal-branch h3{font-size:12px;color:#ff9a55;letter-spacing:3px;margin-bottom:10px;font-weight:800}
-  .tal-node{display:flex;gap:8px;align-items:center;padding:7px 6px;margin-bottom:6px;
-    border:1px solid transparent;background:rgba(20,10,5,.45);cursor:pointer;transition:.12s}
-  .tal-node:hover{border-color:#ffcf90}
+  .tal-branch{border:1px solid rgba(232,179,74,.22);background:rgba(0,0,0,.32);padding:10px;
+    box-shadow:inset 0 0 16px rgba(0,0,0,.35)}
+  .tal-branch h3{font-size:12px;color:#ff9a55;letter-spacing:3px;margin-bottom:10px;font-weight:800;
+    padding-bottom:6px;border-bottom:1px solid var(--row-line)}
+  .tal-node{display:flex;gap:8px;align-items:center;padding:8px 7px;margin-bottom:6px;
+    border:1px solid transparent;background:rgba(20,10,5,.5);cursor:pointer;transition:.12s}
+  .tal-node:hover{border-color:rgba(232,179,74,.55);background:rgba(40,22,10,.55)}
   .tal-node.locked{opacity:.42;cursor:not-allowed}
   .tal-node.maxed{border-color:rgba(255,207,144,.55);box-shadow:inset 0 0 12px rgba(255,140,40,.2)}
   .tal-node.can{border-color:rgba(120,255,140,.35)}
   .tal-node img{width:40px;height:40px;border:1px solid #888;flex-shrink:0}
   .tal-node .tn{flex:1;min-width:0}
-  .tal-node .tn .name{font-size:12px;font-weight:700;color:#ffd9a0;letter-spacing:1px}
-  .tal-node .tn .desc{font-size:10px;color:#8b7a5e;line-height:1.5;margin-top:2px}
+  .tal-node .tn .name{font-size:12px;font-weight:700;color:var(--gold-bright);letter-spacing:1px}
+  .tal-node .tn .desc{font-size:10px;color:var(--parchment-muted);line-height:1.5;margin-top:2px}
   .tal-node .rank{font-size:11px;color:#ffcf98;font-weight:700;letter-spacing:1px;flex-shrink:0}
-  .tal-hint{margin-top:10px;font-size:10px;color:#8b7a5e;letter-spacing:1px;line-height:1.7}
   @media (max-width:520px){.tal-branches{grid-template-columns:1fr}}
 
-  /* ---------- 角色 / 法术书 / 任务日志（STEP 14 · V1-B2 日志可滚动） ---------- */
-  .hudPanel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,92vw);
-    z-index:24;display:none;background:var(--ui-bg);border:1px solid #ffcf90;padding:14px 16px;
-    box-shadow:0 0 36px rgba(255,120,20,.4);max-height:min(78vh,560px);overflow:auto}
-  #questLog{overflow:hidden;max-height:min(82vh,620px)}
-  #questLogBody{overflow-y:auto;overflow-x:hidden;max-height:min(62vh,480px);
-    padding-right:4px;scrollbar-width:thin;scrollbar-color:#ff9a55 transparent}
-  #questLogBody::-webkit-scrollbar{width:8px}
-  #questLogBody::-webkit-scrollbar-thumb{background:#c87830;border-radius:4px}
-  .hudPanel .bag-title{font-weight:800;font-size:14px;color:#ffd9a0;letter-spacing:2px;margin-bottom:10px;
-    display:flex;justify-content:space-between;align-items:center}
-  .hudPanel .bag-close{cursor:pointer;color:#8b7a5e}
-  .hudPanel .bag-close:hover{color:#ffd9a0}
-  .hudPanel .ph-hint{margin-top:10px;font-size:10px;color:#8b7a5e;letter-spacing:1px;line-height:1.7}
-  .ph-row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid rgba(255,120,40,.15);
-    font-size:12px;color:#e8d8bc;letter-spacing:1px}
+  /* ---------- 角色 / 法术书 / 任务 / 功绩 / 查找器（可并存，锚点分区） ---------- */
+  .hudPanel{position:fixed;z-index:24;display:none;padding:14px 16px;
+    max-height:min(80vh,600px);overflow:auto}
+  #charPanel{left:14px;top:70px;width:min(520px,46vw);transform:none}
+  #spellPanel{left:min(540px,50vw);top:70px;width:min(360px,40vw);transform:none}
+  #questLog{right:14px;top:70px;left:auto;width:min(560px,48vw);transform:none;
+    overflow:hidden;max-height:min(86vh,640px);padding-bottom:10px}
+  #deedsPanel,#finderPanel{left:50%;top:50%;transform:translate(-50%,-50%);width:min(460px,92vw)}
+  /* 交易：左商人 · 右背包并排 */
+  body.trading #vendorPanel{z-index:25}
+  body.trading #bag{z-index:25;box-shadow:0 0 0 1px rgba(232,179,74,.35),0 8px 28px rgba(0,0,0,.55)}
+  @media (max-width:720px){
+    #charPanel,#spellPanel{width:min(96vw,420px);left:50%;transform:translateX(-50%)}
+    #questLog{width:min(96vw,520px);right:auto;left:50%;transform:translateX(-50%)}
+  }
+  .ph-layout{display:flex;gap:14px;align-items:flex-start}
+  .ph-doll{display:grid;grid-template-columns:44px minmax(64px,1fr) 44px;gap:5px 8px;
+    flex:0 0 auto;width:190px;padding:8px;background:rgba(0,0,0,.28);
+    border:1px solid rgba(232,179,74,.22);box-shadow:inset 0 0 18px rgba(0,0,0,.4)}
+  .ph-doll-col{display:flex;flex-direction:column;gap:4px}
+  .ph-doll-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:168px;border:1px dashed rgba(232,179,74,.2);
+    background:radial-gradient(ellipse at 50% 40%,rgba(120,55,15,.35),rgba(8,5,3,.15));
+    color:var(--parchment-muted)}
+  .ph-doll-sil{font-size:48px;line-height:1;opacity:.4;filter:grayscale(.2)}
+  .ph-doll-lv{font-size:11px;letter-spacing:2px;color:var(--gold-bright);margin-top:8px;font-weight:800}
+  .ph-doll-bot{grid-column:1/-1;display:flex;justify-content:center;gap:10px;margin-top:2px}
+  .pd-slot{width:42px;height:42px;border:1px solid var(--panel-border);position:relative;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;background:var(--slot-bg);
+    box-shadow:inset 0 0 10px rgba(0,0,0,.65)}
+  .pd-slot:hover{border-color:var(--gold-bright);box-shadow:inset 0 0 10px rgba(0,0,0,.5),0 0 8px rgba(255,160,40,.2)}
+  .pd-slot.empty{opacity:.72}
+  .pd-slot img{width:34px;height:34px;border:1px solid #888}
+  .pd-slot .pd-tag{position:absolute;bottom:1px;right:2px;font-size:8px;color:var(--parchment-muted);
+    pointer-events:none;letter-spacing:0;text-shadow:0 1px 2px #000;line-height:1}
+  .ph-stats{flex:1;min-width:0}
+  @media (max-width:560px){
+    .ph-layout{flex-direction:column;align-items:center}
+    .ph-doll{width:100%;max-width:220px}
+    .ph-stats{width:100%}
+  }
+  #questLogBody.ql-split{display:flex;gap:0;max-height:min(64vh,500px);min-height:280px;
+    border:1px solid rgba(232,179,74,.22);background:rgba(0,0,0,.2);overflow:hidden}
+  .ql-left{width:42%;min-width:160px;overflow-y:auto;overflow-x:hidden;
+    border-right:1px solid rgba(232,179,74,.28);padding:6px 4px;
+    scrollbar-width:thin;scrollbar-color:var(--scrollbar-thumb) transparent}
+  .ql-right{flex:1;min-width:0;overflow-y:auto;padding:12px 14px;
+    scrollbar-width:thin;scrollbar-color:var(--scrollbar-thumb) transparent;
+    background:linear-gradient(180deg,rgba(40,24,12,.35),rgba(8,5,3,.2))}
+  .ql-left::-webkit-scrollbar,.ql-right::-webkit-scrollbar,#questLogBody::-webkit-scrollbar{width:8px}
+  .ql-left::-webkit-scrollbar-thumb,.ql-right::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:4px}
+  .ql-zone{font-size:10px;color:#ff9a55;letter-spacing:2px;font-weight:800;margin:8px 6px 4px;
+    padding-bottom:3px;border-bottom:1px solid rgba(232,179,74,.2)}
+  .ql-row{display:flex;align-items:center;gap:6px;padding:7px 8px;margin:2px 3px;cursor:pointer;
+    font-size:12px;color:var(--parchment);letter-spacing:1px;border:1px solid transparent;
+    background:transparent}
+  .ql-row:hover{background:rgba(80,45,18,.35);border-color:rgba(232,179,74,.25)}
+  .ql-row.sel{background:rgba(100,55,20,.5);border-color:rgba(232,179,74,.55);
+    box-shadow:inset 0 0 12px rgba(0,0,0,.35);color:var(--gold-bright)}
+  .ql-row .ql-ic{flex-shrink:0;width:14px;text-align:center;font-size:11px}
+  .ql-row.ready .ql-ic{color:#8aff9a}
+  .ql-row.done-row{opacity:.72;color:var(--parchment-muted)}
+  .ql-row .ql-nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+  .ql-detail-empty{font-size:12px;color:var(--parchment-muted);letter-spacing:1px;line-height:1.9;padding:20px 8px;text-align:center}
+  .ql-d-title{font-size:16px;font-weight:800;color:var(--gold-bright);letter-spacing:2px;
+    text-shadow:0 1px 2px #000;margin-bottom:4px}
+  .ql-d-sub{font-size:11px;color:#ff9a55;letter-spacing:2px;margin-bottom:10px}
+  .ql-d-meta{font-size:11px;color:var(--parchment-muted);line-height:1.7;margin-bottom:12px;
+    padding:8px 10px;background:rgba(0,0,0,.28);border:1px solid rgba(232,179,74,.18)}
+  .ql-d-meta b{color:var(--parchment)}
+  .ql-d-sec{font-size:11px;color:#ff9a55;letter-spacing:3px;font-weight:800;margin:14px 0 6px;
+    padding-left:8px;border-left:3px solid var(--gold-dim)}
+  .ql-d-obj{font-size:13px;color:var(--parchment);line-height:1.85;padding:4px 0}
+  .ql-d-obj.ok{color:#8aff9a}
+  .ql-d-desc{font-size:12px;color:#c9b898;line-height:1.85;margin-top:4px}
+  .ql-d-reward{font-size:12px;color:#8aff9a;line-height:1.8}
+  .ql-d-tip{margin-top:12px;font-size:11px;color:#ffcf98;letter-spacing:1px;
+    padding-top:8px;border-top:1px solid var(--row-line)}
+  .ql-acts{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+  .ql-abandon{font-family:inherit;font-size:11px;letter-spacing:1px;cursor:pointer;
+    padding:6px 14px;color:#ffb0a0;background:rgba(80,20,10,.4);
+    border:1px solid rgba(200,80,50,.45)}
+  .ql-abandon:hover{border-color:#ff8a60;color:#ffd0c0;background:rgba(100,30,15,.55)}
+  .ql-empty{font-size:12px;color:var(--parchment-muted);letter-spacing:1px;line-height:1.8;padding:8px 0}
+  @media (max-width:560px){
+    #questLog{width:min(96vw,520px)}
+    #questLogBody.ql-split{flex-direction:column;max-height:min(70vh,560px)}
+    .ql-left{width:100%;max-height:38%;border-right:none;border-bottom:1px solid rgba(232,179,74,.28)}
+  }
+  .ph-row{display:flex;justify-content:space-between;gap:12px;padding:7px 4px;
+    border-bottom:1px solid var(--row-line);font-size:12px;color:var(--parchment);letter-spacing:1px}
   .ph-row:last-child{border-bottom:none}
-  .ph-row .k{color:#8b7a5e}
-  .ph-row .v{color:#ffd9a0;font-weight:700;text-align:right}
-  .ph-sec{font-size:11px;color:#ff9a55;letter-spacing:3px;font-weight:800;margin:12px 0 6px}
-  .ph-eq{display:flex;gap:10px;margin:8px 0}
-  .ph-eq .slot{flex:1;border:1px dashed var(--ui-line);background:rgba(0,0,0,.35);padding:8px;min-height:52px;
-    display:flex;align-items:center;gap:8px;font-size:11px;color:#e8d8bc}
-  .ph-eq .slot img{width:36px;height:36px;border:1px solid #888;flex-shrink:0}
-  .ph-eq .empty{color:#8b7a5e}
-  .spell-card{display:flex;gap:10px;align-items:flex-start;padding:8px 6px;margin-bottom:6px;
-    border:1px solid var(--ui-line);background:rgba(0,0,0,.28)}
+  .ph-row .k{color:var(--parchment-muted)}
+  .ph-row .v{color:var(--gold-bright);font-weight:700;text-align:right}
+  .ph-sec{font-size:11px;color:#ff9a55;letter-spacing:3px;font-weight:800;margin:14px 0 6px;
+    padding:4px 0 4px 8px;border-left:3px solid var(--gold-dim);
+    background:linear-gradient(90deg,rgba(120,60,20,.2),transparent)}
+  .ph-stats .ph-sec:first-child{margin-top:0}
+  .spell-card{display:flex;gap:10px;align-items:flex-start;padding:10px 8px;margin-bottom:8px;
+    border:1px solid rgba(232,179,74,.25);background:rgba(0,0,0,.32);
+    box-shadow:inset 0 0 12px rgba(0,0,0,.35)}
+  .spell-card:hover{border-color:rgba(232,179,74,.5)}
   .spell-card .ic{width:36px;height:36px;flex-shrink:0;border:1px solid rgba(232,179,74,.5);border-radius:2px;
     background:#0a0604;object-fit:contain;box-shadow:0 0 6px rgba(255,140,40,.3)}
   .spell-card .body{flex:1;min-width:0}
-  .spell-card .nm{font-size:13px;font-weight:800;color:#ffd9a0;letter-spacing:1px}
+  .spell-card .nm{font-size:13px;font-weight:800;color:var(--gold-bright);letter-spacing:1px}
   .spell-card .meta{font-size:10px;color:#ffcf98;margin-top:2px;letter-spacing:1px}
   .spell-card .desc{font-size:11px;color:#b09a7a;line-height:1.6;margin-top:4px}
-  .ql-item{padding:10px;border:1px solid var(--ui-line);background:rgba(0,0,0,.28);margin-bottom:8px}
-  .ql-item .ttl{font-size:13px;font-weight:800;color:#ffd9a0;letter-spacing:1px;margin-bottom:4px}
-  .ql-item .obj{font-size:12px;color:#e8d8bc;line-height:1.8}
+  .ql-item,.deed-item,.finder-item{padding:10px 11px;border:1px solid rgba(232,179,74,.25);
+    background:rgba(0,0,0,.32);margin-bottom:8px;box-shadow:inset 0 0 12px rgba(0,0,0,.3)}
+  .ql-item:hover,.deed-item:hover,.finder-item:hover{border-color:rgba(232,179,74,.5)}
+  .ql-item .ttl,.deed-item .ttl,.finder-item .ttl{font-size:13px;font-weight:800;color:var(--gold-bright);letter-spacing:1px;margin-bottom:4px}
+  .ql-item .obj{font-size:12px;color:var(--parchment);line-height:1.8}
   .ql-item .st{font-size:10px;color:#8aff9a;letter-spacing:1px;margin-top:4px}
   .ql-item.done .ttl{color:#8aff9a}
-  .ql-empty{font-size:12px;color:#8b7a5e;letter-spacing:1px;line-height:1.8;padding:8px 0}
-  /* ---------- 功绩之书（STEP 25） ---------- */
   .deed-item .deed-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
   .deed-btn{font-size:11px!important;padding:4px 10px!important;margin:0!important}
   #playerFrame.deed-border-bronze{outline:2px solid #c9a06a;outline-offset:3px;box-shadow:0 0 12px rgba(200,150,80,.45)}
@@ -201,16 +319,13 @@
   #playerFrame.deed-border-venom{outline:2px solid #66cc44;outline-offset:3px;box-shadow:0 0 14px rgba(80,200,60,.5)}
   #playerFrame.deed-border-purple{outline:2px solid #c080ff;outline-offset:3px;box-shadow:0 0 14px rgba(160,80,255,.55)}
   #playerFrame.deed-border-talent{outline:2px solid #ffcf90;outline-offset:3px;box-shadow:0 0 12px rgba(255,180,80,.5)}
-  #quest{position:fixed;top:178px;right:14px;z-index:9;display:none;min-width:148px;max-width:160px;
-    background:var(--ui-bg);border:1px solid var(--ui-line);padding:10px 12px;
-    font-size:11px;line-height:1.8;color:#e8d8bc;box-shadow:0 0 16px rgba(255,90,0,.2)}
-  #quest .qt{color:#ffd9a0;letter-spacing:1px;font-weight:800;font-size:11px;margin-bottom:2px}
-  #quest .qo{color:#e8d8bc}
+  #quest{position:fixed;top:178px;right:14px;z-index:9;display:none;min-width:148px;max-width:168px;
+    padding:10px 12px;font-size:11px;line-height:1.8}
+  #quest .qt{color:var(--gold-bright);letter-spacing:1px;font-weight:800;font-size:11px;margin-bottom:2px}
+  #quest .qo{color:var(--parchment)}
   #quest .qd{color:#8aff9a;font-weight:700}
-  /* ---------- 小地图 / 世界地图（STEP 16） ---------- */
-  #minimapWrap{position:fixed;top:14px;right:14px;z-index:9;width:148px;display:none;
-    background:var(--ui-bg);border:1px solid var(--ui-line);padding:4px;
-    box-shadow:0 0 16px rgba(255,90,0,.25)}
+  /* ---------- 小地图 / 世界地图 ---------- */
+  #minimapWrap{position:fixed;top:14px;right:14px;z-index:9;width:148px;display:none;padding:4px}
   #minimapWrap .mm-title{font-size:9px;color:#ff9a55;letter-spacing:2px;font-weight:800;
     text-align:center;margin-bottom:2px}
   #minimap{display:block;width:140px;height:140px;border:1px solid rgba(255,140,60,.25);
@@ -218,18 +333,31 @@
   #worldMapOv{position:fixed;inset:0;z-index:24;display:none;align-items:center;justify-content:center;
     background:rgba(5,2,1,.72);padding:16px}
   #worldMapOv.show{display:flex}
-  #worldMapBox{background:var(--ui-bg);border:1px solid #ffcf90;padding:12px 14px;
-    box-shadow:0 0 36px rgba(255,120,20,.4);max-width:94vw}
-  #worldMapBox .bag-title{font-weight:800;font-size:14px;color:#ffd9a0;letter-spacing:2px;margin-bottom:8px;
-    display:flex;justify-content:space-between;align-items:center}
-  #worldMapBox .bag-close{cursor:pointer;color:#8b7a5e}
-  #worldMapBox .bag-close:hover{color:#ffd9a0}
+  #worldMapBox{padding:12px 14px;max-width:94vw}
   #worldMap{display:block;width:min(520px,86vw);height:auto;aspect-ratio:1;
     border:1px solid var(--ui-line);background:#0c1008}
   #worldMapLeg{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:8px;font-size:10px;color:#b09a7a;letter-spacing:1px}
   #worldMapLeg span{display:inline-flex;align-items:center;gap:4px}
   #worldMapLeg i{display:inline-block;width:8px;height:8px;border-radius:50%}
-  .ph-hint.mm{margin-top:6px;font-size:10px;color:#8b7a5e;letter-spacing:1px}
+  .ph-hint.mm{margin-top:6px}
+
+  /* ---------- 商人购买面板 ---------- */
+  #vendorPanel{position:fixed;left:14px;bottom:150px;width:min(340px,90vw);z-index:23;display:none;
+    padding:12px 14px;max-height:min(74vh,560px);overflow:auto}
+  #vendorGold{font-size:12px;letter-spacing:1px;margin-bottom:10px;padding:8px 10px;
+    background:rgba(0,0,0,.28);border:1px solid rgba(232,179,74,.22);color:var(--parchment)}
+  #vendorGold b{color:var(--gold-bright)}
+  #vendorQuests{margin-bottom:10px;display:none}
+  #vendorQuests .dbtn{margin-top:4px}
+  #vendorStock{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .vendor-card{display:flex;align-items:center;gap:8px;padding:8px;cursor:pointer;text-align:left;
+    font-family:inherit;color:var(--parchment);background:var(--slot-bg);
+    border:1px solid rgba(232,179,74,.28);box-shadow:inset 0 0 10px rgba(0,0,0,.45)}
+  .vendor-card:hover{border-color:var(--gold-bright);box-shadow:inset 0 0 10px rgba(0,0,0,.4),0 0 10px rgba(255,160,40,.2)}
+  .vendor-card img{width:40px;height:40px;border:1px solid #888;flex-shrink:0;background:#0a0604}
+  .vendor-card .vb{min-width:0;flex:1}
+  .vendor-card .vn{font-size:12px;font-weight:800;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .vendor-card .vp{font-size:11px;color:var(--gold-bright);margin-top:2px}
  
   /* ---------- 中央大字提示 ---------- */
   #announce{position:fixed;top:24%;left:50%;transform:translateX(-50%);z-index:20;pointer-events:none;
@@ -262,13 +390,13 @@
  
   /* ---------- 职业选择 ---------- */
   #classPick{display:flex;gap:14px;margin-bottom:28px;flex-wrap:wrap;justify-content:center}
-  .ccard{width:152px;padding:14px 10px;border:1px solid var(--ui-line);background:rgba(20,10,5,.6);
-    cursor:pointer;transition:.15s;text-align:center}
+  .ccard{width:152px;padding:14px 10px;border:1px solid var(--panel-border);background:var(--slot-bg);
+    cursor:pointer;transition:.15s;text-align:center;box-shadow:inset 0 0 14px rgba(0,0,0,.45)}
   .ccard .ci{font-size:34px;filter:drop-shadow(0 0 8px rgba(255,140,40,.5))}
-  .ccard .cn{font-size:15px;font-weight:800;letter-spacing:4px;margin:6px 0 5px;color:#ffd9a0}
-  .ccard .cd2{font-size:10.5px;line-height:1.8;color:#b09a7a}
-  .ccard:hover{border-color:#ffcf90;transform:translateY(-2px)}
-  .ccard.sel{border-color:#ffcf90;background:rgba(120,50,10,.45);box-shadow:0 0 20px rgba(255,120,20,.45)}
+  .ccard .cn{font-size:15px;font-weight:800;letter-spacing:4px;margin:6px 0 5px;color:var(--gold-bright)}
+  .ccard .cd2{font-size:10.5px;line-height:1.8;color:var(--parchment-muted)}
+  .ccard:hover{border-color:var(--gold-bright);transform:translateY(-2px)}
+  .ccard.sel{border-color:var(--gold-bright);background:rgba(120,50,10,.45);box-shadow:0 0 20px rgba(255,120,20,.45)}
   #godRow{display:flex;align-items:center;gap:8px;margin-bottom:24px;cursor:pointer;
     font-size:13px;color:#ffcf98;letter-spacing:2px;text-shadow:0 1px 2px #000}
   #godRow input{width:16px;height:16px;accent-color:#ff8a2a;cursor:pointer}
@@ -313,14 +441,16 @@
     background:linear-gradient(180deg,#ffce7a,#e0812a 60%,#a34a08);border:1px solid #ffcf90;
     box-shadow:0 0 18px rgba(255,120,20,.5);font-family:inherit}
   #dlg{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);width:min(560px,92vw);z-index:22;
-    display:none;background:var(--ui-bg);border:1px solid #ffcf90;padding:16px 18px;
-    box-shadow:0 0 32px rgba(255,120,20,.35)}
-  #dlg .dname{font-weight:800;font-size:14px;color:#ffd9a0;letter-spacing:2px;margin-bottom:8px}
-  #dlgText{font-size:13px;line-height:2;color:#e8d8bc;margin-bottom:10px}
-  .dbtn{display:block;width:100%;text-align:left;padding:8px 12px;margin-top:6px;cursor:pointer;
-    background:rgba(120,50,10,.35);border:1px solid var(--ui-line);color:#ffcf98;
+    display:none;padding:16px 18px}
+  #dlg .dname{font-weight:800;font-size:14px;color:var(--gold-bright);letter-spacing:2px;margin-bottom:10px;
+    padding-bottom:8px;border-bottom:1px solid rgba(232,179,74,.28)}
+  #dlgText{font-size:13px;line-height:2;color:var(--parchment);margin-bottom:10px}
+  .dbtn{display:block;width:100%;text-align:left;padding:9px 12px;margin-top:6px;cursor:pointer;
+    background:linear-gradient(180deg,rgba(90,45,18,.45),rgba(40,20,8,.55));
+    border:1px solid var(--panel-border);color:var(--gold-bright);
     font-family:inherit;font-size:12.5px;letter-spacing:1px}
-  .dbtn:hover{border-color:#ffcf90;background:rgba(160,70,15,.5)}
+  .dbtn:hover{border-color:var(--gold-bright);background:rgba(120,55,15,.55);
+    box-shadow:0 0 12px rgba(255,140,40,.2)}
 </style>
 </head>
 <body>
@@ -386,14 +516,11 @@
   </div>
 </div>
 <div id="bag">
-  <div class="bag-title">🎒 背包与装备<span class="bag-close" id="bagClose">✕</span></div>
-  <div class="bag-eq">
-    <div class="eqSlot" data-slot="weapon"><span class="eqTag">武器</span></div>
-    <div class="eqSlot" data-slot="armor"><span class="eqTag">护甲</span></div>
-  </div>
+  <div class="bag-title">🎒 背包<span class="bag-close" id="bagClose">✕</span></div>
   <div id="bagGrid"></div>
-  <div class="bag-hint">左键：装备/使用 · 商人处右键出售 · B 键开关</div>
+  <div class="bag-hint">悬停详情 · 左键装备/使用 · 交易时右键出售 · 装备见 C · B 开关 · Esc 全关</div>
 </div>
+<div id="itemTip" aria-hidden="true"></div>
 <div id="talent">
   <div class="bag-title">✨ 天赋<span class="bag-close" id="talentClose">✕</span></div>
   <div class="tal-meta">
@@ -406,17 +533,20 @@
 <div class="hudPanel" id="charPanel">
   <div class="bag-title">👤 角色<span class="bag-close" id="charClose">✕</span></div>
   <div id="charBody"></div>
-  <div class="ph-hint">C 键开关 · 属性含等级 / 装备 / 天赋加成</div>
+  <div class="ph-hint">C 开关 · 点击槽位卸下 · 可与其他面板同开 · Esc 关闭全部</div>
 </div>
 <div class="hudPanel" id="spellPanel">
   <div class="bag-title">📖 法术书<span class="bag-close" id="spellClose">✕</span></div>
   <div id="spellBody"></div>
-  <div class="ph-hint">P 键开关 · 数值已含伤害加成与天赋冷却</div>
+  <div class="ph-hint">P 开关 · 可与角色面板同开 · 数值含装备与天赋</div>
 </div>
 <div class="hudPanel" id="questLog">
   <div class="bag-title">📜 任务日志<span class="bag-close" id="questLogClose">✕</span></div>
-  <div id="questLogBody"></div>
-  <div class="ph-hint">L 键开关 · 右上角为当前目标追踪</div>
+  <div id="questLogBody" class="ql-split">
+    <div class="ql-left" id="questLogList"></div>
+    <div class="ql-right" id="questLogDetail"></div>
+  </div>
+  <div class="ph-hint">L 开关 · 右上角锚点 · 可与其他面板同开</div>
 </div>
 <div class="hudPanel" id="deedsPanel">
   <div class="bag-title">🏅 功绩之书<span class="bag-close" id="deedsClose">✕</span></div>
@@ -434,6 +564,13 @@
 <button id="deedsBtn" title="功绩之书 (Shift+Z)">🏅</button>
 <button id="finderBtn" title="地下城查找器 (Shift+I)">🔍</button>
 <button id="interactBtn">💬 对 话（F）</button>
+<div id="vendorPanel">
+  <div class="bag-title"><span id="vendorTitle">🏕️ 商人</span><span class="bag-close" id="vendorClose">✕</span></div>
+  <div id="vendorGold"></div>
+  <div id="vendorQuests"></div>
+  <div id="vendorStock"></div>
+  <div class="ph-hint">点击购买 · 背包自动打开可右键出售 · 关背包结束交易</div>
+</div>
 <div id="dlg"><div class="dname">🐂 长老 · 岩蹄</div><div id="dlgText"></div><div id="dlgBtns"></div></div>
  
 <div class="overlay" id="startOv">

@@ -237,8 +237,6 @@ function closeTalentPanel(){$("#talent").style.display="none";}
 function toggleTalentPanel(){
   if(!S.started)return;
   if(talentOpen()){closeTalentPanel();return;}
-  if(typeof closeAllHudPanels==="function")closeAllHudPanels("talent");
-  else if(typeof bagOpen==="function"&&bagOpen())$("#bag").style.display="none";
   $("#talent").style.display="block";
   renderTalentPanel();
 }

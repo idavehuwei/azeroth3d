@@ -324,40 +324,60 @@ function tick(){
         elder.position.y=Math.sin(S.t*1.6)*.04;
         vendor.rotation.y=Math.PI*1.15+Math.sin(S.t*.7+1)*.08;
         vendor.position.y=Math.sin(S.t*1.5+2)*.04;
+        if(typeof hunter!=="undefined"&&hunter){
+          hunter.rotation.y=Math.PI*1.05+Math.sin(S.t*.75+1.5)*.08;
+          hunter.position.y=Math.sin(S.t*1.55+1)*.04;
+        }
         spiritHealer.rotation.y=Math.PI+Math.sin(S.t*.6)*.06;
         spiritHealer.position.y=Math.sin(S.t*1.4+1)*.05;
-        markerExcl.position.y=6.8+Math.sin(S.t*2.4)*.3;
+        markerExcl.position.y=((BAL.npc&&BAL.npc.markerY)||5.15)+Math.sin(S.t*2.4)*.25;
         markerQ.position.y=markerExcl.position.y;
         const nearR=BAL.economy.interactR;
         const nearCraft=typeof workbenchDist==="function"&&workbenchDist()<(BAL.professions.interactR||nearR);
         const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||nearR);
-        const nearNpc=S.p.alive&&(elderDist()<nearR||vendorDist()<nearR||spiritDist()<nearR||nearCraft||nearGather);
-        $("#interactBtn").style.display=(nearNpc&&$("#dlg").style.display!=="block")?"block":"none";
-        if(elderDist()>8&&vendorDist()>8&&spiritDist()>8&&!(nearCraft||nearGather))closeDialogue();
+        const nearNpc=S.p.alive&&(elderDist()<nearR||vendorDist()<nearR||spiritDist()<nearR
+          ||(typeof hunterDist==="function"&&hunterDist()<nearR)||nearCraft||nearGather);
+        const dlgOpen=$("#dlg").style.display==="block";
+        const vendOpen=$("#vendorPanel")&&$("#vendorPanel").style.display==="block";
+        $("#interactBtn").style.display=(nearNpc&&!dlgOpen&&!vendOpen)?"block":"none";
+        if(elderDist()>8&&vendorDist()>8&&spiritDist()>8
+          &&!(typeof hunterDist==="function"&&hunterDist()<=8)&&!(nearCraft||nearGather))closeDialogue();
       }else if(zid==="barrens"&&typeof crossroadsDist==="function"){
         if(crossroadsSentinel){
           crossroadsSentinel.rotation.y=Math.PI+Math.sin(S.t*.7)*.08;
           crossroadsSentinel.position.y=Math.sin(S.t*1.5)*.04;
         }
-        if(barrensMarkerExcl)barrensMarkerExcl.position.y=6.8+Math.sin(S.t*2.4)*.3;
-        if(barrensMarkerQ)barrensMarkerQ.position.y=barrensMarkerExcl?barrensMarkerExcl.position.y:6.8;
+        if(barrensMarkerExcl)barrensMarkerExcl.position.y=((BAL.npc&&BAL.npc.markerY)||5.15)+Math.sin(S.t*2.4)*.25;
+        if(barrensMarkerQ)barrensMarkerQ.position.y=barrensMarkerExcl?barrensMarkerExcl.position.y:((BAL.npc&&BAL.npc.markerY)||5.15);
         const nearR=BAL.economy.interactR;
         const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||nearR);
-        const nearNpc=S.p.alive&&(crossroadsDist()<nearR||barrensSpiritDist()<nearR||nearGather);
-        $("#interactBtn").style.display=(nearNpc&&$("#dlg").style.display!=="block")?"block":"none";
-        if(crossroadsDist()>8&&barrensSpiritDist()>8&&!nearGather)closeDialogue();
+        const nearNpc=S.p.alive&&(crossroadsDist()<nearR||barrensSpiritDist()<nearR
+          ||(typeof barrensVendorDist==="function"&&barrensVendorDist()<nearR)
+          ||(typeof barrensCookDist==="function"&&barrensCookDist()<nearR)||nearGather);
+        const dlgOpen=$("#dlg").style.display==="block";
+        const vendOpen=$("#vendorPanel")&&$("#vendorPanel").style.display==="block";
+        $("#interactBtn").style.display=(nearNpc&&!dlgOpen&&!vendOpen)?"block":"none";
+        if(crossroadsDist()>8&&barrensSpiritDist()>8
+          &&!(typeof barrensVendorDist==="function"&&barrensVendorDist()<=8)
+          &&!(typeof barrensCookDist==="function"&&barrensCookDist()<=8)&&!nearGather)closeDialogue();
       }else if(zid==="durotar"&&typeof ochreOutpostDist==="function"){
         if(ochreOutpost){
           ochreOutpost.rotation.y=Math.PI+Math.sin(S.t*.7)*.08;
           ochreOutpost.position.y=Math.sin(S.t*1.5)*.04;
         }
-        if(durotarMarkerExcl)durotarMarkerExcl.position.y=6.8+Math.sin(S.t*2.4)*.3;
-        if(durotarMarkerQ)durotarMarkerQ.position.y=durotarMarkerExcl?durotarMarkerExcl.position.y:6.8;
+        if(durotarMarkerExcl)durotarMarkerExcl.position.y=((BAL.npc&&BAL.npc.markerY)||5.15)+Math.sin(S.t*2.4)*.25;
+        if(durotarMarkerQ)durotarMarkerQ.position.y=durotarMarkerExcl?durotarMarkerExcl.position.y:((BAL.npc&&BAL.npc.markerY)||5.15);
         const nearR=BAL.economy.interactR;
         const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||nearR);
-        const nearNpc=S.p.alive&&(ochreOutpostDist()<nearR||durotarSpiritDist()<nearR||nearGather);
-        $("#interactBtn").style.display=(nearNpc&&$("#dlg").style.display!=="block")?"block":"none";
-        if(ochreOutpostDist()>8&&durotarSpiritDist()>8&&!nearGather)closeDialogue();
+        const nearNpc=S.p.alive&&(ochreOutpostDist()<nearR||durotarSpiritDist()<nearR
+          ||(typeof ochreVendorDist==="function"&&ochreVendorDist()<nearR)
+          ||(typeof ochreGuardDist==="function"&&ochreGuardDist()<nearR)||nearGather);
+        const dlgOpen=$("#dlg").style.display==="block";
+        const vendOpen=$("#vendorPanel")&&$("#vendorPanel").style.display==="block";
+        $("#interactBtn").style.display=(nearNpc&&!dlgOpen&&!vendOpen)?"block":"none";
+        if(ochreOutpostDist()>8&&durotarSpiritDist()>8
+          &&!(typeof ochreVendorDist==="function"&&ochreVendorDist()<=8)
+          &&!(typeof ochreGuardDist==="function"&&ochreGuardDist()<=8)&&!nearGather)closeDialogue();
       }
     }
     /* ---- 掉落动画 & 拾取按钮（世界/副本通用，STEP 2） ---- */
@@ -368,20 +388,28 @@ function tick(){
       ib.textContent="🚪 走进传送门";ib.style.display="block";
     }else{
       const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore";
+      const R=BAL.economy.interactR;
       const nearS=zid==="barrens"&&typeof barrensSpiritDist==="function"
-        ?barrensSpiritDist()<BAL.economy.interactR
+        ?barrensSpiritDist()<R
         :(zid==="durotar"&&typeof durotarSpiritDist==="function"
-          ?durotarSpiritDist()<BAL.economy.interactR
-          :spiritDist()<BAL.economy.interactR);
-      const nearV=zid==="barrens"||zid==="durotar"?false:vendorDist()<BAL.economy.interactR;
-      const nearC=(zid==="barrens"&&typeof crossroadsDist==="function"&&crossroadsDist()<BAL.economy.interactR)
-        ||(zid==="durotar"&&typeof ochreOutpostDist==="function"&&ochreOutpostDist()<BAL.economy.interactR);
+          ?durotarSpiritDist()<R
+          :spiritDist()<R);
+      const nearV=(zid==="mulgore"&&vendorDist()<R)
+        ||(zid==="barrens"&&typeof barrensVendorDist==="function"&&barrensVendorDist()<R)
+        ||(zid==="durotar"&&typeof ochreVendorDist==="function"&&ochreVendorDist()<R);
+      const nearC=(zid==="barrens"&&typeof crossroadsDist==="function"&&crossroadsDist()<R)
+        ||(zid==="durotar"&&typeof ochreOutpostDist==="function"&&ochreOutpostDist()<R)
+        ||(zid==="mulgore"&&typeof hunterDist==="function"&&hunterDist()<R)
+        ||(zid==="barrens"&&typeof barrensCookDist==="function"&&barrensCookDist()<R)
+        ||(zid==="durotar"&&typeof ochreGuardDist==="function"&&ochreGuardDist()<R)
+        ||(zid==="mulgore"&&elderDist()<R);
       const nearCraft=zid==="mulgore"&&typeof workbenchDist==="function"&&workbenchDist()<(BAL.professions.interactR||4);
       const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||4);
       ib.textContent=nearGather?(nearestGatherNode(BAL.professions.interactR).kind==="ore"?"⛏ 开采（F）":"🌿 采集（F）")
         :nearCraft?"🔨 制作（F）"
-        :nearS?"👻 灵魂医者（F）":nearC?"🗼 对话（F）":nearV?"🛒 交易（F）":"💬 对 话（F）";
+        :nearS?"👻 灵魂医者（F）":nearV?"🛒 交易（F）":nearC?"💬 对 话（F）":"💬 对 话（F）";
       if(S.mode!=="world"||!S.p.alive)ib.style.display="none";
+      if($("#vendorPanel")&&$("#vendorPanel").style.display==="block")ib.style.display="none";
     }
     /* ---- 玩家移动（魔兽默认：W/S 进退 · A/D 转向 · Q/E 平移；右键时 A/D 也变平移） ---- */
     const Cam=BAL.camera||{};
@@ -488,7 +516,7 @@ function tick(){
       S.p._prevFootSin=sFoot;
     }
     /* 萨弗拉斯之柄火焰摇曳（STEP 4：仅装备橙锤时遍历） */
-    if(S.eq.weapon==="sulfuras_haft")
+    if(S.eq.mainhand==="sulfuras_haft")
       player.traverse(o=>{if(o.userData.flame)o.scale.y=1+Math.sin(S.t*7+o.position.x*5)*.25;});
 
     /* ---- 自动普攻（战士近战 / 法师火球 / 弓箭手射箭） ---- */
@@ -500,7 +528,9 @@ function tick(){
         if(tgt){S.p.attackAnim=1;firePlayerShot(tgt,rand(CLS.autoMin,CLS.autoMax),null);did=true;}
       }else{
         if(S.mode==="world"){
+          const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore";
           for(const m of MOBS){
+            if((m.zoneId||"mulgore")!==zid)continue;
             if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<4.5){
               S.p.attackAnim=1;setCurrentTarget({type:"mob",m});mobDamage(m,rand(CLS.autoMin,CLS.autoMax));did=true;break;
             }
@@ -509,7 +539,7 @@ function tick(){
           S.p.attackAnim=1;setCurrentTarget({type:"boss"});dmgBoss(rand(CLS.autoMin,CLS.autoMax));did=true;
         }else{
           for(const a of S.adds){
-            if(player.position.distanceTo(a.mesh.position)<4.5){
+            if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<4.5){
               S.p.attackAnim=1;setCurrentTarget({type:"add",a});addDamage(a,rand(CLS.autoMin,CLS.autoMax));did=true;break;
             }
           }

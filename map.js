@@ -20,12 +20,13 @@ const MAP_ZONES={
     radius:()=>typeof WORLD_R==="number"?WORLD_R:176,
     /* 静态地标：世界 XZ → 标注（运行时优先读 live mesh） */
     landmarks:[
-      {id:"elder",  label:"长老",   x:6,  z:49, color:"#ffd9a0", kind:"npc"},
-      {id:"vendor", label:"商人",   x:-10,z:50, color:"#8aff9a", kind:"npc"},
-      {id:"spirit", label:"灵魂医者",x:0,  z:58, color:"#a8d8ff", kind:"npc"},
+      {id:"elder",  label:"长老",   x:8,  z:48, color:"#ffd9a0", kind:"npc"},
+      {id:"vendor", label:"商人",   x:-16,z:48, color:"#8aff9a", kind:"npc"},
+      {id:"hunter", label:"猎手",   x:18, z:54, color:"#d0e8a0", kind:"npc"},
+      {id:"spirit", label:"灵魂医者",x:0,  z:64, color:"#a8d8ff", kind:"npc"},
       {id:"portal", label:"熔火之心",x:0,  z:-168,color:"#ff8a4a", kind:"portal"},
       {id:"barrens",label:"贫瘠之地",x:0,  z:168, color:"#e8c898", kind:"portal"},
-      {id:"camp",   label:"营地",   x:0,  z:55, color:"#c9a06a", kind:"camp"},
+      {id:"camp",   label:"营地",   x:0,  z:52, color:"#c9a06a", kind:"camp"},
       {id:"lake",   label:"红石湖", x:-56,z:8,  color:"#7ab8ff", kind:"poi"},
     ],
     /* 稀有/精英：运行时由 getRareMapEntries 覆盖；此处为回退 */
@@ -56,7 +57,9 @@ const MAP_ZONES={
       {id:"portal_s",label:"哀嚎洞穴",x:0,z:160,color:"#8a9a6a",kind:"portal"},
       {id:"portal_e",label:"奥妮克希亚巢穴",x:172,z:8,color:"#e8a080",kind:"portal"},
       {id:"portal_w",label:"赭岩谷",x:-172,z:-18,color:"#ffb070",kind:"portal"},
-      {id:"spirit",label:"灵魂医者",x:-8,z:5,color:"#a8d8ff",kind:"npc"},
+      {id:"spirit",label:"灵魂医者",x:-12,z:10,color:"#a8d8ff",kind:"npc"},
+      {id:"barrens_vendor",label:"商人",x:-8,z:-8,color:"#8aff9a",kind:"npc"},
+      {id:"barrens_cook",label:"厨子",x:10,z:8,color:"#ffcf90",kind:"npc"},
       {id:"quilboar",label:"野猪人前哨",x:-64,z:-24,color:"#c4783a",kind:"camp"},
       {id:"centaur",label:"半人马营地",x:80,z:50,color:"#a87840",kind:"camp"},
     ],
@@ -79,7 +82,9 @@ const MAP_ZONES={
     landmarks:[
       {id:"ochre_outpost",label:"赭岩哨站",x:0,z:0,color:"#ffb070",kind:"camp"},
       {id:"portal_e",label:"贫瘠之地",x:164,z:0,color:"#e8c898",kind:"portal"},
-      {id:"spirit",label:"灵魂医者",x:0,z:6,color:"#a8d8ff",kind:"npc"},
+      {id:"spirit",label:"灵魂医者",x:-4,z:12,color:"#a8d8ff",kind:"npc"},
+      {id:"ochre_vendor",label:"商人",x:-8,z:-6,color:"#8aff9a",kind:"npc"},
+      {id:"ochre_guard",label:"卫士",x:10,z:6,color:"#ff9a70",kind:"npc"},
       {id:"scorp",label:"巨蝎谷",x:-56,z:-36,color:"#c87828",kind:"camp"},
       {id:"cliff",label:"崖风巢",x:76,z:-56,color:"#ff9a70",kind:"camp"},
     ],
@@ -146,6 +151,15 @@ function mapWorldToCanvas(x,z,size,pad,R){
 function liveLandmarkPos(lm){
   if(lm.id==="elder"&&typeof elder!=="undefined")return {x:elder.position.x,z:elder.position.z};
   if(lm.id==="vendor"&&typeof vendor!=="undefined")return {x:vendor.position.x,z:vendor.position.z};
+  if(lm.id==="hunter"&&typeof hunter!=="undefined")return {x:hunter.position.x,z:hunter.position.z};
+  if(lm.id==="barrens_vendor"&&typeof barrensVendor!=="undefined"&&barrensVendor)
+    return {x:barrensVendor.position.x,z:barrensVendor.position.z};
+  if(lm.id==="barrens_cook"&&typeof barrensCook!=="undefined"&&barrensCook)
+    return {x:barrensCook.position.x,z:barrensCook.position.z};
+  if(lm.id==="ochre_vendor"&&typeof ochreVendor!=="undefined"&&ochreVendor)
+    return {x:ochreVendor.position.x,z:ochreVendor.position.z};
+  if(lm.id==="ochre_guard"&&typeof ochreGuard!=="undefined"&&ochreGuard)
+    return {x:ochreGuard.position.x,z:ochreGuard.position.z};
   if(lm.id==="spirit"){
     if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="barrens"&&typeof barrensSpirit!=="undefined"&&barrensSpirit)
       return {x:barrensSpirit.position.x,z:barrensSpirit.position.z};
@@ -381,7 +395,6 @@ function toggleWorldMap(force){
   if(!ov)return;
   const open=force==null?!worldMapOpen():!!force;
   if(open){
-    if(typeof closeAllHudPanels==="function")closeAllHudPanels("map");
     ov.classList.add("show");
     drawWorldMap();
   }else{

@@ -20,7 +20,10 @@
    ============================================================ */
 "use strict";
 
-const SAVE_SLOTS=["weapon","armor"];
+const SAVE_SLOTS=typeof EQUIP_SLOTS!=="undefined"?EQUIP_SLOTS.slice():[
+  "head","neck","shoulder","back","chest",
+  "hands","legs","feet","finger","mainhand",
+];
 
 function normalizeSaveZoneId(z){
   if(z==="molten_core"||z==="raid")return "molten_core";
@@ -54,7 +57,7 @@ function collectSaveData(){
     hp:Math.round(S.p.hp),
     gold:S.p.gold|0,
     inv:S.inv.slice(),
-    eq:{weapon:S.eq.weapon||null,armor:S.eq.armor||null},
+    eq:(typeof normalizeEquipment==="function"?normalizeEquipment(S.eq):{...S.eq}),
     talents:{
       spent:{...(S.talents&&S.talents.spent||{})},
       bonusPoints:(S.talents&&S.talents.bonusPoints)|0,
@@ -93,12 +96,10 @@ function validateSave(raw){
     seen[id]=1; inv.push(id);
     if(inv.length>=BAL.bag.size)break;
   }
-  const eq={weapon:null,armor:null};
-  const rawEq=raw.eq&&typeof raw.eq==="object"?raw.eq:{};
-  for(const slot of SAVE_SLOTS){
-    const id=rawEq[slot];
-    if(typeof id==="string"&&ITEMS[id]&&ITEMS[id].slot===slot)eq[slot]=id;
-  }
+  const eq=typeof normalizeEquipment==="function"
+    ?normalizeEquipment(raw.eq)
+    :(()=>{const o={};for(const s of SAVE_SLOTS)o[s]=null;return o;})();
+  if(typeof reclaimUnequippedGear==="function")reclaimUnequippedGear(raw.eq,inv,eq);
   const spent={};
   const rawSpent=raw.talents&&typeof raw.talents.spent==="object"?raw.talents.spent:{};
   for(const id in rawSpent){
@@ -139,7 +140,11 @@ function validateSave(raw){
       if(!r||typeof r!=="object")continue;
       const status=["none","active","ready","done"].includes(r.status)?r.status:"none";
       if(status==="none")continue;
-      quests[id]={status,kills:Math.max(0,r.kills|0)};
+      const row={status,kills:Math.max(0,r.kills|0)};
+      if(r.flags&&typeof r.flags==="object")row.flags=r.flags;
+      if(typeof r.giver==="string"||r.giver===null)row.giver=r.giver;
+      if(typeof r.turnIn==="string"||r.turnIn===null)row.turnIn=r.turnIn;
+      quests[id]=row;
     }
   }
   let mats={};
@@ -270,7 +275,7 @@ function applySaveData(data){
   recomputeTalentMods();
 
   S.inv=data.inv.slice();
-  S.eq={weapon:null,armor:null};
+  S.eq=typeof emptyEquipment==="function"?emptyEquipment():{};
   if(typeof applyMatsSave==="function")applyMatsSave(data.mats);
   else S.mats={...(data.mats||{})};
   if(typeof applyDeedsSave==="function")applyDeedsSave(data.deeds);
@@ -282,7 +287,7 @@ function applySaveData(data){
     if(idx>=0)S.inv.splice(idx,1);
     S.eq[slot]=id;
     applyEquipStats(ITEMS[id],+1);
-    if(slot==="weapon")setWeapon(player,ITEMS[id].model||player.userData.defaultWeapon);
+    if(slot==="mainhand")setWeapon(player,ITEMS[id].model||player.userData.defaultWeapon);
   }
 
   S.p.gold=data.gold|0;
@@ -396,7 +401,7 @@ function beginNewGame(classKey){
   if(typeof resetMats==="function")resetMats({silent:true});
   else S.mats={};
   if(typeof resetDeeds==="function")resetDeeds({silent:true});
-  S.inv=[]; S.eq={weapon:null,armor:null};
+  S.inv=[]; S.eq=typeof emptyEquipment==="function"?emptyEquipment():{};
   S.p.gold=0; S.over=false; S.mode="world"; S.zoneId="mulgore";
   S.currentTarget=null;
   setClass(classKey||"warrior");

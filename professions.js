@@ -344,7 +344,6 @@ function tickGatherNodes(dt){
 function openCraftPanel(){
   S.vendorOpen=false;
   S.craftOpen=true;
-  if(typeof closeAllHudPanels==="function")closeAllHudPanels("bag");
   $("#dlg").style.display="block";
   refreshCraftPanel();
 }

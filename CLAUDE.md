@@ -27,7 +27,7 @@
 |------|------|------|
 | `core.js` | 基础设施 | BALANCE, SeededRng, srand, makeLabel, scene, camera, renderer |
 | `icons.js` | 图标画布工厂 | Icons.canvas, Icons.get |
-| `items.js` | 物品与掉落 | QUALITY, ITEMS, LOOT, dropLoot, tryLoot, useItem, sellItem |
+| `items.js` | 物品与掉落 | QUALITY, ITEMS, LOOT, EQUIP_SLOTS, dropLoot, tryLoot, useItem, sellItem, equipItem |
 | `models.js` | 3D 模型工厂 | buildPlayer…, buildHut/Tent/Fence/Watchtower, QUADS |
 | `anim.js` | 生物动画挂点 | updateMobAnim, beginDeathRoll, updateBossWingAnim |
 | `weather.js` | 天气层（render-only） | setWeather, updateWeather, clearWeather |

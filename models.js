@@ -3,10 +3,12 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（rand）
    [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS
-          buildQuadruped buildHumanoidMob buildCentaur QUADS MOB_HUMANOIDS（STEP 5/18 族群工厂）
+          buildQuadruped buildScorpion buildHumanoidMob buildCentaur QUADS MOB_HUMANOIDS（STEP 5/18 族群工厂）
           buildPlayer buildMage buildArcher buildPriest buildBoss buildOnyxia buildElder buildVendor buildSpiritHealer
+          tintNpcCloth
           buildBoar buildFlameSpawn
-          buildHut buildTent buildFence buildWatchtower BUILD_PAL placeProp（plan-v1 · V1-A1）
+          buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem buildMarketStall buildCratePile
+          BUILD_PAL placeProp（plan-v1 · V1-A1）
    ------------------------------------------------------------
     3D 模型库（全部程序化几何体，零模型文件）
    STEP 4：人形基座 buildHumanoid(config)——躯干/四肢/头/披风 + 动画挂点，
@@ -451,102 +453,292 @@ function buildFlameSpawn(){
    加新怪 = 一条配方（QUADS / MOB_HUMANOIDS）+ 一条数值，不改工厂本体
    ============================================================ */
 const QUADS={
-  /* 草原野猪（与原 buildBoar 外观一致） */
-  boar    :{fur:0x6a4a2e,furD:0x45311e,tusks:true,mane:true,ears:true,tail:'up'},
+  /* 草原野猪 */
+  boar    :{fur:0x6a4a2e,furD:0x45311e,accent:0x8a6040,tusks:true,mane:true,ears:true,tail:'up',style:"boar"},
   /* 草原狼：灰毛长吻，蓬尾 */
-  wolf    :{fur:0x7a7a82,furD:0x4a4a52,snoutLong:true,ears:true,mane:true,tail:'bushy'},
+  wolf    :{fur:0x7a7a82,furD:0x4a4a52,accent:0x9a9aa2,snoutLong:true,ears:true,mane:true,tail:'bushy',style:"wolf"},
   /* 陆行鸟：双足长颈，喙 + 冠羽 + 扇尾 */
-  bird    :{fur:0xd8b060,furD:0xa87830,legs:2,neck:1.1,beak:true,crest:true,tail:'plume'},
+  bird    :{fur:0xd8b060,furD:0xa87830,accent:0xf0d080,legs:2,neck:1.15,beak:true,crest:true,tail:'plume',style:"bird"},
   /* 老灰鬃野猪王：巨型灰鬃野猪（稀有精英） */
-  boarKing:{fur:0x8a8578,furD:0x55524a,tusks:true,tuskBig:true,mane:true,ears:true,tail:'up',size:2.15},
+  boarKing:{fur:0x8a8578,furD:0x55524a,accent:0xb0a898,tusks:true,tuskBig:true,mane:true,ears:true,tail:'up',size:2.15,style:"boar"},
   /* 玛格曼达：巨型熔岩猎犬（STEP 9c） */
-  magmadar:{fur:0x8a2208,furD:0x3a1008,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:5.1},
+  magmadar:{fur:0x8a2208,furD:0x3a1008,accent:0xff6020,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:5.1,style:"wolf",glow:0xff4400},
   /* —— STEP 18 贫瘠之地 —— */
-  zebra   :{fur:0xe8e0d0,furD:0x3a3028,ears:true,mane:true,tail:'bushy',size:1.05},
-  quilboar:{fur:0xc4783a,furD:0x8a5020,tusks:true,mane:true,ears:true,tail:'up',size:1.15,quills:true},
+  zebra   :{fur:0xe8e0d0,furD:0x2a2820,accent:0xf5f0e8,ears:true,mane:true,tail:'bushy',size:1.05,style:"zebra",stripes:true},
+  quilboar:{fur:0xc4783a,furD:0x8a5020,accent:0xe09850,tusks:true,mane:true,ears:true,tail:'up',size:1.15,quills:true,style:"boar"},
   /* —— V1-B1 赭岩谷 —— */
-  scorp   :{fur:0xc87828,furD:0x5a3010,tusks:true,ears:false,tail:'up',size:1.05,quills:true},
-  razorback:{fur:0x8a4020,furD:0x4a2010,tusks:true,tuskBig:true,mane:true,ears:true,tail:'up',size:1.35,quills:true},
+  scorp   :{fur:0xc87828,furD:0x5a3010,accent:0xe09040,size:1.1,style:"scorp",scorpion:true},
+  razorback:{fur:0x8a4020,furD:0x4a2010,accent:0xb05028,tusks:true,tuskBig:true,mane:true,ears:true,tail:'up',size:1.35,quills:true,style:"boar"},
   /* —— STEP 21 哀嚎洞穴 —— */
-  deviate :{fur:0x4a8a3a,furD:0x2a5a20,tusks:true,mane:true,ears:true,tail:'up',size:1.25,quills:true},
-  cobrahn :{fur:0x3a7a28,furD:0x1a4010,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:4.2},
-  verdan  :{fur:0x2a6a38,furD:0x143820,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:5.5},
+  deviate :{fur:0x4a8a3a,furD:0x2a5a20,accent:0x6ab050,tusks:true,mane:true,ears:true,tail:'up',size:1.25,quills:true,style:"boar"},
+  cobrahn :{fur:0x3a7a28,furD:0x1a4010,accent:0x55a040,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:4.2,style:"wolf"},
+  verdan  :{fur:0x2a6a38,furD:0x143820,accent:0x48a050,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:5.5,style:"wolf"},
 };
+
+function _quadMat(hex,opts){
+  opts=opts||{};
+  return new THREE.MeshStandardMaterial({
+    color:hex,roughness:opts.r!=null?opts.r:1,metalness:opts.mt||0,
+    flatShading:true,
+    emissive:opts.e||0x000000,emissiveIntensity:opts.ei||0,
+  });
+}
+
+/** 赭岩巨蝎：分段腹甲 + 钳 + 拱尾毒刺（独立造型） */
+function buildScorpion(cfg){
+  const c=Object.assign({size:1.1,fur:0xc87828,furD:0x5a3010,accent:0xe09040},cfg);
+  const g=new THREE.Group();
+  const shell=_quadMat(c.fur,{r:.75});
+  const dark=_quadMat(c.furD,{r:.85});
+  const tip=_quadMat(c.accent||0xe09040,{r:.55,mt:.15});
+  const claw=_quadMat(0xd0a060,{r:.5,mt:.2});
+  /* 头胸甲 */
+  const cephal=new THREE.Mesh(new THREE.BoxGeometry(1.15,.55,1.0),shell);
+  cephal.position.set(0,.85,.35); g.add(cephal);
+  const brow=new THREE.Mesh(new THREE.BoxGeometry(1.05,.22,.35),dark);
+  brow.position.set(0,1.15,.55); g.add(brow);
+  /* 复眼 */
+  [-1,1].forEach(s=>{
+    const eye=new THREE.Mesh(new THREE.SphereGeometry(.09,6,5),
+      _quadMat(0x1a0800,{e:0xff6020,ei:.55,r:.4}));
+    eye.position.set(s*.32,1.05,.82); g.add(eye);
+  });
+  /* 腹节 */
+  for(let i=0;i<4;i++){
+    const seg=new THREE.Mesh(new THREE.BoxGeometry(1.0-i*.08,.48-i*.03,.55),i%2?dark:shell);
+    seg.position.set(0,.8-i*.02,-.35-i*.48); g.add(seg);
+  }
+  /* 钳臂 */
+  [-1,1].forEach(s=>{
+    const arm=new THREE.Mesh(new THREE.CylinderGeometry(.1,.12,.7,6),dark);
+    arm.position.set(s*.7,.95,.55); arm.rotation.z=s*-1.05; arm.rotation.x=.35; g.add(arm);
+    const pincer=new THREE.Mesh(new THREE.BoxGeometry(.22,.18,.55),claw);
+    pincer.position.set(s*1.05,.75,1.05); g.add(pincer);
+    const dig=new THREE.Mesh(new THREE.ConeGeometry(.08,.28,5),tip);
+    dig.position.set(s*1.05,.72,1.38); dig.rotation.x=Math.PI/2; g.add(dig);
+  });
+  /* 八足 */
+  const legs=[];
+  for(let i=0;i<4;i++){
+    [-1,1].forEach(s=>{
+      const pivot=new THREE.Group();
+      const z=.4-i*.35, y=.55;
+      pivot.position.set(s*.55,y,z);
+      const upper=new THREE.Mesh(new THREE.CylinderGeometry(.07,.06,.45,5),dark);
+      upper.position.set(s*.2,-.1,0); upper.rotation.z=s*.9; pivot.add(upper);
+      const lower=new THREE.Mesh(new THREE.CylinderGeometry(.055,.04,.4,5),shell);
+      lower.position.set(s*.42,-.38,0); lower.rotation.z=s*.35; pivot.add(lower);
+      g.add(pivot); legs.push(pivot);
+    });
+  }
+  /* 拱尾 + 毒刺 */
+  const tailRoot=new THREE.Group();
+  tailRoot.position.set(0,1.0,-1.9);
+  const segs=[[.22,.35,0],[.18,.4,.25],[.15,.38,.55],[.12,.32,.8]];
+  segs.forEach((arr,i)=>{
+    const [r,h,y]=arr;
+    const sg=new THREE.Mesh(new THREE.SphereGeometry(r,7,5),i%2?dark:shell);
+    sg.position.set(0,y,-i*.05); tailRoot.add(sg);
+  });
+  const stinger=new THREE.Mesh(new THREE.ConeGeometry(.1,.45,6),tip);
+  stinger.position.set(0,1.15,.15); stinger.rotation.x=-2.4; tailRoot.add(stinger);
+  tailRoot.rotation.x=-.85; g.add(tailRoot);
+  g.scale.setScalar(c.size);
+  g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  g.userData={legs, kind:"quad",
+    anim:{state:"idle",walkPhase:0,attackAnim:0,deathRoll:0}};
+  return g;
+}
+
 function buildQuadruped(cfg){
   const c=Object.assign({size:1,legs:4,tusks:false,tuskBig:false,ears:true,mane:false,
-    neck:0,beak:false,crest:false,tail:'up',snoutLong:false,quills:false},cfg);
+    neck:0,beak:false,crest:false,tail:'up',snoutLong:false,quills:false,
+    accent:null,stripes:false,glow:null,scorpion:false,style:"boar"},cfg);
+  if(c.scorpion)return buildScorpion(c);
+
   const g=new THREE.Group();
-  const fur=new THREE.MeshStandardMaterial({color:c.fur,roughness:1});
-  const furD=new THREE.MeshStandardMaterial({color:c.furD,roughness:1});
-  const ivory=new THREE.MeshStandardMaterial({color:0xe8e0c8,roughness:.6});
-  /* 躯干 + 鬃毛脊 */
-  const body=new THREE.Mesh(new THREE.BoxGeometry(1.1,1,1.7),fur); body.position.y=1; g.add(body);
-  if(c.mane){const ridge=new THREE.Mesh(new THREE.BoxGeometry(.5,.3,1.5),furD); ridge.position.y=1.55; g.add(ridge);}
-  /* 头部：长颈（陆行鸟）或前置 */
-  let headY=1.05, headZ=1.15;
-  if(c.neck){
-    const neck=new THREE.Mesh(new THREE.CylinderGeometry(.16,.22,c.neck,6),fur);
-    neck.position.set(0,1.3+c.neck/2,1); neck.rotation.x=.15; g.add(neck);
-    headY=1.35+c.neck; headZ=1.25;
+  const fur=_quadMat(c.fur);
+  const furD=_quadMat(c.furD);
+  const accent=_quadMat(c.accent!=null?c.accent:c.fur,{r:.85});
+  const ivory=_quadMat(0xe8e0c8,{r:.45,mt:.08});
+  const dark=_quadMat(0x1a120c,{r:.9});
+  const eyeWhite=_quadMat(0xf0ead8,{r:.55});
+  const eyeIris=_quadMat(c.glow!=null?c.glow:0x2a1810,{
+    r:.4,e:c.glow!=null?c.glow:0x000000,ei:c.glow!=null?.45:0});
+
+  /* —— 分段躯干：胸 + 腹 + 臀 —— */
+  const chest=new THREE.Mesh(new THREE.BoxGeometry(1.15,1.05,1.0),fur);
+  chest.position.set(0,1.05,.35); g.add(chest);
+  const belly=new THREE.Mesh(new THREE.BoxGeometry(1.0,.85,1.0),furD);
+  belly.position.set(0,.95,-.35); g.add(belly);
+  const haunch=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.1,.7),fur);
+  haunch.position.set(0,1.05,-1.0); g.add(haunch);
+  /* 肚皮亮带 */
+  const under=new THREE.Mesh(new THREE.BoxGeometry(.7,.2,1.4),accent);
+  under.position.set(0,.52,-.15); g.add(under);
+  /* 肩胛 / 髋侧块 */
+  [-1,1].forEach(s=>{
+    const sh=new THREE.Mesh(new THREE.BoxGeometry(.28,.55,.55),furD);
+    sh.position.set(s*.62,1.25,.4); g.add(sh);
+    const hp=new THREE.Mesh(new THREE.BoxGeometry(.3,.5,.45),furD);
+    hp.position.set(s*.64,1.15,-.95); g.add(hp);
+  });
+  /* 斑马条纹 */
+  if(c.stripes){
+    for(let i=0;i<5;i++){
+      const stripe=new THREE.Mesh(new THREE.BoxGeometry(1.22,.08,.12),furD);
+      stripe.position.set(0,1.15+((i%2)*.15),.5-i*.35); g.add(stripe);
+    }
   }
-  const head=new THREE.Mesh(new THREE.BoxGeometry(.85,.8,.7),fur); head.position.set(0,headY,headZ); g.add(head);
-  /* 吻部 / 喙 */
+  /* 鬃毛脊：多片竖鬃 */
+  if(c.mane){
+    for(let i=0;i<6;i++){
+      const h=.28+((i%3)*.08);
+      const tuft=new THREE.Mesh(new THREE.ConeGeometry(.1,h,5),furD);
+      tuft.position.set(((i%2)*.08- .04),1.55+h*.35,.55-i*.28);
+      tuft.rotation.x=-.25-(i*.04); g.add(tuft);
+    }
+    if(c.style==="wolf"){
+      const ruff=new THREE.Mesh(new THREE.SphereGeometry(.42,7,5),furD);
+      ruff.position.set(0,1.25,.95); ruff.scale.set(1.1,.7,1); g.add(ruff);
+    }
+  }
+
+  /* —— 头 / 颈 —— */
+  let headY=1.15, headZ=1.2;
+  if(c.neck){
+    const neck=new THREE.Mesh(new THREE.CylinderGeometry(.18,.26,c.neck,7),fur);
+    neck.position.set(0,1.25+c.neck/2,.95); neck.rotation.x=.22; g.add(neck);
+    const nRing=new THREE.Mesh(new THREE.TorusGeometry(.22,.04,5,10),furD);
+    nRing.position.set(0,1.35+c.neck*.4,1.05); nRing.rotation.x=Math.PI/2; g.add(nRing);
+    headY=1.4+c.neck; headZ=1.28;
+  }
+  const head=new THREE.Mesh(new THREE.BoxGeometry(.78,.72,.72),fur);
+  head.position.set(0,headY,headZ); g.add(head);
+  /* 眉骨 */
+  const brow=new THREE.Mesh(new THREE.BoxGeometry(.82,.16,.28),furD);
+  brow.position.set(0,headY+.28,headZ+.2); g.add(brow);
+  /* 眼睛 */
+  [-1,1].forEach(s=>{
+    const socket=new THREE.Mesh(new THREE.SphereGeometry(.11,6,5),dark);
+    socket.position.set(s*.22,headY+.08,headZ+.38); g.add(socket);
+    const ball=new THREE.Mesh(new THREE.SphereGeometry(.08,6,5),eyeWhite);
+    ball.position.set(s*.22,headY+.08,headZ+.42); g.add(ball);
+    const iris=new THREE.Mesh(new THREE.SphereGeometry(.045,5,4),eyeIris);
+    iris.position.set(s*.22,headY+.08,headZ+.48); g.add(iris);
+  });
+  /* 吻 / 喙 */
   if(c.beak){
-    const beak=new THREE.Mesh(new THREE.ConeGeometry(.18,.55,5),ivory);
-    beak.position.set(0,headY-.05,headZ+.6); beak.rotation.x=Math.PI/2; g.add(beak);
+    const beak=new THREE.Mesh(new THREE.ConeGeometry(.16,.62,6),ivory);
+    beak.position.set(0,headY-.08,headZ+.72); beak.rotation.x=Math.PI/2; g.add(beak);
+    const beakTip=new THREE.Mesh(new THREE.ConeGeometry(.07,.22,5),furD);
+    beakTip.position.set(0,headY-.1,headZ+1.05); beakTip.rotation.x=Math.PI/2; g.add(beakTip);
   }else{
-    const snout=new THREE.Mesh(new THREE.BoxGeometry(.45,.4,c.snoutLong?.6:.35),furD);
-    snout.position.set(0,headY-.15,headZ+(c.snoutLong?.62:.5)); g.add(snout);
+    const snZ=c.snoutLong?.72:.48;
+    const snout=new THREE.Mesh(new THREE.BoxGeometry(.42,.36,snZ),furD);
+    snout.position.set(0,headY-.18,headZ+.42+snZ*.35); g.add(snout);
+    /* 鼻孔 */
+    [-1,1].forEach(s=>{
+      const nostril=new THREE.Mesh(new THREE.SphereGeometry(.045,5,4),dark);
+      nostril.position.set(s*.1,headY-.22,headZ+.42+snZ*.7); g.add(nostril);
+    });
+    if(c.style==="boar"){
+      const plate=new THREE.Mesh(new THREE.BoxGeometry(.5,.22,.2),accent);
+      plate.position.set(0,headY-.05,headZ+.55); g.add(plate);
+    }
   }
   /* 冠羽 */
-  if(c.crest)for(let i=0;i<3;i++){
-    const fe=new THREE.Mesh(new THREE.ConeGeometry(.08,.5,4),furD);
-    fe.position.set((i-1)*.14,headY+.55,headZ-.15); fe.rotation.x=-.4; g.add(fe);
+  if(c.crest){
+    for(let i=0;i<5;i++){
+      const fe=new THREE.Mesh(new THREE.ConeGeometry(.07,.55+i*.04,5),i%2?accent:furD);
+      fe.position.set((i-2)*.11,headY+.55,headZ-.1); fe.rotation.x=-.55; g.add(fe);
+    }
   }
+
   const legs=[];
   [-1,1].forEach(s=>{
+    /* 獠牙（弯弧两段） */
     if(c.tusks){
-      const tk=new THREE.Mesh(new THREE.ConeGeometry(c.tuskBig?.14:.09,c.tuskBig?.7:.45,5),ivory);
-      tk.position.set(s*.28,headY-.1,headZ+.47); tk.rotation.x=-.6; g.add(tk);
+      const big=!!c.tuskBig;
+      const base=new THREE.Mesh(new THREE.ConeGeometry(big?.13:.09,big?.4:.28,6),ivory);
+      base.position.set(s*.3,headY-.15,headZ+.5); base.rotation.x=-.85; base.rotation.z=s*.25; g.add(base);
+      const tip=new THREE.Mesh(new THREE.ConeGeometry(big?.08:.05,big?.38:.22,5),ivory);
+      tip.position.set(s*.38,headY-.35,headZ+.72); tip.rotation.x=-1.15; tip.rotation.z=s*.15; g.add(tip);
     }
+    /* 耳 */
     if(c.ears&&!c.beak){
-      const ear=new THREE.Mesh(new THREE.ConeGeometry(.16,.35,4),furD);
-      ear.position.set(s*.34,headY+.55,headZ-.1); g.add(ear);
+      const ear=new THREE.Mesh(new THREE.ConeGeometry(.14,.4,5),furD);
+      ear.position.set(s*.36,headY+.52,headZ-.08);
+      ear.rotation.z=s*-.35; ear.rotation.x=-.2; g.add(ear);
+      const inner=new THREE.Mesh(new THREE.ConeGeometry(.07,.22,4),accent);
+      inner.position.set(s*.36,headY+.48,headZ-.02); inner.rotation.z=s*-.35; g.add(inner);
     }
-    /* 腿：枢轴 Group（V1-A3 走/攻摆腿）· 四足两组 / 双足一组长腿 */
-    (c.legs===4?[[.42],[-.42]]:[[-.3]]).forEach(([dz])=>{
-      const legH=c.legs===2?1:.7;
+    /* 腿：大腿 + 小腿 + 蹄（枢轴仍在髋，供 anim.js） */
+    (c.legs===4?[[.48],[-.55]]:[[-.25]]).forEach(([dz],li)=>{
+      const legH=c.legs===2?1.05:.78;
       const pivot=new THREE.Group();
-      pivot.position.set(s*(c.legs===2?.25:.4),legH,dz);
-      const leg=new THREE.Mesh(new THREE.CylinderGeometry(.14,.12,legH,5),furD);
-      leg.position.y=-legH/2;
-      pivot.add(leg);
+      pivot.position.set(s*(c.legs===2?.22:.42),legH,dz);
+      const thigh=new THREE.Mesh(new THREE.CylinderGeometry(.16,.14,legH*.55,6),furD);
+      thigh.position.y=-legH*.22; pivot.add(thigh);
+      const shin=new THREE.Mesh(new THREE.CylinderGeometry(.12,.1,legH*.42,6),fur);
+      shin.position.y=-legH*.58; pivot.add(shin);
+      const hoof=new THREE.Mesh(new THREE.BoxGeometry(.18,.12,.22),c.beak?furD:dark);
+      hoof.position.set(0,-legH*.92,.04); pivot.add(hoof);
+      if(c.legs===2){
+        /* 陆行鸟趾爪 */
+        for(let t=0;t<3;t++){
+          const claw=new THREE.Mesh(new THREE.ConeGeometry(.035,.16,4),ivory);
+          claw.position.set((t-1)*.07,-legH*1.02,.14); claw.rotation.x=1.1; pivot.add(claw);
+        }
+      }
       g.add(pivot);
       legs.push(pivot);
     });
   });
-  /* 尾巴三式 */
+
+  /* —— 尾巴 —— */
   if(c.tail==='up'){
-    const tail=new THREE.Mesh(new THREE.CylinderGeometry(.05,.03,.5,4),furD);
-    tail.position.set(0,1.35,-.95); tail.rotation.x=.7; g.add(tail);
+    const t1=new THREE.Mesh(new THREE.CylinderGeometry(.07,.05,.35,5),furD);
+    t1.position.set(0,1.4,-1.35); t1.rotation.x=.55; g.add(t1);
+    const t2=new THREE.Mesh(new THREE.CylinderGeometry(.05,.03,.32,5),fur);
+    t2.position.set(0,1.65,-1.55); t2.rotation.x=.9; g.add(t2);
   }else if(c.tail==='bushy'){
-    const tail=new THREE.Mesh(new THREE.BoxGeometry(.2,.2,.65),furD);
-    tail.position.set(0,1.3,-1.05); tail.rotation.x=.5; g.add(tail);
+    const base=new THREE.Mesh(new THREE.CylinderGeometry(.08,.1,.35,6),furD);
+    base.position.set(0,1.25,-1.35); base.rotation.x=.6; g.add(base);
+    const bush=new THREE.Mesh(new THREE.SphereGeometry(.28,7,5),furD);
+    bush.position.set(0,1.45,-1.7); bush.scale.set(1,1,1.35); g.add(bush);
+    for(let i=0;i<4;i++){
+      const tip=new THREE.Mesh(new THREE.ConeGeometry(.06,.3,4),accent);
+      tip.position.set((i-1.5)*.08,1.55,-1.95); tip.rotation.x=1.1; g.add(tip);
+    }
   }else if(c.tail==='plume'){
-    for(let i=0;i<3;i++){
-      const fe=new THREE.Mesh(new THREE.ConeGeometry(.1,.6,4),furD);
-      fe.position.set((i-1)*.16,1.5,-.95); fe.rotation.x=-2.3; g.add(fe);
-    }
-  }
-  /* 野猪人背刺 */
-  if(c.quills){
     for(let i=0;i<5;i++){
-      const q=new THREE.Mesh(new THREE.ConeGeometry(.06,.55,4),furD);
-      q.position.set((i-2)*.12,1.75,.15-i*.08); q.rotation.x=-.55; g.add(q);
+      const fe=new THREE.Mesh(new THREE.ConeGeometry(.09,.7,5),i%2?accent:furD);
+      fe.position.set((i-2)*.14,1.55,-1.05); fe.rotation.x=-2.35; fe.rotation.z=(i-2)*.08; g.add(fe);
     }
   }
+
+  /* 背刺 / 刺脊 */
+  if(c.quills){
+    for(let i=0;i<8;i++){
+      const q=new THREE.Mesh(new THREE.ConeGeometry(.05,.5+((i%3)*.12),5),i%2?furD:accent);
+      q.position.set((i%2?1:-1)*(.08+(i%3)*.06),1.7+((i%2)*.08),.4-i*.18);
+      q.rotation.x=-.65-(i*.03); q.rotation.z=(i%2?.2:-.2); g.add(q);
+    }
+  }
+
+  /* 陆行鸟：小型翅褶 */
+  if(c.style==="bird"){
+    [-1,1].forEach(s=>{
+      const wing=new THREE.Mesh(new THREE.BoxGeometry(.15,.55,.9),furD);
+      wing.position.set(s*.62,1.2,.1); wing.rotation.z=s*.4; wing.rotation.x=.2; g.add(wing);
+      const fold=new THREE.Mesh(new THREE.BoxGeometry(.1,.35,.55),accent);
+      fold.position.set(s*.72,1.05,-.15); fold.rotation.z=s*.5; g.add(fold);
+    });
+  }
+
   g.scale.setScalar(c.size);
-  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
   g.userData={legs, kind:c.legs===2?"biped":"quad",
     anim:{state:"idle",walkPhase:0,attackAnim:0,deathRoll:0}};
   return g;
@@ -638,52 +830,123 @@ function buildHumanoidMob(cfg){
 /* 草原野猪：族群配方包装（外观与原 buildBoar 一致） */
 function buildBoar(){return buildQuadruped(QUADS.boar);}
 
-/* ---------------- 牛头人长老 NPC ---------------- */
+/* ---------------- 牛头人营地 NPC（缩小精致版；vendor/spirit/tint 共用） ---------------- */
 function buildElder(){
   const g=new THREE.Group();
-  const fur=new THREE.MeshStandardMaterial({color:0x6a4a30,roughness:1});
-  const furD=new THREE.MeshStandardMaterial({color:0x4a3220,roughness:1});
-  const cloth=new THREE.MeshStandardMaterial({color:0x8a4a2a,roughness:.9});
-  const hornM=new THREE.MeshStandardMaterial({color:0xe8e0c8,roughness:.6});
-  const wood=new THREE.MeshStandardMaterial({color:0x6a4520,roughness:.9});
-  const featherM=new THREE.MeshStandardMaterial({color:0xe8e4d0,roughness:.9});
-  const torso=new THREE.Mesh(new THREE.BoxGeometry(1.6,1.7,1.05),fur); torso.position.y=2.5; g.add(torso);
-  const mantle=new THREE.Mesh(new THREE.BoxGeometry(1.8,.5,1.2),cloth); mantle.position.y=3.2; g.add(mantle);
-  const loin=new THREE.Mesh(new THREE.BoxGeometry(1.25,1,.95),cloth); loin.position.y=1.3; g.add(loin);
+  const fur=new THREE.MeshStandardMaterial({color:0x6a4a30,roughness:.95,flatShading:true});
+  const furD=new THREE.MeshStandardMaterial({color:0x4a3220,roughness:.95,flatShading:true});
+  const cloth=new THREE.MeshStandardMaterial({color:0x8a4a2a,roughness:.88,flatShading:true});
+  const clothTrim=new THREE.MeshStandardMaterial({color:0xc9a06a,roughness:.55,metalness:.35,flatShading:true});
+  const hornM=new THREE.MeshStandardMaterial({color:0xe8e0c8,roughness:.45,metalness:.15});
+  const wood=new THREE.MeshStandardMaterial({color:0x6a4520,roughness:.9,flatShading:true});
+  const featherM=new THREE.MeshStandardMaterial({color:0xe8e4d0,roughness:.9,flatShading:true});
+  const eyeM=new THREE.MeshStandardMaterial({color:0x1a1208,roughness:.4,emissive:0xffaa40,emissiveIntensity:.15});
+  const noseM=new THREE.MeshStandardMaterial({color:0x3a2818,roughness:.85});
+
+  /* 躯干分段 */
+  const hips=new THREE.Mesh(new THREE.BoxGeometry(.95,.55,.7),furD);
+  hips.position.y=1.05; g.add(hips);
+  const torso=new THREE.Mesh(new THREE.BoxGeometry(1.05,1.15,.78),fur);
+  torso.position.y=1.85; g.add(torso);
+  const chest=new THREE.Mesh(new THREE.BoxGeometry(1.12,.45,.82),fur);
+  chest.position.y=2.45; g.add(chest);
+  /* 披肩 + 金边 */
+  const mantle=new THREE.Mesh(new THREE.BoxGeometry(1.28,.28,.9),cloth);
+  mantle.position.y=2.72; g.add(mantle);
+  const mantleTrim=new THREE.Mesh(new THREE.BoxGeometry(1.32,.06,.94),clothTrim);
+  mantleTrim.position.y=2.58; g.add(mantleTrim);
+  /* 腰布 + 腰带扣 */
+  const loin=new THREE.Mesh(new THREE.BoxGeometry(.88,.7,.68),cloth);
+  loin.position.y=1.15; g.add(loin);
+  const belt=new THREE.Mesh(new THREE.BoxGeometry(.95,.12,.74),clothTrim);
+  belt.position.y=1.42; g.add(belt);
+  const buckle=new THREE.Mesh(new THREE.BoxGeometry(.22,.16,.08),clothTrim);
+  buckle.position.set(0,1.42,.4); g.add(buckle);
+
   [-1,1].forEach(s=>{
-    const leg=new THREE.Mesh(new THREE.BoxGeometry(.5,.9,.55),furD);
-    leg.position.set(s*.4,.45,0); g.add(leg);
-    const arm=new THREE.Mesh(new THREE.BoxGeometry(.45,1.5,.5),fur);
-    arm.position.set(s*1.05,2.4,0); g.add(arm);
-    const horn=new THREE.Mesh(new THREE.ConeGeometry(.17,1,5),hornM);
-    horn.position.set(s*.85,4.45,0); horn.rotation.z=s*-1.1; g.add(horn);
+    /* 腿：大腿 + 小腿 + 蹄 */
+    const thigh=new THREE.Mesh(new THREE.BoxGeometry(.32,.48,.34),furD);
+    thigh.position.set(s*.28,.72,0); g.add(thigh);
+    const shin=new THREE.Mesh(new THREE.BoxGeometry(.28,.42,.3),furD);
+    shin.position.set(s*.28,.32,.02); g.add(shin);
+    const hoof=new THREE.Mesh(new THREE.BoxGeometry(.3,.14,.36),noseM);
+    hoof.position.set(s*.28,.07,.04); g.add(hoof);
+    /* 臂：上臂 + 前臂 + 手腕缠带 */
+    const uArm=new THREE.Mesh(new THREE.BoxGeometry(.28,.55,.28),fur);
+    uArm.position.set(s*.72,2.15,0); g.add(uArm);
+    const fArm=new THREE.Mesh(new THREE.BoxGeometry(.25,.5,.25),fur);
+    fArm.position.set(s*.78,1.65,.04); g.add(fArm);
+    const wrap=new THREE.Mesh(new THREE.BoxGeometry(.28,.12,.28),cloth);
+    wrap.position.set(s*.78,1.42,.04); g.add(wrap);
+    const hand=new THREE.Mesh(new THREE.BoxGeometry(.22,.2,.24),furD);
+    hand.position.set(s*.78,1.28,.06); g.add(hand);
+    /* 肩甲 */
+    const pad=new THREE.Mesh(new THREE.BoxGeometry(.38,.22,.42),cloth);
+    pad.position.set(s*.68,2.55,.02); g.add(pad);
+    /* 双节角 */
+    const hornBase=new THREE.Mesh(new THREE.ConeGeometry(.11,.55,6),hornM);
+    hornBase.position.set(s*.48,3.35,0); hornBase.rotation.z=s*-.95; g.add(hornBase);
+    const hornTip=new THREE.Mesh(new THREE.ConeGeometry(.06,.4,5),hornM);
+    hornTip.position.set(s*.78,3.7,-.02); hornTip.rotation.z=s*-1.15; g.add(hornTip);
+    /* 耳 */
+    const ear=new THREE.Mesh(new THREE.ConeGeometry(.08,.28,4),furD);
+    ear.position.set(s*.42,3.05,.05); ear.rotation.z=s*-.4; g.add(ear);
   });
-  const head=new THREE.Mesh(new THREE.BoxGeometry(.85,.85,.85),fur); head.position.y=4.15; g.add(head);
-  const snout=new THREE.Mesh(new THREE.BoxGeometry(.5,.45,.45),furD); snout.position.set(0,3.95,.55); g.add(snout);
-  const beads=new THREE.Mesh(new THREE.TorusGeometry(.55,.08,6,12),wood);
-  beads.position.y=3.35; beads.rotation.x=Math.PI/2.4; g.add(beads);
-  /* 图腾法杖 */
-  const staff=new THREE.Mesh(new THREE.CylinderGeometry(.09,.11,4.4,6),wood);
-  staff.position.set(1.4,2.2,.3); g.add(staff);
-  const topper=new THREE.Mesh(new THREE.TorusGeometry(.32,.07,6,10),wood);
-  topper.position.set(1.4,4.5,.3); g.add(topper);
+
+  /* 头 + 吻部 + 眼 */
+  const head=new THREE.Mesh(new THREE.BoxGeometry(.62,.58,.6),fur);
+  head.position.y=3.05; g.add(head);
+  const snout=new THREE.Mesh(new THREE.BoxGeometry(.38,.32,.36),furD);
+  snout.position.set(0,2.92,.4); g.add(snout);
+  const nose=new THREE.Mesh(new THREE.SphereGeometry(.08,6,5),noseM);
+  nose.position.set(0,2.95,.58); g.add(nose);
+  [-1,1].forEach(s=>{
+    const eye=new THREE.Mesh(new THREE.SphereGeometry(.055,6,5),eyeM);
+    eye.position.set(s*.16,3.12,.28); g.add(eye);
+  });
+  /* 胡须簇 */
   for(let i=0;i<3;i++){
-    const fe=new THREE.Mesh(new THREE.ConeGeometry(.07,.55,4),featherM);
-    fe.position.set(1.4+(i-1)*.18,3.9,.42); fe.rotation.x=Math.PI; g.add(fe);
+    const tuft=new THREE.Mesh(new THREE.ConeGeometry(.04,.22,4),furD);
+    tuft.position.set((i-1)*.08,2.72,.48); tuft.rotation.x=.55; g.add(tuft);
   }
-  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  /* 颈珠 */
+  const beads=new THREE.Mesh(new THREE.TorusGeometry(.38,.05,5,10),wood);
+  beads.position.y=2.78; beads.rotation.x=Math.PI/2.3; g.add(beads);
+
+  /* 图腾法杖（细杆 + 环 + 羽） */
+  const staff=new THREE.Mesh(new THREE.CylinderGeometry(.045,.055,3.1,6),wood);
+  staff.position.set(.95,1.7,.22); g.add(staff);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.2,.04,5,10),clothTrim);
+  ring.position.set(.95,3.35,.22); g.add(ring);
+  const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(.12,0),clothTrim);
+  crystal.position.set(.95,3.55,.22); g.add(crystal);
+  for(let i=0;i<3;i++){
+    const fe=new THREE.Mesh(new THREE.ConeGeometry(.045,.38,4),featherM);
+    fe.position.set(.95+(i-1)*.12,2.95,.32); fe.rotation.x=Math.PI; g.add(fe);
+  }
+
+  /* 略小于玩家，整体更精巧 */
+  const sc=(typeof BAL!=="undefined"&&BAL.npc&&BAL.npc.scale!=null)?BAL.npc.scale:.72;
+  g.scale.setScalar(sc);
+  g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  g.userData.npc=true;
+  g.userData.npcScale=sc;
   return g;
 }
-/* 营地商人：复用长老骨架，布料改青绿 */
-function buildVendor(){
-  const g=buildElder();
+/* 营地 NPC 布料改色（复用长老骨架；只改披风/腰布色，金边与毛皮不动） */
+function tintNpcCloth(g,clothHex){
+  if(!g)return g;
   g.traverse(o=>{
     if(!o.isMesh||!o.material||!o.material.color)return;
     o.material=o.material.clone();
     const h=o.material.color.getHex();
-    if(h===0x8a4a2a)o.material.color.setHex(0x2a6a4a);
+    if(h===0x8a4a2a||h===0x2a6a4a)o.material.color.setHex(clothHex);
   });
   return g;
+}
+/* 营地商人：复用长老骨架，布料改青绿 */
+function buildVendor(){
+  return tintNpcCloth(buildElder(),0x2a6a4a);
 }
 /* 灵魂医者（STEP 15）：苍白布料 + 微光 */
 function buildSpiritHealer(){
@@ -825,6 +1088,103 @@ function buildWatchtower(cfg){
   g.scale.setScalar(c.size);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   g.userData.building="watchtower";
+  return g;
+}
+
+/** 营火：石圈 + 火苗 + 点光；调用方把 fl/li 推进 flames 数组 */
+function buildCampfire(cfg){
+  const c=Object.assign({
+    stone:0x6a5040, flame:0xffa030, light:0xff8a30,
+    r:1.1, intensity:1.4, dist:20, size:1,
+  },cfg||{});
+  const g=new THREE.Group();
+  const stoneM=new THREE.MeshStandardMaterial({color:c.stone,roughness:1,flatShading:true});
+  for(let k=0;k<6;k++){
+    const a=k/6*Math.PI*2;
+    const st=new THREE.Mesh(new THREE.DodecahedronGeometry(.38,0),stoneM);
+    st.position.set(Math.cos(a)*c.r,.28,Math.sin(a)*c.r); g.add(st);
+  }
+  const fl=new THREE.Mesh(new THREE.ConeGeometry(.65,1.6,7),
+    new THREE.MeshBasicMaterial({color:c.flame,transparent:true,opacity:.9}));
+  fl.position.y=1.0; g.add(fl);
+  const li=new THREE.PointLight(c.light,c.intensity,c.dist,1.8);
+  li.position.y=2.0; g.add(li);
+  g.scale.setScalar(c.size);
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  g.userData.building="campfire";
+  g.userData.flame={fl,li};
+  return g;
+}
+
+/** 图腾柱：木柱 + 色环 + 横翼 */
+function buildTotem(cfg){
+  const c=Object.assign({
+    wood:0x5a3820, paintA:0xd94f2a, paintB:0x3a7ac9, h:7.2, size:1,
+  },cfg||{});
+  const g=new THREE.Group();
+  const wood=new THREE.MeshStandardMaterial({color:c.wood,roughness:.9,flatShading:true});
+  const aM=new THREE.MeshStandardMaterial({color:c.paintA,roughness:.8});
+  const bM=new THREE.MeshStandardMaterial({color:c.paintB,roughness:.8});
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.48,.6,c.h,7),wood);
+  pole.position.y=c.h/2; g.add(pole);
+  [[c.h*.28,aM],[c.h*.5,bM],[c.h*.72,aM]].forEach(([y,m])=>{
+    const ring=new THREE.Mesh(new THREE.CylinderGeometry(.68,.68,.5,7),m);
+    ring.position.y=y; g.add(ring);
+  });
+  const wing=new THREE.Mesh(new THREE.BoxGeometry(3.2,.5,.22),bM);
+  wing.position.y=c.h*.95; g.add(wing);
+  g.scale.setScalar(c.size);
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  g.userData.building="totem";
+  return g;
+}
+
+/** 市集摊位：木台 + 棚顶 */
+function buildMarketStall(cfg){
+  const c=Object.assign({
+    wood:BUILD_PAL.mulgore.wood, woodD:BUILD_PAL.mulgore.woodD,
+    cloth:0x2a6a4a, w:3.6, d:2.2, size:1,
+  },cfg||{});
+  const g=new THREE.Group();
+  const wood=new THREE.MeshStandardMaterial({color:c.wood,roughness:.92,flatShading:true});
+  const woodD=new THREE.MeshStandardMaterial({color:c.woodD,roughness:.95,flatShading:true});
+  const cloth=new THREE.MeshStandardMaterial({color:c.cloth,roughness:.9,flatShading:true});
+  const table=new THREE.Mesh(new THREE.BoxGeometry(c.w,.25,c.d),wood);
+  table.position.y=1.05; g.add(table);
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{
+    const leg=new THREE.Mesh(new THREE.BoxGeometry(.18,1.05,.18),woodD);
+    leg.position.set(sx*(c.w/2-.2),.525,sz*(c.d/2-.2)); g.add(leg);
+  });
+  [[-1],[1]].forEach(([sx])=>{
+    const post=new THREE.Mesh(new THREE.CylinderGeometry(.08,.1,2.6,5),woodD);
+    post.position.set(sx*(c.w/2-.15),2.3,-c.d/2+.1); g.add(post);
+  });
+  const roof=new THREE.Mesh(new THREE.BoxGeometry(c.w+.4,.12,c.d+.6),cloth);
+  roof.position.set(0,3.55,-.1); roof.rotation.x=-.28; g.add(roof);
+  g.scale.setScalar(c.size);
+  g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  g.userData.building="stall";
+  return g;
+}
+
+/** 货箱堆 */
+function buildCratePile(cfg){
+  const c=Object.assign({
+    wood:0x7a5a30, woodD:0x4a3020, size:1,
+  },cfg||{});
+  const g=new THREE.Group();
+  const wood=new THREE.MeshStandardMaterial({color:c.wood,roughness:.9,flatShading:true});
+  const woodD=new THREE.MeshStandardMaterial({color:c.woodD,roughness:.95,flatShading:true});
+  const boxes=[[0,.45,0,1.1],[.9,.45,.2,1],[ -.7,.45,.35,.95],[.2,1.25,.1,.9]];
+  boxes.forEach(([x,y,z,s])=>{
+    const b=new THREE.Mesh(new THREE.BoxGeometry(s,s*.85,s*.9),wood);
+    b.position.set(x,y,z); g.add(b);
+    const band=new THREE.Mesh(new THREE.BoxGeometry(s*1.02,.08,s*.92),woodD);
+    band.position.set(x,y,z); g.add(band);
+  });
+  g.scale.setScalar(c.size);
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  g.userData.building="crates";
   return g;
 }
 

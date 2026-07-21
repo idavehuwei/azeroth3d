@@ -4,9 +4,10 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ srand worldRng BAL makeLabel setZoneSeed）
           zones.js（registerZone）
-          models.js（buildQuadruped buildCentaur buildVendor buildSpiritHealer QUADS
-            buildHut buildTent buildFence buildWatchtower BUILD_PAL placeProp）
-          world.js（spawnMob MOBS）
+          models.js（buildQuadruped buildCentaur buildVendor buildSpiritHealer buildElder tintNpcCloth QUADS
+            buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem
+            buildMarketStall buildCratePile BUILD_PAL placeProp）
+          world.js（spawnMob MOBS pickNearestNpc appendNpcQuestButtons openVendor closeVendorPanel）
           combat.js 运行时（S log announce）
           quests.js 运行时（acceptQuest turnInQuest questsForNpc）
           professions.js 运行时（spawnGatherNodesForZone）
@@ -15,7 +16,7 @@
    [导出] sceneBarrens BARRENS_R BARRENS_QUEST BARRENS_PORTAL_N BARRENS_PORTAL_S BARRENS_PORTAL_E BARRENS_PORTAL_W
           barrensHeli barrensSun barrensFlames
           buildBarrensZone onBarrensQuestKill tryInteractBarrens
-          updateBarrensMarkers crossroadsDist barrensSpiritDist
+          updateBarrensMarkers crossroadsDist barrensSpiritDist barrensVendorDist barrensCookDist
    ============================================================ */
 "use strict";
 
@@ -34,6 +35,8 @@ let barrensHeli=null,barrensSun=null;
 const barrensFlames=[];
 let crossroadsSentinel=null,crossroadsLabel=null;
 let barrensSpirit=null,barrensSpiritLabel=null;
+let barrensVendor=null,barrensVendorLabel=null;
+let barrensCook=null,barrensCookLabel=null;
 let barrensMarkerExcl=null,barrensMarkerQ=null;
 let barrensPortalUni=null;
 
@@ -109,16 +112,27 @@ function buildBarrensZone(scn){
     barrensFlames.push({fl,li});
   });
 
-  /* 十字路口：瞭望塔 + 木屋街区（V1-A1） */
-  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1}),0,0,0);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),-11,7,.4);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:.95}),13,5,-.55);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:0x9a6840,w:3.8,d:3.4,size:.9}),-9,-11,Math.PI*.65);
-  placeProp(root,buildTent({hide:P.hide,stake:P.stake,r:2.6,h:3.6,size:.95}),9,-9,.3);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:.85}),14,-6,Math.PI*1.1);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:10,posts:6}),-16,2,Math.PI/2);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:8,posts:5}),4,-14,0);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:9,posts:6}),16,1,-Math.PI/2);
+  /* 十字路口：扩大街区 · 市集 · 双塔 · 围栏 */
+  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1.05}),0,0,0);
+  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.75}),-18,-8,.4);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.05}),-14,9,.4);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),16,7,-.55);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:0x9a6840,w:3.8,d:3.4,size:.95}),-12,-14,Math.PI*.65);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:.9}),18,-8,Math.PI*1.1);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,w:3.2,d:2.8,size:.85}),8,14,-.2);
+  placeProp(root,buildTent({hide:P.hide,stake:P.stake,r:2.8,h:3.8,size:1}),12,-12,.3);
+  placeProp(root,buildTent({hide:0xa87840,stake:P.stake,r:2.5,h:3.4,size:.95}),-8,14,.6);
+  placeProp(root,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x8a6030,size:1}),-6,-6,Math.PI*.2);
+  placeProp(root,buildCratePile({wood:P.wood,woodD:P.woodD,size:1.05}),-4,-9,.3);
+  placeProp(root,buildTotem({wood:P.woodD,paintA:0xc04020,paintB:0xa87840,size:.8}),10,4,0);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:14,posts:8}),-20,4,Math.PI/2);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:12,posts:7}),6,-18,0);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:12,posts:7}),20,2,-Math.PI/2);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:10,posts:6}),-4,18,Math.PI);
+  const bcf=placeProp(root,buildCampfire({flame:0xffa040,light:0xff8a30,size:1}),4,4,0);
+  if(bcf&&bcf.userData.flame)barrensFlames.push(bcf.userData.flame);
+  const bcf2=placeProp(root,buildCampfire({flame:0xff9030,light:0xff7020,size:.8}),-10,-4,0);
+  if(bcf2&&bcf2.userData.flame)barrensFlames.push(bcf2.userData.flame);
 
   const gateMat=new THREE.MeshStandardMaterial({color:0x5a4028,roughness:.9,flatShading:true,
     emissive:0x4a6a30,emissiveIntensity:.15});
@@ -238,29 +252,38 @@ function buildBarrensZone(scn){
   const wLab2=makeLabel(`需要 Lv.${BAL.barrens.durotarMinLevel||12}+`,6,"#ff9060","rgba(90,40,15,.9)");
   wLab2.position.set(BARRENS_PORTAL_W.x,10.4,BARRENS_PORTAL_W.z); root.add(wLab2);
 
-  crossroadsSentinel=buildVendor();
-  crossroadsSentinel.traverse(o=>{
-    if(!o.isMesh||!o.material||!o.material.color)return;
-    o.material=o.material.clone();
-    const h=o.material.color.getHex();
-    if(h===0x2a6a4a||h===0x8a4a2a)o.material.color.setHex(0x6a5030);
-  });
+  const _npcLy=(BAL.npc&&BAL.npc.labelY)||4.05, _npcMy=(BAL.npc&&BAL.npc.markerY)||5.15, _npcLw=(BAL.npc&&BAL.npc.labelW)||6.2;
+  crossroadsSentinel=tintNpcCloth(buildVendor(),0x6a5030);
   crossroadsSentinel.position.set(2,0,-2); crossroadsSentinel.rotation.y=Math.PI;
   root.add(crossroadsSentinel);
-  crossroadsLabel=makeNameplate("哨兵 · 碎牙",BAL.npcLevel.crossroads,{w:7,friendly:true,color:"#e8c898"});
-  crossroadsLabel.position.set(2,5.6,-2); root.add(crossroadsLabel);
+  crossroadsLabel=makeNameplate("哨兵 · 碎牙",BAL.npcLevel.crossroads,{w:_npcLw,friendly:true,color:"#e8c898"});
+  crossroadsLabel.position.set(2,_npcLy,-2); root.add(crossroadsLabel);
   updateNameplateHp(crossroadsLabel,1,1);
 
+  barrensVendor=buildVendor();
+  barrensVendor.position.set(-8,0,-8); barrensVendor.rotation.y=Math.PI*.4;
+  root.add(barrensVendor);
+  barrensVendorLabel=makeNameplate("商人 · 旱蹄",BAL.npcLevel.barrens_vendor,{w:_npcLw,friendly:true,color:"#a8e8c0"});
+  barrensVendorLabel.position.set(-8,_npcLy,-8); root.add(barrensVendorLabel);
+  updateNameplateHp(barrensVendorLabel,1,1);
+
+  barrensCook=tintNpcCloth(buildElder(),0xa86830);
+  barrensCook.position.set(10,0,8); barrensCook.rotation.y=Math.PI*1.2;
+  root.add(barrensCook);
+  barrensCookLabel=makeNameplate("厨子 · 尘粮",BAL.npcLevel.cook,{w:_npcLw,friendly:true,color:"#ffcf90"});
+  barrensCookLabel.position.set(10,_npcLy,8); root.add(barrensCookLabel);
+  updateNameplateHp(barrensCookLabel,1,1);
+
   barrensSpirit=buildSpiritHealer();
-  barrensSpirit.position.set(-8,0,5); barrensSpirit.rotation.y=Math.PI*.6;
+  barrensSpirit.position.set(-12,0,10); barrensSpirit.rotation.y=Math.PI*.6;
   root.add(barrensSpirit);
-  barrensSpiritLabel=makeNameplate("灵魂医者 · 尘语",BAL.npcLevel.spirit,{w:7.2,friendly:true,color:"#c8e8ff",glow:"rgba(80,160,255,.95)"});
-  barrensSpiritLabel.position.set(-8,5.6,5); root.add(barrensSpiritLabel);
+  barrensSpiritLabel=makeNameplate("灵魂医者 · 尘语",BAL.npcLevel.spirit,{w:_npcLw+.2,friendly:true,color:"#c8e8ff",glow:"rgba(80,160,255,.95)"});
+  barrensSpiritLabel.position.set(-12,_npcLy,10); root.add(barrensSpiritLabel);
   updateNameplateHp(barrensSpiritLabel,1,1);
 
-  barrensMarkerExcl=makeLabel("❗",3.2,"#ffd76a","rgba(255,160,0,.95)");
-  barrensMarkerExcl.position.set(2,6.8,-2); root.add(barrensMarkerExcl);
-  barrensMarkerQ=makeLabel("❓",3.2,"#ffd76a","rgba(255,160,0,.95)");
+  barrensMarkerExcl=makeLabel("❗",2.8,"#ffd76a","rgba(255,160,0,.95)");
+  barrensMarkerExcl.position.set(2,_npcMy,-2); root.add(barrensMarkerExcl);
+  barrensMarkerQ=makeLabel("❓",2.8,"#ffd76a","rgba(255,160,0,.95)");
   barrensMarkerQ.position.copy(barrensMarkerExcl.position); barrensMarkerQ.visible=false; root.add(barrensMarkerQ);
 
   [[-64,-24],[-56,-36],[-72,-16],[-60,-44],[-80,-28],[-48,-20]].forEach(([x,z])=>{
@@ -292,6 +315,11 @@ function buildBarrensZone(scn){
 
 function updateBarrensMarkers(){
   if(!barrensMarkerExcl)return;
+  if(typeof npcHasQuestOffer==="function"){
+    barrensMarkerExcl.visible=npcHasQuestOffer("crossroads");
+    barrensMarkerQ.visible=npcHasQuestTurnIn("crossroads");
+    return;
+  }
   if(typeof questStatus==="function"){
     barrensMarkerExcl.visible=questStatus("crossroads_trouble")==="none";
     barrensMarkerQ.visible=questStatus("crossroads_trouble")==="ready";
@@ -309,6 +337,14 @@ function barrensSpiritDist(){
   if(!barrensSpirit)return 999;
   return Math.hypot(player.position.x-barrensSpirit.position.x,player.position.z-barrensSpirit.position.z);
 }
+function barrensVendorDist(){
+  if(!barrensVendor)return 999;
+  return Math.hypot(player.position.x-barrensVendor.position.x,player.position.z-barrensVendor.position.z);
+}
+function barrensCookDist(){
+  if(!barrensCook)return 999;
+  return Math.hypot(player.position.x-barrensCook.position.x,player.position.z-barrensCook.position.z);
+}
 
 /* 击杀计数已由 quests.onQuestMobKill 统一处理；此处仅刷新标记 */
 function onBarrensQuestKill(m){
@@ -316,14 +352,17 @@ function onBarrensQuestKill(m){
 }
 
 function tryInteractBarrens(){
-  const R=BAL.economy.interactR;
-  const dS=barrensSpiritDist(), dC=crossroadsDist();
-  if(dS<R&&dS<=dC){openBarrensSpiritDialogue();return;}
-  if(dC<R)openBarrensDialogue();
+  const near=pickNearestNpc([
+    {mesh:barrensSpirit,open:openBarrensSpiritDialogue},
+    {mesh:crossroadsSentinel,open:openBarrensDialogue},
+    {mesh:barrensVendor,open:()=>openVendor("barrens_vendor","🏕️ 商人 · 旱蹄")},
+    {mesh:barrensCook,open:openBarrensCookDialogue},
+  ]);
+  if(near)near.open();
 }
 
 function openBarrensSpiritDialogue(){
-  S.vendorOpen=false;
+  closeVendorPanel();
   const dlg=$("#dlg"),tx=$("#dlgText"),bts=$("#dlgBtns");
   const nameEl=$("#dlg .dname");
   if(nameEl)nameEl.textContent="👻 灵魂医者 · 尘语";
@@ -333,8 +372,21 @@ function openBarrensSpiritDialogue(){
   b.className="dbtn";b.textContent="感谢您，医者";b.onclick=closeDialogue;bts.appendChild(b);
 }
 
+function openBarrensCookDialogue(){
+  closeVendorPanel();
+  const dlg=$("#dlg"),tx=$("#dlgText"),bts=$("#dlgBtns");
+  const nameEl=$("#dlg .dname");
+  if(nameEl)nameEl.textContent="🍲 厨子 · 尘粮";
+  dlg.style.display="block"; bts.innerHTML="";
+  const btn=(t,fn)=>{const b=document.createElement("button");
+    b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
+  tx.textContent="锅还空着。斑马肉、尘羽、军需箱——补给线靠你了。";
+  appendNpcQuestButtons("barrens_cook",btn);
+  btn("离开",closeDialogue);
+}
+
 function openBarrensDialogue(){
-  S.vendorOpen=false;
+  closeVendorPanel();
   const dlg=$("#dlg"),tx=$("#dlgText"),bts=$("#dlgBtns");
   const nameEl=$("#dlg .dname");
   if(nameEl)nameEl.textContent="🗼 哨兵 · 碎牙";
@@ -358,16 +410,10 @@ function openBarrensDialogue(){
     const k=questProgress("crossroads_trouble").kills|0;
     tx.textContent=`野猪人仍在西边前哨游荡（${k}/${need}）。干完活再来找我。`;
   }else{
-    tx.textContent="十字路口永远欢迎英雄。留意南方绿色旋涡——哀嚎洞穴的入口就在那里（Lv15+）。";
+    tx.textContent="十字路口永远欢迎英雄。军需找尘粮，买卖找旱蹄；南方绿色旋涡是哀嚎洞穴（Lv15+）。";
   }
 
-  if(typeof questsForNpc==="function"){
-    for(const q of questsForNpc("crossroads")){
-      if(q.id==="crossroads_trouble")continue;
-      if(canTurnInQuest(q.id))btn(`✦ 交任务：${q.title}`,()=>{turnInQuest(q.id);closeDialogue();});
-      else if(canAcceptQuest(q.id))btn(`✦ 接受：${q.title}`,()=>{acceptQuest(q.id);closeDialogue();});
-    }
-  }
+  appendNpcQuestButtons("crossroads",btn,null,["crossroads_trouble"]);
   btn("离开",closeDialogue);
 }
 

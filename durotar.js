@@ -4,9 +4,10 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ srand worldRng BAL makeLabel）
           zones.js（registerZone）
-          models.js（buildQuadruped buildHumanoidMob buildVendor buildSpiritHealer
-            buildHut buildTent buildFence buildWatchtower BUILD_PAL placeProp）
-          world.js（spawnMob MOBS）
+          models.js（buildQuadruped buildHumanoidMob buildVendor buildSpiritHealer buildElder tintNpcCloth
+            buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem
+            buildMarketStall buildCratePile BUILD_PAL placeProp）
+          world.js（spawnMob MOBS pickNearestNpc appendNpcQuestButtons openVendor closeVendorPanel）
           combat.js 运行时（S log announce）
           quests.js 运行时（acceptQuest turnInQuest questsForNpc）
           professions.js 运行时（spawnGatherNodesForZone）
@@ -15,7 +16,7 @@
    [导出] sceneDurotar DUROTAR_R DUROTAR_PORTAL_E
           durotarHeli durotarSun durotarFlames
           buildDurotarZone tryInteractDurotar
-          updateDurotarMarkers ochreOutpostDist durotarSpiritDist
+          updateDurotarMarkers ochreOutpostDist durotarSpiritDist ochreVendorDist ochreGuardDist
    ============================================================ */
 "use strict";
 
@@ -28,6 +29,8 @@ let durotarHeli=null,durotarSun=null;
 const durotarFlames=[];
 let ochreOutpost=null,ochreOutpostLabel=null;
 let durotarSpirit=null,durotarSpiritLabel=null;
+let ochreVendor=null,ochreVendorLabel=null;
+let ochreGuard=null,ochreGuardLabel=null;
 let durotarMarkerExcl=null,durotarMarkerQ=null;
 let durotarPortalUni=null;
 
@@ -72,23 +75,29 @@ function buildDurotarZone(scn){
   }
 
   const P=BUILD_PAL.durotar;
-  /* 赭岩哨站：瞭望塔 + 木屋 + 围栏 */
-  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1}),0,0,0);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),-10,6,.35);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:.95}),11,4,-.5);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:0x9a5030,size:.9}),-8,-10,Math.PI*.7);
-  placeProp(root,buildTent({hide:P.hide,stake:P.stake,r:2.8,h:3.8,size:1}),9,-8,.2);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:9,posts:5}),-14,1,Math.PI/2);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:8,posts:5}),5,-13,0);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:8,posts:5}),14,0,-Math.PI/2);
+  /* 赭岩哨站：扩大 · 市集 · 双塔 · 围栏 */
+  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1.05}),0,0,0);
+  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.72}),14,-10,-.4);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.05}),-12,8,.35);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),14,6,-.5);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:0x9a5030,size:.95}),-10,-12,Math.PI*.7);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,w:3.2,d:2.8,size:.85}),8,12,.2);
+  placeProp(root,buildTent({hide:P.hide,stake:P.stake,r:2.9,h:3.9,size:1.05}),12,-10,.2);
+  placeProp(root,buildTent({hide:0xc07040,stake:P.stake,r:2.4,h:3.4,size:.9}),-14,-4,.5);
+  placeProp(root,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x8a4020,size:1}),-6,-6,Math.PI*.25);
+  placeProp(root,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),-4,-8,.2);
+  placeProp(root,buildTotem({wood:P.woodD,paintA:0xd03018,paintB:0xc07040,size:.85}),6,2,0);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:12,posts:7}),-16,2,Math.PI/2);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:11,posts:7}),6,-16,0);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:11,posts:7}),16,0,-Math.PI/2);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:10,posts:6}),-2,16,Math.PI);
 
   /* 营火 */
-  [[-4,4],[6,-3]].forEach(([x,z])=>{
-    const fl=new THREE.Mesh(new THREE.ConeGeometry(.55,1.4,6),
-      new THREE.MeshBasicMaterial({color:0xff9030,transparent:true,opacity:.9}));
-    fl.position.set(x,1.0,z); root.add(fl);
-    const li=new THREE.PointLight(0xff7a28,1.4,18,1.8); li.position.set(x,2.0,z); root.add(li);
-    durotarFlames.push({fl,li});
+  [[-4,4],[6,-3],[10,6]].forEach(([x,z],i)=>{
+    const cf=placeProp(root,buildCampfire({
+      flame:i?0xff9030:0xffa030, light:0xff7a28, size:i===2?.75:1,
+    }),x,z,0);
+    if(cf&&cf.userData.flame)durotarFlames.push(cf.userData.flame);
   });
 
   /* 东口 → 贫瘠之地 */
@@ -119,29 +128,38 @@ function buildDurotarZone(scn){
   const eLab=makeLabel("贫瘠之地",11,"#e8c898","rgba(120,70,30,.9)");
   eLab.position.set(DUROTAR_PORTAL_E.x,11.8,DUROTAR_PORTAL_E.z); root.add(eLab);
 
-  ochreOutpost=buildVendor();
-  ochreOutpost.traverse(o=>{
-    if(!o.isMesh||!o.material||!o.material.color)return;
-    o.material=o.material.clone();
-    const h=o.material.color.getHex();
-    if(h===0x2a6a4a||h===0x8a4a2a)o.material.color.setHex(0x8a4020);
-  });
+  const _npcLy=(BAL.npc&&BAL.npc.labelY)||4.05, _npcMy=(BAL.npc&&BAL.npc.markerY)||5.15, _npcLw=(BAL.npc&&BAL.npc.labelW)||6.2;
+  ochreOutpost=tintNpcCloth(buildVendor(),0x8a4020);
   ochreOutpost.position.set(2,0,-2); ochreOutpost.rotation.y=Math.PI;
   root.add(ochreOutpost);
-  ochreOutpostLabel=makeNameplate("斥候 · 赤牙",BAL.npcLevel.ochre,{w:7,friendly:true,color:"#ffb070"});
-  ochreOutpostLabel.position.set(2,5.6,-2); root.add(ochreOutpostLabel);
+  ochreOutpostLabel=makeNameplate("斥候 · 赤牙",BAL.npcLevel.ochre,{w:_npcLw,friendly:true,color:"#ffb070"});
+  ochreOutpostLabel.position.set(2,_npcLy,-2); root.add(ochreOutpostLabel);
   updateNameplateHp(ochreOutpostLabel,1,1);
 
+  ochreVendor=buildVendor();
+  ochreVendor.position.set(-8,0,-6); ochreVendor.rotation.y=Math.PI*.35;
+  root.add(ochreVendor);
+  ochreVendorLabel=makeNameplate("商人 · 赤蹄",BAL.npcLevel.ochre_vendor,{w:_npcLw,friendly:true,color:"#a8e8c0"});
+  ochreVendorLabel.position.set(-8,_npcLy,-6); root.add(ochreVendorLabel);
+  updateNameplateHp(ochreVendorLabel,1,1);
+
+  ochreGuard=tintNpcCloth(buildElder(),0x6a3018);
+  ochreGuard.position.set(10,0,6); ochreGuard.rotation.y=Math.PI*1.15;
+  root.add(ochreGuard);
+  ochreGuardLabel=makeNameplate("卫士 · 焦刺",BAL.npcLevel.ochre_guard,{w:_npcLw,friendly:true,color:"#ff9a70"});
+  ochreGuardLabel.position.set(10,_npcLy,6); root.add(ochreGuardLabel);
+  updateNameplateHp(ochreGuardLabel,1,1);
+
   durotarSpirit=buildSpiritHealer();
-  durotarSpirit.position.set(0,0,6); durotarSpirit.rotation.y=Math.PI;
+  durotarSpirit.position.set(-4,0,12); durotarSpirit.rotation.y=Math.PI;
   root.add(durotarSpirit);
-  durotarSpiritLabel=makeNameplate("灵魂医者 · 焦风",BAL.npcLevel.spirit,{w:7.2,friendly:true,color:"#a8d8ff",glow:"rgba(40,80,120,.9)"});
-  durotarSpiritLabel.position.set(0,5.6,6); root.add(durotarSpiritLabel);
+  durotarSpiritLabel=makeNameplate("灵魂医者 · 焦风",BAL.npcLevel.spirit,{w:_npcLw+.2,friendly:true,color:"#a8d8ff",glow:"rgba(40,80,120,.9)"});
+  durotarSpiritLabel.position.set(-4,_npcLy,12); root.add(durotarSpiritLabel);
   updateNameplateHp(durotarSpiritLabel,1,1);
 
-  durotarMarkerExcl=makeLabel("❗",4,"#ffd76a","rgba(0,0,0,.55)");
-  durotarMarkerExcl.position.set(2,6.8,-2); root.add(durotarMarkerExcl);
-  durotarMarkerQ=makeLabel("❓",4,"#ffd76a","rgba(0,0,0,.55)");
+  durotarMarkerExcl=makeLabel("❗",2.8,"#ffd76a","rgba(0,0,0,.55)");
+  durotarMarkerExcl.position.set(2,_npcMy,-2); root.add(durotarMarkerExcl);
+  durotarMarkerQ=makeLabel("❓",2.8,"#ffd76a","rgba(0,0,0,.55)");
   durotarMarkerQ.position.copy(durotarMarkerExcl.position); durotarMarkerQ.visible=false; root.add(durotarMarkerQ);
 
   /* 野怪：巨蝎群、刺脊野猪人、崖风鹰身精英（V1-B2 增驻点） */
@@ -169,6 +187,11 @@ function buildDurotarZone(scn){
 
 function updateDurotarMarkers(){
   if(!durotarMarkerExcl)return;
+  if(typeof npcHasQuestOffer==="function"){
+    durotarMarkerExcl.visible=npcHasQuestOffer("ochre_outpost");
+    durotarMarkerQ.visible=npcHasQuestTurnIn("ochre_outpost");
+    return;
+  }
   if(typeof questStatus==="function"){
     durotarMarkerExcl.visible=questStatus("ochre_sting")==="none";
     durotarMarkerQ.visible=questStatus("ochre_sting")==="ready";
@@ -186,16 +209,27 @@ function durotarSpiritDist(){
   if(!durotarSpirit)return 999;
   return Math.hypot(player.position.x-durotarSpirit.position.x,player.position.z-durotarSpirit.position.z);
 }
+function ochreVendorDist(){
+  if(!ochreVendor)return 999;
+  return Math.hypot(player.position.x-ochreVendor.position.x,player.position.z-ochreVendor.position.z);
+}
+function ochreGuardDist(){
+  if(!ochreGuard)return 999;
+  return Math.hypot(player.position.x-ochreGuard.position.x,player.position.z-ochreGuard.position.z);
+}
 
 function tryInteractDurotar(){
-  const R=BAL.economy.interactR;
-  const dS=durotarSpiritDist(), dO=ochreOutpostDist();
-  if(dS<R&&dS<=dO){openDurotarSpiritDialogue();return;}
-  if(dO<R)openOchreDialogue();
+  const near=pickNearestNpc([
+    {mesh:durotarSpirit,open:openDurotarSpiritDialogue},
+    {mesh:ochreOutpost,open:openOchreDialogue},
+    {mesh:ochreVendor,open:()=>openVendor("ochre_vendor","🏕️ 商人 · 赤蹄")},
+    {mesh:ochreGuard,open:openOchreGuardDialogue},
+  ]);
+  if(near)near.open();
 }
 
 function openDurotarSpiritDialogue(){
-  S.vendorOpen=false;
+  closeVendorPanel();
   const dlg=$("#dlg"),tx=$("#dlgText"),bts=$("#dlgBtns");
   const nameEl=$("#dlg .dname");
   if(nameEl)nameEl.textContent="👻 灵魂医者 · 焦风";
@@ -205,8 +239,21 @@ function openDurotarSpiritDialogue(){
   b.className="dbtn";b.textContent="感谢您，医者";b.onclick=closeDialogue;bts.appendChild(b);
 }
 
+function openOchreGuardDialogue(){
+  closeVendorPanel();
+  const dlg=$("#dlg"),tx=$("#dlgText"),bts=$("#dlgBtns");
+  const nameEl=$("#dlg .dname");
+  if(nameEl)nameEl.textContent="🛡 卫士 · 焦刺";
+  dlg.style.display="block"; bts.innerHTML="";
+  const btn=(t,fn)=>{const b=document.createElement("button");
+    b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
+  tx.textContent="谷地不安宁。巨蝎、刺脊、崖上的鹰身——清剿事务找我。";
+  appendNpcQuestButtons("ochre_guard",btn);
+  btn("离开",closeDialogue);
+}
+
 function openOchreDialogue(){
-  S.vendorOpen=false;
+  closeVendorPanel();
   const dlg=$("#dlg"),tx=$("#dlgText"),bts=$("#dlgBtns");
   const nameEl=$("#dlg .dname");
   if(nameEl)nameEl.textContent="🗼 斥候 · 赤牙";
@@ -229,16 +276,10 @@ function openOchreDialogue(){
     const k=questProgress("ochre_sting").kills|0;
     tx.textContent=`巨蝎还在谷地游荡（${k}/${need}）。干完再来找我。`;
   }else{
-    tx.textContent="赭岩谷热得很。东边旋涡通往贫瘠之地；留神崖上的鹰身女妖。";
+    tx.textContent="赭岩谷热得很。买卖找赤蹄，清剿找焦刺；东边旋涡通往贫瘠之地。";
   }
 
-  if(typeof questsForNpc==="function"){
-    for(const q of questsForNpc("ochre_outpost")){
-      if(q.id==="ochre_sting")continue;
-      if(canTurnInQuest(q.id))btn(`✦ 交任务：${q.title}`,()=>{turnInQuest(q.id);closeDialogue();});
-      else if(canAcceptQuest(q.id))btn(`✦ 接受：${q.title}`,()=>{acceptQuest(q.id);closeDialogue();});
-    }
-  }
+  appendNpcQuestButtons("ochre_outpost",btn,null,["ochre_sting"]);
   btn("离开",closeDialogue);
 }
 

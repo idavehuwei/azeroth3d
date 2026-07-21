@@ -357,7 +357,6 @@ function renderDeedsPanel(){
 function toggleDeedsPanel(){
   if(!S.started)return;
   if(deedsOpen()){setPanel("#deedsPanel",false);return;}
-  if(typeof closeAllHudPanels==="function")closeAllHudPanels("deeds");
   setPanel("#deedsPanel",true);
   renderDeedsPanel();
 }

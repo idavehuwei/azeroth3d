@@ -250,12 +250,17 @@ const BALANCE={
   loot:{weights:{common:70,uncommon:25,rare:5}, corpseT:8, pickupR:3.5,
         eliteWeights:{uncommon:72,rare:28}},   /* 精英必掉优秀以上（STEP 5） */
   /* 背包（STEP 4）：格数 */
-  bag:{size:20},
+  bag:{size:36, cols:6},
   /* 金币经济 + 商人（STEP 13）：铜为最小单位；1金=100银=10000铜 */
   economy:{
     copperPerSilver:100,
     copperPerGold:10000,
-    vendorStock:["plain_bread","linen_bandage"],
+    vendorStock:["plain_bread","linen_bandage","minor_potion"],
+    vendorStockByNpc:{
+      vendor:["plain_bread","linen_bandage","minor_potion","whetstone"],
+      barrens_vendor:["plain_bread","linen_bandage","minor_potion"],
+      ochre_vendor:["plain_bread","linen_bandage","minor_potion","whetstone"],
+    },
     food:{healPct:.35,duration:6},       /* 坐下进食：持续回复最大生命比例 */
     bandage:{healPct:.28,cast:1.6},      /* 绷带：引导施放 */
     minorPotion:{healPct:.18},           /* 初级药水：瞬时回复（STEP 23） */
@@ -270,7 +275,7 @@ const BALANCE={
     yieldMin:1, yieldMax:2,
     herbCount:{mulgore:10, barrens:9, durotar:9},
     oreCount:{mulgore:9, barrens:10, durotar:9},
-    campR:18,          /* 采集点避开营地半径 */
+    campR:24,          /* 采集点避开营地半径 */
     portalR:14,        /* 避开传送门 */
     matsMax:99,
     nodeGap:6,
@@ -335,7 +340,9 @@ const BALANCE={
     enemy:"#d84828", friend:"#3a9a48", bg:"#1a1208",
     enemyGlow:"rgba(180,40,20,.9)", friendGlow:"rgba(40,120,50,.9)",
   },
-  npcLevel:{elder:40, vendor:25, spirit:55, crossroads:30, ochre:28, companion:null},
+  npcLevel:{elder:40, vendor:25, hunter:22, cook:20, spirit:55, crossroads:30, barrens_vendor:24, ochre:28, ochre_guard:26, ochre_vendor:24, companion:null},
+  /* 营地 NPC 外观：体型缩放 + 姓名板高度（相对缩放后头顶） */
+  npc:{scale:.72, labelY:4.05, markerY:5.15, labelW:6.2},
   /* 经验与等级（STEP 3）：经验来源 / 升级曲线 / 每级成长 */
   levels:{max:18, xp:{quest:300, boss:2000, magmadar:800, barrensQuest:400, durotarQuest:380, cobrahn:900, verdan:1600, onyxia:2200},
     /* 野怪经验在 mobs 表；xpMax[i] = 第 i+1 级升下一级所需（共 max-1 档） */
@@ -398,7 +405,7 @@ const BALANCE={
   fps:{updateInterval:.5,desktopTarget:60,mobileTarget:30},
   /* 装备评分权重（STEP 14 角色面板） */
   gearScore:{
-    quality:{common:10,uncommon:25,rare:55,legendary:120},
+    quality:{common:10,uncommon:25,rare:55,epic:85,legendary:120},
     dmgMul:200,   /* (dmgMul-1) × 此系数 */
     hpMax:.05,    /* hpMax × 此系数 */
   },

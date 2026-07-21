@@ -4,8 +4,9 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ rand srand worldRng BAL makeLabel scene camera setZoneSeed）
           zones.js（registerZone enterZone）
-          models.js（buildPlayer buildBoss buildElder buildVendor buildSpiritHealer buildBoar
-            buildHut buildTent buildFence buildWatchtower BUILD_PAL placeProp）
+          models.js（buildPlayer buildBoss buildElder buildVendor buildSpiritHealer
+            tintNpcCloth buildHut buildTent buildFence buildWatchtower buildCampfire
+            buildTotem buildMarketStall buildCratePile BUILD_PAL placeProp）
           anim.js 运行时（beginDeathRoll resetDeathRoll）
           items.js（dropLoot rollLoot LOOT tryLoot buyVendorItem）
           combat.js 运行时（S log announce fct spawnBurst hitEntity closeDialogue
@@ -18,11 +19,12 @@
           save.js 运行时（saveGame；接任务/交任务/离本）
    [导出] player boss BOSS_MESHES WORLD_R sceneWorld heli sun worldFlames PORTAL_POS portalUni
           portalLabel enterRaid fadeTo MOBS QUEST moveToward mobDamage mobDie
-          setCorpse updateQuest setMarker tryInteract openDialogue closeDialogue
-          openVendor refreshVendorPanel openSpiritDialogue
+          mobTargetable addTargetable setCorpse updateQuest setMarker tryInteract openDialogue closeDialogue
+          openVendor refreshVendorPanel closeVendorPanel openSpiritDialogue
           leaveRaid resetBoss spawnExitPortal removeExitPortal exitPortal
-          fireflies FIREFLIES ffPhases elder elderDist vendor vendorDist
+          fireflies FIREFLIES ffPhases elder elderDist vendor vendorDist hunter hunterDist
           spiritHealer spiritDist spawnMob MOBS MOB_TYPES PORTAL_BARRENS
+          appendNpcQuestButtons pickNearestNpc updateNpcQuestMarkers setMarker
    ============================================================ */
 "use strict";
 /* 莫高雷分区种子：地形 / 野怪摆放全部走此流（STEP 17） */
@@ -387,48 +389,80 @@ const MOBS=[];
 const QUEST={state:0,kills:0};   /* 0未接 1猎杀野猪 2讨伐拉戈斯 3完成 */
 
 /* 长老 NPC + 头顶名字与任务标记 */
+const _npcLy=(BAL.npc&&BAL.npc.labelY)||4.05, _npcMy=(BAL.npc&&BAL.npc.markerY)||5.15, _npcLw=(BAL.npc&&BAL.npc.labelW)||6.2;
 const elder=buildElder();
-elder.position.set(6,0,49); elder.rotation.y=Math.PI*.85; sceneWorld.add(elder);
-const elderLabel=makeNameplate("长老 · 岩蹄",BAL.npcLevel.elder,{w:7,friendly:true});
-elderLabel.position.set(6,5.6,49); sceneWorld.add(elderLabel);
-const markerExcl=makeLabel("❗",3);
-markerExcl.position.set(6,6.8,49); sceneWorld.add(markerExcl);
-const markerQ=makeLabel("❓",3);
+elder.position.set(8,0,48); elder.rotation.y=Math.PI*.85; sceneWorld.add(elder);
+const elderLabel=makeNameplate("长老 · 岩蹄",BAL.npcLevel.elder,{w:_npcLw,friendly:true});
+elderLabel.position.set(8,_npcLy,48); sceneWorld.add(elderLabel);
+const markerExcl=makeLabel("❗",2.6);
+markerExcl.position.set(8,_npcMy,48); sceneWorld.add(markerExcl);
+const markerQ=makeLabel("❓",2.6);
 markerQ.position.copy(markerExcl.position); markerQ.visible=false; sceneWorld.add(markerQ);
 function setMarker(){
+  if(typeof npcHasQuestOffer==="function"){
+    markerExcl.visible=npcHasQuestOffer("elder");
+    markerQ.visible=npcHasQuestTurnIn("elder");
+    return;
+  }
   const none=typeof questStatus==="function"?questStatus("elder_boars")==="none":QUEST.state===0;
   const ready=typeof questStatus==="function"?questStatus("elder_boars")==="ready"
     :(QUEST.state===1&&QUEST.kills>=BAL.quest.boarKills);
   markerExcl.visible=none;
   markerQ.visible=ready;
 }
+function updateNpcQuestMarkers(){
+  setMarker();
+  if(typeof updateBarrensMarkers==="function")updateBarrensMarkers();
+  if(typeof updateDurotarMarkers==="function")updateDurotarMarkers();
+  /* 猎手 / 商人头顶感叹号：复用 nameplate 旁小标记或依赖对话列表 */
+}
 /* 营地商人（STEP 13） */
 const vendor=buildVendor();
-vendor.position.set(-10,0,50); vendor.rotation.y=Math.PI*1.15; sceneWorld.add(vendor);
-const vendorLabel=makeNameplate("商人 · 火蹄",BAL.npcLevel.vendor,{w:7,friendly:true,color:"#a8e8c0"});
-vendorLabel.position.set(-10,5.6,50); sceneWorld.add(vendorLabel);
+vendor.position.set(-16,0,48); vendor.rotation.y=Math.PI*1.15; sceneWorld.add(vendor);
+const vendorLabel=makeNameplate("商人 · 火蹄",BAL.npcLevel.vendor,{w:_npcLw,friendly:true,color:"#a8e8c0"});
+vendorLabel.position.set(-16,_npcLy,48); sceneWorld.add(vendorLabel);
 updateNameplateHp(vendorLabel,1,1);
+/* 猎手：狩猎类支线 */
+const hunter=tintNpcCloth(buildElder(),0x5a6a38);
+hunter.position.set(18,0,54); hunter.rotation.y=Math.PI*1.05; sceneWorld.add(hunter);
+const hunterLabel=makeNameplate("猎手 · 迅羽",BAL.npcLevel.hunter,{w:_npcLw,friendly:true,color:"#d0e8a0"});
+hunterLabel.position.set(18,_npcLy,54); sceneWorld.add(hunterLabel);
+updateNameplateHp(hunterLabel,1,1);
 /* 灵魂医者（STEP 15） */
 const spiritHealer=buildSpiritHealer();
-spiritHealer.position.set(0,0,58); spiritHealer.rotation.y=Math.PI; sceneWorld.add(spiritHealer);
-const spiritLabel=makeNameplate("灵魂医者 · 风语",BAL.npcLevel.spirit,{w:7.2,friendly:true,color:"#c8e8ff",glow:"rgba(80,160,255,.95)"});
-spiritLabel.position.set(0,5.6,58); sceneWorld.add(spiritLabel);
+spiritHealer.position.set(0,0,64); spiritHealer.rotation.y=Math.PI; sceneWorld.add(spiritHealer);
+const spiritLabel=makeNameplate("灵魂医者 · 风语",BAL.npcLevel.spirit,{w:_npcLw+.2,friendly:true,color:"#c8e8ff",glow:"rgba(80,160,255,.95)"});
+spiritLabel.position.set(0,_npcLy,64); sceneWorld.add(spiritLabel);
 updateNameplateHp(spiritLabel,1,1);
 updateNameplateHp(elderLabel,1,1);
 function spiritDist(){return Math.hypot(player.position.x-spiritHealer.position.x,player.position.z-spiritHealer.position.z);}
 
-/* ---------------- 营地建筑（plan-v1 · V1-A1）：固定坐标 ⇒ 刷新不变 ---------------- */
+/* ---------------- 营地建筑（扩大：木屋街区 + 市集 + 图腾 + 围栏） ---------------- */
 (function placeMulgoreCampBuildings(){
   const P=BUILD_PAL.mulgore;
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.05}),12,44,.35);
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:.92}),-16,45,-.55);
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x7a4a28,w:3.6,d:3.2,h:2.3,size:.88}),8,58,Math.PI*.95);
-  placeProp(sceneWorld,buildTent({hide:P.hide,stake:P.stake,r:2.8,h:3.8,size:1}),-5,43,.2);
-  placeProp(sceneWorld,buildTent({hide:0xb89060,stake:P.stake,r:2.4,h:3.4,size:.9}),14,52,-.7);
-  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.82}),-18,56,.25);
-  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:9,posts:6}),-1,41,0);
-  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:7,posts:5}),7,41.2,.12);
-  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:11,posts:7}),-20,49,Math.PI/2);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.1}),14,42,.35);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.0}),-18,42,-.55);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x7a4a28,w:3.8,d:3.4,h:2.4,size:.95}),10,60,Math.PI*.95);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,w:3.4,d:3.0,size:.88}),-8,62,-.4);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x8a5a30,size:.9}),22,50,Math.PI*1.2);
+  placeProp(sceneWorld,buildTent({hide:P.hide,stake:P.stake,r:2.9,h:3.9,size:1.05}),-4,40,.2);
+  placeProp(sceneWorld,buildTent({hide:0xb89060,stake:P.stake,r:2.5,h:3.5,size:.95}),16,56,-.7);
+  placeProp(sceneWorld,buildTent({hide:0xc9a06a,stake:P.stake,r:2.6,h:3.6,size:1}),-20,54,.5);
+  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.9}),-22,60,.25);
+  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.72}),20,40,-.3);
+  placeProp(sceneWorld,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x2a6a4a,size:1}),-14,45,Math.PI*.15);
+  placeProp(sceneWorld,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),-12,51,.4);
+  placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0xd94f2a,paintB:0x3a7ac9,size:.95}),-6,60,0);
+  placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0x3a7ac9,paintB:0xd94f2a,size:.85}),12,64,.2);
+  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:12,posts:7}),-2,38,0);
+  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:10,posts:6}),10,38.2,.1);
+  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:14,posts:8}),-24,50,Math.PI/2);
+  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:10,posts:6}),24,48,-Math.PI/2);
+  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:11,posts:7}),4,66,Math.PI);
+  const cf=placeProp(sceneWorld,buildCampfire({flame:0xffa030,light:0xff8a30,size:1.05}),2,52,0);
+  if(cf&&cf.userData.flame)worldFlames.push(cf.userData.flame);
+  const cf2=placeProp(sceneWorld,buildCampfire({flame:0xff9030,light:0xff7a20,size:.85}),-10,56,0);
+  if(cf2&&cf2.userData.flame)worldFlames.push(cf2.userData.flame);
 })();
 
 /* ============================================================
@@ -538,7 +572,23 @@ function spawnMob(type,x,z,group,opts){
   MOBS.push(m); return m;
 }
 /* 可否被选中/命中：死亡与脱战回巢中的怪不可打 */
-function mobTargetable(m){return m.state!=="dead"&&m.state!=="return";}
+/* 可否被选中/命中：死亡、回巢、尸体阶段均不可打 */
+function mobTargetable(m){
+  if(!m||!m.mesh)return false;
+  if(m.state==="dead"||m.state==="return")return false;
+  if((m.hp|0)<=0)return false;
+  if(m.corpseT>0)return false;
+  if(m.mesh.visible===false)return false;
+  return true;
+}
+function addTargetable(a){
+  if(!a||!a.mesh)return false;
+  if(a.state==="dead"||(a.corpseT|0)>0)return false;
+  if((a.hp|0)<=0)return false;
+  if(a.mesh.visible===false)return false;
+  if(typeof S!=="undefined"&&S.adds&&!S.adds.includes(a))return false;
+  return true;
+}
 /* 进入仇恨（STEP 5 含社群仇恨 social pull）：同群且在社群半径内的伙伴全体跟进 */
 function aggroMob(m){
   if(m.state!=="wander")return;
@@ -602,6 +652,7 @@ function setCorpse(m,on){
 function mobDie(m){
   m.state="dead"; m.respawnT=m.stats.respawnT; m.corpseT=BAL.loot.corpseT; m.moving=false;
   m.casting=null;
+  if(typeof clearCurrentTargetIf==="function")clearCurrentTargetIf(m);
   if(typeof clearThreat==="function")clearThreat(m);
   m.label.visible=false;
   setCorpse(m,true);
@@ -635,10 +686,35 @@ function updateQuest(){
 /* ---------------- NPC 对话 ---------------- */
 function elderDist(){return Math.hypot(player.position.x-elder.position.x,player.position.z-elder.position.z);}
 function vendorDist(){return Math.hypot(player.position.x-vendor.position.x,player.position.z-vendor.position.z);}
+function hunterDist(){return Math.hypot(player.position.x-hunter.position.x,player.position.z-hunter.position.z);}
+
+function pickNearestNpc(entries){
+  const R=BAL.economy.interactR;
+  let best=null,bestD=R;
+  for(const e of entries){
+    if(!e||!e.mesh)continue;
+    const d=Math.hypot(player.position.x-e.mesh.position.x,player.position.z-e.mesh.position.z);
+    if(d<bestD){bestD=d;best=e;}
+  }
+  return best;
+}
+function appendNpcQuestButtons(npcId,btn,refreshFn,skipIds){
+  if(typeof questsForNpc!=="function")return;
+  const skip=skipIds||[];
+  for(const q of questsForNpc(npcId)){
+    if(skip.indexOf(q.id)>=0)continue;
+    if(canTurnInQuest(q.id))btn(`✦ 交任务：${q.title}`,()=>{turnInQuest(q.id);if(refreshFn)refreshFn();else closeDialogue();});
+    else if(canAcceptQuest(q.id))btn(`✦ 接受：${q.title}`,()=>{
+      acceptQuest(q.id);
+      if(typeof updateNpcQuestMarkers==="function")updateNpcQuestMarkers();
+      if(refreshFn)refreshFn();else closeDialogue();
+    });
+  }
+}
+
 function tryInteract(){
   if(!S.started||!S.p.alive)return;
-  if(tryLoot())return;   /* 尸体旁的战利品优先（STEP 2），世界/副本通用 */
-  /* 副本内：击杀 Boss 后走进出口传送门自动离开 */
+  if(tryLoot())return;
   if(S.mode==="raid"&&S.b.canLeave&&exitPortal&&player.position.distanceTo(EXIT_PORTAL_POS)<BAL.zones.exitPortalEnterR){
     leaveRaid(); return;
   }
@@ -648,14 +724,16 @@ function tryInteract(){
     &&typeof tryInteractBarrens==="function"){tryInteractBarrens();return;}
   if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="durotar"
     &&typeof tryInteractDurotar==="function"){tryInteractDurotar();return;}
-  const R=BAL.economy.interactR;
-  const dE=elderDist(), dV=vendorDist(), dS=spiritDist();
-  if(dS<R&&dS<=dE&&dS<=dV){openSpiritDialogue();return;}
-  if(dV<R&&dV<=dE){openVendor();return;}
-  if(dE<R)openDialogue();
+  const near=pickNearestNpc([
+    {mesh:spiritHealer,open:openSpiritDialogue},
+    {mesh:vendor,open:()=>openVendor("vendor","🏕️ 商人 · 火蹄")},
+    {mesh:elder,open:openDialogue},
+    {mesh:hunter,open:openHunterDialogue},
+  ]);
+  if(near)near.open();
 }
 function openSpiritDialogue(){
-  S.vendorOpen=false;
+  closeVendorPanel();
   const dlg=$("#dlg"),tx=$("#dlgText"),bts=$("#dlgBtns");
   const nameEl=$("#dlg .dname");
   if(nameEl)nameEl.textContent="👻 灵魂医者 · 风语";
@@ -666,41 +744,88 @@ function openSpiritDialogue(){
 }
 function closeDialogue(){
   $("#dlg").style.display="none";
-  S.vendorOpen=false;
+  closeVendorPanel();
   S.craftOpen=false;
   if(typeof renderBag==="function")renderBag();
 }
+function closeVendorPanel(){
+  const pan=$("#vendorPanel");
+  if(pan)pan.style.display="none";
+  S.vendorOpen=false;
+  S.vendorNpcId=null;
+  document.body.classList.remove("trading");
+  if(typeof hideItemTip==="function")hideItemTip();
+}
+function currentVendorStock(){
+  const by=BAL.economy.vendorStockByNpc;
+  const id=S.vendorNpcId||"vendor";
+  if(by&&by[id]&&by[id].length)return by[id];
+  return BAL.economy.vendorStock||[];
+}
 function refreshVendorPanel(){
   if(!S.vendorOpen)return;
-  const tx=$("#dlgText"),bts=$("#dlgBtns");
-  const nameEl=$("#dlg .dname");
-  if(nameEl)nameEl.textContent="🏕️ 商人 · 火蹄";
-  tx.textContent=`看看货物吧，旅人。你的钱袋：${formatCopperText(S.p.gold|0)}。打开背包右键可出售物品。`;
-  bts.innerHTML="";
-  const btn=(t,fn)=>{const b=document.createElement("button");
-    b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
-  for(const id of BAL.economy.vendorStock){
-    const it=ITEMS[id]; if(!it||it.vendorBuy==null)continue;
-    btn(`🛒 购买【${it.name}】 · ${formatCopperText(it.vendorBuy)}`,()=>buyVendorItem(id));
+  const pan=$("#vendorPanel"); if(!pan)return;
+  const goldEl=$("#vendorGold"), stockEl=$("#vendorStock"), questEl=$("#vendorQuests");
+  const titleEl=$("#vendorTitle");
+  if(titleEl&&!titleEl.dataset.locked){/* set by openVendor */}
+  if(goldEl)goldEl.innerHTML=`钱袋：<b>${formatCopperText(S.p.gold|0)}</b>`;
+  if(questEl){
+    questEl.innerHTML="";
+    const btn=(t,fn)=>{const b=document.createElement("button");
+      b.className="dbtn";b.textContent=t;b.onclick=fn;questEl.appendChild(b);};
+    appendNpcQuestButtons(S.vendorNpcId||"vendor",btn,refreshVendorPanel);
+    questEl.style.display=questEl.children.length?"block":"none";
   }
-  if(typeof questsForNpc==="function"){
-    for(const q of questsForNpc("vendor")){
-      if(canTurnInQuest(q.id))btn(`✦ 交任务：${q.title}`,()=>{turnInQuest(q.id);refreshVendorPanel();});
-      else if(canAcceptQuest(q.id))btn(`✦ 接受：${q.title}`,()=>{acceptQuest(q.id);refreshVendorPanel();});
+  if(stockEl){
+    stockEl.innerHTML="";
+    for(const id of currentVendorStock()){
+      const it=ITEMS[id]; if(!it||it.vendorBuy==null)continue;
+      const q=QUALITY[it.quality]||QUALITY.common;
+      const card=document.createElement("button");
+      card.type="button";
+      card.className="vendor-card";
+      card.innerHTML=
+        `<img src="${Icons.get(it.icon,q.color)}" style="border-color:${q.color}" alt="">`+
+        `<div class="vb"><div class="vn" style="color:${q.color}">${it.name}</div>`+
+        `<div class="vp">${formatCopperText(it.vendorBuy)}</div></div>`;
+      card.onclick=()=>{buyVendorItem(id);};
+      if(typeof bindItemTip==="function")bindItemTip(card,it,"点击购买");
+      stockEl.appendChild(card);
     }
   }
-  btn("打开背包（B）",()=>{if(!bagOpen())toggleBag();});
-  btn("离开",closeDialogue);
 }
-function openVendor(){
+function openVendor(npcId,title){
   S.vendorOpen=true;
-  if(typeof closeAllHudPanels==="function")closeAllHudPanels("bag");
-  $("#dlg").style.display="block";
-  if(!bagOpen())toggleBag();
+  S.vendorNpcId=npcId||"vendor";
+  $("#dlg").style.display="none";
+  const pan=$("#vendorPanel");
+  if(pan)pan.style.display="block";
+  const titleEl=$("#vendorTitle");
+  if(titleEl)titleEl.textContent=title||"🏕️ 商人";
+  document.body.classList.add("trading");
+  if(typeof ensureBagOpen==="function")ensureBagOpen();
+  else if(typeof bagOpen==="function"&&!bagOpen()){
+    $("#bag").style.display="block";
+    if(typeof renderBag==="function")renderBag();
+  }
   refreshVendorPanel();
 }
+function openHunterDialogue(){
+  closeVendorPanel();
+  const dlg=$("#dlg"),tx=$("#dlgText"),bts=$("#dlgBtns");
+  const nameEl=$("#dlg .dname");
+  if(nameEl)nameEl.textContent="🏹 猎手 · 迅羽";
+  dlg.style.display="block"; bts.innerHTML="";
+  const btn=(t,fn)=>{const b=document.createElement("button");
+    b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
+  const offers=typeof questsForNpc==="function"?questsForNpc("hunter"):[];
+  if(offers.length)tx.textContent="草原上的猎物很机警。我这里有活计——看看吧。";
+  else tx.textContent="草原上的猎物很机警。暂时没有新的委托，有需要再来。";
+  appendNpcQuestButtons("hunter",btn);
+  btn("离开",closeDialogue);
+}
 function openDialogue(){
-  S.vendorOpen=false;
+  closeVendorPanel();
   const dlg=$("#dlg"),tx=$("#dlgText"),bts=$("#dlgBtns");
   const nameEl=$("#dlg .dname");
   if(nameEl)nameEl.textContent="🐂 长老 · 岩蹄";
@@ -708,7 +833,6 @@ function openDialogue(){
   const btn=(t,fn)=>{const b=document.createElement("button");
     b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
 
-  /* STEP 22：任务按钮优先 */
   if(typeof canTurnInQuest==="function"&&canTurnInQuest("elder_boars")){
     tx.textContent="干得漂亮，勇士！听着——传送门深处沉睡着炎魔领主拉戈斯，他的烈焰迟早会烧到这片草原。收下大地母亲的祝福，北行吧，终结他！";
     btn("✦ 领取奖励 · 长老的试炼",()=>{
@@ -729,17 +853,11 @@ function openDialogue(){
     if(S.p.level>=BAL.barrens.minLevel){
       tip+=" 营地南边的土路已通向贫瘠之地的十字路口——那里需要新的帮手。";
     }
+    tip+=" 市集找火蹄买补给，狩猎事务找迅羽。";
     tx.textContent=tip;
   }
 
-  /* 支线（questsForNpc 排除已在主文案处理的 elder_boars） */
-  if(typeof questsForNpc==="function"){
-    for(const q of questsForNpc("elder")){
-      if(q.id==="elder_boars")continue;
-      if(canTurnInQuest(q.id))btn(`✦ 交任务：${q.title}`,()=>{turnInQuest(q.id);closeDialogue();});
-      else if(canAcceptQuest(q.id))btn(`✦ 接受：${q.title}`,()=>{acceptQuest(q.id);closeDialogue();});
-    }
-  }
+  appendNpcQuestButtons("elder",btn,null,["elder_boars"]);
 
   if(typeof openRecruitDialogue==="function"){
     if(typeof companionAlive==="function"&&companionAlive())
@@ -749,3 +867,12 @@ function openDialogue(){
   }
   btn("离开",closeDialogue);
 }
+
+/* 商店面板关闭（保留背包，便于继续整理） */
+(()=>{
+  const vc=$("#vendorClose");
+  if(vc)vc.addEventListener("click",()=>{
+    closeVendorPanel();
+    if(typeof renderBag==="function")renderBag();
+  });
+})();

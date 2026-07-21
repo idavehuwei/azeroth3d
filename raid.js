@@ -960,6 +960,7 @@ function addDie(a){
   VFX.spawn("melee_impact",{pos:a.mesh.position.clone().setY(1),color:a.burstColor||0xffa040,count:26,spread:2});
   a.mesh.traverse(o=>{if(o.isMesh){o.userData.liveMat=o.material;o.material=corpseMat;}});
   a.state="dead"; a.moving=false;
+  if(typeof clearCurrentTargetIf==="function")clearCurrentTargetIf(a);
   if(a.label)a.label.visible=false;
   if(typeof beginDeathRoll==="function")beginDeathRoll(a);
   else{a.mesh.rotation.z=Math.PI/2; a.mesh.position.y=.25;}

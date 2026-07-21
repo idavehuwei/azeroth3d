@@ -158,7 +158,7 @@ assert(questsSrc.includes("function tickQuestWorld")&&questsSrc.includes("functi
 assert(questsSrc.includes("flags:")&&questsSrc.includes("collectQuestSave"),"任务存档含 flags");
 assert(coreSrc.includes("radius:184")||coreSrc.includes("radius:176"),"V1-B2 开放区半径扩大");
 assert(worldSrc.includes("WORLD_R=176")||worldSrc.includes("WORLD_R = 176"),"莫高雷 WORLD_R×2");
-assert(html.includes("#questLogBody")&&html.includes("overflow-y:auto"),"L 任务日志可滚动");
+assert(html.includes("#questLogBody")&&html.includes("ql-split")&&html.includes("overflow-y:auto"),"L 任务日志左右分栏可滚动");
 assert(itemsSrc.includes("quest_sacred_oil")&&itemsSrc.includes("barrens_cleaver")&&itemsSrc.includes("ochre_fang"),"V1-B2 任务物与分区装备");
 assert((questsSrc.match(/chapter:"side", zone:"mulgore"/g)||[]).length>=10,"莫高雷支线≥10");
 assert((questsSrc.match(/chapter:"side", zone:"barrens"/g)||[]).length>=10,"贫瘠支线≥10");

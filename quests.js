@@ -8,15 +8,17 @@
           world.js / barrens.js 运行时（QUEST BARRENS_QUEST 兼容别名 · player scene）
           save.js / panels.js 运行时（saveGame renderQuestLog）
    [导出] QUESTS getQuestDef questStatus questProgress
-          acceptQuest turnInQuest completeQuestObjective
+          acceptQuest turnInQuest abandonQuest completeQuestObjective
           onQuestMobKill onQuestBossKill onQuestZoneEnter
           onQuestUseItem tickQuestWorld clearQuestEscort
-          canAcceptQuest canTurnInQuest questsForNpc
+          canAcceptQuest canTurnInQuest canAbandonQuest questsForNpc
+          npcHasQuestOffer npcHasQuestTurnIn
           getActiveQuestEntries getQuestLogEntries
           collectQuestSave applyQuestSave resetAllQuests
           syncLegacyQuestAliases applyQuestRewards
           updateQuestTracker updateQuest countInvItem
-          refreshDeliverObjectives
+          refreshDeliverObjectives syncQuestNpcBindings
+          questNpcLabel questTurnInId questGiverId
    ============================================================ */
 "use strict";
 
@@ -166,23 +168,22 @@ const QUESTS=[
     readyAnnounce:"信使已安全抵达 · 回赤牙处",
     completeAnnounce:"赤牙信使 · 完成"},
 
-  /* ===== 莫高雷支线 ≥10 ===== */
   {id:"plains_patrol", title:"草原巡视",
     chapter:"side", zone:"mulgore", sort:100,
     minLevel:3, prereq:["elder_boars"],
-    giver:"elder", turnIn:"elder",
+    giver:"hunter", turnIn:"hunter",
     objectives:[{type:"kill", mob:"wolf", countKey:"plains_patrol"}],
     rewards:{sideKey:"plains_patrol"},
     acceptLog:"接受任务【草原巡视】：猎杀草原狼。",
-    readyAnnounce:"草原巡视目标完成 · 回长老处"},
+    readyAnnounce:"草原巡视目标完成 · 回猎手迅羽处"},
   {id:"harpy_nest", title:"鹰身女妖的巢穴",
     chapter:"side", zone:"mulgore", sort:102,
     minLevel:6, prereq:["elder_boars"],
-    giver:"elder", turnIn:"elder",
+    giver:"hunter", turnIn:"hunter",
     objectives:[{type:"kill", mob:"harpy", countKey:"harpy_nest"}],
     rewards:{sideKey:"harpy_nest"},
     acceptLog:"接受任务【鹰身女妖的巢穴】：消灭东边的鹰身女妖首领。",
-    readyAnnounce:"鹰身女妖已除 · 回长老处"},
+    readyAnnounce:"鹰身女妖已除 · 回猎手迅羽处"},
   {id:"greyjaw_bounty", title:"老灰鬃的悬赏",
     chapter:"side", zone:"mulgore", sort:104,
     minLevel:8, prereq:["elder_boars"],
@@ -190,15 +191,15 @@ const QUESTS=[
     objectives:[{type:"kill", mob:"boarKing", countKey:"greyjaw_bounty"}],
     rewards:{sideKey:"greyjaw_bounty", items:["mesa_guard"]},
     acceptLog:"接受任务【老灰鬃的悬赏】：猎人商人要那头稀有野猪王的獠牙。",
-    readyAnnounce:"老灰鬃倒下了 · 回商人处领赏"},
+    readyAnnounce:"老灰鬃倒下了 · 回商人火蹄处领赏"},
   {id:"bird_cull", title:"陆行鸟之扰",
     chapter:"side", zone:"mulgore", sort:106,
     minLevel:2, prereq:["elder_boars"],
-    giver:"elder", turnIn:"elder",
+    giver:"hunter", turnIn:"hunter",
     objectives:[{type:"kill", mob:"bird", countKey:"bird_cull"}],
     rewards:{sideKey:"bird_cull"},
     acceptLog:"接受任务【陆行鸟之扰】：猎杀陆行鸟。",
-    readyAnnounce:"陆行鸟已少 · 回长老处"},
+    readyAnnounce:"陆行鸟已少 · 回猎手迅羽处"},
   {id:"boar_cull", title:"再清野猪",
     chapter:"side", zone:"mulgore", sort:108,
     minLevel:2, prereq:["elder_boars"],
@@ -206,7 +207,7 @@ const QUESTS=[
     objectives:[{type:"kill", mob:"boar", countKey:"boar_cull"}],
     rewards:{sideKey:"boar_cull"},
     acceptLog:"接受任务【再清野猪】：再猎杀一批草原野猪。",
-    readyAnnounce:"野猪够了 · 回商人处"},
+    readyAnnounce:"野猪够了 · 回商人火蹄处"},
   {id:"lake_shrine", title:"湖畔祭坛",
     chapter:"side", zone:"mulgore", sort:110,
     minLevel:2, prereq:["elder_boars"],
@@ -230,7 +231,7 @@ const QUESTS=[
     objectives:[{type:"deliver", item:"bird_feather", count:3}],
     rewards:{sideKey:"wind_feather", items:["wind_blade"]},
     acceptLog:"接受任务【疾风之羽】：收集陆行鸟羽毛交给商人。",
-    readyAnnounce:"羽毛已齐 · 回商人处"},
+    readyAnnounce:"羽毛已齐 · 回商人火蹄处"},
   {id:"wolf_pelts", title:"灰狼皮货",
     chapter:"side", zone:"mulgore", sort:116,
     minLevel:3, prereq:["elder_boars"],
@@ -238,7 +239,7 @@ const QUESTS=[
     objectives:[{type:"deliver", item:"wolf_pelt", count:4}],
     rewards:{sideKey:"wolf_pelts", items:["hide_vest"]},
     acceptLog:"接受任务【灰狼皮货】：收集灰狼皮交给商人。",
-    readyAnnounce:"狼皮已齐 · 回商人处"},
+    readyAnnounce:"狼皮已齐 · 回商人火蹄处"},
   {id:"sacred_salve", title:"圣油涂抹",
     chapter:"side", zone:"mulgore", sort:118,
     minLevel:2, prereq:["elder_boars"],
@@ -265,15 +266,15 @@ const QUESTS=[
     objectives:[{type:"kill", mob:"centaur", count:4}],
     rewards:{sideKey:"centaur_threat"},
     acceptLog:"接受任务【再战半人马】：继续清剿半人马。",
-    readyAnnounce:"半人马再退 · 回哨兵处"},
+    readyAnnounce:"半人马再退 · 回哨兵碎牙处"},
   {id:"zebra_meat", title:"斑马肉干",
     chapter:"side", zone:"barrens", sort:202,
     minLevel:10, prereq:["crossroads_trouble"],
-    giver:"crossroads", turnIn:"crossroads",
+    giver:"barrens_cook", turnIn:"barrens_cook",
     objectives:[{type:"kill", mob:"zebra", countKey:"zebra_meat"}],
     rewards:{sideKey:"zebra_meat"},
-    acceptLog:"接受任务【斑马肉干】：猎杀斑马。",
-    readyAnnounce:"肉干够了 · 回哨兵处"},
+    acceptLog:"接受任务【斑马肉干】：猎杀斑马，为厨灶备肉。",
+    readyAnnounce:"肉干够了 · 回厨子尘粮处"},
   {id:"quil_extra", title:"野猪人清剿",
     chapter:"side", zone:"barrens", sort:204,
     minLevel:10, prereq:["crossroads_trouble"],
@@ -281,15 +282,15 @@ const QUESTS=[
     objectives:[{type:"kill", mob:"quilboar", countKey:"quil_extra"}],
     rewards:{sideKey:"quil_extra"},
     acceptLog:"接受任务【野猪人清剿】：再清一批野猪人。",
-    readyAnnounce:"野猪人已清 · 回哨兵处"},
+    readyAnnounce:"野猪人已清 · 回哨兵碎牙处"},
   {id:"bird_dust", title:"尘羽猎手",
     chapter:"side", zone:"barrens", sort:206,
     minLevel:10, prereq:["crossroads_trouble"],
-    giver:"crossroads", turnIn:"crossroads",
+    giver:"barrens_cook", turnIn:"barrens_cook",
     objectives:[{type:"kill", mob:"bird", countKey:"bird_dust"}],
     rewards:{sideKey:"bird_dust"},
     acceptLog:"接受任务【尘羽猎手】：猎杀陆行鸟。",
-    readyAnnounce:"尘羽已收 · 回哨兵处"},
+    readyAnnounce:"尘羽已收 · 回厨子尘粮处"},
   {id:"dust_watch", title:"尘土瞭望",
     chapter:"side", zone:"barrens", sort:208,
     minLevel:10, prereq:["crossroads_trouble"],
@@ -297,7 +298,7 @@ const QUESTS=[
     objectives:[{type:"arrive", x:0, z:-120, r:18, label:"南口瞭望"}],
     rewards:{sideKey:"dust_watch"},
     acceptLog:"接受任务【尘土瞭望】：抵达贫瘠南口附近。",
-    readyAnnounce:"瞭望完成 · 回哨兵处"},
+    readyAnnounce:"瞭望完成 · 回哨兵碎牙处"},
   {id:"east_ridge", title:"东岭巡视",
     chapter:"side", zone:"barrens", sort:210,
     minLevel:10, prereq:["crossroads_trouble"],
@@ -305,7 +306,7 @@ const QUESTS=[
     objectives:[{type:"arrive", x:140, z:20, r:18, label:"东岭"}],
     rewards:{sideKey:"east_ridge"},
     acceptLog:"接受任务【东岭巡视】：抵达东侧山岭。",
-    readyAnnounce:"东岭已踏 · 回哨兵处"},
+    readyAnnounce:"东岭已踏 · 回哨兵碎牙处"},
   {id:"oasis_visit", title:"绿洲足迹",
     chapter:"side", zone:"barrens", sort:212,
     minLevel:10, prereq:["crossroads_trouble"],
@@ -313,24 +314,24 @@ const QUESTS=[
     objectives:[{type:"arrive", x:-60, z:80, r:16, label:"北绿洲"}],
     rewards:{sideKey:"oasis_visit"},
     acceptLog:"接受任务【绿洲足迹】：探访北方绿洲痕迹。",
-    readyAnnounce:"绿洲已访 · 回哨兵处"},
+    readyAnnounce:"绿洲已访 · 回哨兵碎牙处"},
   {id:"supply_crate", title:"军需木箱",
     chapter:"side", zone:"barrens", sort:214,
     minLevel:10, prereq:["crossroads_trouble"],
-    giver:"crossroads", turnIn:"crossroads",
+    giver:"barrens_cook", turnIn:"barrens_cook",
     grantItems:["quest_supply_crate"],
     objectives:[{type:"deliver", item:"quest_supply_crate", count:1}],
     rewards:{sideKey:"supply_crate", items:["barrens_cuirass"]},
-    acceptLog:"接受任务【军需木箱】：将木箱交还给碎牙。",
-    readyAnnounce:"木箱在身 · 与碎牙交付"},
+    acceptLog:"接受任务【军需木箱】：将木箱交给厨子尘粮。",
+    readyAnnounce:"木箱在身 · 与尘粮交付"},
   {id:"hide_bundle", title:"斑马皮捆",
     chapter:"side", zone:"barrens", sort:216,
     minLevel:10, prereq:["crossroads_trouble"],
-    giver:"crossroads", turnIn:"crossroads",
+    giver:"barrens_vendor", turnIn:"barrens_vendor",
     objectives:[{type:"deliver", item:"zebra_hide", count:3}],
     rewards:{sideKey:"hide_bundle"},
-    acceptLog:"接受任务【斑马皮捆】：收集斑马皮交给哨兵。",
-    readyAnnounce:"皮捆已齐 · 回哨兵处"},
+    acceptLog:"接受任务【斑马皮捆】：收集斑马皮交给商人旱蹄。",
+    readyAnnounce:"皮捆已齐 · 回商人旱蹄处"},
   {id:"signal_horn", title:"号角试鸣",
     chapter:"side", zone:"barrens", sort:218,
     minLevel:10, prereq:["crossroads_trouble"],
@@ -339,41 +340,41 @@ const QUESTS=[
     objectives:[{type:"use", item:"quest_signal_horn"}],
     rewards:{sideKey:"signal_horn"},
     acceptLog:"接受任务【号角试鸣】：在背包使用信号号角。",
-    readyAnnounce:"号角已响 · 回哨兵处"},
+    readyAnnounce:"号角已响 · 回哨兵碎牙处"},
   {id:"caravan_escort", title:"商队护送",
     chapter:"side", zone:"barrens", sort:220,
     minLevel:11, prereq:["crossroads_trouble"],
-    giver:"crossroads", turnIn:"crossroads",
+    giver:"barrens_vendor", turnIn:"barrens_vendor",
     objectives:[{type:"escort", destX:0, destZ:-168, r:16, label:"北口", name:"商队 · 尘足"}],
     rewards:{sideKey:"caravan_escort", items:["barrens_cleaver"]},
     acceptLog:"接受任务【商队护送】：护送商队前往北口。",
-    readyAnnounce:"商队抵达 · 回哨兵处"},
+    readyAnnounce:"商队抵达 · 回商人旱蹄处"},
 
   /* ===== 赭岩谷支线 ≥10 ===== */
   {id:"cliff_harpy", title:"崖风鹰身",
     chapter:"side", zone:"durotar", sort:300,
     minLevel:12, prereq:["ochre_sting"],
-    giver:"ochre_outpost", turnIn:"ochre_outpost",
+    giver:"ochre_guard", turnIn:"ochre_guard",
     objectives:[{type:"kill", mob:"cliffHarpy", countKey:"cliff_harpy"}],
     rewards:{sideKey:"cliff_harpy", items:["ochre_fang"]},
     acceptLog:"接受任务【崖风鹰身】：击败崖风鹰身女妖。",
-    readyAnnounce:"鹰身已除 · 回赤牙处"},
+    readyAnnounce:"鹰身已除 · 回卫士焦刺处"},
   {id:"scorp_extra", title:"巨蝎再剿",
     chapter:"side", zone:"durotar", sort:302,
     minLevel:12, prereq:["ochre_sting"],
-    giver:"ochre_outpost", turnIn:"ochre_outpost",
+    giver:"ochre_guard", turnIn:"ochre_guard",
     objectives:[{type:"kill", mob:"scorp", countKey:"scorp_extra"}],
     rewards:{sideKey:"scorp_extra"},
     acceptLog:"接受任务【巨蝎再剿】：再清一批赭岩巨蝎。",
-    readyAnnounce:"蝎群再退 · 回赤牙处"},
+    readyAnnounce:"蝎群再退 · 回卫士焦刺处"},
   {id:"razor_extra", title:"刺脊余孽",
     chapter:"side", zone:"durotar", sort:304,
     minLevel:12, prereq:["ochre_sting"],
-    giver:"ochre_outpost", turnIn:"ochre_outpost",
+    giver:"ochre_guard", turnIn:"ochre_guard",
     objectives:[{type:"kill", mob:"razorback", countKey:"razor_extra"}],
     rewards:{sideKey:"razor_extra"},
     acceptLog:"接受任务【刺脊余孽】：清剿更多刺脊野猪人。",
-    readyAnnounce:"余孽已清 · 回赤牙处"},
+    readyAnnounce:"余孽已清 · 回卫士焦刺处"},
   {id:"cliff_beacon", title:"南崖探路",
     chapter:"side", zone:"durotar", sort:306,
     minLevel:12, prereq:["ochre_sting"],
@@ -381,7 +382,7 @@ const QUESTS=[
     objectives:[{type:"arrive", x:72, z:-56, r:16, label:"南崖"}],
     rewards:{sideKey:"cliff_beacon"},
     acceptLog:"接受任务【南崖探路】：抵达东南崖顶。",
-    readyAnnounce:"南崖已踏 · 回赤牙处"},
+    readyAnnounce:"南崖已踏 · 回斥候赤牙处"},
   {id:"west_canyon", title:"西峡谷口",
     chapter:"side", zone:"durotar", sort:308,
     minLevel:12, prereq:["ochre_sting"],
@@ -389,24 +390,24 @@ const QUESTS=[
     objectives:[{type:"arrive", x:-100, z:20, r:18, label:"西峡谷"}],
     rewards:{sideKey:"west_canyon"},
     acceptLog:"接受任务【西峡谷口】：探查西侧峡谷。",
-    readyAnnounce:"峡谷已探 · 回赤牙处"},
+    readyAnnounce:"峡谷已探 · 回斥候赤牙处"},
   {id:"ochre_report", title:"斥候急报",
     chapter:"side", zone:"durotar", sort:310,
     minLevel:12, prereq:["ochre_sting"],
-    giver:"ochre_outpost", turnIn:"ochre_outpost",
+    giver:"ochre_vendor", turnIn:"ochre_vendor",
     grantItems:["quest_ochre_report"],
     objectives:[{type:"deliver", item:"quest_ochre_report", count:1}],
     rewards:{sideKey:"ochre_report", items:["ochre_plate"]},
-    acceptLog:"接受任务【斥候急报】：把急报交给赤牙。",
-    readyAnnounce:"急报在身 · 与赤牙交付"},
+    acceptLog:"接受任务【斥候急报】：把急报交给商人赤蹄。",
+    readyAnnounce:"急报在身 · 与赤蹄交付"},
   {id:"sting_bundle", title:"蝎刺束",
     chapter:"side", zone:"durotar", sort:312,
     minLevel:12, prereq:["ochre_sting"],
-    giver:"ochre_outpost", turnIn:"ochre_outpost",
+    giver:"ochre_vendor", turnIn:"ochre_vendor",
     objectives:[{type:"deliver", item:"scorp_stinger", count:3}],
     rewards:{sideKey:"sting_bundle"},
-    acceptLog:"接受任务【蝎刺束】：收集蝎刺交给赤牙。",
-    readyAnnounce:"蝎刺已齐 · 回赤牙处"},
+    acceptLog:"接受任务【蝎刺束】：收集蝎刺交给商人赤蹄。",
+    readyAnnounce:"蝎刺已齐 · 回商人赤蹄处"},
   {id:"scorched_oil", title:"焦土圣油",
     chapter:"side", zone:"durotar", sort:314,
     minLevel:12, prereq:["ochre_sting"],
@@ -415,7 +416,7 @@ const QUESTS=[
     objectives:[{type:"use", item:"quest_sacred_oil"}],
     rewards:{sideKey:"scorched_oil"},
     acceptLog:"接受任务【焦土圣油】：使用圣油完成灼土仪式。",
-    readyAnnounce:"仪式完成 · 回赤牙处"},
+    readyAnnounce:"仪式完成 · 回斥候赤牙处"},
   {id:"outpost_horn", title:"哨站号角",
     chapter:"side", zone:"durotar", sort:316,
     minLevel:12, prereq:["ochre_sting"],
@@ -424,7 +425,7 @@ const QUESTS=[
     objectives:[{type:"use", item:"quest_signal_horn"}],
     rewards:{sideKey:"outpost_horn"},
     acceptLog:"接受任务【哨站号角】：吹响信号号角。",
-    readyAnnounce:"号角已响 · 回赤牙处"},
+    readyAnnounce:"号角已响 · 回斥候赤牙处"},
   {id:"runner_escort", title:"焦蹄护送",
     chapter:"side", zone:"durotar", sort:318,
     minLevel:13, prereq:["ochre_sting"],
@@ -432,7 +433,7 @@ const QUESTS=[
     objectives:[{type:"escort", destX:160, destZ:0, r:14, label:"赭岩东口", name:"信使 · 焦蹄"}],
     rewards:{sideKey:"runner_escort"},
     acceptLog:"接受任务【焦蹄护送】：护送信使前往东口。",
-    readyAnnounce:"信使抵达 · 回赤牙处"},
+    readyAnnounce:"信使抵达 · 回斥候赤牙处"},
 
   /* —— 哀嚎洞穴 —— */
   {id:"wailing_cobrahn", title:"毒牙领主",
@@ -505,6 +506,51 @@ function grantQuestItems(ids){
 }
 
 function getQuestDef(id){return QUEST_BY_ID[id]||null;}
+
+/* NPC 显示名：任务追踪 / 交任务提示 */
+const QUEST_NPC_NAMES={
+  elder:"长老 · 岩蹄",
+  vendor:"商人 · 火蹄",
+  hunter:"猎手 · 迅羽",
+  crossroads:"哨兵 · 碎牙",
+  barrens_cook:"厨子 · 尘粮",
+  barrens_vendor:"商人 · 旱蹄",
+  ochre_outpost:"斥候 · 赤牙",
+  ochre_guard:"卫士 · 焦刺",
+  ochre_vendor:"商人 · 赤蹄",
+};
+function questNpcLabel(npcId){
+  if(!npcId)return "任务人";
+  return QUEST_NPC_NAMES[npcId]||npcId;
+}
+function bindQuestNpcFields(prog,q){
+  if(!prog||!q)return;
+  prog.giver=q.giver!=null?q.giver:null;
+  prog.turnIn=q.turnIn!=null?q.turnIn:null;
+}
+/** 进行中任务的交/接人与当前 QUESTS 表对齐（NPC 重分配后旧档可交） */
+function syncQuestNpcBindings(){
+  const st=ensureQuestState();
+  for(const id in st){
+    const p=st[id];
+    if(!p||(p.status!=="active"&&p.status!=="ready"))continue;
+    const q=QUEST_BY_ID[id];
+    if(q)bindQuestNpcFields(p,q);
+  }
+}
+function questGiverId(q){
+  if(!q)return null;
+  const p=questProgress(q.id);
+  /* 仅进行中沿用存档绑定；放弃/未接一律以任务表为准，否则无法重新接 */
+  if((p.status==="active"||p.status==="ready")&&p.giver!=null)return p.giver;
+  return q.giver!=null?q.giver:null;
+}
+function questTurnInId(q){
+  if(!q)return null;
+  const p=questProgress(q.id);
+  if((p.status==="active"||p.status==="ready")&&p.turnIn!=null)return p.turnIn;
+  return q.turnIn!=null?q.turnIn:null;
+}
 
 function ensureQuestState(){
   if(!S.quests)S.quests={};
@@ -621,10 +667,53 @@ function applyQuestRewards(q,opts){
   }
   if(!opts.skipItems&&Array.isArray(r.items)){
     for(const id of r.items){
-      if(ITEMS[id]&&S.inv.length<BAL.bag.size&&!S.inv.includes(id)&&S.eq.weapon!==id&&S.eq.armor!==id)
+      if(ITEMS[id]&&S.inv.length<BAL.bag.size&&!S.inv.includes(id)&&!isItemEquipped(id))
         S.inv.push(id);
     }
   }
+}
+
+function canAbandonQuest(id){
+  const st=questStatus(id);
+  return st==="active"||st==="ready";
+}
+
+/** 放弃未交任务：清进度，可重新接；回收本任务发放的任务物品 */
+function abandonQuest(id,opts){
+  opts=opts||{};
+  const q=getQuestDef(id);
+  if(!q||!canAbandonQuest(id))return false;
+  if(S.questEscort&&S.questEscort.questId===id)clearQuestEscort();
+  /* 回收 grantItems 与 deliver/use 目标上的任务物品 */
+  const dropIds=new Set();
+  if(Array.isArray(q.grantItems))q.grantItems.forEach(x=>dropIds.add(x));
+  const obj=q.objectives&&q.objectives[0];
+  if(obj&&(obj.type==="deliver"||obj.type==="use")&&obj.item){
+    const it=ITEMS[obj.item];
+    if(it&&it.quest)dropIds.add(obj.item);
+  }
+  for(const itemId of dropIds){
+    while(countInvItem(itemId)>0)removeInvItems(itemId,99);
+  }
+  const st=ensureQuestState();
+  delete st[id];
+  if(!opts.silent){
+    const who=questNpcLabel(q.giver);
+    log(`已放弃任务【${q.title}】。可向${who}重新接取。`,"lg-sys");
+    announce(`放弃任务 · ${q.title}`);
+  }
+  syncLegacyQuestAliases();
+  if(typeof setMarker==="function")setMarker();
+  if(typeof updateBarrensMarkers==="function")updateBarrensMarkers();
+  if(typeof updateDurotarMarkers==="function")updateDurotarMarkers();
+  if(typeof updateNpcQuestMarkers==="function")updateNpcQuestMarkers();
+  updateQuestTracker();
+  if(typeof renderBag==="function")renderBag();
+  if(typeof renderQuestLog==="function")renderQuestLog();
+  /* 对话开着时关掉，下次 F 会刷出「接受」 */
+  if(typeof closeDialogue==="function")closeDialogue();
+  if(!opts.noSave&&typeof saveGame==="function")saveGame(true);
+  return true;
 }
 
 function acceptQuest(id,opts){
@@ -635,6 +724,7 @@ function acceptQuest(id,opts){
   prog.status="active";
   prog.kills=0;
   prog.flags={};
+  bindQuestNpcFields(prog,q);
   if(q.grantItems)grantQuestItems(q.grantItems);
   if(q.acceptLog&&!opts.silent)log(q.acceptLog,"lg-sys");
   if(!opts.silent)announce(`接受任务 · ${q.title}`);
@@ -759,25 +849,45 @@ function onQuestZoneEnter(zoneId){
 function questsForNpc(npcId){
   return QUESTS.filter(q=>{
     if(q.giver===npcId&&canAcceptQuest(q.id))return true;
-    if(q.turnIn===npcId&&canTurnInQuest(q.id))return true;
+    if(questTurnInId(q)===npcId&&canTurnInQuest(q.id))return true;
     return false;
   }).sort((a,b)=>(a.sort||0)-(b.sort||0));
 }
 
+/** 该 NPC 是否有可接任务（感叹号） */
+function npcHasQuestOffer(npcId){
+  if(!npcId)return false;
+  for(const q of QUESTS){
+    if(q.giver===npcId&&canAcceptQuest(q.id))return true;
+  }
+  return false;
+}
+/** 该 NPC 是否有可交任务（问号） */
+function npcHasQuestTurnIn(npcId){
+  if(!npcId)return false;
+  for(const q of QUESTS){
+    if(questTurnInId(q)===npcId&&canTurnInQuest(q.id))return true;
+  }
+  return false;
+}
+
 function getActiveQuestEntries(){
+  syncQuestNpcBindings();
   const out=[];
   for(const q of QUESTS){
     const st=questStatus(q.id);
     if(st!=="active"&&st!=="ready")continue;
     const prog=questProgress(q.id);
+    const turnNpc=questTurnInId(q);
     out.push({
       id:q.id, title:q.title, zone:q.zone, chapter:q.chapter,
       obj:objectiveProgressText(q,prog),
       done:st==="ready",
       tip:st==="ready"
-        ?(q.turnIn?`回去找任务人交任务`:`目标已完成`)
+        ?(turnNpc?`回去找${questNpcLabel(turnNpc)}交任务`:`目标已完成`)
         :(q.subtitle||q.title),
       status:st, sort:q.sort||0,
+      giver:questGiverId(q), turnIn:turnNpc,
     });
   }
   return out.sort((a,b)=>a.sort-b.sort);
@@ -820,12 +930,18 @@ function syncLegacyQuestAliases(){
 }
 
 function collectQuestSave(){
+  syncQuestNpcBindings();
   const out={};
   const st=ensureQuestState();
   for(const id in st){
     const p=st[id];
     if(!p||p.status==="none")continue;
-    out[id]={status:p.status,kills:p.kills|0,flags:p.flags&&typeof p.flags==="object"?p.flags:{}};
+    out[id]={
+      status:p.status, kills:p.kills|0,
+      flags:p.flags&&typeof p.flags==="object"?p.flags:{},
+      giver:p.giver!=null?p.giver:null,
+      turnIn:p.turnIn!=null?p.turnIn:null,
+    };
   }
   return out;
 }
@@ -841,7 +957,8 @@ function applyQuestSave(rawQuests,legacy){
       const status=["none","active","ready","done"].includes(r.status)?r.status:"none";
       if(status==="none")continue;
       const flags=(r.flags&&typeof r.flags==="object")?Object.assign({},r.flags):{};
-      st[id]={status,kills:Math.max(0,r.kills|0),flags};
+      st[id]={status,kills:Math.max(0,r.kills|0),flags,
+        giver:r.giver!=null?r.giver:null, turnIn:r.turnIn!=null?r.turnIn:null};
       if(status==="active"){
         const q=QUEST_BY_ID[id], obj=q&&q.objectives&&q.objectives[0];
         if(obj&&obj.type==="escort")startQuestEscort(id,obj,{silent:true});
@@ -871,6 +988,8 @@ function applyQuestSave(rawQuests,legacy){
     if(bs===1)st.crossroads_trouble={status:bk>=need?"ready":"active",kills:bk,flags:{}};
     else if(bs>=2)st.crossroads_trouble={status:"done",kills:need,flags:{}};
   }
+  /* 把进行中任务的交/接人绑定到当前 QUESTS 表（NPC 重分配后旧档也能交） */
+  syncQuestNpcBindings();
   /* 已完成任务的永久属性奖励回放（不重复发经验/铜币） */
   if(questStatus("elder_boars")==="done"){
     applyQuestRewards(getQuestDef("elder_boars"),{silent:true,skipXp:true,skipCopper:true,skipItems:true,keepHp:true});
@@ -983,6 +1102,7 @@ function tickQuestWorld(dt){
 }
 
 function updateQuestTracker(){
+  syncQuestNpcBindings();
   const qel=typeof $==="function"?$("#quest"):null;
   if(!qel)return;
   const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore";

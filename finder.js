@@ -80,7 +80,6 @@ function renderDungeonFinderPanel(){
 function toggleDungeonFinderPanel(){
   if(!S.started)return;
   if(finderOpen()){setPanel("#finderPanel",false);return;}
-  if(typeof closeAllHudPanels==="function")closeAllHudPanels("finder");
   setPanel("#finderPanel",true);
   renderDungeonFinderPanel();
 }

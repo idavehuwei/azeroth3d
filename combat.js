@@ -20,7 +20,7 @@
           threat.js 运行时（addThreat）
    [导出] S SKILLS CLASSES CLS setClass applySkillBarIcons log announce fct hurtFlash keys joy
           useSkill hitEntity dmgBoss pickTarget firePlayerShot playerHit
-          isTargetAlive setCurrentTarget getFocusTarget
+          isTargetAlive setCurrentTarget getFocusTarget clearCurrentTargetIf
           gainXP updateLevelUI gainCopper spendCopper formatCopperText updateGoldUI
           clearShieldVisual applyHeal
           （S.quests · STEP 22 任务运行时）
@@ -49,10 +49,11 @@ const S={
   adds:[],projectiles:[],pShots:[],telegraphs:[],bursts:[],
   cds:[0,0,0,0],gcd:0,
   inv:[],      /* 背包（STEP 2 起：拾取的物品 id 列表） */
-  eq:{weapon:null,armor:null},   /* 装备位（STEP 4）：物品 id */
+  eq:emptyEquipment(), /* 纸娃娃装备位（items.js · EQUIP_SLOTS） */
   god:false,   /* 上帝模式：启程时由首页勾选决定（hitEntity 消费） */
   cam:{dist:16,pitch:.38,yawOff:0,lmb:false,rmb:false,lx:0,ly:0}, /* 魔兽式视角状态 */
   vendorOpen:false,
+  vendorNpcId:null, /* 当前商店 NPC id（对照 BAL.economy.vendorStockByNpc） */
   deathUi:false, /* STEP 15：死亡面板打开中 */
 };
 /* ============================================================
@@ -195,7 +196,10 @@ addEventListener("keydown",e=>{
   if(e.key.toLowerCase()==="m")toggleWorldMap();
   if(e.shiftKey&&e.key.toLowerCase()==="z"&&typeof toggleDeedsPanel==="function"){e.preventDefault();toggleDeedsPanel();}
   if(e.shiftKey&&e.key.toLowerCase()==="i"&&typeof toggleDungeonFinderPanel==="function"){e.preventDefault();toggleDungeonFinderPanel();}
-  if(e.key==="Escape"&&typeof worldMapOpen==="function"&&worldMapOpen())closeWorldMap();
+  if(e.key==="Escape"){
+    if(typeof worldMapOpen==="function"&&worldMapOpen()){closeWorldMap();return;}
+    if(typeof closeAllHudPanels==="function")closeAllHudPanels();
+  }
 });
 addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
 document.getElementById("interactBtn").addEventListener("pointerdown",()=>tryInteract());
@@ -290,6 +294,9 @@ function useSkill(i){
    ============================================================ */
 function hitEntity(ent,amount,label,opts){
   if(ent.dead&&ent.dead())return;
+  /* 尸体 / 回巢不可再结算伤害（防自动普攻误锁） */
+  if(ent.mesh&&typeof mobTargetable==="function"&&MOBS&&MOBS.includes(ent)&&!mobTargetable(ent))return;
+  if(ent.mesh&&typeof addTargetable==="function"&&S.adds&&S.adds.includes(ent)&&!addTargetable(ent))return;
   const v=ent.variance;
   /* 上帝模式：固定伤害，跳过系数与浮动 */
   amount=S.god?BAL.god.dmg:Math.round(amount*S.p.dmgMul*(v?rand(v[0],v[1]):1));
@@ -322,7 +329,7 @@ function heroicStrike(){
   }else{
     if(distToBoss()<=BAL.skills.heroicStrike.bossReach){dmgBoss(R(BAL.skills.heroicStrike.dmg),"英勇打击",thr);hit=true;}
     S.adds.forEach(a=>{
-      if(player.position.distanceTo(a.mesh.position)<BAL.skills.heroicStrike.addReach){addDamage(a,R(BAL.skills.heroicStrike.addDmg),thr);hit=true;}
+      if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<BAL.skills.heroicStrike.addReach){addDamage(a,R(BAL.skills.heroicStrike.addDmg),thr);hit=true;}
     });
   }
   if(!hit){log("没有目标在近战范围内。");return false;}
@@ -345,7 +352,7 @@ function whirlwind(){
   }else{
     if(distToBoss()<=BAL.skills.whirlwind.bossRadius){dmgBoss(R(BAL.skills.whirlwind.bossDmg),"旋风斩",thr);any=true;}
     S.adds.forEach(a=>{
-      if(player.position.distanceTo(a.mesh.position)<BAL.skills.whirlwind.radius){addDamage(a,R(BAL.skills.whirlwind.dmg),thr);any=true;}
+      if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<BAL.skills.whirlwind.radius){addDamage(a,R(BAL.skills.whirlwind.dmg),thr);any=true;}
     });
   }
   if(!any)log("旋风斩没有命中任何目标。");
@@ -361,8 +368,11 @@ function charge(){
     });
   }else{
     if(bossTargetable()){target=new THREE.Vector3(boss.position.x,0,boss.position.z);best=distToBoss();}
-    S.adds.forEach(a=>{const d=player.position.distanceTo(a.mesh.position);
-      if(d<best){best=d;target=a.mesh.position.clone().setY(0);}});
+    S.adds.forEach(a=>{
+      if(!addTargetable(a))return;
+      const d=player.position.distanceTo(a.mesh.position);
+      if(d<best){best=d;target=a.mesh.position.clone().setY(0);}
+    });
   }
   if(!target||best<BAL.skills.charge.minDist){log("没有可冲锋的目标。");return false;}
   const dir=target.clone().sub(player.position).normalize();
@@ -399,8 +409,10 @@ function pickTarget(range,fromPos){
   const origin=fromPos||player.position;
   let tgt=null,best=range;
   if(S.mode==="world"){
+    const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore";
     for(const m of MOBS){
       if(!mobTargetable(m))continue;
+      if((m.zoneId||"mulgore")!==zid)continue;
       const d=origin.distanceTo(m.mesh.position);
       if(d<best){best=d;tgt={type:"mob",m};}
     }
@@ -411,6 +423,7 @@ function pickTarget(range,fromPos){
     if(d<=range){tgt={type:"boss"};best=d;}
   }
   for(const a of S.adds){
+    if(!addTargetable(a))continue;
     const d=origin.distanceTo(a.mesh.position);
     if(d<best){best=d;tgt={type:"add",a};}
   }
@@ -420,11 +433,19 @@ function isTargetAlive(tgt){
   if(!tgt)return false;
   if(tgt.type==="mob")return mobTargetable(tgt.m);
   if(tgt.type==="boss")return typeof bossTargetable==="function"&&bossTargetable();
-  if(tgt.type==="add")return !!(tgt.a&&S.adds.includes(tgt.a)&&tgt.a.hp>0);
+  if(tgt.type==="add")return typeof addTargetable==="function"?addTargetable(tgt.a):!!(tgt.a&&S.adds.includes(tgt.a)&&tgt.a.hp>0);
   return false;
 }
 function setCurrentTarget(tgt){
   if(tgt&&isTargetAlive(tgt))S.currentTarget=tgt;
+  else if(!tgt)S.currentTarget=null;
+}
+function clearCurrentTargetIf(ent){
+  const t=S.currentTarget;
+  if(!t)return;
+  if(t.type==="mob"&&t.m===ent)S.currentTarget=null;
+  if(t.type==="add"&&t.a===ent)S.currentTarget=null;
+  if(t.type==="boss"&&ent&&ent.type==="boss")S.currentTarget=null;
 }
 function getFocusTarget(range){
   const r=range!=null?range:(BAL.companion?BAL.companion.combatEngageR:24);
@@ -466,7 +487,7 @@ function frostNova(){
   }else{
     if(bossTargetable()&&distToBoss()<=BAL.skills.frostNova.bossRadius){dmgBoss(R(BAL.skills.frostNova.bossDmg),"冰霜新星");any=true;}
     S.adds.forEach(a=>{
-      if(player.position.distanceTo(a.mesh.position)<BAL.skills.frostNova.radius){
+      if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<BAL.skills.frostNova.radius){
         addDamage(a,R(BAL.skills.frostNova.dmg)); a.rootT=BAL.skills.frostNova.rootT; any=true;
       }
     });
@@ -513,7 +534,7 @@ function multiShot(){
   }else{
     if(bossTargetable()&&distToBoss()<=CLS.range){firePlayerShot({type:"boss"},R(BAL.skills.multiShot.dmg),"多重射击");n++;}
     S.adds.forEach(a=>{
-      if(player.position.distanceTo(a.mesh.position)<=CLS.range){
+      if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<=CLS.range){
         firePlayerShot({type:"add",a},R(BAL.skills.multiShot.dmg),"多重射击");n++;
       }
     });
