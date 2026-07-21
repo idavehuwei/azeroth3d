@@ -30,6 +30,7 @@
 | `items.js` | 物品与掉落 | QUALITY, ITEMS, LOOT, dropLoot, tryLoot, useItem, sellItem |
 | `models.js` | 3D 模型工厂 | buildPlayer…, buildHut/Tent/Fence/Watchtower, QUADS |
 | `anim.js` | 生物动画挂点 | updateMobAnim, beginDeathRoll, updateBossWingAnim |
+| `weather.js` | 天气层（render-only） | setWeather, updateWeather, clearWeather |
 | `world.js` | 莫高雷世界 | player, boss, MOBS, QUEST, enterRaid, mobDie, setCorpse, tryInteract, vendor, spiritHealer |
 | `combat.js` | 战斗系统 | S, CLASSES, SKILLS, hitEntity, useSkill, gainCopper, getFocusTarget |
 | `companions.js` | AI 队友 / 3 人小队 | PARTY, formParty, recruitCompanion, tickCompanion |

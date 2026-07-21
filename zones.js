@@ -7,6 +7,7 @@
           companions.js（transferCompanionZone）
           raid.js（resetBoss DUNGEON removeExitPortal）· sfx.js（SFX）
           map.js（setMapZone）· save.js（saveGame）
+          weather.js 运行时（setWeather）
           quests.js 运行时（onQuestZoneEnter）
           deeds.js 运行时（onDeedZoneEnter）
    [导出] ZONES registerZone getZone getCurrentZone getCurrentZoneId
@@ -148,6 +149,7 @@ function enterZone(id,gateId,opts){
 
     if(typeof SFX!=="undefined"&&SFX.music&&to.music)SFX.music(to.music);
     if(typeof setMapZone==="function")setMapZone(id);
+    if(typeof setWeather==="function")setWeather(id);
 
     if(typeof opts.afterEnter==="function")opts.afterEnter(fromId,id,gateId);
     if(typeof onQuestZoneEnter==="function"&&!(opts&&opts.silent))onQuestZoneEnter(id);

@@ -226,6 +226,33 @@ const BALANCE={
            sunAlt:-20, sunAz:0, hemiSky:0x1a1a3a, hemiGround:0x0a0a1a, hemiIntensity:0.25},
     campfire:{base:1.4, nightBoost:2.6},  /* 白天 1.4，夜晚 1.4+2.6=4.0 */
   },
+  /* 天气层（plan-v1 · V1-A4）：render-only，不改伤害/仇恨/视野逻辑；enabled:false 可关 */
+  weather:{
+    enabled:true,
+    zoneDefaults:{
+      mulgore:"clear",
+      barrens:"dust",
+      molten_core:"clear",
+      wailing_caverns:"mist",
+      onyxias_lair:"clear",
+    },
+    clear:{fogBlend:0, fogDensityMul:1},
+    rain:{
+      particle:"rain", count:420, size:.14, color:0xb8d0e8, opacity:.5,
+      fallMin:9, fallMax:16, spread:30, height:20,
+      fogTint:0x6a8098, fogBlend:.38, fogDensityMul:1.18,
+    },
+    dust:{
+      particle:"dust", count:240, size:.32, color:0xd8b880, opacity:.38,
+      fallMin:.5, fallMax:1.4, drift:4.2, spread:34, height:12,
+      fogTint:0xc9a060, fogBlend:.42, fogDensityMul:1.14,
+    },
+    mist:{
+      particle:"mist", count:160, size:.45, color:0x66aa55, opacity:.22,
+      fallMin:.25, fallMax:.7, drift:1.2, spread:22, height:9,
+      fogTint:0x1a3020, fogBlend:.28, fogDensityMul:1.06,
+    },
+  },
   /* 经验与等级（STEP 3）：经验来源 / 升级曲线 / 每级成长 */
   levels:{max:18, xp:{quest:300, boss:2000, magmadar:800, barrensQuest:400, cobrahn:900, verdan:1600, onyxia:2200},
     /* 野怪经验在 mobs 表；xpMax[i] = 第 i+1 级升下一级所需（共 max-1 档） */

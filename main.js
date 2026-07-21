@@ -15,6 +15,7 @@
           setCurrentTarget log announce fct）
           companions.js 运行时（tickCompanion companionAlive companionHit COMPANION）
           anim.js 运行时（updateMobAnim updateBossWingAnim）
+          weather.js 运行时（updateWeather）
           items.js（updateDrops nearestDrop removeDropOf cancelConsume）
           vfx.js（VFX spawnBurst fireProjectile disposeVfxMesh）
           raid.js 运行时（bossAI distToBoss bossTargetable DUNGEON）
@@ -151,6 +152,9 @@ function tick(){
       }
     }
   }
+
+  /* 天气层（V1-A4）：须在 dayNight 写雾之后叠加；render-only */
+  if(typeof updateWeather==="function")updateWeather(dt);
 
   /* Boss 火焰摇曳（仅拉戈斯等人形岩浆 Boss 有 core/bossLight） */
   if(boss.userData.core&&boss.userData.bossLight){

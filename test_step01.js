@@ -277,6 +277,18 @@ assert(mainSrc.includes("updateMobAnim")&&mainSrc.includes("updateBossWingAnim")
 assert(raidSrc.includes("beginDeathRoll"),"raid.js addDie/Boss 死亡插值");
 assert(cmpSrc.includes("beginDeathRoll")&&cmpSrc.includes("tickDeathRoll"),"同伴死亡侧倒插值");
 
+/* plan-v1 · V1-A4 天气层冒烟 */
+const weatherSrc=fs.readFileSync(path.join(__dirname,"weather.js"),"utf8");
+assert(html.includes('src="weather.js"'),"game.html 加载 weather.js");
+assert(weatherSrc.includes("function setWeather")&&weatherSrc.includes("function updateWeather"),"weather.js 有 set/update");
+assert(weatherSrc.includes("function clearWeather")&&weatherSrc.includes("disposeWeatherMesh"),"weather.js 有清理/dispose");
+assert(weatherSrc.includes("render-only")||weatherSrc.includes("禁止改"),"weather.js 标明 render-only");
+assert(coreSrc.includes("weather:")&&coreSrc.includes("enabled:true")&&coreSrc.includes("dust:"),"BALANCE 含 weather 可关表");
+assert(coreSrc.includes('barrens:"dust"')||coreSrc.includes("barrens:\"dust\""),"贫瘠默认沙尘");
+assert(zonesSrc.includes("setWeather"),"enterZone 挂接 setWeather");
+assert(mainSrc.includes("updateWeather"),"main.js tick 更新天气");
+assert(!/aggroR|leashR|dmg\[/.test(weatherSrc),"weather.js 不碰战斗数值");
+
 function DEEDS_COUNT_OK(src){
   const m=src.match(/id:"[^"]+"/g)||[];
   /* DEEDS 表内 id 约 18；过滤 DEED_BY_ID 等 */
@@ -287,4 +299,4 @@ if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–29 … / V1-A1–A3 冒烟");
+console.log("\n全部通过 · STEP 17–29 … / V1-A1–A4 冒烟");

@@ -499,6 +499,7 @@
 <script src="anim.js"></script>
 <script src="professions.js"></script>
 <script src="world.js"></script>
+<script src="weather.js"></script>
 <script src="rares.js"></script>
 <script src="barrens.js"></script>
 <script src="combat.js"></script>
@@ -516,6 +517,6 @@
 <script src="onyxia.js"></script>
 <script src="finder.js"></script>
 <script src="save.js"></script>
-<script>ensureAllZonesBuilt();</script>
+<script>ensureAllZonesBuilt(); if(typeof setWeather==="function")setWeather(typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore");</script>
 </body>
 </html>
