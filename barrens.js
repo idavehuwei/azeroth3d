@@ -179,7 +179,7 @@ function buildBarrensZone(scn){
   sDisc.position.set(BARRENS_PORTAL_S.x,4.6,BARRENS_PORTAL_S.z); root.add(sDisc);
   const sLab=makeLabel("哀嚎洞穴",11,"#a8d080","rgba(40,80,30,.9)");
   sLab.position.set(BARRENS_PORTAL_S.x,12.0,BARRENS_PORTAL_S.z); root.add(sLab);
-  const sLab2=makeLabel("建议等级 15+",6,"#88a868","rgba(40,60,30,.85)");
+  const sLab2=makeLabel(`需要 Lv.${BAL.barrens.wailingMinLevel||15}+`,6,"#ffb060","rgba(60,80,20,.9)");
   sLab2.position.set(BARRENS_PORTAL_S.x,10.6,BARRENS_PORTAL_S.z); root.add(sLab2);
 
   crossroadsSentinel=buildVendor();
@@ -351,7 +351,9 @@ registerZone({
     logHint:"潮气与毒草的气味从旋涡中渗出……走进即可进入哀嚎洞穴。",
     requireAlive:true,
     autoEnter:true,
-    visible:()=>S.p&&S.p.level>=(BAL.barrens.wailingMinLevel||15),
+    minLevel:()=>BAL.barrens.wailingMinLevel||15,
+    lockedAnnounce:()=>`等级不足！需要 Lv.${BAL.barrens.wailingMinLevel||15}`,
+    lockedLog:()=>`哀嚎洞穴危机四伏——当前 Lv.${S.p.level}，建议升到 Lv.${BAL.barrens.wailingMinLevel||15} 后再挑战。`,
     targetZone:"wailing_caverns",
     targetGate:"entrance",
   }],

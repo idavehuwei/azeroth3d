@@ -8,7 +8,8 @@
           world.js（player boss WORLD_R PORTAL_POS portalUni portalLabel worldFlames
           MOBS elder elderDist vendor vendorDist spiritHealer spiritDist enterRaid leaveRaid closeDialogue moveToward mobDamage setCorpse
           exitPortal EXIT_PORTAL_POS spawnExitPortal removeExitPortal）
-          zones.js（getCurrentZone getActivePortals enterZone resolvePortalPos）
+          zones.js（getCurrentZone getActivePortals enterZone resolvePortalPos
+            portalMinLevel portalLevelLocked）
           combat.js（S CLS SKILLS keys joy setClass bossAI bossTargetable distToBoss
           pickTarget firePlayerShot dmgBoss addDamage mobDamage playerHit
           setCurrentTarget log announce fct）
@@ -161,25 +162,51 @@ function tick(){
 
   if(S.started){
     if(S.portalLockT>0)S.portalLockT=Math.max(0,S.portalLockT-dt);
-    /* ---- 传送门检测（数据驱动，STEP 17） ---- */
+    /* ---- 传送门检测（数据驱动，STEP 17；等级锁提示） ---- */
     if(S.mode!=="transition"&&S.portalLockT<=0&&typeof getActivePortals==="function"){
       for(const p of getActivePortals()){
         const pos=resolvePortalPos(p);
         if(!pos)continue;
         const pd=Math.hypot(player.position.x-pos.x,player.position.z-pos.z);
         const hintR=typeof p.hintR==="function"?p.hintR():p.hintR;
+        const locked=typeof portalLevelLocked==="function"&&portalLevelLocked(p);
+        const needLv=typeof portalMinLevel==="function"?portalMinLevel(p):0;
         if(hintR&&pd<hintR){
           if(!S.portalHints)S.portalHints={};
-          if(!S.portalHints[p.id]){
-            S.portalHints[p.id]=true;
+          const hintKey=locked?p.id+"__locked":p.id;
+          if(!S.portalHints[hintKey]){
+            S.portalHints[hintKey]=true;
             S.portalHinted=true;
-            if(p.announce)announce(p.announce);
-            if(p.logHint)log(p.logHint,"lg-sys");
+            if(locked){
+              const msg=(typeof p.lockedAnnounce==="function"?p.lockedAnnounce():p.lockedAnnounce)
+                ||`等级不足！需要 Lv.${needLv}`;
+              announce(msg);
+              const tip=(typeof p.lockedLog==="function"?p.lockedLog():p.lockedLog)
+                ||`你的等级过低（当前 Lv.${S.p.level}），需要升到 Lv.${needLv} 才能通过此传送门。`;
+              log(tip,"lg-sys");
+            }else{
+              if(p.announce)announce(p.announce);
+              if(p.logHint)log(p.logHint,"lg-sys");
+            }
           }
         }
         const enterR=typeof p.enterR==="function"?p.enterR():(p.enterR||BAL.zones.portalEnterR);
         if(pd<enterR&&p.autoEnter!==false){
           if(p.requireAlive&&!S.p.alive)continue;
+          if(locked){
+            /* 踩进传送门时再提醒一次（带冷却，避免刷屏） */
+            if(!S.portalLockHints)S.portalLockHints={};
+            const cd=BAL.zones.lockedHintCd!=null?BAL.zones.lockedHintCd:4;
+            const last=S.portalLockHints[p.id]||0;
+            if(S.t-last>=cd){
+              S.portalLockHints[p.id]=S.t;
+              const msg=(typeof p.lockedAnnounce==="function"?p.lockedAnnounce():p.lockedAnnounce)
+                ||`等级不足！需要 Lv.${needLv}`;
+              announce(msg);
+              log(`传送门纹丝不动……（Lv.${S.p.level} / 需要 Lv.${needLv}）`,"lg-sys");
+            }
+            continue;
+          }
           if(S.mode==="raid"&&(p.targetZone==="mulgore"||p.targetZone==="barrens"))leaveRaid();
           else enterZone(p.targetZone,p.targetGate);
         }

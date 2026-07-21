@@ -9,7 +9,7 @@
           map.js（setMapZone）· save.js（saveGame）
    [导出] ZONES registerZone getZone getCurrentZone getCurrentZoneId
           ensureZoneBuilt ensureAllZonesBuilt enterZone getActivePortals
-          resolvePortalPos
+          resolvePortalPos portalMinLevel portalLevelLocked
    ============================================================ */
 "use strict";
 
@@ -60,6 +60,18 @@ function getActivePortals(){
   const z=getCurrentZone();
   if(!z||!z.portals)return [];
   return z.portals.filter(p=>!p.visible||p.visible());
+}
+
+/** 传送门所需最低等级（0 = 无等级门槛） */
+function portalMinLevel(p){
+  if(!p||p.minLevel==null)return 0;
+  return typeof p.minLevel==="function"?p.minLevel()|0:p.minLevel|0;
+}
+
+/** 当前玩家是否因等级被锁在门外 */
+function portalLevelLocked(p){
+  const need=portalMinLevel(p);
+  return need>0&&typeof S!=="undefined"&&S.p&&S.p.level<need;
 }
 
 function resolveGate(zone,gateId){

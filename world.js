@@ -207,7 +207,7 @@ const barrensPortalDisc=new THREE.Mesh(new THREE.CircleGeometry(2.8,36),new THRE
 barrensPortalDisc.position.set(PORTAL_BARRENS.x,4.6,PORTAL_BARRENS.z); sceneWorld.add(barrensPortalDisc);
 const southPortalLabel=makeLabel("贫瘠之地",12,"#e8c898","rgba(160,100,40,.9)");
 southPortalLabel.position.set(PORTAL_BARRENS.x,12.2,PORTAL_BARRENS.z); sceneWorld.add(southPortalLabel);
-const southPortalLabel2=makeLabel("· 十字路口 ·",7,"#d0b070","rgba(120,80,30,.85)");
+const southPortalLabel2=makeLabel(`十字路口 · 需要 Lv.${BAL.barrens.minLevel}+`,7,"#ffb060","rgba(160,80,20,.9)");
 southPortalLabel2.position.set(PORTAL_BARRENS.x,10.8,PORTAL_BARRENS.z); sceneWorld.add(southPortalLabel2);
 
 /* ---------------- 萤火虫粒子（STEP 7 昼夜）：夜晚浮现，白天透明 ---------------- */
@@ -289,7 +289,9 @@ registerZone({
     logHint:"南行土路通往干燥荒原……靠近传送门即可前往贫瘠之地。",
     requireAlive:true,
     autoEnter:true,
-    visible:()=>S.p&&S.p.level>=BAL.barrens.minLevel,
+    minLevel:()=>BAL.barrens.minLevel,
+    lockedAnnounce:()=>`等级不足！需要 Lv.${BAL.barrens.minLevel}`,
+    lockedLog:()=>`贫瘠之地 · 十字路口需要更强的勇士——当前 Lv.${S.p.level}，升到 Lv.${BAL.barrens.minLevel} 后再来。`,
     targetZone:"barrens",
     targetGate:"from_mulgore",
   }],

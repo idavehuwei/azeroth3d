@@ -234,6 +234,7 @@ const BALANCE={
     portalHintR:22,
     portalEnterR:4.5,
     exitPortalEnterR:5.5,
+    lockedHintCd:4,   /* 等级不足时靠近/踩入重复提示冷却（秒） */
   },
   /* AI 队友（STEP 20）：单人伪组队；数值集中于此 */
   companion:{
