@@ -227,8 +227,8 @@ function companionHit(amount,source,target){
   if(c.hp<=0){
     c.hp=0; c.alive=false; c.state="IDLE";
     c.reviveT=BAL.companion.reviveT;
-    c.mesh.rotation.z=Math.PI/2;
-    c.mesh.position.y=.25;
+    if(typeof beginDeathRoll==="function")beginDeathRoll(c);
+    else{c.mesh.rotation.z=Math.PI/2; c.mesh.position.y=.25;}
     if(c.label)c.label.visible=false;
     announce("同伴倒下了！");
     log(`${CMP_NAMES[c.classKey]||"同伴"}倒下了，将在 ${BAL.companion.reviveT} 秒后振作。`,"lg-sys");
@@ -392,10 +392,13 @@ function companionAttack(c,tgt){
 function tickOneCompanion(c,dt){
   const C=BAL.companion, cls=c.cls;
   if(!c.alive){
+    if(typeof tickDeathRoll==="function")tickDeathRoll(c.mesh,dt);
     c.reviveT-=dt;
     if(c.reviveT<=0&&S.p.alive){
       c.alive=true; c.hp=Math.max(1,Math.round(c.hpMax*(C.reviveHpPct||.45)));
-      c.mesh.rotation.z=0; c.mesh.position.y=0;
+      if(typeof resetDeathRoll==="function")resetDeathRoll(c.mesh);
+      else{c.mesh.rotation.z=0; c.mesh.position.y=0;}
+      c.mesh.position.y=0;
       if(c.label)c.label.visible=true;
       c.state="FOLLOW";
       log(`${CMP_NAMES[c.classKey]}振作起来了！`,"lg-heal");

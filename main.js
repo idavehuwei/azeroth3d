@@ -14,6 +14,7 @@
           pickTarget firePlayerShot dmgBoss addDamage mobDamage playerHit
           setCurrentTarget log announce fct）
           companions.js 运行时（tickCompanion companionAlive companionHit COMPANION）
+          anim.js 运行时（updateMobAnim updateBossWingAnim）
           items.js（updateDrops nearestDrop removeDropOf cancelConsume）
           vfx.js（VFX spawnBurst fireProjectile disposeVfxMesh）
           raid.js 运行时（bossAI distToBoss bossTargetable DUNGEON）
@@ -221,10 +222,11 @@ function tick(){
         const st=m.stats;
         if(m.state==="dead"){
           /* 尸体停留（STEP 2）：倒地灰化 8 秒后消失，掉落留至重生 */
+          if(typeof updateMobAnim==="function")updateMobAnim(m,dt);
           if(m.corpseT>0){m.corpseT-=dt;if(m.corpseT<=0)m.mesh.visible=false;}
           m.respawnT-=dt;
           if(m.respawnT<=0){
-            m.state="wander"; m.hp=m.hpMax;
+            m.state="wander"; m.hp=m.hpMax; m.attackAnim=0;
             removeDropOf(m); setCorpse(m,false);
             m.mesh.position.set(m.home.x,0,m.home.z);
             m.mesh.visible=true; m.label.visible=true;
@@ -269,6 +271,7 @@ function tick(){
             m.atkT-=dt;
             if(m.atkT<=0){
               m.atkT=st.atkCd;
+              m.attackAnim=1;
               /* STEP 27：打仇恨最高者 */
               if(typeof meleeHitFromThreat==="function")
                 meleeHitFromThreat(m,m.mesh.position,st.meleeR,R(st.dmg),m.name);
@@ -280,7 +283,9 @@ function tick(){
           m.hp=Math.min(m.hpMax,m.hp+m.hpMax*BAL.leash.regenPct*dt);
           if(dH<1.2){m.state="wander";m.hp=m.hpMax;m.dest=null;}
         }
-        m.mesh.position.y=m.moving?Math.abs(Math.sin(S.t*9+m.home.x))*.22:0;
+        const bobAmp=(BAL.anim&&BAL.anim.bobAmp)!=null?BAL.anim.bobAmp:.22;
+        m.mesh.position.y=m.moving?Math.abs(Math.sin(S.t*9+m.home.x))*bobAmp:0;
+        if(typeof updateMobAnim==="function")updateMobAnim(m,dt);
         m.label.position.set(m.mesh.position.x,m.labelY,m.mesh.position.z);
         /* 精英光环脉动 */
         if(m.elite&&m.aura&&m.state!=="dead"){
@@ -481,6 +486,8 @@ function tick(){
       else boss.userData.armR.rotation.x=Math.sin(S.t*1.2)*.12;
       boss.userData.armL.rotation.x=Math.sin(S.t*1.2+1)*.15;
     }
+    if(typeof updateBossWingAnim==="function")
+      updateBossWingAnim(boss,dt,S.b.alive);
     /* Boss 缓慢面向玩家 */
     if(!S.b.rising&&!S.b.submerged&&S.b.alive&&boss.visible){
       const ta=Math.atan2(player.position.x-boss.position.x,player.position.z-boss.position.z);
@@ -492,8 +499,9 @@ function tick(){
     /* ---- 小怪 AI ---- */
     for(let i=S.adds.length-1;i>=0;i--){
       const a=S.adds[i];
-      /* 尸体阶段：只计时，到期移除 */
+      /* 尸体阶段：只计时 + 侧倒插值，到期移除 */
       if(a.corpseT>0){
+        if(typeof updateMobAnim==="function")updateMobAnim(a,dt);
         a.corpseT-=dt;
         if(a.corpseT<=0){scene.remove(a.mesh);S.adds.splice(i,1);}
         continue;
@@ -501,15 +509,22 @@ function tick(){
       const st=a.stats||BAL.add;
       const dir=player.position.clone().sub(a.mesh.position);dir.y=0;
       const d=dir.length();
+      a.moving=false;
       if(a.rootT>0){a.rootT-=dt;}  /* 被冰霜新星定身 */
-      else if(d>(st.stopR||BAL.add.stopR)){dir.normalize();a.mesh.position.add(dir.multiplyScalar(dt*(st.speed||BAL.add.speed)));}
+      else if(d>(st.stopR||BAL.add.stopR)){
+        dir.normalize();a.mesh.position.add(dir.multiplyScalar(dt*(st.speed||BAL.add.speed)));
+        a.moving=true;
+      }
       a.mesh.rotation.y=Math.atan2(dir.x,dir.z);
-      a.mesh.position.y=Math.abs(Math.sin(S.t*6+a.mesh.position.x))*.25;
+      const bobAmp=(BAL.anim&&BAL.anim.bobAmp)!=null?BAL.anim.bobAmp:.22;
+      a.mesh.position.y=Math.abs(Math.sin(S.t*6+a.mesh.position.x))*(bobAmp+.03);
       a.atkT-=dt;
       if(d<(st.meleeR||BAL.add.meleeR)&&a.atkT<=0&&S.p.alive){
         a.atkT=st.atkCd||BAL.add.atkCd;
+        a.attackAnim=1;
         playerHit(R(st.dmg||BAL.add.dmg),a.name||"小怪");
       }
+      if(typeof updateMobAnim==="function")updateMobAnim(a,dt);
     }
 
     /* ---- 投射物 ---- */

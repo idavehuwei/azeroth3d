@@ -6,6 +6,7 @@
           zones.js（registerZone enterZone）
           models.js（buildPlayer buildBoss buildElder buildVendor buildSpiritHealer buildBoar
             buildHut buildTent buildFence buildWatchtower BUILD_PAL placeProp）
+          anim.js 运行时（beginDeathRoll resetDeathRoll）
           items.js（dropLoot rollLoot LOOT tryLoot buyVendorItem）
           combat.js 运行时（S log announce fct spawnBurst hitEntity closeDialogue
             gainCopper rollCopperRange …）
@@ -508,6 +509,7 @@ function spawnMob(type,x,z,group,opts){
     group:group||null,labelY,zoneId,
     hp:st.hp,hpMax:st.hp,state:"wander",home:{x,z},dest:null,wanderT:rand(0,3),
     atkT:0,rootT:0,respawnT:0,corpseT:0,castCd:0,casting:null,moving:false,aura:null,
+    attackAnim:0,
     variance:BAL.variance.mob,
     dead(){return this.state==="dead"||this.state==="return";},
     fctPos(){return this.mesh.position.clone().setY(this.labelY-.4);},
@@ -567,8 +569,15 @@ function mobDamage(m,amount,label,opts){hitEntity(m,amount,label,opts);}
    死亡：倒地 + 全部材质换灰（原材质暂存 userData.liveMat）；重生时还原 */
 const corpseMat=new THREE.MeshStandardMaterial({color:0x8a8a8a,roughness:1,flatShading:true});
 function setCorpse(m,on){
-  m.mesh.rotation.z=on?Math.PI/2:0;
-  m.mesh.position.y=on?.25:0;
+  if(on){
+    if(typeof beginDeathRoll==="function")beginDeathRoll(m);
+    else{m.mesh.rotation.z=Math.PI/2;m.mesh.position.y=.25;}
+  }else{
+    if(typeof resetDeathRoll==="function")resetDeathRoll(m.mesh);
+    else{m.mesh.rotation.z=0;m.mesh.position.y=0;}
+    m.mesh.position.y=0;
+    if(m.attackAnim!=null)m.attackAnim=0;
+  }
   m.mesh.traverse(o=>{
     if(o.userData&&o.userData.eliteAura){o.visible=!on;return;}
     if(!o.isMesh)return;

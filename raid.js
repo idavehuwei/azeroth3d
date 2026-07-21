@@ -934,7 +934,7 @@ function spawnAdd(x,z,opts){
   scene.add(mesh);
   S.adds.push({
     mesh,name:conf.name||"烈焰之子",hp:bal.hp,hpMax:bal.hp,atkT:0,corpseT:0,
-    stats:bal,
+    stats:bal, moving:false, attackAnim:0, state:"alive",
     lootTable:conf.lootTable||"add",
     dieLog:conf.dieLog||"一只烈焰之子被消灭了！",
     burstColor:conf.burstColor!=null?conf.burstColor:0xff5a1a,
@@ -949,7 +949,9 @@ function addDamage(a,amount,opts){hitEntity(a,amount,undefined,opts);}
 function addDie(a){
   VFX.spawn("melee_impact",{pos:a.mesh.position.clone().setY(1),color:a.burstColor||0xffa040,count:26,spread:2});
   a.mesh.traverse(o=>{if(o.isMesh){o.userData.liveMat=o.material;o.material=corpseMat;}});
-  a.mesh.rotation.z=Math.PI/2; a.mesh.position.y=.25;
+  a.state="dead"; a.moving=false;
+  if(typeof beginDeathRoll==="function")beginDeathRoll(a);
+  else{a.mesh.rotation.z=Math.PI/2; a.mesh.position.y=.25;}
   a.corpseT=BAL.loot.corpseT;
   const table=a.lootTable&&LOOT[a.lootTable]?a.lootTable:"add";
   dropLoot(a.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),[rollLoot(LOOT[table])],a);
@@ -996,7 +998,9 @@ function bossDie(){
     let t=0;const iv=setInterval(()=>{t+=0.05;boss.position.y-=0.16;boss.rotation.z+=0.004;
       if(t>3)clearInterval(iv);},50);
   }else{
-    boss.rotation.z=Math.PI/2; boss.position.y=.3;
+    if(typeof beginDeathRoll==="function")beginDeathRoll(boss);
+    else boss.rotation.z=Math.PI/2;
+    boss.position.y=.3;
   }
   /* 掉落：固定传说件 或 掉落表掷骰 */
   const dropDelay=D.lootDelay||1200;

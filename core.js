@@ -98,6 +98,14 @@ const BALANCE={
       barrens:{x:-8,z:5},
     },
   },
+  /* plan-v1 · V1-A3 生物动画挂点（仅表现，不改伤害/仇恨） */
+  anim:{
+    walkFreq:9, walkAmp:.55, walkDecay:8,
+    attackDecay:4,
+    deathRollSpd:6,
+    bobAmp:.22,
+    wingFlap:{freq:1.4, amp:.35},
+  },
   /* 烈焰之子 */
   add:{hp:1400, dmg:[130,190], atkCd:2, speed:4.6, meleeR:3, stopR:2.6, copper:[12,28]},
   /* 炎魔领主 · 拉戈斯 */

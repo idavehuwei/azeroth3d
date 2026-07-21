@@ -263,6 +263,20 @@ assert(deedsSrc.includes("DEED_CAT_ICON")&&deedsSrc.includes("Icons.get"),"功�
 assert(itemsSrc.includes('epic')&&itemsSrc.includes("#a335ee"),"QUALITY.epic 史诗紫边框");
 assert(talentsSrc.includes('icon:"frost"')&&talentsSrc.includes('icon:"ice_block"'),"法师霜枝用 frost/ice_block 图标");
 
+/* plan-v1 · V1-A3 生物动画挂点冒烟 */
+const animSrc=fs.readFileSync(path.join(__dirname,"anim.js"),"utf8");
+assert(html.includes('src="anim.js"'),"game.html 加载 anim.js");
+assert(animSrc.includes("function updateMobAnim")&&animSrc.includes("function beginDeathRoll"),"anim.js 有走/死 API");
+assert(animSrc.includes("function updateBossWingAnim")&&animSrc.includes("function tickDeathRoll"),"anim.js 有翼拍/侧倒插值");
+assert(coreSrc.includes("anim:")&&coreSrc.includes("deathRollSpd")&&coreSrc.includes("wingFlap"),"BALANCE 含 anim 表");
+assert(modelsSrcA1.includes("userData={legs")||modelsSrcA1.includes("legs,"),"buildQuadruped 导出腿枢轴");
+assert(modelsSrcA1.includes("wingL")&&modelsSrcA1.includes('kind="dragon"'),"buildOnyxia 有翼挂点");
+assert(modelsSrcA1.includes('kind:"humanoid"')||modelsSrcA1.includes("anim:{state"),"人形 userData.anim");
+assert(worldSrc.includes("beginDeathRoll")&&worldSrc.includes("resetDeathRoll"),"setCorpse 走死亡插值");
+assert(mainSrc.includes("updateMobAnim")&&mainSrc.includes("updateBossWingAnim"),"main.js 驱动 mob/Boss 动画");
+assert(raidSrc.includes("beginDeathRoll"),"raid.js addDie/Boss 死亡插值");
+assert(cmpSrc.includes("beginDeathRoll")&&cmpSrc.includes("tickDeathRoll"),"同伴死亡侧倒插值");
+
 function DEEDS_COUNT_OK(src){
   const m=src.match(/id:"[^"]+"/g)||[];
   /* DEEDS 表内 id 约 18；过滤 DEED_BY_ID 等 */
@@ -273,4 +287,4 @@ if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–29 … / V1-A1–A2 冒烟");
+console.log("\n全部通过 · STEP 17–29 … / V1-A1–A3 冒烟");

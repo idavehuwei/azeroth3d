@@ -117,6 +117,28 @@ const CLASSES={
        desc:"为自己施加吸收护盾，持续一段时间。"}]},
 };
 let CLS=CLASSES.warrior;
+
+/** V1-A2：技能栏 / 法术书用 Icons 画布，不再写 emoji（须在 setClass 调用前初始化） */
+const SKILL_ICON_BORDER="#e8b34a";
+function applySkillBarIcons(){
+  document.querySelectorAll(".skill").forEach((el,i)=>{
+    const sk=SKILLS[i]; if(!sk)return;
+    const nm=el.querySelector(".nm"); if(nm)nm.textContent=sk.name;
+    let ic=el.querySelector(".ic");
+    if(!ic)return;
+    if(ic.tagName!=="IMG"){
+      const img=document.createElement("img");
+      img.className="ic";
+      ic.replaceWith(img);
+      ic=img;
+    }
+    if(typeof Icons!=="undefined"){
+      ic.src=Icons.get(sk.icon||"sword",SKILL_ICON_BORDER);
+      ic.alt=sk.name;
+    }
+  });
+}
+
 function setClass(key){
   CLS=CLASSES[key];
   const pos=player.position.clone(),rot=player.rotation.y;
@@ -137,27 +159,6 @@ function setClass(key){
   if(typeof renderSpellPanel==="function")renderSpellPanel();
 }
 setClass("warrior");
-
-/** V1-A2：技能栏 / 法术书用 Icons 画布，不再写 emoji */
-const SKILL_ICON_BORDER="#e8b34a";
-function applySkillBarIcons(){
-  document.querySelectorAll(".skill").forEach((el,i)=>{
-    const sk=SKILLS[i]; if(!sk)return;
-    const nm=el.querySelector(".nm"); if(nm)nm.textContent=sk.name;
-    let ic=el.querySelector(".ic");
-    if(!ic)return;
-    if(ic.tagName!=="IMG"){
-      const img=document.createElement("img");
-      img.className="ic";
-      ic.replaceWith(img);
-      ic=img;
-    }
-    if(typeof Icons!=="undefined"){
-      ic.src=Icons.get(sk.icon||"sword",SKILL_ICON_BORDER);
-      ic.alt=sk.name;
-    }
-  });
-}
 
 /* ---------------- UI 工具 ---------------- */
 function log(msg,cls="lg-sys"){

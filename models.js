@@ -14,6 +14,7 @@
    武器组打 userData.weapon 标，换装时 setWeapon 只换武器组。
    加新职业 = 加一条 HUMANOIDS 配置；加新武器 = 加一条 WEAPONS 配方。
    城镇建筑（V1-A1）：工厂纯几何无随机；摆放由调用方用固定坐标或 srand。
+   生物动画（V1-A3）：四足腿枢轴 / 人形肢挂点 / 奥妮翼挂点，由 anim.js 驱动。
    ============================================================ */
 "use strict";
 /* ============================================================
@@ -255,7 +256,8 @@ function buildHumanoid(cfg){
   const w=buildWeapon(cfg.weapon); w.position.set(...cfg.weaponPos); mount.add(w);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   g.userData={armR,armL,legR,legL,cape,
-    weaponMount:mount,weaponPos:cfg.weaponPos,defaultWeapon:cfg.weapon};
+    weaponMount:mount,weaponPos:cfg.weaponPos,defaultWeapon:cfg.weapon,
+    kind:"humanoid", anim:{state:"idle",walkPhase:0,attackAnim:0,deathRoll:0}};
   return g;
 }
 /* 换武器：移除挂点上带 userData.weapon 标的组，装上新武器（STEP 4 装备栏调用） */
@@ -395,12 +397,16 @@ function buildOnyxia(){
   });
 
   [-1,1].forEach(s=>{
+    const wingG=new THREE.Group();
+    wingG.position.set(s*2.8,3.6,.2);
     const wing=new THREE.Mesh(new THREE.PlaneGeometry(5.5,2.8),
       new THREE.MeshStandardMaterial({color:0x14141c,roughness:.95,side:THREE.DoubleSide,
         emissive:0x180404,emissiveIntensity:.15}));
-    wing.position.set(s*2.8,3.6,.2); wing.rotation.y=s*.55; wing.rotation.z=s*.35; g.add(wing);
+    wing.rotation.y=s*.55; wing.rotation.z=s*.35; wingG.add(wing);
     const bone=new THREE.Mesh(new THREE.CylinderGeometry(.08,.05,4.8,5),horn);
-    bone.position.set(s*2.2,3.9,.1); bone.rotation.z=s*1.15; bone.rotation.y=s*.2; g.add(bone);
+    bone.position.set(s*-.6,.3,-.1); bone.rotation.z=s*1.15; bone.rotation.y=s*.2; wingG.add(bone);
+    g.add(wingG);
+    if(s<0)g.userData.wingL=wingG; else g.userData.wingR=wingG;
   });
 
   [-1,1].forEach(s=>{
@@ -419,6 +425,8 @@ function buildOnyxia(){
 
   g.scale.setScalar(1.85);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  g.userData.kind="dragon";
+  g.userData.anim={state:"idle",walkPhase:0,attackAnim:0,deathRoll:0};
   return g;
 }
 
@@ -492,6 +500,7 @@ function buildQuadruped(cfg){
     const fe=new THREE.Mesh(new THREE.ConeGeometry(.08,.5,4),furD);
     fe.position.set((i-1)*.14,headY+.55,headZ-.15); fe.rotation.x=-.4; g.add(fe);
   }
+  const legs=[];
   [-1,1].forEach(s=>{
     if(c.tusks){
       const tk=new THREE.Mesh(new THREE.ConeGeometry(c.tuskBig?.14:.09,c.tuskBig?.7:.45,5),ivory);
@@ -501,10 +510,16 @@ function buildQuadruped(cfg){
       const ear=new THREE.Mesh(new THREE.ConeGeometry(.16,.35,4),furD);
       ear.position.set(s*.34,headY+.55,headZ-.1); g.add(ear);
     }
-    /* 腿：四足两组 / 双足（陆行鸟）一组长腿 */
+    /* 腿：枢轴 Group（V1-A3 走/攻摆腿）· 四足两组 / 双足一组长腿 */
     (c.legs===4?[[.42],[-.42]]:[[-.3]]).forEach(([dz])=>{
-      const leg=new THREE.Mesh(new THREE.CylinderGeometry(.14,.12,c.legs===2?1:.7,5),furD);
-      leg.position.set(s*(c.legs===2?.25:.4),c.legs===2?.5:.35,dz); g.add(leg);
+      const legH=c.legs===2?1:.7;
+      const pivot=new THREE.Group();
+      pivot.position.set(s*(c.legs===2?.25:.4),legH,dz);
+      const leg=new THREE.Mesh(new THREE.CylinderGeometry(.14,.12,legH,5),furD);
+      leg.position.y=-legH/2;
+      pivot.add(leg);
+      g.add(pivot);
+      legs.push(pivot);
     });
   });
   /* 尾巴三式 */
@@ -529,6 +544,8 @@ function buildQuadruped(cfg){
   }
   g.scale.setScalar(c.size);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  g.userData={legs, kind:c.legs===2?"biped":"quad",
+    anim:{state:"idle",walkPhase:0,attackAnim:0,deathRoll:0}};
   return g;
 }
 
@@ -567,6 +584,9 @@ function buildCentaur(cfg){
   }
   g.scale.setScalar(c.size);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  /* 挂点指向马身腿，外层可直接 updateMobAnim */
+  g.userData={legs:horse.userData.legs, kind:"centaur", horse,
+    anim:horse.userData.anim||{state:"idle",walkPhase:0,attackAnim:0,deathRoll:0}};
   return g;
 }
 
