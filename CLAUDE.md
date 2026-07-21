@@ -16,7 +16,7 @@
 
 1. **零美术资源。** 不提交 .png/.glb/.mp3 文件。所有模型/图标/特效由代码生成。
 2. **数值外置。** 所有游戏数值写在 `BALANCE` 表（`core.js`），不散落在逻辑代码中。
-3. **世界确定性。** `world.js` / `models.js` 的摆放类随机走 `srand()`（SeededRng），不走 `rand()`（Math.random）。种子固定（`WORLD_SEED`）。
+3. **世界确定性。** `world.js` / `models.js` 的摆放类随机走 `srand()`（SeededRng），不走 `rand()`（Math.random）。分区种子为 `WORLD_SEED ^ hash(zoneId)`（见 `zones.js` / `setZoneSeed`）。
 4. **Entity 统一受击。** 所有实体通过 `hitEntity` 入口，死亡挂接 `onDeath` 回调。
 5. **文件头注释。** 每个 JS 文件头部有依赖/导出清单。
 6. **性能。** 新增粒子/几何体有 `dispose()` 路径。
@@ -35,6 +35,7 @@
 | `talents.js` | 天赋数据层 | TALENTS, spendTalent, getSkillCd, cheatTalent |
 | `panels.js` | HUD 面板 | toggleCharPanel, toggleSpellPanel, toggleQuestLog |
 | `map.js` | 小地图 / 世界地图 | updateMinimap, toggleWorldMap, MAP_ZONES |
+| `zones.js` | 多场景注册表 | ZONES, registerZone, enterZone, ensureAllZonesBuilt |
 | `save.js` | 存档系统 | saveGame, loadGame, exportSaveCode, importSaveCode |
 | `raid.js` | 副本系统 | BOSSES, createBoss, bossAI, DUNGEON, buildRaidScene, spawnAdd |
 | `main.js` | 主循环 | tick, clampArena |

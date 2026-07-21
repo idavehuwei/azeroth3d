@@ -8,6 +8,7 @@
           talents.js（talentClassKey syncTalentPointsFromLevel recomputeTalentMods
             getTalentNode updateSkillBarStats）
           world.js（QUEST updateQuest setMarker player scene sceneWorld）
+          zones.js 运行时（enterZone）
    [导出] saveGame loadGame hasSave clearSave collectSaveData applySaveData
           exportSaveCode importSaveCode beginNewGame beginContinue
           refreshStartMenu
@@ -16,6 +17,11 @@
 
 const SAVE_SLOTS=["weapon","armor"];
 
+function normalizeSaveZoneId(z){
+  if(z==="molten_core"||z==="raid")return "molten_core";
+  if(z==="mulgore"||z==="world"||!z)return "mulgore";
+  return(typeof ZONES!=="undefined"&&ZONES[z])?z:"mulgore";
+}
 function utf8ToB64(str){
   const bytes=new TextEncoder().encode(str);
   let bin=""; for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);
@@ -30,6 +36,7 @@ function b64ToUtf8(b64){
 
 function collectSaveData(){
   const inWorld=S.mode==="world";
+  const zoneId=normalizeSaveZoneId(S.zoneId||(S.mode==="raid"?"molten_core":"mulgore"));
   return {
     v:BAL.save.version,
     classKey:typeof talentClassKey==="function"?talentClassKey():"warrior",
@@ -44,7 +51,8 @@ function collectSaveData(){
       bonusPoints:(S.talents&&S.talents.bonusPoints)|0,
     },
     quest:{state:QUEST.state|0,kills:QUEST.kills|0},
-    zone:S.mode==="raid"?"raid":"world",
+    zone:zoneId==="molten_core"?"raid":"world",   /* 旧字段兼容 */
+    zoneId,
     pos:inWorld
       ?{x:+player.position.x.toFixed(2),z:+player.position.z.toFixed(2)}
       :{x:0,z:52},
@@ -89,6 +97,7 @@ function validateSave(raw){
   const pos=raw.pos&&typeof raw.pos==="object"?raw.pos:{};
   const x=typeof pos.x==="number"&&isFinite(pos.x)?pos.x:0;
   const z=typeof pos.z==="number"&&isFinite(pos.z)?pos.z:52;
+  const zoneId=normalizeSaveZoneId(raw.zoneId||raw.zone);
   return {
     ok:true,
     data:{
@@ -99,7 +108,8 @@ function validateSave(raw){
       inv,eq,
       talents:{spent,bonusPoints:Math.max(0,(raw.talents&&raw.talents.bonusPoints)|0)},
       quest:{state,kills},
-      zone:raw.zone==="raid"?"raid":"world",
+      zone:zoneId==="molten_core"?"raid":"world",
+      zoneId,
       pos:{x,z},
       savedAt:raw.savedAt|0,
     },
@@ -123,8 +133,9 @@ function rebuildLevelStats(level){
 function applySaveData(data){
   /* 确保在莫高雷场景重建角色（进本态不恢复遭遇，只回世界） */
   if(S.mode==="raid"||scene!==sceneWorld){
-    if(typeof leaveRaid==="function"&&S.mode==="raid"){
-      /* 同步切回世界，跳过淡出动画 */
+    if(typeof enterZone==="function"){
+      enterZone("mulgore","camp",{skipFade:true,skipSave:true,silent:true,force:true});
+    }else if(typeof leaveRaid==="function"&&S.mode==="raid"){
       S.pShots.forEach(s=>s.mesh.parent&&s.mesh.parent.remove(s.mesh));
       S.pShots.length=0;
       if(player.parent)player.parent.remove(player);
@@ -140,6 +151,7 @@ function applySaveData(data){
       S.mode="world";
     }
   }
+  S.zoneId="mulgore";
 
   setClass(data.classKey);
   rebuildLevelStats(data.level);
@@ -270,10 +282,12 @@ function beginNewGame(classKey){
   clearSave();
   QUEST.state=0; QUEST.kills=0;
   S.inv=[]; S.eq={weapon:null,armor:null};
-  S.p.gold=0; S.over=false; S.mode="world";
+  S.p.gold=0; S.over=false; S.mode="world"; S.zoneId="mulgore";
   setClass(classKey||"warrior");
   S.god=$("#godChk")&&$("#godChk").checked;
-  if(player.parent!==sceneWorld){
+  if(typeof enterZone==="function"&&(S.mode!=="world"||scene!==sceneWorld)){
+    enterZone("mulgore","camp",{skipFade:true,skipSave:true,silent:true,force:true});
+  }else if(player.parent!==sceneWorld){
     if(player.parent)player.parent.remove(player);
     sceneWorld.add(player); scene=sceneWorld;
   }

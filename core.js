@@ -5,6 +5,7 @@
    ------------------------------------------------------------
    [依赖] THREE（全局，CDN 引入）
    [导出] $ clamp rand R srand worldRng BALANCE BAL WORLD_SEED
+          hashZoneId getZoneSeed setZoneSeed
           sceneRaid scene camera renderer lavaUniforms ARENA_R embers
           EMBERS emberVel makeLabel
    ============================================================ */
@@ -173,6 +174,13 @@ const BALANCE={
     worldPad:18,            /* 世界地图内边距（留标签） */
     showInRaid:true,        /* 副本内显示局部小地图 */
   },
+  /* 多场景注册表（STEP 17）：淡入淡出与传送门半径 */
+  zones:{
+    fadeMs:650,
+    portalHintR:22,
+    portalEnterR:4.5,
+    exitPortalEnterR:5.5,
+  },
 };
 const BAL=BALANCE;
 
@@ -185,8 +193,18 @@ const WORLD_SEED=20260721;
 function SeededRng(seed){let a=seed>>>0;return function(){
   a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
   t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-const worldRng=SeededRng(WORLD_SEED);
-const srand=(a,b)=>a+worldRng()*(b-a);         /* 摆放类随机：静态布景专用 */
+/* 分区种子：WORLD_SEED ^ hash(zoneId)，各区确定性且互不干扰（STEP 17） */
+function hashZoneId(id){
+  let h=2166136261>>>0;
+  const s=String(id);
+  for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619)>>>0;
+  return h>>>0;
+}
+function getZoneSeed(id){return(WORLD_SEED^hashZoneId(id))>>>0;}
+let _zoneRng=SeededRng(getZoneSeed("mulgore"));
+function setZoneSeed(id){_zoneRng=SeededRng(getZoneSeed(id));}
+function worldRng(){return _zoneRng();}       /* 兼容旧调用点；实际走当前分区 RNG */
+const srand=(a,b)=>a+_zoneRng()*(b-a);         /* 摆放类随机：静态布景专用 */
 
 /* ---------------- makeLabel：Canvas 悬浮文字（掉落系统以品质色调用，默认参数保持旧观感） ---------------- */
 function makeLabel(text,w,color="#ffd9a0",glow="rgba(255,90,0,.95)"){

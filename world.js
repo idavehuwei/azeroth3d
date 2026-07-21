@@ -2,7 +2,8 @@
    熔火之心 · world.js
    莫高雷世界：实体放置 / 草原与营地 / 传送门与进本 / 野怪与 NPC 任务系统
    ------------------------------------------------------------
-   [依赖] THREE · core.js（$ rand srand worldRng BAL makeLabel scene camera）
+   [依赖] THREE · core.js（$ rand srand worldRng BAL makeLabel scene camera setZoneSeed）
+          zones.js（registerZone enterZone）
           models.js（buildPlayer buildBoss buildElder buildVendor buildSpiritHealer buildBoar）
           items.js（dropLoot rollLoot LOOT tryLoot buyVendorItem）
           combat.js 运行时（S log announce fct spawnBurst hitEntity closeDialogue
@@ -18,6 +19,9 @@
           spiritHealer spiritDist
    ============================================================ */
 "use strict";
+/* 莫高雷分区种子：地形 / 野怪摆放全部走此流（STEP 17） */
+setZoneSeed("mulgore");
+
 /* ---------------- 实体放置 ---------------- */
 let player=buildPlayer(); player.position.set(0,0,14); scene.add(player);
 let boss=buildBoss(); boss.position.set(0,-16,-14); sceneRaid.add(boss);
@@ -195,50 +199,60 @@ player.position.set(0,0,52);
 scene=sceneWorld;
 camera.position.set(0,14,72);
 
-/* ---------------- 进入副本（黑屏过渡） ---------------- */
-function fadeTo(op,cb){const f=$("#fade");f.style.opacity=op;if(cb)setTimeout(cb,650);}
+/* ---------------- 进入 / 离开副本（薄包装 → enterZone，STEP 17） ---------------- */
+function fadeTo(op,cb){
+  const f=$("#fade");
+  f.style.opacity=op;
+  if(cb)setTimeout(cb,BAL.zones&&BAL.zones.fadeMs!=null?BAL.zones.fadeMs:650);
+}
 function enterRaid(){
   if(S.mode!=="world"||!S.p.alive)return;
-  S.mode="transition";
   announce("正在进入 · 熔火之心");
-  fadeTo(1,()=>{
-    S.pShots.forEach(s=>s.mesh.parent&&s.mesh.parent.remove(s.mesh));
-    S.pShots.length=0;
-    closeDialogue(); $("#interactBtn").style.display="none";
-    sceneWorld.remove(player); sceneRaid.add(player);
-    player.position.set(0,0,18); S.p.knock=null;
-    scene=sceneRaid;
-    S.mode="raid";
-    /* 每次进本：清理遭遇并从走廊开打（双 Boss 流程） */
-    resetBoss();
-    DUNGEON.setStage("corridor");
-    log("你踏入传送门——热浪扑面而来，岩浆在脚下沸腾！","lg-sys");
-    $("#bossFrame").classList.add("show");
-    SFX.music("raid");   /* 音乐切换：低音鼓点（STEP 6） */
-    fadeTo(0);
-  });
+  enterZone("molten_core","entrance");
 }
-
-/* ---------------- 离开副本（通过出口传送门） ---------------- */
 function leaveRaid(){
   if(S.mode!=="raid")return;
-  S.mode="transition";
-  fadeTo(1,()=>{
-    closeDialogue(); $("#interactBtn").style.display="none";
-    S.pShots.forEach(s=>s.mesh.parent&&s.mesh.parent.remove(s.mesh));
-    S.pShots.length=0;
-    sceneRaid.remove(player); sceneWorld.add(player);
-    player.position.set(0,0,52); S.p.knock=null;
-    scene=sceneWorld;
-    S.mode="world";
-    removeExitPortal();
-    $("#bossFrame").classList.remove("show");
-    SFX.music("world");   /* 音乐切换：五声音阶（STEP 6） */
-    log("你回到莫高雷草原，炎魔的咆哮在远方回荡……","lg-sys");
-    fadeTo(0);
-    if(typeof saveGame==="function")saveGame(true);
-  });
+  enterZone("mulgore","from_raid");
 }
+
+/* 注册莫高雷（场景已在模块顶层 build-once） */
+registerZone({
+  id:"mulgore",
+  name:"莫高雷",
+  scene:sceneWorld,
+  build:null,
+  _built:true,
+  music:"world",
+  mode:"world",
+  levelRange:[1,10],
+  boundsR:()=>WORLD_R,
+  dayNight:true,
+  gates:{
+    camp:{x:0,z:52},
+    from_raid:{x:0,z:52},
+    spirit:{x:0,z:58},
+    default:{x:0,z:52},
+  },
+  portals:[{
+    id:"to_molten_core",
+    pos:()=>PORTAL_POS,
+    hintR:()=>BAL.zones.portalHintR,
+    enterR:()=>BAL.zones.portalEnterR,
+    announce:"熔火之心 · 副本入口",
+    logHint:"灼热的气息从旋涡中渗出……走进传送门即可进入副本。",
+    requireAlive:true,
+    autoEnter:true,
+    targetZone:"molten_core",
+    targetGate:"entrance",
+  }],
+  onEnter(fromId,gateId,opts){
+    if(opts&&opts.silent)return;
+    if(fromId==="molten_core"){
+      log("你回到莫高雷草原，炎魔的咆哮在远方回荡……","lg-sys");
+    }
+  },
+  onLeave(){},
+});
 
 /* ---------------- 出口传送门（击杀 Boss 后出现在副本入口） ---------------- */
 let exitPortal=null;
@@ -510,7 +524,7 @@ function tryInteract(){
   if(!S.started||!S.p.alive)return;
   if(tryLoot())return;   /* 尸体旁的战利品优先（STEP 2），世界/副本通用 */
   /* 副本内：击杀 Boss 后走进出口传送门自动离开 */
-  if(S.mode==="raid"&&S.b.canLeave&&exitPortal&&player.position.distanceTo(EXIT_PORTAL_POS)<4.5){
+  if(S.mode==="raid"&&S.b.canLeave&&exitPortal&&player.position.distanceTo(EXIT_PORTAL_POS)<BAL.zones.exitPortalEnterR){
     leaveRaid(); return;
   }
   if(S.mode!=="world")return;

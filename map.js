@@ -5,13 +5,13 @@
    ------------------------------------------------------------
    [依赖] core.js（$ BAL）· combat.js（S）· world.js（player WORLD_R PORTAL_POS
           elder vendor spiritHealer MOBS）· panels.js（closeAllHudPanels）
-          raid.js 运行时（ARENA_R）
+          zones.js 运行时（getCurrentZoneId）· raid.js 运行时（ARENA_R）
    [导出] updateMinimap toggleWorldMap worldMapOpen closeWorldMap drawWorldMap
           MAP_ZONES getActiveMapZone setMapZone
    ============================================================ */
 "use strict";
 
-/* 区域图层注册表（预留多区；当前仅莫高雷） */
+/* 区域图层注册表（STEP 17：与 ZONES 对齐；贫瘠之地在 STEP 18） */
 const MAP_ZONES={
   mulgore:{
     id:"mulgore",
@@ -34,6 +34,16 @@ const MAP_ZONES={
     outline:[
       [0,-1],[.35,-.92],[.62,-.7],[.88,-.35],[.95,.1],[.82,.45],[.55,.75],
       [.2,.95],[-.15,.98],[-.5,.85],[-.78,.55],[-.95,.15],[-.9,-.3],[-.65,-.7],[-.3,-.92],
+    ],
+  },
+  molten_core:{
+    id:"molten_core",
+    name:"熔火之心",
+    radius:()=>typeof ARENA_R==="number"?ARENA_R+4:30,
+    landmarks:[],
+    elites:[],
+    outline:[
+      [0,-1],[.7,-.7],[1,0],[.7,.7],[0,1],[-.7,.7],[-1,0],[-.7,-.7],
     ],
   },
 };
@@ -196,8 +206,13 @@ function updateMinimap(){
   if(!wrap)return;
   if(S.mode==="raid"&&!BAL.map.showInRaid){wrap.style.display="none";return;}
   wrap.style.display="block";
+  if(S.zoneId)setMapZone(S.zoneId);
+  else if(typeof getCurrentZoneId==="function")setMapZone(getCurrentZoneId());
   const title=wrap.querySelector(".mm-title");
-  if(title)title.textContent=S.mode==="raid"?"熔 火 之 心":getActiveMapZone().name.split("").join(" ");
+  if(title){
+    const zn=getActiveMapZone();
+    title.textContent=(zn&&zn.name?zn.name:S.mode==="raid"?"熔火之心":"莫高雷").split("").join(" ");
+  }
   const size=_mm.size, pad=BAL.map.padding;
   _mm.ctx.clearRect(0,0,size,size);
   if(S.mode==="raid"){

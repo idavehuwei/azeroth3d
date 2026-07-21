@@ -4,7 +4,8 @@
             Boss 工厂（STEP 9b）：createBoss + BOSSES 数据驱动 AI
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ clamp rand R BAL scene camera ARENA_R
-          lavaUniforms embers EMBERS emberVel srand worldRng sceneRaid）
+          lavaUniforms embers EMBERS emberVel srand worldRng sceneRaid setZoneSeed）
+          zones.js（registerZone ensureZoneBuilt enterZone）
           models.js（buildFlameSpawn buildBoss buildQuadruped QUADS）
           items.js（ITEMS DROPS removeDrop dropLoot rollLoot LOOT）
           world.js（player boss BOSS_MESHES MOBS QUEST setCorpse corpseMat removeDropOf
@@ -16,24 +17,25 @@
           bossAI startCast spawnAdd addDamage addDie bossDie playerDie resetBoss
           releaseSpiritWorld releaseSpiritRaid releaseSpiritLeaveRaid resurrectPlayer
           showDeathUi hideDeathUi clearRaidHazards applyWipeEncounter
-          distToBoss bossTargetable BOSS_ENT DUNGEON buildRaidScene
+          distToBoss bossTargetable BOSS_ENT DUNGEON buildRaidScene buildMoltenCoreZone
    ============================================================ */
 "use strict";
 
 /* ============================================================
    副本环境搭建（原 core.js 中 sceneRaid 的附加内容）
-   导出为函数，供 game.html 加载后立即调用
+   由 ZONES.molten_core.build → ensureZoneBuilt 调用（STEP 17）
    ============================================================ */
-function buildRaidScene(){
+function buildMoltenCoreZone(scn){
+  const root=scn||sceneRaid;
   /* 光照：熔岩环境 */
-  sceneRaid.add(new THREE.AmbientLight(0x662211,0.9));
-  const lavaLight=new THREE.PointLight(0xff5a1a,1.6,140,1.6); lavaLight.position.set(0,6,-26); sceneRaid.add(lavaLight);
+  root.add(new THREE.AmbientLight(0x662211,0.9));
+  const lavaLight=new THREE.PointLight(0xff5a1a,1.6,140,1.6); lavaLight.position.set(0,6,-26); root.add(lavaLight);
   const topLight=new THREE.DirectionalLight(0xffb070,0.55);
   topLight.position.set(18,40,20); topLight.castShadow=true;
   topLight.shadow.mapSize.set(2048,2048);
   topLight.shadow.camera.left=-50;topLight.shadow.camera.right=50;
   topLight.shadow.camera.top=50;topLight.shadow.camera.bottom=-50;
-  sceneRaid.add(topLight);
+  root.add(topLight);
 
   /* 岩浆湖 */
   const lavaMat=new THREE.ShaderMaterial({
@@ -55,16 +57,16 @@ function buildRaidScene(){
       }`
   });
   const lava=new THREE.Mesh(new THREE.PlaneGeometry(320,320,1,1),lavaMat);
-  lava.rotation.x=-Math.PI/2; lava.position.y=-0.9; sceneRaid.add(lava);
+  lava.rotation.x=-Math.PI/2; lava.position.y=-0.9; root.add(lava);
 
   /* 黑曜石战斗平台 */
   const platMat=new THREE.MeshStandardMaterial({color:0x1c1412,roughness:.92,metalness:.15});
   const platform=new THREE.Mesh(new THREE.CylinderGeometry(ARENA_R,ARENA_R+2.5,2.2,48),platMat);
-  platform.position.y=-1.1; platform.receiveShadow=true; sceneRaid.add(platform);
+  platform.position.y=-1.1; platform.receiveShadow=true; root.add(platform);
   /* 平台边缘符文环 */
   const runeRing=new THREE.Mesh(new THREE.RingGeometry(ARENA_R-1.4,ARENA_R-0.6,64),
     new THREE.MeshBasicMaterial({color:0xff6a1a,transparent:true,opacity:.35,side:THREE.DoubleSide}));
-  runeRing.rotation.x=-Math.PI/2; runeRing.position.y=0.03; sceneRaid.add(runeRing);
+  runeRing.rotation.x=-Math.PI/2; runeRing.position.y=0.03; root.add(runeRing);
 
   /* 环形岩柱群 */
   const rockMat=new THREE.MeshStandardMaterial({color:0x2b1a12,roughness:1,flatShading:true});
@@ -77,7 +79,7 @@ function buildRaidScene(){
       worldRng()<.4?glowRockMat:rockMat);
     rock.position.set(Math.cos(a)*r,h/2-1.5,Math.sin(a)*r);
     rock.rotation.set(srand(-.12,.12),srand(0,6),srand(-.12,.12));
-    rock.castShadow=true; sceneRaid.add(rock);
+    rock.castShadow=true; root.add(rock);
   }
   /* 平台上散落碎石 */
   for(let i=0;i<10;i++){
@@ -85,18 +87,20 @@ function buildRaidScene(){
     const s=srand(.4,1.1);
     const st=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0),rockMat);
     st.position.set(Math.cos(a)*r,s*.4,Math.sin(a)*r);
-    st.castShadow=true;st.receiveShadow=true;sceneRaid.add(st);
+    st.castShadow=true;st.receiveShadow=true;root.add(st);
   }
   /* 火星粒子加入副本场景 */
-  sceneRaid.add(embers);
+  root.add(embers);
   /* 岩桥屏障 */
-  buildBridge();
+  buildBridge(root);
 }
+function buildRaidScene(){ensureZoneBuilt("molten_core");}
 
 /* ---- 岩桥屏障（STEP 8）：全局变量，供 buildRaidScene 写入 + DUNGEON 动画消费 ---- */
 const bridgeSegs=[];
 const BRIDGE_SINK_Y=-2.5;
-function buildBridge(){
+function buildBridge(root){
+  root=root||sceneRaid;
   const bridgeMat=new THREE.MeshStandardMaterial({color:0x2a1a10,roughness:1,flatShading:true,
     emissive:0x551100,emissiveIntensity:.15});
   for(let i=0;i<7;i++){
@@ -104,7 +108,7 @@ function buildBridge(){
     const r=6.5;
     const seg=new THREE.Mesh(new THREE.CylinderGeometry(.8,1.2,4.5,6),bridgeMat);
     seg.position.set(Math.cos(a)*r,2.25,Math.sin(a)*r);
-    seg.castShadow=true; sceneRaid.add(seg);
+    seg.castShadow=true; root.add(seg);
     bridgeSegs.push(seg);
   }
   /* 桥面石板（装饰性） */
@@ -113,9 +117,45 @@ function buildBridge(){
     const a=i/4*Math.PI*2;
     const slab=new THREE.Mesh(new THREE.BoxGeometry(1.8,.25,1.8),slabMat);
     slab.position.set(Math.cos(a)*4.5,.12,Math.sin(a)*4.5);
-    slab.receiveShadow=true; sceneRaid.add(slab);
+    slab.receiveShadow=true; root.add(slab);
   }
 }
+
+registerZone({
+  id:"molten_core",
+  name:"熔火之心",
+  scene:sceneRaid,
+  build:buildMoltenCoreZone,
+  music:"raid",
+  mode:"raid",
+  levelRange:[1,10],
+  boundsR:()=>ARENA_R-2,
+  dayNight:false,
+  gates:{
+    entrance:{x:0,z:18},
+    default:{x:0,z:18},
+  },
+  portals:[{
+    id:"to_mulgore",
+    pos:()=>EXIT_PORTAL_POS,
+    enterR:()=>BAL.zones.exitPortalEnterR,
+    visible:()=>!!(S.b&&S.b.canLeave&&exitPortal),
+    autoEnter:false,   /* 需 F / 交互按钮，与旧行为一致 */
+    targetZone:"mulgore",
+    targetGate:"from_raid",
+  }],
+  onEnter(fromId,gateId,opts){
+    if(opts&&opts.silent)return;
+    if(typeof resetBoss==="function")resetBoss();
+    if(typeof DUNGEON!=="undefined"&&DUNGEON.setStage)DUNGEON.setStage("corridor");
+    log("你踏入传送门——热浪扑面而来，岩浆在脚下沸腾！","lg-sys");
+    $("#bossFrame").classList.add("show");
+  },
+  onLeave(){
+    if(typeof removeExitPortal==="function")removeExitPortal();
+    $("#bossFrame").classList.remove("show");
+  },
+});
 
 /* ============================================================
    副本分段系统（STEP 8 + 9c）
@@ -855,24 +895,12 @@ function releaseSpiritLeaveRaid(){
   if(S.p.alive||S.mode!=="raid")return;
   clearRaidHazards();
   hideDeathUi();
-  /* 同步离本（跳过淡出等待中的操作冲突） */
-  S.mode="transition";
-  fadeTo(1,()=>{
-    closeDialogue(); $("#interactBtn").style.display="none";
-    S.pShots.forEach(s=>s.mesh.parent&&s.mesh.parent.remove(s.mesh));
-    S.pShots.length=0;
-    if(player.parent)player.parent.remove(player);
-    sceneWorld.add(player);
-    scene=sceneWorld;
-    S.mode="world";
-    removeExitPortal();
-    $("#bossFrame").classList.remove("show");
-    if(typeof SFX!=="undefined")SFX.music("world");
-    resurrectPlayer(BAL.death.worldSpawn,{silent:true});
-    announce("你回到了营地");
-    log("你退出熔火之心，在灵魂医者旁苏醒。","lg-sys");
-    fadeTo(0);
-    if(typeof saveGame==="function")saveGame(true);
+  enterZone("mulgore","spirit",{
+    afterEnter(){
+      resurrectPlayer(BAL.death.worldSpawn,{silent:true});
+      announce("你回到了营地");
+      log("你退出熔火之心，在灵魂医者旁苏醒。","lg-sys");
+    },
   });
 }
 

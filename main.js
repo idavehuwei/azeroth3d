@@ -8,6 +8,7 @@
           world.js（player boss WORLD_R PORTAL_POS portalUni portalLabel worldFlames
           MOBS elder elderDist vendor vendorDist spiritHealer spiritDist enterRaid leaveRaid closeDialogue moveToward mobDamage setCorpse
           exitPortal EXIT_PORTAL_POS spawnExitPortal removeExitPortal）
+          zones.js（getCurrentZone getActivePortals enterZone resolvePortalPos）
           combat.js（S CLS SKILLS keys joy setClass bossAI bossTargetable distToBoss
           pickTarget firePlayerShot dmgBoss addDamage mobDamage playerHit
           log announce fct）
@@ -24,7 +25,9 @@
    主循环
    ============================================================ */
 function clampArena(pos){
-  const lim=(S.mode==="raid")?ARENA_R-2:WORLD_R;
+  const z=typeof getCurrentZone==="function"?getCurrentZone():null;
+  const lim=z&&typeof z.boundsR==="function"?z.boundsR()
+    :(S.mode==="raid"?ARENA_R-2:WORLD_R);
   const d=Math.hypot(pos.x,pos.z);
   if(d>lim){const s=lim/d;pos.x*=s;pos.z*=s;}
   return pos;
@@ -138,17 +141,34 @@ function tick(){
   }
 
   if(S.started){
-    /* ---- 莫高雷：传送门检测 / 野怪 AI / NPC ---- */
-    if(S.mode==="world"){
-      const pd=Math.hypot(player.position.x-PORTAL_POS.x,player.position.z-PORTAL_POS.z);
-      if(pd<22&&!S.portalHinted){
-        S.portalHinted=true;
-        announce("熔火之心 · 副本入口");
-        log("灼热的气息从旋涡中渗出……走进传送门即可进入副本。","lg-sys");
+    /* ---- 传送门检测（数据驱动，STEP 17） ---- */
+    if(S.mode!=="transition"&&typeof getActivePortals==="function"){
+      for(const p of getActivePortals()){
+        const pos=resolvePortalPos(p);
+        if(!pos)continue;
+        const pd=Math.hypot(player.position.x-pos.x,player.position.z-pos.z);
+        const hintR=typeof p.hintR==="function"?p.hintR():p.hintR;
+        if(hintR&&pd<hintR){
+          if(!S.portalHints)S.portalHints={};
+          if(!S.portalHints[p.id]){
+            S.portalHints[p.id]=true;
+            S.portalHinted=true;
+            if(p.announce)announce(p.announce);
+            if(p.logHint)log(p.logHint,"lg-sys");
+          }
+        }
+        const enterR=typeof p.enterR==="function"?p.enterR():(p.enterR||BAL.zones.portalEnterR);
+        if(pd<enterR&&p.autoEnter!==false){
+          if(p.requireAlive&&!S.p.alive)continue;
+          if(p.targetZone==="molten_core")enterRaid();
+          else if(p.targetZone==="mulgore"&&S.mode==="raid")leaveRaid();
+          else enterZone(p.targetZone,p.targetGate);
+        }
       }
-      if(pd<4.5)enterRaid();
+    }
 
-      /* 野怪 AI（STEP 5：族群通用状态机 wander / aggro / return / dead） */
+    /* ---- 莫高雷：野怪 AI / NPC ---- */
+    if(S.mode==="world"){
       for(const m of MOBS){
         const st=m.stats;
         if(m.state==="dead"){
@@ -236,7 +256,7 @@ function tick(){
     updateDrops(dt);
     const nd=nearestDrop(BAL.loot.pickupR), ib=$("#interactBtn");
     if(nd){ib.textContent="✨ 拾 取（F）";ib.style.display="block";}
-    else if(S.mode==="raid"&&S.b.canLeave&&exitPortal&&player.position.distanceTo(EXIT_PORTAL_POS)<5.5){
+    else if(S.mode==="raid"&&S.b.canLeave&&exitPortal&&player.position.distanceTo(EXIT_PORTAL_POS)<BAL.zones.exitPortalEnterR){
       ib.textContent="🚪 走进传送门";ib.style.display="block";
     }else{
       const nearS=spiritDist()<BAL.economy.interactR;
