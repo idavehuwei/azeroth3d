@@ -396,13 +396,14 @@ js/
 
 ## 八 · v3.5 内容密度——让世界「值得刷」
 
-### STEP 22 · 任务枢纽与故事线 `P1` ⏳
+### STEP 22 · 任务枢纽与故事线 `P1` ✅
 
-- 任务数据结构升级：`QUESTS[]` 多任务、前置、`zone`、奖励表；取代单一 `QUEST` 状态机。
-- 莫高雷「长老的试炼」→ 贫瘠之地「十字路口的麻烦」→ 熔火「炎魔的低语」主线贯通。
-- 任务日志 `L` 支持多条目。
+- 新建 `quests.js`：`QUESTS[]` 12 条（主线/支线/副本），前置 · `zone` · 奖励表（`BAL.quest.side`）。
+- 运行时 `S.quests`；`acceptQuest` / `turnInQuest` / `onQuestMobKill` / `onQuestBossKill` / `onQuestZoneEnter`。
+- 主线：`elder_boars` → `ragnaros_whisper`；贫瘠 `crossroads_trouble`；L 键多条目按 zone 分组。
+- 存档 `quests{}` + 旧 `quest`/`barrensQuest` 迁移；`syncLegacyQuestAliases` 兼容过渡。
 
-> **WoC 对照**：近 80 任务 + 单一阴谋故事线；我们先做 **12–15 条** 贯通三章。
+> **验收**：主线贯通三章；读档不双加奖励；L 多条目。 ← **已通过**（`node test_step01.js`）
 
 ### STEP 23 · 专业技能（采集/制作精简版）`P2` ⏳
 
@@ -597,8 +598,8 @@ js/
 
 **当前模块清单**（`game.html` 加载序）：`core → zones → sfx → icons → items → models → world → barrens → combat → companions → talents → panels → map → vfx → main → raid → wailing → save`
 
-**下一步行动**：从 **STEP 22** 做任务枢纽与故事线。
+**下一步行动**：从 **STEP 23** 做专业技能（采集/制作精简版）。
 
 ---
 
-*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 21 完成，下一步 STEP 22*
+*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 22 完成，下一步 STEP 23*

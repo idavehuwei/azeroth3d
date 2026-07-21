@@ -10,10 +10,11 @@
           world.js（QUEST updateQuest setMarker player scene sceneWorld）
           zones.js 运行时（enterZone）
           companions.js 运行时（getCompanionSave restoreCompanion dismissCompanion）
+          quests.js 运行时（collectQuestSave applyQuestSave resetAllQuests）
    [导出] saveGame loadGame hasSave clearSave collectSaveData applySaveData
           exportSaveCode importSaveCode beginNewGame beginContinue
           refreshStartMenu
-          （存档字段含 companion:{classKey,hp}|null · STEP 20）
+          （存档字段含 companion · quests{} · STEP 20/22）
    ============================================================ */
 "use strict";
 
@@ -58,6 +59,7 @@ function collectSaveData(){
     barrensQuest:typeof BARRENS_QUEST!=="undefined"
       ?{state:BARRENS_QUEST.state|0,kills:BARRENS_QUEST.kills|0}
       :{state:0,kills:0},
+    quests:typeof collectQuestSave==="function"?collectQuestSave():{},
     zone:zoneId==="molten_core"?"raid":"world",   /* 旧字段兼容 */
     zoneId,
     pos:inWorld
@@ -116,6 +118,17 @@ function validateSave(raw){
       hp:typeof raw.companion.hp==="number"&&isFinite(raw.companion.hp)?raw.companion.hp:null,
     };
   }
+  let quests=null;
+  if(raw.quests&&typeof raw.quests==="object"){
+    quests={};
+    for(const id in raw.quests){
+      const r=raw.quests[id];
+      if(!r||typeof r!=="object")continue;
+      const status=["none","active","ready","done"].includes(r.status)?r.status:"none";
+      if(status==="none")continue;
+      quests[id]={status,kills:Math.max(0,r.kills|0)};
+    }
+  }
   return {
     ok:true,
     data:{
@@ -127,6 +140,7 @@ function validateSave(raw){
       talents:{spent,bonusPoints:Math.max(0,(raw.talents&&raw.talents.bonusPoints)|0)},
       quest:{state,kills},
       barrensQuest:{state:bqState,kills:bqKills},
+      quests,
       zone:zoneId==="molten_core"?"raid":"world",
       zoneId,
       pos:{x,z},
@@ -185,18 +199,22 @@ function applySaveData(data){
   if(data.level>=BAL.levels.max)S.p.xp=0;
   else S.p.xp=clamp(data.xp,0,S.p.xpMax);
 
-  QUEST.state=data.quest.state;
-  QUEST.kills=data.quest.kills;
-  if(QUEST.state>=2){
-    S.p.hpMax+=BAL.quest.rewardHp;
-    S.p.dmgMul+=BAL.quest.rewardDmgMul-1;
+  if(typeof applyQuestSave==="function"){
+    applyQuestSave(data.quests,{quest:data.quest,barrensQuest:data.barrensQuest});
+  }else{
+    QUEST.state=data.quest.state;
+    QUEST.kills=data.quest.kills;
+    if(QUEST.state>=2){
+      S.p.hpMax+=BAL.quest.rewardHp;
+      S.p.dmgMul+=BAL.quest.rewardDmgMul-1;
+    }
+    if(typeof BARRENS_QUEST!=="undefined"){
+      const bq=data.barrensQuest||{state:0,kills:0};
+      BARRENS_QUEST.state=bq.state|0;
+      BARRENS_QUEST.kills=bq.kills|0;
+    }
   }
-  if(typeof BARRENS_QUEST!=="undefined"){
-    const bq=data.barrensQuest||{state:0,kills:0};
-    BARRENS_QUEST.state=bq.state|0;
-    BARRENS_QUEST.kills=bq.kills|0;
-    if(typeof updateBarrensMarkers==="function")updateBarrensMarkers();
-  }
+  if(typeof updateBarrensMarkers==="function")updateBarrensMarkers();
 
   S.talents={
     points:0,
@@ -317,8 +335,11 @@ function finishStart(msg){
 
 function beginNewGame(classKey){
   clearSave();
-  QUEST.state=0; QUEST.kills=0;
-  if(typeof BARRENS_QUEST!=="undefined"){BARRENS_QUEST.state=0;BARRENS_QUEST.kills=0;}
+  if(typeof resetAllQuests==="function")resetAllQuests({silent:true});
+  else{
+    QUEST.state=0; QUEST.kills=0;
+    if(typeof BARRENS_QUEST!=="undefined"){BARRENS_QUEST.state=0;BARRENS_QUEST.kills=0;}
+  }
   if(typeof dismissCompanion==="function")dismissCompanion({silent:true,noSave:true});
   S.inv=[]; S.eq={weapon:null,armor:null};
   S.p.gold=0; S.over=false; S.mode="world"; S.zoneId="mulgore";

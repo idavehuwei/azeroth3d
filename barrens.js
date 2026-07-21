@@ -7,6 +7,7 @@
           models.js（buildQuadruped buildCentaur buildVendor buildSpiritHealer QUADS）
           world.js（spawnMob MOBS）
           combat.js 运行时（S log announce）
+          quests.js 运行时（acceptQuest turnInQuest questsForNpc）
           save.js 运行时（saveGame）· panels.js 运行时（renderQuestLog）
    [导出] sceneBarrens BARRENS_R BARRENS_QUEST BARRENS_PORTAL_N BARRENS_PORTAL_S
           barrensHeli barrensSun barrensFlames
@@ -225,6 +226,11 @@ function buildBarrensZone(scn){
 
 function updateBarrensMarkers(){
   if(!barrensMarkerExcl)return;
+  if(typeof questStatus==="function"){
+    barrensMarkerExcl.visible=questStatus("crossroads_trouble")==="none";
+    barrensMarkerQ.visible=questStatus("crossroads_trouble")==="ready";
+    return;
+  }
   barrensMarkerExcl.visible=(BARRENS_QUEST.state===0);
   barrensMarkerQ.visible=(BARRENS_QUEST.state===1&&BARRENS_QUEST.kills>=BAL.quest.barrens.quilboarKills);
 }
@@ -238,15 +244,9 @@ function barrensSpiritDist(){
   return Math.hypot(player.position.x-barrensSpirit.position.x,player.position.z-barrensSpirit.position.z);
 }
 
+/* 击杀计数已由 quests.onQuestMobKill 统一处理；此处仅刷新标记 */
 function onBarrensQuestKill(m){
-  if(m.type!=="quilboar"||BARRENS_QUEST.state!==1)return;
-  const need=BAL.quest.barrens.quilboarKills;
-  if(BARRENS_QUEST.kills>=need)return;
-  BARRENS_QUEST.kills++;
-  if(typeof updateQuest==="function")updateQuest();
   updateBarrensMarkers();
-  if(BARRENS_QUEST.kills>=need)announce("任务目标完成 · 回十字路口找哨兵");
-  if(typeof saveGame==="function")saveGame(true);
 }
 
 function tryInteractBarrens(){
@@ -276,42 +276,33 @@ function openBarrensDialogue(){
   const btn=(t,fn)=>{const b=document.createElement("button");
     b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
   const need=BAL.quest.barrens.quilboarKills;
-  if(BARRENS_QUEST.state===0){
-    tx.textContent="欢迎来到十字路口，勇士。西边野猪人前哨偷走了补给，还袭击商队。清剿 4 只野猪人斥候，我再告诉你半人马与南方洞穴的消息。";
-    btn("✦ 接受任务：十字路口的麻烦",()=>{
-      BARRENS_QUEST.state=1; BARRENS_QUEST.kills=0;
-      updateBarrensMarkers();
-      if(typeof updateQuest==="function")updateQuest();
-      closeDialogue();
-      announce("接受任务 · 十字路口的麻烦");
-      log(`接受任务【十字路口的麻烦】：清剿野猪人斥候 0/${need}。`,"lg-sys");
-      if(typeof saveGame==="function")saveGame(true);
-    });
-    btn("离开",closeDialogue);
-  }else if(BARRENS_QUEST.state===1&&BARRENS_QUEST.kills<need){
-    tx.textContent=`野猪人仍在西边前哨游荡（${BARRENS_QUEST.kills}/${need}）。干完活再来找我。`;
-    btn("离开",closeDialogue);
-  }else if(BARRENS_QUEST.state===1){
+
+  if(typeof canTurnInQuest==="function"&&canTurnInQuest("crossroads_trouble")){
     tx.textContent="漂亮！补给线暂时安全了。南方的哀嚎洞穴已经开放——建议等级 15，带上同伴更稳妥。收下这些铜币，继续变强吧。";
-    btn("✦ 领取奖励",()=>{
-      const xp=BAL.quest.barrens.rewardXp||BAL.levels.xp.barrensQuest||400;
-      const cu=BAL.quest.barrens.rewardCopper||200;
-      gainXP(xp);
-      if(cu)gainCopper(cu,{noSave:true});
-      BARRENS_QUEST.state=2;
-      updateBarrensMarkers();
-      if(typeof updateQuest==="function")updateQuest();
-      closeDialogue();
+    btn("✦ 领取奖励 · 十字路口的麻烦",()=>{
+      turnInQuest("crossroads_trouble");
       spawnBurst(player.position.clone().setY(1.5),0xe8c898,28,2);
-      announce("完成 · 十字路口的麻烦");
-      log(`奖励：经验 +${xp}，铜币 +${cu}。`,"lg-heal");
       log("哨兵提及：南方哀嚎洞穴已开放（建议 Lv15+）。","lg-sys");
-      if(typeof saveGame==="function")saveGame(true);
+      closeDialogue();
     });
+  }else if(typeof canAcceptQuest==="function"&&canAcceptQuest("crossroads_trouble")){
+    tx.textContent="欢迎来到十字路口，勇士。西边野猪人前哨偷走了补给，还袭击商队。清剿 4 只野猪人斥候，我再告诉你半人马与南方洞穴的消息。";
+    btn("✦ 接受任务：十字路口的麻烦",()=>{acceptQuest("crossroads_trouble");closeDialogue();});
+  }else if(typeof questStatus==="function"&&questStatus("crossroads_trouble")==="active"){
+    const k=questProgress("crossroads_trouble").kills|0;
+    tx.textContent=`野猪人仍在西边前哨游荡（${k}/${need}）。干完活再来找我。`;
   }else{
     tx.textContent="十字路口永远欢迎英雄。留意南方绿色旋涡——哀嚎洞穴的入口就在那里（Lv15+）。";
-    btn("离开",closeDialogue);
   }
+
+  if(typeof questsForNpc==="function"){
+    for(const q of questsForNpc("crossroads")){
+      if(q.id==="crossroads_trouble")continue;
+      if(canTurnInQuest(q.id))btn(`✦ 交任务：${q.title}`,()=>{turnInQuest(q.id);closeDialogue();});
+      else if(canAcceptQuest(q.id))btn(`✦ 接受：${q.title}`,()=>{acceptQuest(q.id);closeDialogue();});
+    }
+  }
+  btn("离开",closeDialogue);
 }
 
 registerZone({

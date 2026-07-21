@@ -135,8 +135,25 @@ assert(barrensSrc.includes("wailing_caverns"),"barrens 南口指向哀嚎洞穴"
 const itemsSrc=fs.readFileSync(path.join(__dirname,"items.js"),"utf8");
 assert(itemsSrc.includes("serpent_fang")&&itemsSrc.includes("moss_mantle"),"哀嚎蓝装物品");
 
+/* STEP 22 任务枢纽冒烟 */
+const questsSrc=fs.readFileSync(path.join(__dirname,"quests.js"),"utf8");
+assert(html.includes('src="quests.js"'),"game.html 加载 quests.js");
+assert(questsSrc.includes("const QUESTS=")&&questsSrc.includes('id:"elder_boars"'),"quests.js 有 QUESTS 注册表");
+assert(questsSrc.includes('id:"crossroads_trouble"')&&questsSrc.includes('id:"ragnaros_whisper"'),"主线贯通三章 id");
+assert(questsSrc.includes("function acceptQuest")&&questsSrc.includes("function turnInQuest"),"quests.js 有接交 API");
+assert(questsSrc.includes("function onQuestMobKill")&&questsSrc.includes("function onQuestBossKill"),"quests.js 有击杀钩子");
+assert(questsSrc.includes("function getQuestLogEntries")&&questsSrc.includes("function collectQuestSave"),"quests.js 有日志与存档");
+assert(questsSrc.includes("function applyQuestSave")&&questsSrc.includes("function syncLegacyQuestAliases"),"quests.js 有读档迁移");
+assert(coreSrc.includes("side:")&&coreSrc.includes("plains_patrol"),"BALANCE.quest.side 支线奖励表");
+assert(combatSrc.includes("quests:{}")||combatSrc.includes("quests:"),"combat S 含 quests 运行时");
+const saveSrc=fs.readFileSync(path.join(__dirname,"save.js"),"utf8");
+const panelsSrc=fs.readFileSync(path.join(__dirname,"panels.js"),"utf8");
+assert(saveSrc.includes("collectQuestSave")&&saveSrc.includes("applyQuestSave"),"save.js 读写 quests");
+assert(panelsSrc.includes("getQuestLogEntries"),"panels.js 多条目任务日志");
+assert(zonesSrc.includes("onQuestZoneEnter"),"zones.js 切入触发区域任务");
+
 if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–21 分区 / 牧师 / 队友 / 哀嚎洞穴冒烟");
+console.log("\n全部通过 · STEP 17–22 分区 / 牧师 / 队友 / 哀嚎 / 任务枢纽冒烟");

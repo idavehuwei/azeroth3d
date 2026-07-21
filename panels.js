@@ -6,6 +6,7 @@
    [依赖] core.js（$ BAL）· combat.js（S CLS SKILLS formatCopperText）
           items.js（ITEMS QUALITY bagOpen）· talents.js（getSkillCd talentOpen）
           world.js（QUEST updateQuest）· icons.js（Icons）
+          quests.js 运行时（getQuestLogEntries）
           map.js 运行时（worldMapOpen；关闭世界地图）
    [导出] toggleCharPanel toggleSpellPanel toggleQuestLog
           renderCharPanel renderSpellPanel renderQuestLog
@@ -140,50 +141,8 @@ function renderSpellPanel(){
 }
 
 function questEntries(){
-  const entries=[];
-  if(QUEST.state===1){
-    const n=Math.min(QUEST.kills,BAL.quest.boarKills);
-    entries.push({
-      title:"狂躁的野猪",
-      obj:`猎杀草原野猪 ${n}/${BAL.quest.boarKills}`,
-      done:n>=BAL.quest.boarKills,
-      tip:n>=BAL.quest.boarKills?"回到营地找长老 · 岩蹄领取奖励":"在营地附近猎杀草原野猪",
-    });
-  }else if(QUEST.state===2){
-    entries.push({
-      title:"讨伐拉戈斯",
-      obj:"进入北方传送门，击败炎魔领主拉戈斯",
-      done:false,
-      tip:"沿土路北行，踏入熔火之心",
-    });
-  }else if(QUEST.state>=3){
-    entries.push({
-      title:"讨伐拉戈斯",
-      obj:"已击败炎魔领主拉戈斯",
-      done:true,
-      tip:"任务完成",
-    });
-  }
-  if(typeof BARRENS_QUEST!=="undefined"&&BARRENS_QUEST.state>=1){
-    const need=BAL.quest.barrens.quilboarKills;
-    if(BARRENS_QUEST.state===1){
-      const n=Math.min(BARRENS_QUEST.kills,need);
-      entries.push({
-        title:"十字路口的麻烦",
-        obj:`清剿野猪人斥候 ${n}/${need}`,
-        done:n>=need,
-        tip:n>=need?"回十字路口找哨兵 · 碎牙领取奖励":"在贫瘠之地西边野猪人前哨清剿",
-      });
-    }else{
-      entries.push({
-        title:"十字路口的麻烦",
-        obj:"已肃清野猪人前哨",
-        done:true,
-        tip:"南方哀嚎洞穴即将开放",
-      });
-    }
-  }
-  return entries;
+  if(typeof getQuestLogEntries==="function")return getQuestLogEntries();
+  return [];
 }
 
 function renderQuestLog(){
@@ -191,16 +150,24 @@ function renderQuestLog(){
   const body=$("#questLogBody");
   const list=questEntries();
   if(!list.length){
-    body.innerHTML=`<div class="ql-empty">尚未接受任务。<br>与营地的长老 · 岩蹄对话（F）开始旅程。</div>`;
+    body.innerHTML=`<div class="ql-empty">尚未接受任务。<br>与营地的长老 · 岩蹄对话（F）开始旅程。<br>按 L 随时查看任务日志。</div>`;
     return;
   }
-  body.innerHTML=list.map(e=>
-    `<div class="ql-item${e.done?" done":""}">`+
+  const zoneName={mulgore:"莫高雷",barrens:"贫瘠之地",molten_core:"熔火之心",wailing_caverns:"哀嚎洞穴"};
+  let html="";
+  let lastZone="";
+  for(const e of list){
+    if(e.zone&&e.zone!==lastZone){
+      lastZone=e.zone;
+      html+=`<div class="ph-sec" style="margin:8px 0 4px">${zoneName[e.zone]||e.zone}</div>`;
+    }
+    html+=`<div class="ql-item${e.done?" done":""}">`+
       `<div class="ttl">${e.done?"✔ ":""}${e.title}</div>`+
       `<div class="obj">${e.obj}</div>`+
       `<div class="st">${e.tip}</div>`+
-    `</div>`
-  ).join("");
+    `</div>`;
+  }
+  body.innerHTML=html;
 }
 
 function toggleCharPanel(){

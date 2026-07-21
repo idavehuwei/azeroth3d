@@ -21,6 +21,7 @@
           isTargetAlive setCurrentTarget getFocusTarget
           gainXP updateLevelUI gainCopper spendCopper formatCopperText updateGoldUI
           clearShieldVisual applyHeal
+          （S.quests · STEP 22 任务运行时）
    ============================================================ */
 "use strict";
 /* ============================================================
@@ -30,6 +31,7 @@ const S={
   started:false,over:false,t:0,mode:"world",zoneId:"mulgore",
   portalHinted:false,portalHints:{},portalLockT:0,
   currentTarget:null,   /* STEP 20：玩家集火目标，供 AI 队友共用 */
+  quests:{},            /* STEP 22：任务运行时 {id:{status,kills,flags}} */
   p:{hp:5200,hpMax:5200,rage:20,rageMax:100,speed:10.5,alive:true,dmgMul:1,
      atkTimer:0,attackAnim:0,walkPhase:0,face:0,invuln:0,
      absorb:0,absorbT:0,shieldMesh:null,   /* STEP 19 真言术：盾 */

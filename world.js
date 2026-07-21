@@ -9,6 +9,7 @@
           combat.js 运行时（S log announce fct spawnBurst hitEntity closeDialogue
             gainCopper rollCopperRange …）
           companions.js 运行时（openRecruitDialogue companionAlive）
+          quests.js 运行时（acceptQuest turnInQuest onQuestMobKill questsForNpc）
           vfx.js 运行时（VFX spawnBurst）
           save.js 运行时（saveGame；接任务/交任务/离本）
    [导出] player boss BOSS_MESHES WORLD_R sceneWorld heli sun worldFlames PORTAL_POS portalUni
@@ -381,8 +382,11 @@ markerExcl.position.set(6,6.8,49); sceneWorld.add(markerExcl);
 const markerQ=makeLabel("❓",3);
 markerQ.position.copy(markerExcl.position); markerQ.visible=false; sceneWorld.add(markerQ);
 function setMarker(){
-  markerExcl.visible=(QUEST.state===0);
-  markerQ.visible=(QUEST.state===1&&QUEST.kills>=3);
+  const none=typeof questStatus==="function"?questStatus("elder_boars")==="none":QUEST.state===0;
+  const ready=typeof questStatus==="function"?questStatus("elder_boars")==="ready"
+    :(QUEST.state===1&&QUEST.kills>=BAL.quest.boarKills);
+  markerExcl.visible=none;
+  markerQ.visible=ready;
 }
 /* 营地商人（STEP 13） */
 const vendor=buildVendor();
@@ -551,7 +555,8 @@ function mobDie(m){
   gainXP(m.stats.xp);
   const cu=rollCopperRange(m.stats.copper);
   if(cu)gainCopper(cu);
-  if(m.type==="boar"&&QUEST.state===1&&QUEST.kills<BAL.quest.boarKills){
+  if(typeof onQuestMobKill==="function")onQuestMobKill(m);
+  else if(m.type==="boar"&&QUEST.state===1&&QUEST.kills<BAL.quest.boarKills){
     QUEST.kills++; updateQuest();
     if(QUEST.kills>=BAL.quest.boarKills){announce("任务目标完成 · 回去找长老"); setMarker();}
     if(typeof saveGame==="function")saveGame(true);
@@ -559,41 +564,11 @@ function mobDie(m){
   if(typeof onBarrensQuestKill==="function")onBarrensQuestKill(m);
 }
 
-/* ---------------- 任务追踪 HUD（右上角；详情见 L 任务日志） ---------------- */
+/* ---------------- 任务追踪 HUD（右上角；详情见 L 任务日志）· STEP 22 走 quests.js ---- */
 function updateQuest(){
+  if(typeof updateQuestTracker==="function"){updateQuestTracker();return;}
   const q=$("#quest");
-  const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore";
-  if(zid==="barrens"&&typeof BARRENS_QUEST!=="undefined"&&BARRENS_QUEST.state>=1){
-    if(BARRENS_QUEST.state===1){
-      const need=BAL.quest.barrens.quilboarKills;
-      const n=Math.min(BARRENS_QUEST.kills,need);
-      const done=n>=need;
-      q.innerHTML=`<div class="qt">任务 · 十字路口的麻烦</div>`+
-        `<div class="qo">清剿野猪人斥候 <b>${n}/${need}</b></div>`+
-        (done?`<div class="qd">回十字路口找哨兵交任务</div>`:"");
-      q.style.display="block";
-    }else if(BARRENS_QUEST.state>=2){
-      q.innerHTML=`<div class="qt qd">✔ 十字路口的麻烦</div>`+
-        `<div class="qo">南方哀嚎洞穴即将开放</div>`;
-      q.style.display="block";
-    }
-    if(typeof renderQuestLog==="function")renderQuestLog();
-    return;
-  }
-  if(QUEST.state===1){
-    const n=Math.min(QUEST.kills,BAL.quest.boarKills);
-    const done=n>=BAL.quest.boarKills;
-    q.innerHTML=`<div class="qt">任务 · 狂躁的野猪</div>`+
-      `<div class="qo">猎杀草原野猪 <b>${n}/${BAL.quest.boarKills}</b></div>`+
-      (done?`<div class="qd">回去找长老交任务</div>`:"");
-  }else if(QUEST.state===2){
-    q.innerHTML=`<div class="qt">任务 · 讨伐拉戈斯</div>`+
-      `<div class="qo">进入北方传送门<br>击败炎魔领主</div>`;
-  }else if(QUEST.state===3){
-    q.innerHTML=`<div class="qt qd">✔ 任务完成</div><div class="qo">讨伐拉戈斯</div>`;
-  }else{q.style.display="none";if(typeof renderQuestLog==="function")renderQuestLog();return;}
-  q.style.display="block";
-  if(typeof renderQuestLog==="function")renderQuestLog();
+  q.style.display="none";
 }
 
 /* ---------------- NPC 对话 ---------------- */
@@ -643,6 +618,12 @@ function refreshVendorPanel(){
     const it=ITEMS[id]; if(!it||it.vendorBuy==null)continue;
     btn(`🛒 购买【${it.name}】 · ${formatCopperText(it.vendorBuy)}`,()=>buyVendorItem(id));
   }
+  if(typeof questsForNpc==="function"){
+    for(const q of questsForNpc("vendor")){
+      if(canTurnInQuest(q.id))btn(`✦ 交任务：${q.title}`,()=>{turnInQuest(q.id);refreshVendorPanel();});
+      else if(canAcceptQuest(q.id))btn(`✦ 接受：${q.title}`,()=>{acceptQuest(q.id);refreshVendorPanel();});
+    }
+  }
   btn("打开背包（B）",()=>{if(!bagOpen())toggleBag();});
   btn("离开",closeDialogue);
 }
@@ -661,53 +642,45 @@ function openDialogue(){
   dlg.style.display="block"; bts.innerHTML="";
   const btn=(t,fn)=>{const b=document.createElement("button");
     b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
-  if(QUEST.state===0){
-    tx.textContent="远行的旅人啊，草原并不平静。北方的传送门日夜喷吐着灼热的怨气……但在此之前，先证明你的实力：营地周围的草原野猪近来狂躁伤人，猎杀 3 只，我便告诉你炎魔的秘密。";
-    btn("✦ 接受任务：狂躁的野猪",()=>{
-      QUEST.state=1; updateQuest(); setMarker(); closeDialogue();
-      announce("接受任务 · 狂躁的野猪");
-      log("接受任务【狂躁的野猪】：猎杀草原野猪 0/3。","lg-sys");
-      if(typeof saveGame==="function")saveGame(true);
-    });
-    if(typeof openRecruitDialogue==="function")btn("✦ 招募同伴同行",()=>openRecruitDialogue());
-    btn("离开",closeDialogue);
-  }else if(QUEST.state===1&&QUEST.kills<BAL.quest.boarKills){
-    tx.textContent=`野猪仍在草原上游荡（${QUEST.kills}/3）。靠近它们，用你的武器说话吧，勇士。`;
-    if(typeof openRecruitDialogue==="function"){
-      if(typeof companionAlive==="function"&&companionAlive())
-        btn("解散 / 更换同伴",()=>openRecruitDialogue());
-      else
-        btn("✦ 招募同伴同行",()=>openRecruitDialogue());
-    }
-    btn("离开",closeDialogue);
-  }else if(QUEST.state===1){
+
+  /* STEP 22：任务按钮优先 */
+  if(typeof canTurnInQuest==="function"&&canTurnInQuest("elder_boars")){
     tx.textContent="干得漂亮，勇士！听着——传送门深处沉睡着炎魔领主拉戈斯，他的烈焰迟早会烧到这片草原。收下大地母亲的祝福，北行吧，终结他！";
-    btn("✦ 领取奖励，接受任务：讨伐拉戈斯",()=>{
-      /* 伤害奖励改为叠加（STEP 3 起）：不能覆盖等级带来的 dmgMul 成长 */
-      S.p.hpMax+=BAL.quest.rewardHp; S.p.hp=S.p.hpMax; S.p.dmgMul+=BAL.quest.rewardDmgMul-1;
-      gainXP(BAL.levels.xp.quest);   /* 经验（STEP 3）：任务 +300 */
-      if(BAL.quest.rewardCopper)gainCopper(BAL.quest.rewardCopper,{noSave:true});
-      QUEST.state=2; updateQuest(); setMarker(); closeDialogue();
+    btn("✦ 领取奖励 · 长老的试炼",()=>{
+      turnInQuest("elder_boars");
       spawnBurst(player.position.clone().setY(1.5),0x8aff9a,30,2);
-      announce("获得 · 大地母亲的祝福");
-      log(`奖励：生命上限 +${BAL.quest.rewardHp} 并完全恢复，造成的伤害提升 ${Math.round((BAL.quest.rewardDmgMul-1)*100)}%！`,"lg-heal");
-      log("接受任务【讨伐拉戈斯】：进入北方传送门，击败炎魔领主。","lg-sys");
-      if(typeof saveGame==="function")saveGame(true);
+      closeDialogue();
     });
-    if(typeof openRecruitDialogue==="function")btn("✦ 招募同伴同行",()=>openRecruitDialogue());
-    btn("离开",closeDialogue);
+  }else if(typeof canAcceptQuest==="function"&&canAcceptQuest("elder_boars")){
+    tx.textContent="远行的旅人啊，草原并不平静。北方的传送门日夜喷吐着灼热的怨气……但在此之前，先证明你的实力：营地周围的草原野猪近来狂躁伤人，猎杀 3 只，我便告诉你炎魔的秘密。";
+    btn("✦ 接受任务：长老的试炼",()=>{
+      acceptQuest("elder_boars"); closeDialogue();
+    });
+  }else if(typeof questStatus==="function"&&questStatus("elder_boars")==="active"){
+    const k=questProgress("elder_boars").kills|0;
+    tx.textContent=`野猪仍在草原上游荡（${k}/${BAL.quest.boarKills}）。靠近它们，用你的武器说话吧，勇士。`;
   }else{
     let tip="北行吧，勇士。踏入旋涡，愿圣山的风与你同在。";
     if(S.p.level>=BAL.barrens.minLevel){
       tip+=" 营地南边的土路已通向贫瘠之地的十字路口——那里需要新的帮手。";
     }
     tx.textContent=tip;
-    if(typeof openRecruitDialogue==="function"){
-      if(typeof companionAlive==="function"&&companionAlive())
-        btn("解散 / 更换同伴",()=>openRecruitDialogue());
-      else
-        btn("✦ 招募同伴同行",()=>openRecruitDialogue());
-    }
-    btn("离开",closeDialogue);
   }
+
+  /* 支线（questsForNpc 排除已在主文案处理的 elder_boars） */
+  if(typeof questsForNpc==="function"){
+    for(const q of questsForNpc("elder")){
+      if(q.id==="elder_boars")continue;
+      if(canTurnInQuest(q.id))btn(`✦ 交任务：${q.title}`,()=>{turnInQuest(q.id);closeDialogue();});
+      else if(canAcceptQuest(q.id))btn(`✦ 接受：${q.title}`,()=>{acceptQuest(q.id);closeDialogue();});
+    }
+  }
+
+  if(typeof openRecruitDialogue==="function"){
+    if(typeof companionAlive==="function"&&companionAlive())
+      btn("解散 / 更换同伴",()=>openRecruitDialogue());
+    else
+      btn("✦ 招募同伴同行",()=>openRecruitDialogue());
+  }
+  btn("离开",closeDialogue);
 }

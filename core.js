@@ -118,9 +118,18 @@ const BALANCE={
     spit  :{dmg:[280,360], cast:1.5, cd:[6,8], hitR:3.3, speed:16, count:4, p2Count:6, fan:0.5},
     stomp :{dmg:[360,480], cast:1.4, cd:[9,12], count:3, p2Count:5, delay:1.8, ringR:5.5},
   },
-  /* 任务 · 狂躁的野猪 / 讨伐拉戈斯 / 贫瘠之地入口链（STEP 18；完整网 STEP 22） */
+  /* 任务 · 主线 + 支线奖励表（STEP 22） */
   quest:{boarKills:3, rewardHp:600, rewardDmgMul:1.15, rewardCopper:150,
-    barrens:{quilboarKills:4, rewardXp:400, rewardCopper:200}},
+    barrens:{quilboarKills:4, rewardXp:400, rewardCopper:200},
+    side:{
+      plains_patrol:{xp:180,copper:80,kills:5},
+      harpy_nest:{xp:350,copper:120,kills:1},
+      greyjaw_bounty:{xp:450,copper:180,kills:1},
+      supply_run:{xp:220,copper:100,kills:4},
+      centaur_threat:{xp:320,copper:140,kills:3},
+      wailing_call:{xp:200,copper:60,kills:1},
+    },
+    trackerMax:3},
   /* 贫瘠之地（STEP 18） */
   barrens:{
     radius:92,

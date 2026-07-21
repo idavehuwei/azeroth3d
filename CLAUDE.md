@@ -35,6 +35,7 @@
 | `vfx.js` | 特效注册表 | VFX, fireProjectile, spawnTelegraph, spawnBurst, disposeVfxMesh |
 | `talents.js` | 天赋数据层 | TALENTS, spendTalent, getSkillCd, cheatTalent |
 | `panels.js` | HUD 面板 | toggleCharPanel, toggleSpellPanel, toggleQuestLog |
+| `quests.js` | 任务枢纽 | QUESTS, acceptQuest, turnInQuest, onQuestMobKill, getQuestLogEntries |
 | `map.js` | 小地图 / 世界地图 | updateMinimap, toggleWorldMap, MAP_ZONES |
 | `zones.js` | 多场景注册表 | ZONES, registerZone, enterZone, ensureAllZonesBuilt |
 | `barrens.js` | 贫瘠之地 | sceneBarrens, BARRENS_QUEST, buildBarrensZone |

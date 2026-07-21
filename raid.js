@@ -869,7 +869,8 @@ function bossDie(){
   if(D.announce)announce(D.announce);
   if(D.log)log(D.log,"lg-boss");
   if(D.tip)log(D.tip,"lg-sys");
-  if(D.questComplete&&QUEST.state===2){QUEST.state=3;updateQuest();}
+  if(typeof onQuestBossKill==="function")onQuestBossKill(cfg.id);
+  else if(D.questComplete&&QUEST.state===2){QUEST.state=3;updateQuest();}
   const xp=D.xpKey?BAL.levels.xp[D.xpKey]:BAL.levels.xp.boss;
   if(xp)gainXP(xp);
   const copperSrc=D.copperKey?BAL[D.copperKey]&&BAL[D.copperKey].copper
