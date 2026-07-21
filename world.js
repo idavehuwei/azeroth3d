@@ -11,6 +11,7 @@
           companions.js 运行时（openRecruitDialogue companionAlive）
           quests.js 运行时（acceptQuest turnInQuest onQuestMobKill questsForNpc）
           professions.js 运行时（buildWorkbench spawnGatherNodesForZone tryProfessionInteract）
+          rares.js 运行时（spawnRaresForZone onRareKill）
           vfx.js 运行时（VFX spawnBurst）
           save.js 运行时（saveGame；接任务/交任务/离本）
    [导出] player boss BOSS_MESHES WORLD_R sceneWorld heli sun worldFlames PORTAL_POS portalUni
@@ -420,13 +421,18 @@ const MOB_TYPES={
   wolf    :{name:"草原狼",      build:()=>buildQuadruped(QUADS.wolf),    stats:"wolf",    loot:"wolf",    labelW:4.2,labelY:2.7},
   bird    :{name:"陆行鸟",      build:()=>buildQuadruped(QUADS.bird),    stats:"bird",    loot:"bird",    labelW:4.2,labelY:3.4},
   harpy   :{name:"鹰身女妖首领",build:()=>buildHumanoidMob(MOB_HUMANOIDS.harpy),stats:"harpy",loot:"harpy",labelW:8.5,labelY:5.6,elite:true,color:"#ff9ad0",auraColor:0xff66bb},
-  boarKing:{name:"老灰鬃野猪王",build:()=>buildQuadruped(QUADS.boarKing),stats:"boarKing",loot:"boarKing",labelW:9,labelY:5.8,elite:true,color:"#ffd700",auraColor:0xffd76a},
+  boarKing:{name:"老灰鬃野猪王",build:()=>buildQuadruped(QUADS.boarKing),stats:"boarKing",loot:"boarKing",labelW:9,labelY:5.8,elite:true,rare:true,color:"#ffd700",auraColor:0xffd76a},
+  ashmane :{name:"灰蹄野猪王",  build:()=>buildQuadruped(QUADS.boarKing),stats:"boarKing",loot:"boarKing",labelW:9,labelY:5.8,elite:true,rare:true,color:"#ffd700",auraColor:0xffd76a},
   quilboar:{name:"野猪人斥候",  build:()=>buildQuadruped(QUADS.quilboar),stats:"quilboar",loot:"quilboar",labelW:5.2,labelY:2.9},
   centaur :{name:"半人马战士",  build:()=>buildCentaur(MOB_HUMANOIDS.centaur),stats:"centaur",loot:"centaur",labelW:6.5,labelY:4.8},
   zebra   :{name:"平原斑马",    build:()=>buildQuadruped(QUADS.zebra),   stats:"zebra",   loot:"zebra",   labelW:4.6,labelY:2.8},
+  /* STEP 24 世界 Boss */
+  centaurHerald:{name:"半人马战争使者",build:()=>buildCentaur(MOB_HUMANOIDS.centaurHerald),
+    stats:"centaurHerald",loot:"centaurHerald",labelW:11,labelY:7.2,
+    elite:true,rare:true,worldBoss:true,color:"#ffd700",auraColor:0xffb040},
 };
-function attachEliteAura(m,colorHex){
-  const E=BAL.elite.aura;
+function attachEliteAura(m,colorHex,auraCfg){
+  const E=auraCfg||BAL.elite.aura;
   const col=colorHex!=null?colorHex:E.color||0xffd76a;
   const ring=new THREE.Mesh(
     new THREE.RingGeometry(E.innerR,E.outerR,40),
@@ -466,32 +472,40 @@ function spawnMob(type,x,z,group,opts){
   const mesh=T.build(); mesh.position.set(x,0,z);
   mesh.rotation.y=srand(0,6.28);
   let labelY=T.labelY;
-  if(T.elite&&!opts.minion){
-    const mul=BAL.elite.scaleMul||1;
+  const isWB=!!(opts.worldBoss||T.worldBoss)&&!opts.minion;
+  const isElite=!!(T.elite||opts.rare||isWB)&&!opts.minion;
+  if(isElite){
+    const mul=isWB?(BAL.elite.worldBossScaleMul||BAL.elite.scaleMul||1):(BAL.elite.scaleMul||1);
     mesh.scale.multiplyScalar(mul);
-    labelY+=BAL.elite.labelYBonus||0;
+    labelY+=isWB?(BAL.elite.worldBossLabelYBonus||BAL.elite.labelYBonus||0):(BAL.elite.labelYBonus||0);
   }
   const scn=(typeof ZONES!=="undefined"&&ZONES[zoneId]&&ZONES[zoneId].scene)||sceneWorld;
   scn.add(mesh);
-  const label=makeLabel(T.name,T.labelW,T.color||"#ffd9a0",T.color||undefined);
+  const dispName=opts.name||T.name;
+  const nameColor=opts.color||T.color||(isWB||opts.rare||T.rare?(BAL.rares&&BAL.rares.gold)||"#ffd700":"#ffd9a0");
+  const label=makeLabel(dispName,T.labelW+(isWB?1.5:0),nameColor,nameColor);
   label.position.set(x,labelY,z); scn.add(label);
-  const m={type,name:T.name,mesh,label,stats:st,loot:LOOT[T.loot],elite:!!T.elite&&!opts.minion,
+  const m={type,name:dispName,mesh,label,stats:st,loot:LOOT[T.loot],
+    elite:isElite,
+    rare:!!(opts.rare||T.rare||isWB)&&!opts.minion,
+    worldBoss:isWB,
+    rareId:opts.rareId||null,
     group:group||null,labelY,zoneId,
     hp:st.hp,hpMax:st.hp,state:"wander",home:{x,z},dest:null,wanderT:rand(0,3),
     atkT:0,rootT:0,respawnT:0,corpseT:0,castCd:0,casting:null,moving:false,aura:null,
-    /* —— 统一实体接口（STEP 1，hitEntity 消费）；return = 脱战回巢，免疫伤害 —— */
     variance:BAL.variance.mob,
     dead(){return this.state==="dead"||this.state==="return";},
     fctPos(){return this.mesh.position.clone().setY(this.labelY-.4);},
-    fctSize(){return this.elite?16:14;},
+    fctSize(){return this.worldBoss?18:this.elite?16:14;},
     onHit(amount,label){
-      if(this.state==="wander")aggroMob(this);   /* 被动怪（陆行鸟）也会被打反击 */
+      if(this.state==="wander")aggroMob(this);
       if(label)log(`你的【${label}】命中${this.name}，造成 ${amount} 伤害。`,"lg-me");
     },
     onDeath(){mobDie(this);},
   };
   if(m.elite){
-    attachEliteAura(m,T.auraColor);
+    const auraCfg=m.worldBoss&&BAL.elite.worldBossAura?BAL.elite.worldBossAura:BAL.elite.aura;
+    attachEliteAura(m,T.auraColor,auraCfg);
     spawnEliteMinions(m,type);
   }
   MOBS.push(m); return m;
@@ -523,10 +537,7 @@ function aggroMob(m){
 [[-42,-26],[-38,-31],[-45,-33]].forEach(([x,z])=>spawnMob("wolf",x,z,"wolfpack"));
 /* 陆行鸟：湖边中立被动（不主动攻击，被打才反击，移速快） */
 [[-28,2],[-46,26],[-24,14]].forEach(([x,z])=>spawnMob("bird",x,z));
-/* 鹰身女妖首领：精英放大 + 光环 + 陆行鸟小弟 */
-spawnMob("harpy",48,-30);
-/* 稀有精英「老灰鬃野猪王」：放大光环 + 野猪小弟 */
-spawnMob("boarKing",14,-34);
+/* 稀有/精英：rares.js 加载后 spawnRaresForZone("mulgore") */
 function moveToward(m,dest,spd,dt){
   const dx=dest.x-m.mesh.position.x,dz=dest.z-m.mesh.position.z;
   const d=Math.hypot(dx,dz);
@@ -560,7 +571,8 @@ function mobDie(m){
   setCorpse(m,true);
   spawnBurst(m.mesh.position.clone().setY(1),0xc9a06a,22,1.6);
   log(`你击杀了${m.name}！`,"lg-me");
-  if(m.elite)announce(`${m.name} 被击败！`);
+  if(typeof onRareKill==="function")onRareKill(m);
+  else if(m.elite)announce(`${m.name} 被击败！`);
   dropLoot(m.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),
     [rollLoot(m.loot,m.elite?BAL.loot.eliteWeights:null)],m);
   gainXP(m.stats.xp);

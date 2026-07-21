@@ -37,6 +37,7 @@
 | `panels.js` | HUD 面板 | toggleCharPanel, toggleSpellPanel, toggleQuestLog |
 | `quests.js` | 任务枢纽 | QUESTS, acceptQuest, turnInQuest, onQuestMobKill, getQuestLogEntries |
 | `professions.js` | 采集 / 制作 | MATS, RECIPES, tryGather, tryCraft, buildWorkbench |
+| `rares.js` | 稀有 / 世界 Boss | RARES, WORLD_BOSSES, spawnRaresForZone, getRareMapEntries |
 | `map.js` | 小地图 / 世界地图 | updateMinimap, toggleWorldMap, MAP_ZONES |
 | `zones.js` | 多场景注册表 | ZONES, registerZone, enterZone, ensureAllZonesBuilt |
 | `barrens.js` | 贫瘠之地 | sceneBarrens, BARRENS_QUEST, buildBarrensZone |

@@ -56,6 +56,10 @@ const BALANCE={
     quilboar:{hp:1200,dmg:[75,110], atkCd:2.0, meleeR:2.6, aggroR:8,  leashR:36, wanderSpd:2.8,chaseSpd:5.8, respawnT:28,  xp:140, copper:[18,35]},
     centaur :{hp:1800,dmg:[95,140], atkCd:2.2, meleeR:3.0, aggroR:10, leashR:40, wanderSpd:2.6,chaseSpd:5.5, respawnT:35,  xp:180, copper:[28,50], socialR:20},
     zebra   :{hp:700, dmg:[50,75],  atkCd:1.7, meleeR:2.3, aggroR:0,  leashR:32, wanderSpd:4.2,chaseSpd:7.5, respawnT:26,  xp:90,  copper:[10,20]},
+    /* —— STEP 24 世界 Boss —— */
+    centaurHerald:{hp:9000,dmg:[140,200],atkCd:2.1,meleeR:3.4,aggroR:14,leashR:48,
+      wanderSpd:2.2,chaseSpd:5.2,respawnT:240,xp:900,copper:[200,320],socialR:26,
+      cast:{name:"战矛投掷",dmg:[280,360],dur:1.4,cd:7,range:22,speed:18,hitR:3.2}},
   },
   /* 脱战回巢（STEP 5 规范化）：回巢途中每秒回复最大生命的百分比，且免疫伤害 */
   leash:{regenPct:.5},
@@ -63,11 +67,23 @@ const BALANCE={
   elite:{
     scaleMul:1.25,            /* 在模型 size 之上再放大 */
     labelYBonus:1.4,
+    worldBossScaleMul:1.45,
+    worldBossLabelYBonus:2.0,
     aura:{innerR:1.6,outerR:2.9,opacity:.55,pulse:0.35},
+    worldBossAura:{innerR:2.2,outerR:4.0,opacity:.65,pulse:0.4},
     minions:{
       harpy   :{type:"bird", count:3, radius:7},
       boarKing:{type:"boar", count:3, radius:8},
+      ashmane :{type:"boar", count:3, radius:8},
+      centaurHerald:{type:"centaur", count:2, radius:9},
     },
+  },
+  /* 稀有 / 世界 Boss（STEP 24）：刷新公告开关 */
+  rares:{
+    announceSpawn:true,
+    announceKill:true,
+    gold:"#ffd700",
+    elitePink:"#ff9ad0",
   },
   /* 死亡与复活（STEP 15） */
   death:{

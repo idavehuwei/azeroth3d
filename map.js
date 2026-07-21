@@ -6,6 +6,7 @@
    [依赖] core.js（$ BAL）· combat.js（S）· world.js（player WORLD_R PORTAL_POS
           elder vendor spiritHealer MOBS）· panels.js（closeAllHudPanels）
           zones.js 运行时（getCurrentZoneId）· raid.js 运行时（ARENA_R）
+          rares.js 运行时（getRareMapEntries）
    [导出] updateMinimap toggleWorldMap worldMapOpen closeWorldMap drawWorldMap
           MAP_ZONES getActiveMapZone setMapZone
    ============================================================ */
@@ -26,11 +27,8 @@ const MAP_ZONES={
       {id:"barrens",label:"贫瘠之地",x:0,  z:80, color:"#e8c898", kind:"portal"},
       {id:"camp",   label:"营地",   x:0,  z:55, color:"#c9a06a", kind:"camp"},
     ],
-    /* 稀有/精英固定点（与 world 放置一致；存活时改画动态点） */
-    elites:[
-      {id:"boarKing",label:"老灰鬃",x:14,z:-34,color:"#ffd700",rare:true},
-      {id:"harpy",   label:"鹰身女妖",x:48,z:-30,color:"#ff9ad0",rare:false},
-    ],
+    /* 稀有/精英：运行时由 getRareMapEntries 覆盖；此处为回退 */
+    elites:[],
     /* 手绘风轮廓：相对半径的多边形（程序化，非贴图） */
     outline:[
       [0,-1],[.35,-.92],[.62,-.7],[.88,-.35],[.95,.1],[.82,.45],[.55,.75],
@@ -198,13 +196,15 @@ function collectDynamicElites(){
   const list=[];
   if(typeof MOBS==="undefined")return list;
   const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore";
+  const gold=(BAL.rares&&BAL.rares.gold)||"#ffd700";
+  const pink=(BAL.rares&&BAL.rares.elitePink)||"#ff9ad0";
   for(const m of MOBS){
     if(!m.elite||m.state==="dead")continue;
     if((m.zoneId||"mulgore")!==zid)continue;
     list.push({
       x:m.mesh.position.x, z:m.mesh.position.z,
-      color:m.type==="boarKing"?"#ffd700":"#ff9ad0",
-      rare:m.type==="boarKing",
+      color:(m.rare||m.worldBoss)?gold:pink,
+      rare:!!(m.rare||m.worldBoss),
     });
   }
   return list;
@@ -237,7 +237,10 @@ function paintMap(ctx,size,opts){
       drawBlip(ctx,p.u,p.v,e.color,showLabels?5:3.5,e.rare?"diamond":"circle");
     }
   }else{
-    for(const e of zone.elites){
+    const staticElites=typeof getRareMapEntries==="function"
+      ?getRareMapEntries(zone.id)
+      :(zone.elites||[]);
+    for(const e of staticElites){
       const p=mapWorldToCanvas(e.x,e.z,size,pad,R);
       drawBlip(ctx,p.u,p.v,e.color,showLabels?5:3.5,e.rare?"diamond":"circle");
       if(showLabels){

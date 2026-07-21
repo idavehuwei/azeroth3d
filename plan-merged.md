@@ -413,11 +413,13 @@ js/
 
 > **验收**：野外采集 → 营地制作 → 消耗品可用。 ← **已通过**（`node test_step01.js`）
 
-### STEP 24 · 世界 Boss + 稀有精英框架 `P1` ⏳
+### STEP 24 · 世界 Boss + 稀有精英框架 `P1` ✅
 
-- 通用 `RARES` / `WORLD_BOSSES` 表：长刷新、金色姓名板、公告、必掉。
-- 贫瘠之地世界 Boss：「半人马战争使者」（小规模，1–2 人可摸）。
-- 老灰鬃逻辑抽成框架，莫高雷/贫瘠之地各挂一只稀有。
+- 新建 `rares.js`：`RARES[]` / `WORLD_BOSSES[]`；金色姓名板、击杀/刷新公告、`eliteWeights` 必掉。
+- 莫高雷稀有「老灰鬃」+ 贫瘠稀有「灰蹄野猪王」；世界 Boss「半人马战争使者」（贫瘠，可摸）。
+- `spawnMob` 支持 `rare` / `worldBoss` tier；小地图读表。
+
+> **验收**：双区各一只稀有；战争使者可击杀并掉蓝装。 ← **已通过**（`node test_step01.js`）
 
 ### STEP 25 · 成就「功绩之书」`P2` ⏳
 
@@ -599,8 +601,8 @@ js/
 
 **当前模块清单**（`game.html` 加载序）：`core → zones → sfx → icons → items → models → world → barrens → combat → companions → talents → panels → map → vfx → main → raid → wailing → save`
 
-**下一步行动**：从 **STEP 24** 做世界 Boss + 稀有精英框架。
+**下一步行动**：从 **STEP 25** 做成就「功绩之书」。
 
 ---
 
-*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 23 完成，下一步 STEP 24*
+*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 24 完成，下一步 STEP 25*

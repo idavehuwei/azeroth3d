@@ -229,6 +229,7 @@ function tick(){
             m.mesh.position.set(m.home.x,0,m.home.z);
             m.mesh.visible=true; m.label.visible=true;
             spawnBurst(m.mesh.position.clone().setY(.8),0x8aff9a,12,1);
+            if(typeof onRareRespawn==="function")onRareRespawn(m);
           }
           continue;
         }

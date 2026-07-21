@@ -9,6 +9,7 @@
           combat.js 运行时（S log announce）
           quests.js 运行时（acceptQuest turnInQuest questsForNpc）
           professions.js 运行时（spawnGatherNodesForZone）
+          rares.js 运行时（spawnRaresForZone）
           save.js 运行时（saveGame）· panels.js 运行时（renderQuestLog）
    [导出] sceneBarrens BARRENS_R BARRENS_QUEST BARRENS_PORTAL_N BARRENS_PORTAL_S
           barrensHeli barrensSun barrensFlames
@@ -219,6 +220,8 @@ function buildBarrensZone(scn){
   [[-18,28],[8,-35]].forEach(([x,z])=>{
     spawnMob("bird",x,z,null,{zoneId:"barrens"});
   });
+
+  if(typeof spawnRaresForZone==="function")spawnRaresForZone("barrens");
 
   updateBarrensMarkers();
   if(typeof spawnGatherNodesForZone==="function"){

@@ -166,8 +166,22 @@ assert(worldSrc.includes("buildWorkbench")||worldSrc.includes("spawnGatherNodesF
 assert(barrensSrc.includes("spawnGatherNodesForZone"),"barrens.js 挂接采集点");
 assert(combatSrc.includes("mats:{}")||combatSrc.includes("mats:"),"combat S 含 mats");
 
+/* STEP 24 稀有 / 世界 Boss 冒烟 */
+const raresSrc=fs.readFileSync(path.join(__dirname,"rares.js"),"utf8");
+assert(html.includes('src="rares.js"'),"game.html 加载 rares.js");
+assert(raresSrc.includes("const RARES=")&&raresSrc.includes("const WORLD_BOSSES="),"rares.js 有 RARES/WORLD_BOSSES 表");
+assert(raresSrc.includes("function spawnRaresForZone")&&raresSrc.includes("function getRareMapEntries"),"rares.js 有 spawn/map API");
+assert(raresSrc.includes("centaur_warbringer")||raresSrc.includes("centaurHerald"),"世界 Boss 半人马战争使者");
+assert(raresSrc.includes("greyjaw_mulgore")&&raresSrc.includes("ashmane_barrens"),"莫高雷/贫瘠各一只稀有");
+assert(coreSrc.includes("centaurHerald")&&coreSrc.includes("rares:"),"BALANCE 含 centaurHerald / rares");
+assert(itemsSrc.includes("warbringer_spear")&&itemsSrc.includes("warbringer_plate"),"战争使者掉落物品");
+assert(worldSrc.includes("centaurHerald")&&worldSrc.includes("worldBoss"),"world.js 支持世界 Boss 类型");
+assert(barrensSrc.includes("spawnRaresForZone"),"barrens.js 挂接稀有表");
+const mapSrc=fs.readFileSync(path.join(__dirname,"map.js"),"utf8");
+assert(mapSrc.includes("getRareMapEntries")||mapSrc.includes("m.rare"),"map.js 稀有点走 rare 标记");
+
 if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–23 分区 / 牧师 / 队友 / 哀嚎 / 任务 / 专业技能冒烟");
+console.log("\n全部通过 · STEP 17–24 分区 / … / 专业 / 稀有精英冒烟");

@@ -51,6 +51,9 @@ const ITEMS={
   /* —— STEP 21 哀嚎洞穴 —— */
   serpent_fang :{id:"serpent_fang", name:"毒牙弯刃",    icon:"sword", quality:"rare",    slot:"weapon",stats:{dmgMul:1.14},model:"sword",vendorSell:280},
   moss_mantle  :{id:"moss_mantle",  name:"苔藓披风甲",  icon:"armor", quality:"rare",    slot:"armor", stats:{hpMax:720},vendorSell:300},
+  /* —— STEP 24 世界 Boss —— */
+  warbringer_spear:{id:"warbringer_spear",name:"战争使者战矛",icon:"sword",quality:"rare",slot:"weapon",stats:{dmgMul:1.16},model:"sword",vendorSell:320},
+  warbringer_plate:{id:"warbringer_plate",name:"半人马督军胸甲",icon:"armor",quality:"rare",slot:"armor",stats:{hpMax:780},vendorSell:340},
   /* —— STEP 13 商人消耗品 —— */
   plain_bread  :{id:"plain_bread",  name:"硬面饼",      icon:"bread",  quality:"common", slot:"consumable",use:"food",
                  stats:null, vendorBuy:25, vendorSell:5},
@@ -93,6 +96,10 @@ const LOOT={
   boarKing:{
     uncommon:["tusk_blade","hide_vest"],
     rare    :["greyjaw_tusk","mesa_guard"],
+  },
+  centaurHerald:{
+    uncommon:["wind_blade","hide_vest"],
+    rare    :["warbringer_spear","warbringer_plate"],
   },
   magmadar:{
     uncommon:["magma_fang","sulf_ring"],

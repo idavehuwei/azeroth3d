@@ -496,6 +496,14 @@ function buildCentaur(cfg){
   const tip=new THREE.Mesh(new THREE.ConeGeometry(.08,.28,5),
     new THREE.MeshStandardMaterial({color:0xc0c0c0,roughness:.4,metalness:.6}));
   tip.position.set(.85,3.85,.85); tip.rotation.z=-.4; g.add(tip);
+  if(c.banner){
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,2.6,5),
+      new THREE.MeshStandardMaterial({color:0x4a4030,roughness:.8}));
+    pole.position.set(-.55,3.4,.2); g.add(pole);
+    const flag=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.7),
+      new THREE.MeshStandardMaterial({color:0xc04020,roughness:.9,side:THREE.DoubleSide}));
+    flag.position.set(-1.05,4.3,.2); g.add(flag);
+  }
   g.scale.setScalar(c.size);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   return g;
@@ -505,6 +513,8 @@ function buildCentaur(cfg){
 const MOB_HUMANOIDS={
   harpy:{size:1.55,skin:0xc9a2b8,feather:0x5a3a6e,featherD:0x3a2450,hair:0x2a1a3e,claw:0xe8e0c8},
   centaur:{size:1.2,skin:0xc9a080,fur:0x8a6a40,furD:0x5a4028,cloth:0x6a4030},
+  /* STEP 24 半人马战争使者 */
+  centaurHerald:{size:1.55,skin:0xd4a878,fur:0x6a5030,furD:0x3a2818,cloth:0x8a3020,banner:true},
 };
 function buildHumanoidMob(cfg){
   const c=Object.assign({size:1,wings:true},cfg);
