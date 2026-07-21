@@ -1,6 +1,6 @@
 /* ============================================================
    熔火之心 · talents.js
-   天赋（STEP 10a/10b）：三职业双枝三层小树 + 修饰器聚合 + N 键面板
+   天赋（STEP 10a/10b）：四职业双枝三层小树 + 修饰器聚合 + N 键面板
    不改技能函数本体；CD/伤害/生命通过 recomputeTalentMods 注入
    ------------------------------------------------------------
    [依赖] core.js（BAL）· combat.js（S CLS SKILLS CLASSES）· icons.js
@@ -54,6 +54,20 @@ const TALENTS={
         {id:"venom",tier:1,name:"毒箭",maxRank:3,icon:"tusk",desc:"箭矢附加毒性（标记）"},
         {id:"survival",tier:2,name:"求生",maxRank:3,icon:"hide",req:"venom",reqRank:1,desc:"生命上限提高"},
         {id:"trickle",tier:3,name:"散射专精",maxRank:3,icon:"feather",req:"survival",reqRank:1,desc:"生命提高，多重射击冷却缩短"},
+      ]},
+    ],
+  },
+  priest:{
+    branches:[
+      {id:"holy",name:"神圣",nodes:[
+        {id:"holy_light",tier:1,name:"圣光",maxRank:3,icon:"heal",desc:"治疗量提高"},
+        {id:"flash_mastery",tier:2,name:"迅捷治疗",maxRank:3,icon:"flash_heal",req:"holy_light",reqRank:1,desc:"快速治疗冷却缩短"},
+        {id:"divine_grace",tier:3,name:"神恩",maxRank:3,icon:"heal",req:"flash_mastery",reqRank:1,desc:"治疗量提高，治疗术冷却缩短"},
+      ]},
+      {id:"discipline",name:"戒律",nodes:[
+        {id:"power_infusion",tier:1,name:"能量灌注",maxRank:3,icon:"holy_shield",desc:"盾吸收量提高"},
+        {id:"smite_power",tier:2,name:"惩击",maxRank:3,icon:"holy",req:"power_infusion",reqRank:1,desc:"攻击伤害提高"},
+        {id:"borrowed_time",tier:3,name:"借来的时间",maxRank:3,icon:"holy_shield",req:"smite_power",reqRank:1,desc:"盾吸收提高，全局冷却微减"},
       ]},
     ],
   },

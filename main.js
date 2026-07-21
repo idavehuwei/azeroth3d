@@ -406,6 +406,14 @@ function tick(){
 
     /* ---- 资源恢复 & 冷却 ---- */
     S.p.invuln=Math.max(0,S.p.invuln-dt);
+    /* STEP 19：真言术：盾持续时间 */
+    if(S.p.absorbT>0){
+      S.p.absorbT=Math.max(0,S.p.absorbT-dt);
+      if(S.p.absorbT<=0&&S.p.absorb>0){
+        S.p.absorb=0;
+        if(typeof clearShieldVisual==="function")clearShieldVisual();
+      }
+    }
     if(CLS.regen)S.p.rage=Math.min(S.p.rageMax,S.p.rage+CLS.regen*dt);
     S.gcd=Math.max(0,S.gcd-dt);
     document.querySelectorAll(".skill").forEach((el,i)=>{

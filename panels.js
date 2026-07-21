@@ -59,6 +59,11 @@ function spellStatLine(sk){
     bits.push(`伤害 ${r[0]}–${r[1]}`);
   }
   if(bal.heal)bits.push(`治疗 ${bal.heal[0]}–${bal.heal[1]}`);
+  if(bal.absorb){
+    const a=Array.isArray(bal.absorb)?bal.absorb:[bal.absorb,bal.absorb];
+    bits.push(`吸收 ${a[0]}–${a[1]}`);
+  }
+  if(bal.duration)bits.push(`持续 ${bal.duration}s`);
   if(bal.radius)bits.push(`半径 ${bal.radius}m`);
   if(bal.dist)bits.push(`位移 ${bal.dist}m`);
   if(bal.invuln)bits.push(`免疫 ${bal.invuln}s`);
@@ -80,6 +85,8 @@ function renderCharPanel(){
   if(fx.frostSlow)fxBits.push(`冰霜减速 +${Math.round(fx.frostSlow*100)}%`);
   if(fx.poisonArrow)fxBits.push("毒箭标记");
   if(fx.pyroBurst)fxBits.push("炎爆强化");
+  if(fx.healMul)fxBits.push(`治疗 +${Math.round(fx.healMul*100)}%`);
+  if(fx.shieldMul)fxBits.push(`盾吸收 +${Math.round(fx.shieldMul*100)}%`);
 
   const row=(k,v)=>`<div class="ph-row"><span class="k">${k}</span><span class="v">${v}</span></div>`;
   const eqSlot=(label,it)=>{
@@ -99,6 +106,7 @@ function renderCharPanel(){
     `<div class="ph-sec">战斗属性</div>`+
     row("生命",`${Math.ceil(P.hp)} / ${P.hpMax}`)+
     row(CLS.resName,`${Math.floor(P.rage)} / ${P.rageMax}`)+
+    (P.absorb>0?row("吸收盾",`${Math.ceil(P.absorb)}（${P.absorbT.toFixed(1)}s）`):"")+
     row("伤害加成",`×${(P.dmgMul||1).toFixed(2)}`)+
     row("自动攻击",`${autoLo}–${autoHi}`)+
     row("攻击间隔",`${CLS.autoSpd}s`)+

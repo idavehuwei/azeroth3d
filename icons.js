@@ -172,6 +172,42 @@ const RECIPES={
     cx.fillStyle="rgba(255,230,180,.35)";
     cx.beginPath();cx.ellipse(28,30,8,4,-.2,0,6.283);cx.fill();
   },
+  /* ⚡ 神圣：金白放射光（STEP 19） */
+  holy(cx){
+    P.bg(cx,"#5a4a18","#1a1408");
+    P.glow(cx,32,32,28,"rgba(255,230,120,.85)");
+    cx.strokeStyle="#fff8d0";cx.lineWidth=3;
+    for(let i=0;i<8;i++){
+      const a=i*Math.PI/4;
+      cx.beginPath();cx.moveTo(32+Math.cos(a)*8,32+Math.sin(a)*8);
+      cx.lineTo(32+Math.cos(a)*26,32+Math.sin(a)*26);cx.stroke();
+    }
+    cx.fillStyle="#ffe9a0";
+    cx.beginPath();cx.arc(32,32,9,0,6.283);cx.fill();
+  },
+  /* 🛡 圣盾：金边圆盾（STEP 19） */
+  holy_shield(cx){
+    P.bg(cx,"#4a3a10","#120e06");
+    P.glow(cx,32,32,24,"rgba(255,210,100,.7)");
+    cx.fillStyle="#c9a050";
+    cx.beginPath();cx.arc(32,34,18,0,6.283);cx.fill();
+    cx.fillStyle="#fff0c0";
+    cx.beginPath();cx.arc(32,34,12,0,6.283);cx.fill();
+    cx.strokeStyle="#8a7020";cx.lineWidth=2;
+    cx.beginPath();cx.arc(32,34,18,0,6.283);cx.stroke();
+    cx.fillStyle="#d4af37";
+    cx.fillRect(29,24,6,20);cx.fillRect(22,31,20,6);
+  },
+  /* 💚 快速治疗：小十字 + 闪电纹（STEP 19） */
+  flash_heal(cx){
+    P.bg(cx,"#0e3a2a","#04140e");
+    P.glow(cx,32,32,22,"rgba(120,255,180,.75)");
+    cx.fillStyle="#e8fff0";
+    cx.fillRect(28,16,8,32);cx.fillRect(16,28,32,8);
+    cx.strokeStyle="#ffe080";cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(40,14);cx.lineTo(48,22);cx.lineTo(42,28);cx.lineTo(50,36);
+    cx.stroke();
+  },
 };
 
 /* ---------------- 工厂出口 ---------------- */

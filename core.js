@@ -38,6 +38,11 @@ const BALANCE={
     aimedShot   :{dmg:[820,1000]},
     multiShot   :{dmg:[430,540]},
     roll        :{dist:9, invuln:.7},
+    /* —— STEP 19 牧师 —— */
+    heal            :{heal:[1200,1500]},
+    flashHeal       :{heal:[650,850]},
+    smite           :{dmg:[720,920]},
+    powerWordShield :{absorb:[1800,2200], duration:15},
   },
   /* 野怪族群数值表（STEP 5）：加新怪 = 加一条；aggroR:0 = 中立被动（只反击） */
   mobs:{
@@ -172,6 +177,15 @@ const BALANCE={
       venom     :{fx:{poisonArrow:1}},                  /* 毒箭标记 */
       survival  :{hpMaxMul:.05},
       trickle   :{hpMaxMul:.06,skillCd:{i:1,mul:.92}},  /* 多重 CD ↓ */
+    },
+    /* —— STEP 19 牧师 —— */
+    priest:{
+      holy_light   :{fx:{healMul:.06}},
+      flash_mastery:{skillCd:{i:1,mul:.90}},
+      divine_grace :{fx:{healMul:.05},skillCd:{i:0,mul:.95}},
+      power_infusion:{fx:{shieldMul:.08}},
+      smite_power  :{dmgMul:.04},
+      borrowed_time:{fx:{shieldMul:.05},cdMul:.97},
     },
   },
   /* 存档（STEP 11）：localStorage 键与 schema 版本；改键会与旧存档隔离 */

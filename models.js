@@ -4,12 +4,12 @@
    [依赖] THREE · core.js（rand）
    [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS
           buildQuadruped buildHumanoidMob buildCentaur QUADS MOB_HUMANOIDS（STEP 5/18 族群工厂）
-          buildPlayer buildMage buildArcher buildBoss buildElder buildVendor buildSpiritHealer
+          buildPlayer buildMage buildArcher buildPriest buildBoss buildElder buildVendor buildSpiritHealer
           buildBoar buildFlameSpawn
    ------------------------------------------------------------
    3D 模型库（全部程序化几何体，零模型文件）
    STEP 4：人形基座 buildHumanoid(config)——躯干/四肢/头/披风 + 动画挂点，
-   三职业收敛为 HUMANOIDS 数据配置；武器独立为 WEAPONS 配方表，
+   四职业收敛为 HUMANOIDS 数据配置；武器独立为 WEAPONS 配方表，
    武器组打 userData.weapon 标，换装时 setWeapon 只换武器组。
    加新职业 = 加一条 HUMANOIDS 配置；加新武器 = 加一条 WEAPONS 配方。
    ============================================================ */
@@ -94,6 +94,16 @@ const WEAPONS={
       {g:'cone',a:[.13,.4,5],p:[-.3,1.9,0],m:'fire',flame:true},
     ],
     light:{c:0xff6a20,i:.9,d:7,p:[0,1.6,0]}},                    /* 火光 */
+  /* 牧杖（STEP 19 牧师默认）：木杆 + 金十字 + 圣光球 */
+  crosier:{mats:{wood:{c:0x6a5030,r:.9},gold:{c:0xd4af37,r:.3,mt:.9},
+                 orb:{c:0xfff0a0,basic:true}},
+    parts:[
+      {g:'cyl',a:[.045,.06,2.6,7],p:[0,.5,0],m:'wood'},
+      {g:'box',a:[.08,.55,.08],p:[0,2.05,0],m:'gold'},
+      {g:'box',a:[.42,.08,.08],p:[0,2.2,0],m:'gold'},
+      {g:'sph',a:[.16,8,8],p:[0,2.45,0],m:'orb'},
+    ],
+    light:{c:0xffe080,i:.55,d:5,p:[0,2.4,0]}},
 };
 function buildWeapon(type){
   const cfg=WEAPONS[type]||WEAPONS.sword;
@@ -110,7 +120,7 @@ function buildWeapon(type){
 }
 
 /* ============================================================
-   三职业人形配置（纯数据；外观与重构前一致）
+   四职业人形配置（纯数据；外观与重构前一致）
    ============================================================ */
 const HUMANOIDS={
   /* ⚔️ 人类战士：板甲 + 头盔盔缨 + 剑盾 */
@@ -191,6 +201,29 @@ const HUMANOIDS={
     cape:{a:[.85,1.3],p:[0,1.7,-.3],rx:.12,m:'capeM'},
     weapon:'bow', weaponMount:'armL', weaponPos:[-.12,-.85,.18],
   },
+  /* ✨ 人类牧师（STEP 19）：白金长袍 + 牧杖 */
+  priest:{
+    mats:{
+      robe:{c:0xf0ece0,r:.85}, robeDark:{c:0xd8d0c0,r:.9},
+      trim:{c:0xd4af37,r:.3,mt:.9}, skin:{c:0xd8a37a,r:.8},
+      book:{c:0xc9a06a,r:.8}, capeM:{c:0xe8e0d0,r:.9,ds:true},
+    },
+    parts:[
+      {g:'cyl',a:[.5,1,1.6,8],p:[0,1,0],m:'robe'},
+      {g:'cyl',a:[.42,.5,1,8],p:[0,2.2,0],m:'robeDark'},
+      {g:'cyl',a:[.52,.52,.12,8],p:[0,1.75,0],m:'trim'},
+      {g:'box',a:[.46,.46,.44],p:[0,2.95,0],m:'skin'},
+      {g:'cyl',a:[.28,.3,.2,8],p:[0,3.22,0],m:'robe'},           /* 头巾 */
+      {g:'oct',a:[.12,0],p:[0,2.35,.32],m:'trim'},               /* 胸前圣印 */
+      {g:'sph',a:[.24,8,6],p:[.52,2.55,0],m:'robeDark'},
+      {g:'sph',a:[.24,8,6],p:[-.52,2.55,0],m:'robeDark'},
+    ],
+    arm:{x:.55,y:2.5,mesh:{g:'cyl',a:[.13,.18,.88,7],p:[0,-.44,0],m:'robe'}},
+    armExtraL:[{g:'box',a:[.3,.4,.1],p:[-.05,-.9,.12],m:'book'}],  /* 圣契 */
+    leg:{x:.2,y:.6,mesh:null},
+    cape:{a:[.95,1.85],p:[0,1.9,-.38],rx:.1,m:'capeM'},
+    weapon:'crosier', weaponMount:'armR', weaponPos:[.05,-.85,.15],
+  },
 };
 
 /* ============================================================
@@ -231,10 +264,11 @@ function setWeapon(hum,type){
   const w=buildWeapon(type); w.position.set(...U.weaponPos); mount.add(w);
 }
 
-/* 三职业构建：一条配置一职业（CLASSES.build 消费） */
+/* 四职业构建：一条配置一职业（CLASSES.build 消费） */
 function buildPlayer(){return buildHumanoid(HUMANOIDS.warrior);}
 function buildMage(){return buildHumanoid(HUMANOIDS.mage);}
 function buildArcher(){return buildHumanoid(HUMANOIDS.archer);}
+function buildPriest(){return buildHumanoid(HUMANOIDS.priest);}
 
 /* ============================================================
    Boss 模型：炎魔领主（岩浆巨人，程序化原创低模）

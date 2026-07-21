@@ -863,6 +863,8 @@ function resurrectPlayer(spawn,opts){
   S.p.hp=Math.max(1,Math.round(S.p.hpMax*(D.respawnHpPct!=null?D.respawnHpPct:.5)));
   S.p.rage=CLS.resStart;
   S.p.invuln=.8;
+  S.p.absorb=0; S.p.absorbT=0;
+  if(typeof clearShieldVisual==="function")clearShieldVisual();
   S.p.knock=null; S.p.fear=null;
   S.p.eating=null; S.p.bandaging=null;
   S.p.weaknessT=D.weaknessT||0;

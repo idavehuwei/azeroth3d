@@ -79,8 +79,36 @@ assert(html.includes('src="zones.js"'),"game.html 加载 zones.js");
 assert(html.includes('src="barrens.js"'),"game.html 加载 barrens.js");
 assert(html.includes("ensureAllZonesBuilt()"),"game.html 调用 ensureAllZonesBuilt");
 
+/* STEP 19 牧师冒烟 */
+const combatSrc=fs.readFileSync(path.join(__dirname,"combat.js"),"utf8");
+assert(combatSrc.includes("priest:{"),"combat.js 有 CLASSES.priest");
+assert(combatSrc.includes("function powerWordShield"),"combat.js 有 powerWordShield");
+assert(combatSrc.includes("function applyHeal"),"combat.js 有 applyHeal");
+assert(combatSrc.includes("S.p.absorb"),"combat.js 使用 S.p.absorb 吸收盾");
+assert(/if\s*\(\s*S\.p\.absorb\s*>\s*0\s*\)/.test(combatSrc),"playerHit 先扣吸收盾");
+
+const modelsSrc=fs.readFileSync(path.join(__dirname,"models.js"),"utf8");
+assert(modelsSrc.includes("function buildPriest"),"models.js 导出 buildPriest");
+assert(modelsSrc.includes("priest:")||modelsSrc.includes("HUMANOIDS.priest")||modelsSrc.includes("priest:{"),"models.js 有 priest 人形配方");
+
+const talentsSrc=fs.readFileSync(path.join(__dirname,"talents.js"),"utf8");
+assert(talentsSrc.includes("priest:{"),"talents.js 有 TALENTS.priest");
+assert(talentsSrc.includes('id:"holy"')&&talentsSrc.includes('id:"discipline"'),"牧师天赋双枝 神圣/戒律");
+
+const coreSrc=fs.readFileSync(path.join(__dirname,"core.js"),"utf8");
+assert(coreSrc.includes("powerWordShield"),"BALANCE.skills 含 powerWordShield");
+assert(coreSrc.includes("flashHeal")&&coreSrc.includes("smite"),"BALANCE.skills 含 flashHeal/smite");
+
+const iconsSrc=fs.readFileSync(path.join(__dirname,"icons.js"),"utf8");
+assert(iconsSrc.includes("holy(cx)")&&iconsSrc.includes("holy_shield(cx)")&&iconsSrc.includes("flash_heal(cx)"),"icons.js 有牧师图标配方");
+
+const sfxSrc=fs.readFileSync(path.join(__dirname,"sfx.js"),"utf8");
+assert(sfxSrc.includes("heal")&&sfxSrc.includes("holy"),"sfx.js 有 heal/holy 音效");
+
+assert(html.includes('data-cls="priest"'),"启程界面有牧师职业卡");
+
 if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17/18 分区种子 / 注册表冒烟");
+console.log("\n全部通过 · STEP 17/18/19 分区种子 / 注册表 / 牧师冒烟");

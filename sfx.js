@@ -29,6 +29,9 @@ const SOUNDS={
            attack:.02, decay:.5,  vol:.4 },                                                       /* 野怪吼叫：族群共用 */
   pickup :{src:'arp', wave:'sine',     notes:[988,1319],          noteDur:.09, vol:.35},          /* 拾取叮声 */
   levelup:{src:'arp', wave:'triangle', notes:[523,659,784,1047,1319], noteDur:.11, vol:.4 },      /* 升级琶音 */
+  heal   :{src:'arp', wave:'sine',     notes:[659,784,988],       noteDur:.1,  vol:.4 },          /* STEP 19：治疗 */
+  holy   :{src:'osc', wave:'sine',     freq:[880,1320], filter:'lowpass', ffreq:2400,
+           attack:.01, decay:.28, vol:.38},                                                      /* STEP 19：神圣 */
 };
 
 /* ============================================================

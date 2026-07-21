@@ -4,7 +4,7 @@
             统一受击入口 hitEntity / 玩家胜负
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ clamp rand R BAL scene camera ARENA_R）
-          models.js（buildPlayer buildMage buildArcher buildFlameSpawn）
+          models.js（buildPlayer buildMage buildArcher buildPriest buildFlameSpawn）
           items.js（ITEMS DROPS removeDrop dropLoot）
           world.js（player boss MOBS QUEST mobDamage updateQuest tryInteract）
           main.js 运行时（clampArena）
@@ -19,6 +19,7 @@
    [导出] S SKILLS CLASSES CLS setClass log announce fct hurtFlash keys joy
           useSkill hitEntity dmgBoss pickTarget firePlayerShot playerHit
           gainXP updateLevelUI gainCopper spendCopper formatCopperText updateGoldUI
+          clearShieldVisual applyHeal
    ============================================================ */
 "use strict";
 /* ============================================================
@@ -29,6 +30,7 @@ const S={
   portalHinted:false,portalHints:{},portalLockT:0,
   p:{hp:5200,hpMax:5200,rage:20,rageMax:100,speed:10.5,alive:true,dmgMul:1,
      atkTimer:0,attackAnim:0,walkPhase:0,face:0,invuln:0,
+     absorb:0,absorbT:0,shieldMesh:null,   /* STEP 19 真言术：盾 */
      level:1,xp:0,xpMax:BAL.levels.xpMax[0],gold:0,   /* 经验与等级（STEP 3）· 金币铜（STEP 13） */
      eating:null,bandaging:null,weaknessT:0},
   b:{id:"ragnaros",hp:BAL.boss.hp,hpMax:BAL.boss.hp,alive:true,rising:true,riseT:0,
@@ -43,7 +45,7 @@ const S={
   deathUi:false, /* STEP 15：死亡面板打开中 */
 };
 /* ============================================================
-   职业系统：战士 / 法师 / 弓箭手
+   职业系统：战士 / 法师 / 弓箭手 / 牧师
    ============================================================ */
 let SKILLS=[];
 const CLASSES={
@@ -89,15 +91,31 @@ const CLASSES={
        desc:"向前翻滚位移，短暂闪避一切伤害。"},
       {name:"治疗药水",icon:"🧪",cd:22,rage:0, fn:potion,bal:"potion",
        desc:"喝下药水，立即回复生命。"}]},
+  priest:{title:"✨ 你 · 人类牧师",hp:4000,resMax:100,resStart:100,resName:"法力",
+    regen:8,hitGain:0,speed:10,ranged:true,range:28,sfx:"holy",
+    autoMin:155,autoMax:205,autoSpd:1.65,shotColor:0xfff0a0,build:buildPriest,
+    barCss:"linear-gradient(180deg,#fff8d0,#d4af37 60%,#8a7020)",
+    tip:"提示：法力随时间恢复；远程自动施放神圣惩击；【治疗术】续航，【真言术：盾】先吸收伤害。",
+    skills:[
+      {name:"治疗术",    icon:"✚", cd:8,  rage:35,fn:heal,           bal:"heal",
+       desc:"施放圣光，恢复大量生命。"},
+      {name:"快速治疗",  icon:"💚", cd:4,  rage:20,fn:flashHeal,     bal:"flashHeal",
+       desc:"迅速施法，立即恢复中等生命。"},
+      {name:"神圣惩击",  icon:"⚡", cd:6,  rage:25,fn:smite,         bal:"smite",
+       desc:"对目标造成神圣伤害。"},
+      {name:"真言术：盾",icon:"🛡", cd:12, rage:30,fn:powerWordShield,bal:"powerWordShield",
+       desc:"为自己施加吸收护盾，持续一段时间。"}]},
 };
 let CLS=CLASSES.warrior;
 function setClass(key){
   CLS=CLASSES[key];
   const pos=player.position.clone(),rot=player.rotation.y;
+  clearShieldVisual();
   scene.remove(player);
   player=CLS.build(); player.position.copy(pos); player.rotation.y=rot; scene.add(player);
   S.p.hpMax=CLS.hp; S.p.hp=CLS.hp;
   S.p.rageMax=CLS.resMax; S.p.rage=CLS.resStart; S.p.speed=CLS.speed;
+  S.p.absorb=0; S.p.absorbT=0;
   SKILLS=CLS.skills;
   if(typeof initTalentsForClass==="function")initTalentsForClass(key);
   else updateLevelUI();
@@ -387,9 +405,73 @@ function roll(){
   return true;
 }
 
+/* ---------------- 牧师技能（STEP 19） ---------------- */
+function clearShieldVisual(){
+  const m=S.p.shieldMesh;
+  if(!m)return;
+  if(m.parent)m.parent.remove(m);
+  if(m.geometry)m.geometry.dispose();
+  if(m.material)m.material.dispose();
+  S.p.shieldMesh=null;
+}
+function applyHeal(amount,label){
+  if(S.p.hp>=S.p.hpMax){log("生命已满。");return false;}
+  const mul=1+((S.p.talentFx&&S.p.talentFx.healMul)||0);
+  const heal=Math.round(amount*mul);
+  S.p.hp=Math.min(S.p.hpMax,S.p.hp+heal);
+  fct(player.position.clone().setY(3),`+${heal}`,"#8aff9a",18);
+  VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.4)});
+  if(typeof SFX!=="undefined")SFX.play("heal");
+  log(`你施放【${label}】，恢复 ${heal} 点生命值。`,"lg-heal");
+  return true;
+}
+function heal(){
+  return applyHeal(R(BAL.skills.heal.heal),"治疗术");
+}
+function flashHeal(){
+  return applyHeal(R(BAL.skills.flashHeal.heal),"快速治疗");
+}
+function smite(){
+  const t=pickTarget(CLS.range);
+  if(!t){log("目标超出施法距离！");return false;}
+  S.p.attackAnim=1;
+  firePlayerShot(t,R(BAL.skills.smite.dmg),"神圣惩击",1.5);
+  log("你唤来神圣惩击！","lg-me");
+  return true;
+}
+function powerWordShield(){
+  const bal=BAL.skills.powerWordShield;
+  const mul=1+((S.p.talentFx&&S.p.talentFx.shieldMul)||0);
+  const absorb=Math.round(R(bal.absorb)*mul);
+  clearShieldVisual();
+  S.p.absorb=absorb;
+  S.p.absorbT=bal.duration;
+  const ice=new THREE.Mesh(new THREE.IcosahedronGeometry(1.85,0),
+    new THREE.MeshStandardMaterial({color:0xffe080,transparent:true,opacity:.42,roughness:.2,metalness:.15,
+      emissive:0xffd060,emissiveIntensity:.25}));
+  ice.position.y=1.75; player.add(ice);
+  S.p.shieldMesh=ice;
+  fct(player.position.clone().setY(3.2),`盾 ${absorb}`,"#ffe9a0",16);
+  if(typeof SFX!=="undefined")SFX.play("holy");
+  log(`真言术：盾！吸收 ${absorb} 点伤害，持续 ${bal.duration} 秒。`,"lg-heal");
+  return true;
+}
+
 function playerHit(amount,source){
   if(!S.p.alive||S.p.invuln>0)return;
   amount=Math.round(amount*R(BAL.variance.player));
+  /* STEP 19：吸收盾先扣，溢出再扣血（玩家受击入口在 playerHit，非 hitEntity） */
+  if(S.p.absorb>0){
+    const absorbed=Math.min(S.p.absorb,amount);
+    S.p.absorb-=absorbed;
+    amount-=absorbed;
+    if(absorbed>0){
+      fct(player.position.clone().setY(3.2),`-${absorbed}(盾)`,"#ffe9a0",16);
+      log(`真言术：盾吸收了 ${absorbed} 点伤害。`,"lg-heal");
+    }
+    if(S.p.absorb<=0){S.p.absorb=0;S.p.absorbT=0;clearShieldVisual();}
+  }
+  if(amount<=0)return;
   S.p.hp-=amount; hurtFlash(); SFX.play("hit");
   fct(player.position.clone().setY(3),`-${amount}`,"#ff6a5a",18);
   log(`${source} 对你造成 ${amount} 点伤害！`,"lg-dmg");
