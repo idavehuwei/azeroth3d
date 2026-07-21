@@ -7,6 +7,7 @@
           icons.js（Icons）· models.js 运行时（setWeapon）
           combat.js 运行时（S log fct）· world.js 运行时（player）· vfx.js 运行时（VFX）
           talents.js 运行时（talentOpen closeTalentPanel；与背包互斥）
+          save.js 运行时（saveGame；换装自动存）
    [导出] QUALITY ITEMS LOOT rollLoot dropLoot updateDrops nearestDrop
           tryLoot removeDropOf logLoot DROPS
           equipItem unequipItem toggleBag renderBag applyEquipStats bagOpen（STEP 4）
@@ -159,6 +160,7 @@ function tryLoot(){
   removeDrop(d);
   if(d.onLooted)d.onLooted();
   renderBag();
+  if(typeof saveGame==="function")saveGame(true);
   return true;
 }
 /* 拾取日志：canvas 图标（品质描边）+ 品质色物品名 */
@@ -201,6 +203,7 @@ function equipItem(id){
   SFX.play("pickup");
   VFX.spawn("loot_spark",{pos:player.position.clone().setY(1.5),color:QUALITY[it.quality].hex,count:20,spread:1.4});
   renderBag();
+  if(typeof saveGame==="function")saveGame(true);
 }
 function unequipItem(slot){
   const id=S.eq[slot]; if(!id)return;
@@ -209,6 +212,7 @@ function unequipItem(slot){
   if(slot==="weapon")setWeapon(player,player.userData.defaultWeapon);
   log(`卸下【${ITEMS[id].name}】。`,"lg-sys");
   renderBag();
+  if(typeof saveGame==="function")saveGame(true);
 }
 
 /* ---------------- 背包 UI（HTML 覆盖层，#dlg 同风格） ---------------- */

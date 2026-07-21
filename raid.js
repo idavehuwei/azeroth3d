@@ -10,6 +10,7 @@
           world.js（player boss BOSS_MESHES MOBS QUEST setCorpse corpseMat removeDropOf
           spawnExitPortal removeExitPortal leaveRaid）
           vfx.js（VFX fireProjectile spawnTelegraph spawnBurst disposeVfxMesh）
+          save.js 运行时（saveGame；Boss 击杀自动存）
    [导出] BOSSES createBoss defineBoss getBossCfg armBossSkills activateRaidBoss mountBossMesh
           bossAI startCast spawnAdd addDamage addDie bossDie playerDie resetBoss
           distToBoss bossTargetable BOSS_ENT DUNGEON buildRaidScene
@@ -725,6 +726,7 @@ function bossDie(){
   }else if(D.nextStage){
     setTimeout(()=>DUNGEON.setStage(D.nextStage),2200);
   }
+  if(typeof saveGame==="function")saveGame(true);
 }
 function playerDie(){
   const F=(getBossCfg().defeat)||{};

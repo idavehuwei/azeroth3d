@@ -127,6 +127,8 @@ const BALANCE={
       trickle   :{hpMaxMul:.06,skillCd:{i:1,mul:.92}},  /* 多重 CD ↓ */
     },
   },
+  /* 存档（STEP 11）：localStorage 键与 schema 版本；改键会与旧存档隔离 */
+  save:{key:"azeroth3d_save_v1",version:1},
 };
 const BAL=BALANCE;
 

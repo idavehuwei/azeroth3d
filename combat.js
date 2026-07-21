@@ -11,6 +11,7 @@
           vfx.js 运行时（VFX spawnBurst）
           talents.js 运行时（getSkillCd grantTalentPointOnLevel initTalentsForClass
             toggleTalentPanel；N 键）
+          save.js 运行时（saveGame；升级自动存）
           raid.js 运行时（bossAI distToBoss bossTargetable fireProjectile
             spawnAdd addDamage addDie bossDie playerDie resetBoss BOSS_ENT DUNGEON）
    [导出] S SKILLS CLASSES CLS setClass log announce fct hurtFlash keys joy
@@ -25,7 +26,7 @@ const S={
   started:false,over:false,t:0,mode:"world",portalHinted:false,
   p:{hp:5200,hpMax:5200,rage:20,rageMax:100,speed:10.5,alive:true,dmgMul:1,
      atkTimer:0,attackAnim:0,walkPhase:0,face:0,invuln:0,
-     level:1,xp:0,xpMax:BAL.levels.xpMax[0]},   /* 经验与等级（STEP 3） */
+     level:1,xp:0,xpMax:BAL.levels.xpMax[0],gold:0},   /* 经验与等级（STEP 3） */
   b:{id:"ragnaros",hp:BAL.boss.hp,hpMax:BAL.boss.hp,alive:true,rising:true,riseT:0,
      phase:1,swingT:0,casting:null,castT:0,castDur:0,
      next:{},submerged:false,submergeT:0,canLeave:false,nextAddSpawn:0,addWave:null},
@@ -393,5 +394,6 @@ function gainXP(amount){
     if(typeof grantTalentPointOnLevel==="function")grantTalentPointOnLevel(P.level);
   }
   updateLevelUI();
+  if(typeof saveGame==="function")saveGame(true);
 }
 function updateLevelUI(){$("#pName").textContent=`${CLS.title} · Lv.${S.p.level}`;}

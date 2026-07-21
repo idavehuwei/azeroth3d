@@ -271,23 +271,23 @@ js/
 
 > **验收**：点满一棵树 → 重置 → 改点另一枝；刷新前内存态正确（持久化交给 STEP 11）。 ← **已通过**
 
-### STEP 11 · 存档系统 `P1` ⏳
+### STEP 11 · 存档系统 `P1` ✅
 
-- `saveGame()` / `loadGame()`：只存纯数据——等级经验、背包装备、`QUEST`、天赋、金币、当前区域 id；**绝不序列化 Three.js 对象**。
-- `localStorage` 主存；「导出/导入」JSON→Base64（兼容 `file://`）。
-- 启动页：「继续冒险」+ 「新的旅程」。
-- 自动存：升级 / 交任务 / 装备变更 / 击杀 Boss / 离开副本。
+- `saveGame()` / `loadGame()`：只存纯数据——等级经验、背包装备、`QUEST`、天赋、金币、区域与坐标；**绝不序列化 Three.js 对象**。
+- `localStorage` 主存（`BAL.save.key`）；「导出/导入」JSON→Base64（兼容 `file://` / 无痕窗口）。
+- 启动页：「继续冒险」+ 「新的旅程」+ 存档码导入/导出。
+- 自动存：升级 / 交任务（含接取与野猪击杀进度）/ 装备变更 / 天赋变更 / 击杀 Boss / 离开副本 / 隐藏页签与关闭前。
+- 加载时按等级+任务奖励+天赋+装备重建修饰，避免重复叠加。
 
 > **WoC 对照**：角色 JSONB，30s + 登出落盘；「只存数据、加载重建」——将来联机同一份 schema 可上服务器。
 
-> **验收**：升级+装备+任务+天赋 → 刷新 → 继续冒险状态还原；无痕窗口可导入导出码。
+> **验收**：升级+装备+任务+天赋 → 刷新 → 继续冒险状态还原；无痕窗口可导入导出码。 ← **已通过**
 
 ### STEP 12 · 工程基底（debug / FPS / dispose / 移动端）`P1` ⏳
 
 - **FPS**：`#fps`，`Ctrl+F` 切换；目标桌面 60 / 移动 30+。
 - **`debug.js`**：`?dev` 下启用 `cheat.level / give / tp / kill / god / boss / stage`（对标 WoC `ALLOW_DEV_COMMANDS`）。
 - **dispose 治理**：`spawnBurst`、投射物、烈焰之子、`DROPS` 全路径 `geometry/material.dispose()`。
-- **移动端**：阴影 1024、摇杆死区、技能栏间距 —— `BALANCE.mobile`。
 - **依赖清理**：`raid.js` 独占副本逻辑；`combat.js` 只留通用战斗。
 
 > **验收**：`?dev` + `cheat.level(5)` 立刻生效；连续游玩 30 分钟帧率不掉超过开局 5 分钟均值的 15%。
@@ -548,7 +548,8 @@ js/
 | v2.0 火焰之地 | 9c | 玛格曼达 + 双 Boss 分段 | ✅ 完成 | 1 次迭代 |
 | v2.0 成长/工程 | 10a | 天赋数据层（TALENTS + BAL.talents + cheatTalent） | ✅ 完成 | 0.5 次迭代 |
 | v2.0 成长/工程 | 10b | 天赋 UI（N 键面板 + 重置） | ✅ 完成 | 0.5 次迭代 |
-| v2.0 成长/工程 | 11–12 | 存档、debug/FPS/dispose | ⏳ 下一步 | 2–3 次迭代 |
+| v2.0 成长/工程 | 11 | 存档（localStorage + Base64 导入导出） | ✅ 完成 | 1 次迭代 |
+| v2.0 成长/工程 | 12 | debug/FPS/dispose | ⏳ 下一步 | 1–2 次迭代 |
 | v2.5 经典系统 | 13–16 | 商人金币、C/P/L 面板、墓地、小地图 | ⏳ 待开始 | 2–3 次迭代 |
 | v3.0 卡利姆多 | 17–21 | 多区、贫瘠之地、牧师、AI 队友、哀嚎洞穴 | ⏳ 待开始 | 4–6 次迭代 |
 | v3.5 内容密度 | 22–25 | 任务网、专业、世界 Boss、成就 | ⏳ 待开始 | 3–4 次迭代 |
@@ -574,15 +575,16 @@ js/
 | 9c | ✅ | `BOSSES.magmadar` + `QUADS.magmadar`；`DUNGEON`：corridor→boss1→bridge→boss；`cast_fear`；犬牙项链掉落 |
 | 10a | ✅ | `talents.js` + `BAL.talents`；三职业双枝三层；`getSkillCd` / `spendTalent`；`cheatTalent` |
 | 10b | ✅ | `#talent` 面板；N / ✨ 开关；重置；与背包互斥；升级 announce |
-| 11–12 | ⏳ | 存档、`debug.js` / FPS / dispose |
+| 11 | ✅ | `save.js`：localStorage + Base64；继续/新旅程；自动存挂点；`cheatSave` |
+| 12 | ⏳ | `debug.js` / FPS / dispose |
 | 13–16 | ⏳ | v2.5 经典系统未开始 |
 | 17–21 | ⏳ | v3.0 卡利姆多扩张未开始 |
 | 22–36 | 🔮 | v3.5–v5.0 已规划，待前置完成 |
 
-**当前模块清单**（`game.html` 加载序）：`core → sfx → icons → items → models → world → combat → talents → vfx → main → raid`
+**当前模块清单**（`game.html` 加载序）：`core → sfx → icons → items → models → world → combat → talents → vfx → main → raid → save`
 
-**下一步行动**：从 **STEP 11** 做存档系统（localStorage + 导出/导入）。
+**下一步行动**：从 **STEP 12** 做工程基底（debug / FPS / dispose / 移动端）。
 
 ---
 
-*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 10b 完成，下一步 STEP 11*
+*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 11 完成，下一步 STEP 12*

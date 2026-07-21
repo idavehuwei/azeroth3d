@@ -7,6 +7,7 @@
           items.js（dropLoot rollLoot LOOT tryLoot）
           combat.js 运行时（S log announce fct spawnBurst hitEntity closeDialogue …）
           vfx.js 运行时（VFX spawnBurst）
+          save.js 运行时（saveGame；接任务/交任务/离本）
    [导出] player boss BOSS_MESHES WORLD_R sceneWorld heli sun worldFlames PORTAL_POS portalUni
           portalLabel enterRaid fadeTo MOBS QUEST moveToward mobDamage mobDie
           setCorpse updateQuest setMarker tryInteract openDialogue closeDialogue
@@ -232,6 +233,7 @@ function leaveRaid(){
     SFX.music("world");   /* 音乐切换：五声音阶（STEP 6） */
     log("你回到莫高雷草原，炎魔的咆哮在远方回荡……","lg-sys");
     fadeTo(0);
+    if(typeof saveGame==="function")saveGame(true);
   });
 }
 
@@ -415,6 +417,7 @@ function mobDie(m){
   if(m.type==="boar"&&QUEST.state===1&&QUEST.kills<BAL.quest.boarKills){
     QUEST.kills++; updateQuest();
     if(QUEST.kills>=BAL.quest.boarKills){announce("任务目标完成 · 回去找长老"); setMarker();}
+    if(typeof saveGame==="function")saveGame(true);
   }
 }
 
@@ -451,6 +454,7 @@ function openDialogue(){
       QUEST.state=1; updateQuest(); setMarker(); closeDialogue();
       announce("接受任务 · 狂躁的野猪");
       log("接受任务【狂躁的野猪】：猎杀草原野猪 0/3。","lg-sys");
+      if(typeof saveGame==="function")saveGame(true);
     });
     btn("离开",closeDialogue);
   }else if(QUEST.state===1&&QUEST.kills<BAL.quest.boarKills){
@@ -467,6 +471,7 @@ function openDialogue(){
       announce("获得 · 大地母亲的祝福");
       log(`奖励：生命上限 +${BAL.quest.rewardHp} 并完全恢复，造成的伤害提升 ${Math.round((BAL.quest.rewardDmgMul-1)*100)}%！`,"lg-heal");
       log("接受任务【讨伐拉戈斯】：进入北方传送门，击败炎魔领主。","lg-sys");
+      if(typeof saveGame==="function")saveGame(true);
     });
   }else{
     tx.textContent="北行吧，勇士。踏入旋涡，愿圣山的风与你同在。";

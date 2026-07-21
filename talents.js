@@ -9,6 +9,7 @@
           grantTalentPointOnLevel updateSkillBarStats
           talentPointsUnspent talentPointsTotal
           toggleTalentPanel renderTalentPanel
+          （运行时依赖 save.js：加点/重置时 saveGame）
    ============================================================ */
 "use strict";
 
@@ -189,6 +190,7 @@ function spendTalent(nodeId){
   const node=getTalentNode(ck,nodeId);
   log(`天赋【${node.name}】→ ${talentRank(nodeId)}/${node.maxRank}（剩余 ${talentPointsUnspent()} 点）`,"lg-heal");
   renderTalentPanel();
+  if(typeof saveGame==="function")saveGame(true);
   return true;
 }
 
@@ -198,6 +200,7 @@ function resetTalents(){
   recomputeTalentMods();
   log(`天赋已重置。剩余 ${talentPointsUnspent()} 点可分配。`,"lg-sys");
   renderTalentPanel();
+  if(typeof saveGame==="function")saveGame(true);
 }
 
 function grantTalentPointOnLevel(newLevel){

@@ -1,6 +1,6 @@
 /* ============================================================
    熔火之心 · main.js
-   主循环与启动：范围钳制 / 每帧更新 / 相机 / UI 刷新 / 职业选择与开战
+   主循环与启动：范围钳制 / 每帧更新 / 相机 / UI 刷新 / 职业选择
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ clamp rand R BAL camera renderer scene ARENA_R
           lavaUniforms embers EMBERS emberVel）
@@ -14,7 +14,8 @@
           vfx.js（VFX spawnBurst fireProjectile disposeVfxMesh）
           raid.js 运行时（bossAI distToBoss bossTargetable DUNGEON）
           world.js 运行时（heli sun fireflies FIREFLIES ffPhases）
-   [导出] clampArena tick
+          save.js 运行时（启程 / 继续冒险）
+   [导出] clampArena tick chosenClass
    ============================================================ */
 "use strict";
 /* ============================================================
@@ -414,7 +415,7 @@ function tick(){
 }
 tick();
 
-/* ---------------- 职业选择 & 开战 ---------------- */
+/* ---------------- 职业选择（启程由 save.js 绑定） ---------------- */
 let chosenClass="warrior";
 document.querySelectorAll(".ccard").forEach(c=>{
   c.addEventListener("click",()=>{
@@ -422,15 +423,4 @@ document.querySelectorAll(".ccard").forEach(c=>{
     c.classList.add("sel");
     chosenClass=c.dataset.cls;
   });
-});
-$("#btnStart").addEventListener("click",()=>{
-  setClass(chosenClass);
-  S.god=$("#godChk").checked;
-  $("#startOv").classList.add("hide");
-  S.started=true;
-  SFX.init(); SFX.music("world");   /* AudioContext 在用户手势里创建（STEP 6） */
-  announce("莫高雷 · 圣山草原");
-  log("你从牛头人营地出发。沿着土路向北，尽头矗立着通往熔火之心的传送门。","lg-sys");
-  if(S.god)log(`⚡ 上帝模式已开启：你的每一次攻击都将造成 ${BAL.god.dmg.toLocaleString()} 点伤害。`,"lg-sys");
-  setTimeout(()=>log(CLS.tip,"lg-sys"),2200);
 });

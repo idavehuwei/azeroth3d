@@ -168,6 +168,20 @@
   #godRow{display:flex;align-items:center;gap:8px;margin-bottom:24px;cursor:pointer;
     font-size:13px;color:#ffcf98;letter-spacing:2px;text-shadow:0 1px 2px #000}
   #godRow input{width:16px;height:16px;accent-color:#ff8a2a;cursor:pointer}
+  #startMenu{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:8px}
+  #startMenu .btn-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+  #startMenu .btn.ghost,.overlay .btn.ghost{background:rgba(40,20,10,.7);color:#ffcf98;
+    box-shadow:0 0 14px rgba(255,120,20,.25)}
+  #saveMeta{font-size:12px;color:#b09a7a;letter-spacing:1px;margin-bottom:4px;display:none}
+  #newGamePanel{display:none}
+  #newGamePanel .btn-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  #saveImportBox{margin-top:18px;max-width:480px;width:100%}
+  #saveImportBox label{display:block;font-size:11px;color:#8b7a5e;letter-spacing:2px;margin-bottom:6px}
+  #saveCodeIn,#saveCodeOut{width:100%;min-height:52px;padding:8px;font-size:11px;font-family:ui-monospace,monospace;
+    color:#e8d8bc;background:rgba(0,0,0,.45);border:1px solid var(--ui-line);resize:vertical}
+  #saveCodeOut{display:none;margin-top:8px}
+  #saveImportBox .btn-row{display:flex;gap:10px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+  #saveImportBox .btn.sm{padding:8px 18px;font-size:12px;letter-spacing:3px}
  
   /* ---------- 移动端摇杆 ---------- */
   #joy{position:fixed;left:26px;bottom:190px;width:110px;height:110px;border-radius:50%;z-index:11;
@@ -258,17 +272,38 @@
   <h2>MOLTEN&nbsp;CORE&nbsp;·&nbsp;深入炽热核心</h2>
   <p>草原之风吹过莫高雷的红岩台地。牛头人长老在营火旁低语：<br>
      北方矗立着一道燃烧的传送门，通往地底深处的 <b style="color:#ff8a4a">熔火之心</b>——<br>
-     选择你的职业，沿土路北行，踏入旋涡，讨伐炎魔领主 <b style="color:#ff8a4a">拉戈斯</b>。</p>
-  <div id="classPick">
-    <div class="ccard sel" data-cls="warrior"><div class="ci">⚔️</div><div class="cn">战 士</div>
-      <div class="cd2">近战 · 高生存<br>怒气：攻击积攒<br>冲锋 / 旋风斩</div></div>
-    <div class="ccard" data-cls="mage"><div class="ci">🔮</div><div class="cn">法 师</div>
-      <div class="cd2">远程法术 · 高爆发<br>法力：自动恢复<br>炎爆 / 闪现 / 寒冰屏障</div></div>
-    <div class="ccard" data-cls="archer"><div class="ci">🏹</div><div class="cn">弓箭手</div>
-      <div class="cd2">远程物理 · 高机动<br>能量：自动恢复<br>瞄准射击 / 翻滚闪避</div></div>
+     讨伐炎魔领主 <b style="color:#ff8a4a">拉戈斯</b>，或继续未竟的旅程。</p>
+  <div id="saveMeta"></div>
+  <div id="startMenu">
+    <div class="btn-row">
+      <button type="button" class="btn" id="btnContinue" style="display:none">继续冒险</button>
+      <button type="button" class="btn ghost" id="btnNew">新的旅程</button>
+    </div>
   </div>
-  <label id="godRow"><input type="checkbox" id="godChk"><span>⚡ 上帝模式 · 每次攻击造成 5,000 伤害</span></label>
-  <button class="btn" id="btnStart">启 程</button>
+  <div id="newGamePanel">
+    <div id="classPick">
+      <div class="ccard sel" data-cls="warrior"><div class="ci">⚔️</div><div class="cn">战 士</div>
+        <div class="cd2">近战 · 高生存<br>怒气：攻击积攒<br>冲锋 / 旋风斩</div></div>
+      <div class="ccard" data-cls="mage"><div class="ci">🔮</div><div class="cn">法 师</div>
+        <div class="cd2">远程法术 · 高爆发<br>法力：自动恢复<br>炎爆 / 闪现 / 寒冰屏障</div></div>
+      <div class="ccard" data-cls="archer"><div class="ci">🏹</div><div class="cn">弓箭手</div>
+        <div class="cd2">远程物理 · 高机动<br>能量：自动恢复<br>瞄准射击 / 翻滚闪避</div></div>
+    </div>
+    <label id="godRow"><input type="checkbox" id="godChk"><span>⚡ 上帝模式 · 每次攻击造成 5,000 伤害</span></label>
+    <div class="btn-row" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button type="button" class="btn" id="btnStart">启 程</button>
+      <button type="button" class="btn ghost" id="btnBackMenu">返 回</button>
+    </div>
+  </div>
+  <div id="saveImportBox">
+    <label>存档码（无痕窗口可粘贴导入）</label>
+    <textarea id="saveCodeIn" placeholder="粘贴 Base64 存档码…" spellcheck="false"></textarea>
+    <textarea id="saveCodeOut" readonly spellcheck="false"></textarea>
+    <div class="btn-row">
+      <button type="button" class="btn sm ghost" id="btnImportSave">导入存档</button>
+      <button type="button" class="btn sm ghost" id="btnExportSave" style="display:none">导出存档码</button>
+    </div>
+  </div>
   <div class="hint">WASD / 方向键 移动 · 数字键 1-4 或点击释放技能 · 击杀敌人后靠近尸体按 F 拾取战利品 · B 打开背包 · N 打开天赋<br>
        在莫高雷沿土路北行，走进传送门旋涡即进入副本 · 副本内走出地面红圈躲避熔岩喷发</div>
 </div>
@@ -290,6 +325,7 @@
 <script src="vfx.js"></script>
 <script src="main.js"></script>
 <script src="raid.js"></script>
+<script src="save.js"></script>
 <script>buildRaidScene();</script>
 </body>
 </html>
