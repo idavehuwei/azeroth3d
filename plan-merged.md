@@ -456,10 +456,12 @@ js/
 
 > **验收**：清走廊幼龙 → 奥妮克希亚 P1 地面 / P2 升空 / P3 深呼吸；红圈与直线可躲；击杀开出口门。 ← **已通过**（`node test_step01.js`）
 
-### STEP 29 · 本地「地下城查找器」`P2` ⏳
+### STEP 29 · 本地「地下城查找器」`P2` ✅
 
 - `Shift+I`：选本、选难度（普通）、一键填充 AI 职责队列、传送至入口。
 - 对标 WoC Dungeon Finder，但全程本地。
+
+> **验收**：Shift+I 打开面板；选本后组队并传送至入口；等级不足时锁定。 ← **已通过**（`node test_step01.js`）
 
 ---
 
@@ -571,7 +573,7 @@ js/
 | v2.5 经典系统 | 16 | 小地图 | ✅ 完成 | 1 次迭代 |
 | v3.0 卡利姆多 | 17–21 | 多区、贫瘠之地、牧师、AI 队友、哀嚎洞穴 | ✅ STEP 17–21 完成 | 4–6 次迭代 |
 | v3.5 内容密度 | 22–25 | 任务网、专业、世界 Boss、成就 | ⏳ 待开始 | 3–4 次迭代 |
-| v4.0 开荒团 | 26–29 | 5 AI、仇恨职责、短团本、本地查找器 | ⏳ 进行中（26–28 ✅） | 4–5 次迭代 |
+| v4.0 开荒团 | 26–29 | 5 AI、仇恨职责、短团本、本地查找器 | ✅ 完成 | 4–5 次迭代 |
 | v4.5 修路 | 30–31 | sim 抽离、无头 bot 回归 | ⏳ 待开始 | 2–3 次迭代 |
 | v5.0 真联机 | 32–36 | 权威服、存档、社交、可选竞技场、Docker | 🔮 远景 | 开放式 |
 
@@ -609,8 +611,8 @@ js/
 
 **当前模块清单**（`game.html` 加载序）：`core → zones → … → panels → deeds → map → … → save`
 
-**下一步行动**：从 **STEP 29** 做本地地下城查找器。
+**下一步行动**：从 **STEP 30** 抽出 `sim/` 纯逻辑层。
 
 ---
 
-*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 28 完成，下一步 STEP 29*
+*MOLTEN CORE PROJECT · PLAN v3.0（含 ASSETS DESIGN + 路线至 v5.0）· 2026-07-21 · 参考 [WORLD OF CLAUDECRAFT](https://github.com/levy-street/world-of-claudecraft)（代码 MIT / 少量资源 CC0）· 世界观：经典 WoW 粉丝向 · 进度：STEP 29 完成，下一步 STEP 30*

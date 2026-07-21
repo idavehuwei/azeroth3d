@@ -173,6 +173,7 @@ addEventListener("keydown",e=>{
   if(e.key.toLowerCase()==="l")toggleQuestLog();
   if(e.key.toLowerCase()==="m")toggleWorldMap();
   if(e.shiftKey&&e.key.toLowerCase()==="z"&&typeof toggleDeedsPanel==="function"){e.preventDefault();toggleDeedsPanel();}
+  if(e.shiftKey&&e.key.toLowerCase()==="i"&&typeof toggleDungeonFinderPanel==="function"){e.preventDefault();toggleDungeonFinderPanel();}
   if(e.key==="Escape"&&typeof worldMapOpen==="function"&&worldMapOpen())closeWorldMap();
 });
 addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);

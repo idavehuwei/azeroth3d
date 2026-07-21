@@ -225,6 +225,21 @@ assert(modelsSrc28.includes("function buildOnyxia"),"models.js 有 buildOnyxia")
 const mapSrc28=fs.readFileSync(path.join(__dirname,"map.js"),"utf8");
 assert(mapSrc28.includes("onyxias_lair"),"map.js 有巢穴图层");
 
+/* STEP 29 地下城查找器冒烟 */
+const finderSrc=fs.readFileSync(path.join(__dirname,"finder.js"),"utf8");
+assert(html.includes('src="finder.js"'),"game.html 加载 finder.js");
+assert(html.includes('id="finderPanel"'),"game.html 有查找器面板");
+assert(finderSrc.includes("function toggleDungeonFinderPanel"),"finder.js 有 toggle");
+assert(finderSrc.includes("function renderDungeonFinderPanel"),"finder.js 有 render");
+assert(finderSrc.includes("function queueDungeonFinder"),"finder.js 有 queueDungeonFinder");
+assert(finderSrc.includes("formParty")&&finderSrc.includes("enterZone"),"finder.js 组队+传送");
+assert(coreSrc.includes("molten_core")&&coreSrc.includes("wailing_caverns")&&coreSrc.includes("onyxias_lair"),"三副本均在 BAL.lfg 目录");
+assert(coreSrc.includes("lfg:")&&coreSrc.includes('difficulty:"normal"'),"BALANCE 含 lfg 表");
+assert(combatSrc.includes("toggleDungeonFinderPanel")&&combatSrc.includes('"i"'),"combat.js 绑定 Shift+I");
+assert(panelsSrc.includes('"finder"')||panelsSrc.includes("'finder'"),"panels.js closeAllHudPanels 含 finder");
+assert(finderSrc.includes("normal"),"仅普通难度");
+assert(finderSrc.includes("getLfgMinLevel")||finderSrc.includes("minLevel"),"等级门槛检查");
+
 function DEEDS_COUNT_OK(src){
   const m=src.match(/id:"[^"]+"/g)||[];
   /* DEEDS 表内 id 约 18；过滤 DEED_BY_ID 等 */
@@ -235,4 +250,4 @@ if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–28 … / 奥妮克希亚巢穴冒烟");
+console.log("\n全部通过 · STEP 17–29 … / 地下城查找器冒烟");

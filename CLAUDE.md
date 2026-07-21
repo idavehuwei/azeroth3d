@@ -46,6 +46,7 @@
 | `raid.js` | 副本系统 | BOSSES, createBoss, bossAI, DUNGEON, DUNGEONS, getDungeon, buildRaidScene, spawnAdd |
 | `wailing.js` | 哀嚎洞穴 | sceneWailing, WAILING_DUNGEON, buildWailingZone |
 | `onyxia.js` | 奥妮克希亚巢穴 | sceneOnyxia, ONYXIA_DUNGEON, buildOnyxiaZone |
+| `finder.js` | 本地地下城查找器 | toggleDungeonFinderPanel, queueDungeonFinder |
 | `save.js` | 存档系统 | saveGame, loadGame, exportSaveCode, importSaveCode |
 | `main.js` | 主循环 | tick, clampArena |
 | `sfx.js` | 程序化音效 | SFX.init, SFX.play, SFX.music |

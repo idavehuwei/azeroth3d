@@ -341,6 +341,16 @@ const BALANCE={
     },
     roleLabel:{tank:"坦克",healer:"治疗",dps:"输出"},
   },
+  /* 本地地下城查找器（STEP 29） */
+  lfg:{
+    difficulty:"normal",
+    difficulties:["normal"],
+    entries:[
+      {id:"molten_core",    name:"熔火之心",       blurb:"走廊 → 玛格曼达 → 拉戈斯", minLevel:0,  gate:"entrance", icon:"🔥"},
+      {id:"wailing_caverns",name:"哀嚎洞穴",       blurb:"变异蛇 → 考布莱恩 → 吞噬者", minLevel:15, gate:"entrance", icon:"🐍"},
+      {id:"onyxias_lair",   name:"奥妮克希亚巢穴", blurb:"幼龙 → 黑龙女王三阶段",   minLevel:16, gate:"entrance", icon:"🐉"},
+    ],
+  },
   /* 仇恨与职责（STEP 27） */
   threat:{
     perDmg:1,
