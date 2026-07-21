@@ -30,8 +30,11 @@
 | `items.js` | 物品与掉落 | QUALITY, ITEMS, LOOT, dropLoot, tryLoot |
 | `models.js` | 3D 模型工厂 | buildPlayer, buildMage, buildArcher, buildBoss, buildBoar, buildFlameSpawn, buildElder |
 | `world.js` | 莫高雷世界 | player, boss, MOBS, QUEST, enterRaid, mobDie, setCorpse, tryInteract |
-| `combat.js` | 战斗系统 | S, CLASSES, SKILLS, hitEntity, bossAI, useSkill, addDie |
+| `combat.js` | 战斗系统 | S, CLASSES, SKILLS, hitEntity, useSkill |
+| `vfx.js` | 特效注册表 | VFX, fireProjectile, spawnTelegraph, spawnBurst, disposeVfxMesh |
+| `raid.js` | 副本系统 | BOSSES, createBoss, bossAI, DUNGEON, buildRaidScene, spawnAdd |
 | `main.js` | 主循环 | tick, clampArena |
+| `sfx.js` | 程序化音效 | SFX.init, SFX.play, SFX.music |
 
 ## 命令
 

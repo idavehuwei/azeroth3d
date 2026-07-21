@@ -58,6 +58,14 @@ const BALANCE={
     eruption:{dmg:[600,780], cast:1.5, cd:[9,12], count:3, p2Count:5, p3Count:8, delay:2.2},
     wrath   :{dmg:[380,520], cast:2.2, cd:[16,20], range:16},
   },
+  /* 玛格曼达 · 熔火之心一号位（STEP 9c） */
+  magmadar:{hp:56000, phase2At:.5, addCount:3,
+    melee :{dmg:[220,300], p2Mul:1.35, cd:[2.4,3.2], range:9, hitRange:10, delayMs:260},
+    spit  :{dmg:[260,340], cast:1.5, cd:[6,8.5], hitR:3.2, speed:18, count:3, p2Count:5, fan:0.42},
+    breath:{dmg:[420,560], cast:1.8, cd:[11,14], delay:1.6, segs:5, step:4.2, ringR:3.4, p2Segs:7},
+    stomp :{dmg:[400,540], cast:1.3, cd:[9,12], count:3, p2Count:6, delay:1.9, ringR:6},
+    fear  :{dmg:[140,200], cast:1.6, cd:[13,16], range:16, fearT:2.6, knockT:.35, panicRings:3, panicR:4.5, delay:1.5},
+  },
   /* 任务 · 狂躁的野猪 / 讨伐拉戈斯 */
   quest:{boarKills:3, rewardHp:600, rewardDmgMul:1.15},
   /* 掉落与尸体拾取（STEP 2）：品质权重 70/25/5 · 尸体停留秒数 · 拾取距离 */
@@ -76,9 +84,19 @@ const BALANCE={
     campfire:{base:1.4, nightBoost:2.6},  /* 白天 1.4，夜晚 1.4+2.6=4.0 */
   },
   /* 经验与等级（STEP 3）：经验来源 / 升级曲线 / 每级成长 */
-  levels:{max:10, xp:{quest:300, boss:2000},   /* 野怪经验在 mobs 表逐条配置（STEP 5） */
+  levels:{max:10, xp:{quest:300, boss:2000, magmadar:800},   /* 野怪经验在 mobs 表逐条配置（STEP 5） */
     xpMax:[200,300,450,650,900,1200,1600,2100,2700],  /* 第 n 级升下一级所需经验 */
     perLevel:{dmgMul:.05, hpMax:.08}},                 /* 每级：基础伤害 +5% · 生命上限 +8% */
+  /* 特效配方默认参数（STEP 9a）：改观感只改这里；运行时 ctx 可覆盖 */
+  vfx:{
+    lava_bolt:{color:0xffa030,glow:0xff4400,glowOp:.4,radius:.9,glowR:1.4,segs:10,originScale:.7},
+    eruption_ring:{ringColor:0xff2200,discColor:0xff3b00,ringOp:.85,discOp:.22,yRing:.06,yDisc:.05,innerMul:.86},
+    melee_impact:{color:0xff6a1a,count:14,spread:1.2,size:.45},
+    roar_aura:{color:0xffb040,count:70,spread:7,size:.45},
+    heal_cross:{color:0x66ff88,count:20,spread:1.4,size:.45},
+    loot_spark:{color:0xffd76a,count:24,spread:1.6,size:.45},
+    impact:{size:.45,life:1.1},   /* 通用粒子爆发默认 */
+  },
 };
 const BAL=BALANCE;
 

@@ -10,8 +10,9 @@
           exitPortal EXIT_PORTAL_POS spawnExitPortal removeExitPortal）
           combat.js（S CLS SKILLS keys joy setClass bossAI bossTargetable distToBoss
           pickTarget firePlayerShot dmgBoss addDamage mobDamage playerHit
-          spawnBurst log announce fct）
-          raid.js 运行时（bossAI distToBoss bossTargetable fireProjectile spawnBurst DUNGEON）
+          log announce fct）
+          vfx.js（VFX spawnBurst fireProjectile disposeVfxMesh）
+          raid.js 运行时（bossAI distToBoss bossTargetable DUNGEON）
           world.js 运行时（heli sun fireflies FIREFLIES ffPhases）
    [导出] clampArena tick
    ============================================================ */
@@ -84,12 +85,14 @@ function tick(){
     fireflies.geometry.attributes.position.needsUpdate=true;
   }
 
-  /* Boss 火焰摇曳 */
-  boss.traverse(o=>{if(o.userData.flame){o.scale.y=1+Math.sin(S.t*7+o.position.x*3)*.18;
-    o.rotation.y+=dt*2;}});
-  boss.userData.core.rotation.y+=dt;
-  boss.userData.core.scale.setScalar(1+Math.sin(S.t*4)*.12);
-  boss.userData.bossLight.intensity=2+Math.sin(S.t*5)*.5;
+  /* Boss 火焰摇曳（仅拉戈斯等人形岩浆 Boss 有 core/bossLight） */
+  if(boss.userData.core&&boss.userData.bossLight){
+    boss.traverse(o=>{if(o.userData.flame){o.scale.y=1+Math.sin(S.t*7+o.position.x*3)*.18;
+      o.rotation.y+=dt*2;}});
+    boss.userData.core.rotation.y+=dt;
+    boss.userData.core.scale.setScalar(1+Math.sin(S.t*4)*.12);
+    boss.userData.bossLight.intensity=2+Math.sin(S.t*5)*.5;
+  }
 
   if(S.started&&!S.over){
     /* ---- 莫高雷：传送门检测 / 野怪 AI / NPC ---- */
@@ -188,6 +191,15 @@ function tick(){
       player.position.add(S.p.knock.dir.clone().multiplyScalar(dt*28));
       S.p.knock.t-=dt; if(S.p.knock.t<=0)S.p.knock=null;
       clampArena(player.position);
+    }else if(S.p.fear){
+      /* 恐惧：强制乱跑，忽略输入 */
+      S.p.fear.t-=dt;
+      player.position.x+=Math.sin(S.t*9+1.7)*S.p.speed*.7*dt;
+      player.position.z+=Math.cos(S.t*7.3)*.7*S.p.speed*dt;
+      clampArena(player.position);
+      S.p.face=Math.atan2(Math.sin(S.t*9),Math.cos(S.t*7.3));
+      S.p.walkPhase+=dt*14;
+      if(S.p.fear.t<=0)S.p.fear=null;
     }else if(ml>.1&&S.p.alive){
       mx/=Math.max(1,ml);mz/=Math.max(1,ml);
       player.position.x+=mx*S.p.speed*dt;
@@ -254,15 +266,20 @@ function tick(){
       if(S.cds[i]>0)el.querySelector(".cd").textContent=Math.ceil(S.cds[i]);
     });
 
-    /* ---- Boss（仅副本内 Boss 阶段激活） ---- */
-    if(S.mode==="raid"){DUNGEON.tickBridge(dt);if(DUNGEON.stage==="boss")bossAI(dt);}
-    /* Boss 挥锤动画 */
-    if(S.b.swingT>0){S.b.swingT-=dt*1.6;
-      boss.userData.armR.rotation.x=-2.1*Math.sin(Math.min(1,S.b.swingT)*Math.PI);}
-    else boss.userData.armR.rotation.x=Math.sin(S.t*1.2)*.12;
-    boss.userData.armL.rotation.x=Math.sin(S.t*1.2+1)*.15;
+    /* ---- Boss（boss1 玛格曼达 / boss 拉戈斯） ---- */
+    if(S.mode==="raid"){
+      DUNGEON.tickBridge(dt);
+      if(DUNGEON.stage==="boss"||DUNGEON.stage==="boss1")bossAI(dt);
+    }
+    /* Boss 挥锤动画（人形有 armR；四足跳过） */
+    if(boss.userData.armR&&boss.userData.armL){
+      if(S.b.swingT>0){S.b.swingT-=dt*1.6;
+        boss.userData.armR.rotation.x=-2.1*Math.sin(Math.min(1,S.b.swingT)*Math.PI);}
+      else boss.userData.armR.rotation.x=Math.sin(S.t*1.2)*.12;
+      boss.userData.armL.rotation.x=Math.sin(S.t*1.2+1)*.15;
+    }
     /* Boss 缓慢面向玩家 */
-    if(!S.b.rising&&!S.b.submerged&&S.b.alive){
+    if(!S.b.rising&&!S.b.submerged&&S.b.alive&&boss.visible){
       const ta=Math.atan2(player.position.x-boss.position.x,player.position.z-boss.position.z);
       let da=ta-boss.rotation.y;
       while(da>Math.PI)da-=6.283; while(da<-Math.PI)da+=6.283;
@@ -294,10 +311,10 @@ function tick(){
       const dir=pr.target.clone().sub(pr.mesh.position);
       const d=dir.length();
       if(d<1.2){
-        spawnBurst(pr.mesh.position,0xff6a1a,30,2.5);
+        VFX.spawn("melee_impact",{pos:pr.mesh.position,color:0xff6a1a,count:30,spread:2.5});
         if(player.position.distanceTo(pr.target)<pr.hitR)playerHit(R(pr.dmg),pr.label);
         else{log(`你成功躲开了${pr.label}！`,"lg-me");fct(player.position.clone().setY(3.4),"躲避！","#8ad0ff",16);}
-        scene.remove(pr.mesh);S.projectiles.splice(i,1);continue;
+        scene.remove(pr.mesh);disposeVfxMesh(pr.mesh);S.projectiles.splice(i,1);continue;
       }
       dir.normalize();pr.mesh.position.add(dir.multiplyScalar(pr.speed*dt));
       pr.mesh.rotation.y+=dt*8;
@@ -308,13 +325,13 @@ function tick(){
       const sh=S.pShots[i];
       let tp=null;
       if(sh.tgt.type==="boss"){
-        if(!S.b.alive){scene.remove(sh.mesh);S.pShots.splice(i,1);continue;}
-        tp=new THREE.Vector3(boss.position.x,7.5,boss.position.z);
+        if(!S.b.alive){scene.remove(sh.mesh);disposeVfxMesh(sh.mesh);S.pShots.splice(i,1);continue;}
+        tp=new THREE.Vector3(boss.position.x,(getBossCfg().fctY||7.5),boss.position.z);
       }else if(sh.tgt.type==="mob"){
-        if(!mobTargetable(sh.tgt.m)){scene.remove(sh.mesh);S.pShots.splice(i,1);continue;}
+        if(!mobTargetable(sh.tgt.m)){scene.remove(sh.mesh);disposeVfxMesh(sh.mesh);S.pShots.splice(i,1);continue;}
         tp=sh.tgt.m.mesh.position.clone().setY(1.1);
       }else{
-        if(!S.adds.includes(sh.tgt.a)){scene.remove(sh.mesh);S.pShots.splice(i,1);continue;}
+        if(!S.adds.includes(sh.tgt.a)){scene.remove(sh.mesh);disposeVfxMesh(sh.mesh);S.pShots.splice(i,1);continue;}
         tp=sh.tgt.a.mesh.position.clone().setY(1.2);
       }
       const dir=tp.clone().sub(sh.mesh.position);
@@ -323,7 +340,7 @@ function tick(){
         if(sh.tgt.type==="boss")dmgBoss(sh.dmg,sh.label);
         else if(sh.tgt.type==="mob")mobDamage(sh.tgt.m,sh.dmg,sh.label);
         else addDamage(sh.tgt.a,sh.dmg*rand(.92,1.08));
-        scene.remove(sh.mesh);S.pShots.splice(i,1);continue;
+        scene.remove(sh.mesh);disposeVfxMesh(sh.mesh);S.pShots.splice(i,1);continue;
       }
       dir.normalize();sh.mesh.position.add(dir.multiplyScalar(sh.speed*dt));
     }
@@ -335,10 +352,12 @@ function tick(){
       tg.disc.scale.setScalar(.2+k*.8);
       tg.ring.material.opacity=.5+Math.sin(S.t*10)*.3;
       if(tg.t>=tg.delay){
-        spawnBurst(new THREE.Vector3(tg.x,.4,tg.z),0xff4400,40,tg.r*.8);
+        VFX.spawn("melee_impact",{pos:new THREE.Vector3(tg.x,.4,tg.z),color:0xff4400,count:40,spread:tg.r*.8});
         if(Math.hypot(player.position.x-tg.x,player.position.z-tg.z)<tg.r)
-          playerHit(R(BAL.boss.eruption.dmg),"熔岩喷发");
-        scene.remove(tg.ring);scene.remove(tg.disc);S.telegraphs.splice(i,1);
+          playerHit(R(tg.dmg||BAL.boss.eruption.dmg),tg.label||"熔岩喷发");
+        scene.remove(tg.ring);scene.remove(tg.disc);
+        disposeVfxMesh(tg.ring);disposeVfxMesh(tg.disc);
+        S.telegraphs.splice(i,1);
       }
     }
   }
@@ -346,14 +365,19 @@ function tick(){
   /* ---- 粒子爆发衰减 ---- */
   for(let i=S.bursts.length-1;i>=0;i--){
     const b=S.bursts[i];b.life+=dt;
+    const lifeMax=(BAL.vfx.impact&&BAL.vfx.impact.life)||1.1;
     const arr=b.pts.geometry.attributes.position.array;
     for(let j=0;j<b.vel.length;j++){
       arr[j*3]+=b.vel[j].x*dt;arr[j*3+1]+=b.vel[j].y*dt;arr[j*3+2]+=b.vel[j].z*dt;
       b.vel[j].y-=dt*6;
     }
     b.pts.geometry.attributes.position.needsUpdate=true;
-    b.pts.material.opacity=1-b.life/1.1;
-    if(b.life>1.1){scene.remove(b.pts);S.bursts.splice(i,1);}
+    b.pts.material.opacity=1-b.life/lifeMax;
+    if(b.life>lifeMax){
+      scene.remove(b.pts);
+      disposeVfxMesh(b.pts);
+      S.bursts.splice(i,1);
+    }
   }
 
   /* ---- 相机跟随 ---- */
@@ -370,9 +394,15 @@ function tick(){
   }
 
   /* ---- UI 刷新 ---- */
-  $("#bossHp").style.transform=`scaleX(${S.b.hp/S.b.hpMax})`;
-  $("#bossHpTx").textContent=S.b.submerged?"—— 潜入岩浆 ·先消灭烈焰之子 ——":
-    `${S.b.hp.toLocaleString()} / ${S.b.hpMax.toLocaleString()}  (${Math.ceil(S.b.hp/S.b.hpMax*100)}%)`;
+  if(S.mode==="raid"&&(DUNGEON.stage==="corridor"||DUNGEON.stage==="bridge")){
+    $("#bossHp").style.transform="scaleX(1)";
+    $("#bossHpTx").textContent=DUNGEON.stage==="corridor"
+      ?"—— 清理走廊熔岩犬 ——":"—— 岩桥开启中 ——";
+  }else{
+    $("#bossHp").style.transform=`scaleX(${S.b.hpMax?S.b.hp/S.b.hpMax:0})`;
+    $("#bossHpTx").textContent=S.b.submerged?"—— 潜入岩浆 ·先消灭烈焰之子 ——":
+      `${S.b.hp.toLocaleString()} / ${S.b.hpMax.toLocaleString()}  (${Math.ceil(S.b.hp/S.b.hpMax*100)}%)`;
+  }
   $("#pHp").style.transform=`scaleX(${S.p.hp/S.p.hpMax})`;
   $("#pHpTx").textContent=`${Math.max(0,Math.round(S.p.hp))} / ${S.p.hpMax}`;
   $("#pRage").style.transform=`scaleX(${S.p.rage/S.p.rageMax})`;

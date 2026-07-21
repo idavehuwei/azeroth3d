@@ -8,8 +8,9 @@
           items.js（ITEMS DROPS removeDrop dropLoot）
           world.js（player boss MOBS QUEST mobDamage updateQuest tryInteract）
           main.js 运行时（clampArena）
+          vfx.js 运行时（VFX spawnBurst）
           raid.js 运行时（bossAI distToBoss bossTargetable fireProjectile
-            spawnBurst spawnAdd addDamage addDie bossDie playerDie resetBoss BOSS_ENT DUNGEON）
+            spawnAdd addDamage addDie bossDie playerDie resetBoss BOSS_ENT DUNGEON）
    [导出] S SKILLS CLASSES CLS setClass log announce fct hurtFlash keys joy
           useSkill hitEntity dmgBoss pickTarget firePlayerShot playerHit
           gainXP updateLevelUI
@@ -23,10 +24,9 @@ const S={
   p:{hp:5200,hpMax:5200,rage:20,rageMax:100,speed:10.5,alive:true,dmgMul:1,
      atkTimer:0,attackAnim:0,walkPhase:0,face:0,invuln:0,
      level:1,xp:0,xpMax:BAL.levels.xpMax[0]},   /* 经验与等级（STEP 3） */
-  b:{hp:BAL.boss.hp,hpMax:BAL.boss.hp,alive:true,rising:true,riseT:0,
+  b:{id:"ragnaros",hp:BAL.boss.hp,hpMax:BAL.boss.hp,alive:true,rising:true,riseT:0,
      phase:1,swingT:0,casting:null,castT:0,castDur:0,
-     nextMelee:2.5,nextFireball:6,nextEruption:10,nextWrath:18,
-     submerged:false,submergeT:0,canLeave:false,nextAddSpawn:0},
+     next:{},submerged:false,submergeT:0,canLeave:false,nextAddSpawn:0,addWave:null},
   adds:[],projectiles:[],pShots:[],telegraphs:[],bursts:[],
   cds:[0,0,0,0],gcd:0,
   inv:[],      /* 背包（STEP 2 起：拾取的物品 id 列表） */
@@ -232,7 +232,7 @@ function potion(){
   const heal=Math.round(R(BAL.skills.potion.heal));
   S.p.hp=Math.min(S.p.hpMax,S.p.hp+heal);
   fct(player.position.clone().setY(3),`+${heal}`,"#8aff9a",18);
-  spawnBurst(player.position.clone().setY(1.4),0x66ff88,20,1.4);
+  VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.4)});
   log(`你饮下强效治疗药水，恢复 ${heal} 点生命值。`,"lg-heal");
   return true;
 }
@@ -383,7 +383,7 @@ function gainXP(amount){
     SFX.play("levelup");
     announce(`升 级 ！ Lv.${P.level}`);
     log(`你升到了 ${P.level} 级！生命上限 +${hpGain}，基础伤害 +${Math.round(L.perLevel.dmgMul*100)}%。`,"lg-heal");
-    spawnBurst(player.position.clone().setY(1.5),0xffd76a,60,3);
+    VFX.spawn("loot_spark",{pos:player.position.clone().setY(1.5),color:0xffd76a,count:60,spread:3});
   }
   updateLevelUI();
 }

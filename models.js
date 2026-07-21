@@ -356,6 +356,8 @@ const QUADS={
   bird    :{fur:0xd8b060,furD:0xa87830,legs:2,neck:1.1,beak:true,crest:true,tail:'plume'},
   /* 老灰鬃野猪王：巨型灰鬃野猪（稀有精英） */
   boarKing:{fur:0x8a8578,furD:0x55524a,tusks:true,tuskBig:true,mane:true,ears:true,tail:'up',size:1.55},
+  /* 玛格曼达：巨型熔岩猎犬（STEP 9c） */
+  magmadar:{fur:0x8a2208,furD:0x3a1008,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:5.1},
 };
 function buildQuadruped(cfg){
   const c=Object.assign({size:1,legs:4,tusks:false,tuskBig:false,ears:true,mane:false,

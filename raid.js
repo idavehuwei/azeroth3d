@@ -1,18 +1,18 @@
 /* ============================================================
    熔火之心 · raid.js
-   副本系统（STEP 8）：副本环境搭建 / Boss AI / 投射物 / 烈焰之子
-            副本分段 DUNGEON.stage 状态推进
+   副本系统（STEP 8）：副本环境搭建 / 烈焰之子 / 分段
+            Boss 工厂（STEP 9b）：createBoss + BOSSES 数据驱动 AI
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ clamp rand R BAL scene camera ARENA_R
           lavaUniforms embers EMBERS emberVel srand worldRng sceneRaid）
-          models.js（buildFlameSpawn）
+          models.js（buildFlameSpawn buildBoss buildQuadruped QUADS）
           items.js（ITEMS DROPS removeDrop dropLoot rollLoot LOOT）
-          world.js（player boss MOBS QUEST setCorpse corpseMat removeDropOf
+          world.js（player boss BOSS_MESHES MOBS QUEST setCorpse corpseMat removeDropOf
           spawnExitPortal removeExitPortal leaveRaid）
-   [导出] bossAI startCast fireProjectile spawnTelegraph spawnBurst
-          spawnAdd addDamage addDie bossDie playerDie resetBoss
-          distToBoss bossTargetable BOSS_ENT DUNGEON
-          buildRaidScene
+          vfx.js（VFX fireProjectile spawnTelegraph spawnBurst disposeVfxMesh）
+   [导出] BOSSES createBoss defineBoss getBossCfg armBossSkills activateRaidBoss mountBossMesh
+          bossAI startCast spawnAdd addDamage addDie bossDie playerDie resetBoss
+          distToBoss bossTargetable BOSS_ENT DUNGEON buildRaidScene
    ============================================================ */
 "use strict";
 
@@ -114,37 +114,41 @@ function buildBridge(){
 }
 
 /* ============================================================
-   副本分段系统（STEP 8）
-   DUNGEON.stage 状态推进：corridor（走廊）→ bridge（岩桥）→ boss（Boss 战）
-   岩桥下沉动画：bridgeSegs 从 buildRaidScene 闭包引用
+   副本分段系统（STEP 8 + 9c）
+   corridor → boss1（玛格曼达）→ bridge → boss（拉戈斯）
    ============================================================ */
 const DUNGEON={
-  stage:"boss",      /* "corridor" | "bridge" | "boss" */
-  mobsAlive:0,       /* 当前阶段存活小怪数 */
-  bridgeT:0,         /* 岩桥下沉进度 */
-  bridgeDone:false,  /* 岩桥是否已完成下沉 */
+  stage:"boss",      /* "corridor" | "boss1" | "bridge" | "boss" */
+  mobsAlive:0,
+  bridgeT:0,
+  bridgeDone:false,
   setStage(s){
     if(s==="corridor"){
       this.stage="corridor"; this.bridgeDone=false;
-      /* 走廊熔岩犬 x2，复用烈焰之子 AI 但用不同数据 */
+      S.b.alive=false; if(boss)boss.visible=false;
       for(let i=0;i<2;i++){
         const a=i*Math.PI+rand(-.5,.5);
-        const x=Math.cos(a)*rand(14,20), z=Math.sin(a)*rand(14,20)-8;
-        spawnAdd(x,z);
+        spawnAdd(Math.cos(a)*rand(14,20),Math.sin(a)*rand(14,20)-8);
       }
       this.mobsAlive=2;
-      log("走廊中涌出熔岩犬！消灭它们才能开启 Boss 战。","lg-sys");
+      log("走廊中涌出熔岩犬！消灭它们才能面对玛格曼达。","lg-sys");
+    }else if(s==="boss1"){
+      this.stage="boss1";
+      activateRaidBoss("magmadar");
+      announce("玛格曼达 · 熔岩猎犬！");
+      log("黑曜石平台上，一头燃烧的熔岩猎犬咆哮着迎了上来！","lg-boss");
     }else if(s==="bridge"){
       this.stage="bridge"; this.bridgeT=0; this.bridgeDone=false;
-      announce("岩桥正在升起！");
-      log("最后一只熔岩犬倒下，黑曜石岩柱缓缓沉入地面……","lg-sys");
+      S.b.alive=false; if(boss)boss.visible=false;
+      announce("岩桥正在开启！");
+      log("玛格曼达倒下，黑曜石岩柱缓缓沉入地面——通往炎魔的道路打开了……","lg-sys");
     }else if(s==="boss"){
       this.stage="boss"; this.bridgeDone=true;
-      announce("Boss 战已解锁！");
+      activateRaidBoss("ragnaros");
+      announce("炎魔领主苏醒！");
       log("熔岩散去，通往拉戈斯平台的道路已经打开。","lg-sys");
     }
   },
-  /* 在主循环中每帧调用，驱动岩桥下沉动画 */
   tickBridge(dt){
     if(this.stage!=="bridge"||this.bridgeDone)return;
     this.bridgeT=Math.min(1,this.bridgeT+dt*.5);
@@ -163,19 +167,245 @@ const DUNGEON={
 };
 
 /* ============================================================
-   Boss AI / 技能 / 胜负
+   Boss 工厂（STEP 9b）：createBoss(config) + 数据驱动 AI
+   加 Boss = 在 BOSSES 加一条；技能/阶段/喊话全在数据表
    ============================================================ */
+const BOSSES={};
+
+function defineBoss(cfg){BOSSES[cfg.id]=cfg;return cfg;}
+
+/* ---- 拉戈斯：数值引用 BAL.boss，文案与流程在此 ---- */
+defineBoss({
+  id:"ragnaros",
+  name:"拉戈斯 · 炎魔领主",
+  title:"熔火之心 · 最终首领",
+  hitNoun:"炎魔",
+  statsKey:"boss",
+  build:()=>buildBoss(),
+  projectileY:9, fctY:9,
+  intro:{
+    type:"rise", fromY:-16, toY:0, dur:4,
+    burst:{at:1.2,window:.1,vfx:"roar_aura",pos:[0,1,-14],color:0xff5a1a,count:60,spread:4},
+    sfx:"roar",
+    announce:"拉戈斯：太早了！你们竟敢太早唤醒我！",
+    log:"炎魔领主 拉戈斯 从熔岩中苏醒了！",
+  },
+  bob:true,
+  home:{x:0,z:-14},
+  skills:[
+    {id:"melee",type:"melee",bal:"melee",name:"熔火重击",firstDelay:6,
+      vfx:"melee_impact",label:"拉戈斯的熔火重击",
+      phaseMul:{2:"p2Mul",3:"p3Mul"}},
+    {id:"fireball",type:"cast_projectile",bal:"fireball",name:"烈焰冲击",firstDelay:10,
+      vfx:"lava_bolt",log:"拉戈斯掷出烈焰冲击！",exclusive:true},
+    {id:"eruption",type:"cast_telegraph",bal:"eruption",name:"熔岩喷发",firstDelay:14,
+      vfx:"eruption_ring",playerRingR:4.5,
+      countKey:{1:"count",2:"p2Count",3:"p3Count"},
+      announce:"熔岩喷发 · 快躲开红圈！",log:"大地震颤，熔岩即将喷发！",exclusive:true},
+    {id:"wrath",type:"cast_knockback",bal:"wrath",name:"拉戈斯之怒",firstDelay:22,
+      vfx:"roar_aura",vfxY:2,announce:"拉戈斯之怒！",
+      knockT:.4,hitLog:"你被巨大的冲击波击飞！",exclusive:true},
+  ],
+  phases:[
+    {to:2,from:1,hpPctKey:"phase2At",onEnter:"submerge",
+      submergeTKey:"submergeT",
+      spawnAdds:{countKey:"addCount",r:[10,16],zOff:-4},
+      sfx:"roar",announce:"阶段二 · 烈焰之子！",
+      log:"拉戈斯沉入岩浆——烈焰之子从熔岩中涌出！消灭它们！",
+      emergeAnnounce:"拉戈斯重新浮出岩浆！",
+      emergeLog:"烈焰散去，拉戈斯再度现身！",
+      emergeNext:{melee:2,fireball:5,eruption:8,wrath:14}},
+    {to:3,from:2,hpPctKey:"phase3At",onEnter:"enrage",
+      sfx:"roar",announce:"⚠️ 阶段三 · 拉戈斯狂暴！",
+      log:"拉戈斯发出震天咆哮——岩浆沸腾，烈焰之子将不断重生！",
+      compressNext:{melee:1.5,fireball:3,eruption:2.5,wrath:6},
+      burst:{vfx:"roar_aura",y:6,color:0xff2200,count:80,spread:8},
+      spawnAdds:{count:3,r:[8,14],zOff:-4},
+      addWave:{interval:5,count:2,r:[10,16],zOff:-4,
+        log:"熔岩翻涌——新的烈焰之子从岩浆中爬出！"}},
+  ],
+  death:{
+    isFinal:true, questComplete:true,
+    sfx:"roar",announce:"炎魔领主 已被击败！",
+    log:"拉戈斯发出震天怒吼，缓缓沉回熔岩深处……",
+    tip:"已拾取战利品后，走进出现的传送门即可离开副本。",
+    lootId:"sulfuras_haft",lootPos:[0,0,-8],lootDelay:3400,
+    lootAnnounce:"传说战利品 · 按 F 拾取",
+    lootLog:"熔岩翻涌，一柄燃烧的锤柄浮出岩浆——靠近按 F 拾取。",
+    endTitle:"胜 利",endSub:"MOLTEN CORE · CLEARED",
+    endHtml:"炎魔领主的躯体崩解为冷却的黑曜岩。<br>前往副本入口处，走进传送门离开。",
+    burst:{vfx:"roar_aura",y:6,color:0xffc060,count:120,spread:9},
+  },
+  defeat:{
+    endTitle:"团 灭",endSub:"YOU HAVE BEEN DEFEATED",
+    endHtml:"烈焰吞没了你的身躯，拉戈斯的狂笑响彻洞穴。<br>灵魂医者在等着你——跑尸之后，再来一次。",
+  },
+});
+
+/* ---- 玛格曼达：熔火一号位（STEP 9c）· 大体型 + 多机制 ---- */
+defineBoss({
+  id:"magmadar",
+  name:"玛格曼达 · 熔岩猎犬",
+  title:"熔火之心 · 一号首领",
+  hitNoun:"玛格曼达",
+  statsKey:"magmadar",
+  build:()=>buildQuadruped(QUADS.magmadar),
+  projectileY:5.5, fctY:7.5,
+  intro:{
+    type:"appear", fromY:0, toY:0, dur:1.4,
+    burst:{at:.35,window:.2,vfx:"roar_aura",pos:[0,3,-12],color:0xff5a1a,count:70,spread:5},
+    sfx:"roar",
+    announce:"玛格曼达发出灼热的咆哮！",
+    log:"巨型熔岩猎犬玛格曼达踏入了战场！",
+  },
+  bob:false,
+  home:{x:0,z:-11},
+  skills:[
+    {id:"melee",type:"melee",bal:"melee",name:"烈焰撕咬",firstDelay:2.5,
+      vfx:"melee_impact",label:"玛格曼达的撕咬",phaseMul:{2:"p2Mul"}},
+    /* 扇形多发火球：阶段二发数翻倍 */
+    {id:"spit",type:"cast_projectile",bal:"spit",name:"岩浆喷吐",firstDelay:4.5,
+      vfx:"lava_bolt",log:"玛格曼达喷出扇形岩浆！",exclusive:true,
+      countKey:{1:"count",2:"p2Count"},fanKey:"fan"},
+    /* 直线喷吐：Boss→玩家方向铺预警环 */
+    {id:"breath",type:"cast_line",bal:"breath",name:"熔岩吐息",firstDelay:7,
+      vfx:"eruption_ring",
+      announce:"熔岩吐息 · 躲开直线！",log:"玛格曼达深吸一口气，岩浆沿直线喷涌！",
+      exclusive:true,segsKey:{1:"segs",2:"p2Segs"}},
+    /* 践踏：脚下大圈 + 随机落点 */
+    {id:"stomp",type:"cast_telegraph",bal:"stomp",name:"践踏震荡",firstDelay:10,
+      vfx:"eruption_ring",playerRingRKey:"ringR",
+      countKey:{1:"count",2:"p2Count"},
+      announce:"践踏 · 快躲开红圈！",log:"玛格曼达猛踏地面，震荡波层层扩散！",exclusive:true},
+    /* 恐惧 + 击退 + 脚下恐慌圈 */
+    {id:"fear",type:"cast_fear",bal:"fear",name:"恐慌咆哮",firstDelay:13,
+      vfx:"roar_aura",vfxY:3.5,announce:"恐慌咆哮！",
+      hitLog:"你被恐惧吞噬，四处逃窜！",exclusive:true,panic:true},
+  ],
+  phases:[
+    {to:2,from:1,hpPctKey:"phase2At",onEnter:"enrage",
+      sfx:"roar",announce:"⚠️ 玛格曼达狂暴！",
+      log:"玛格曼达皮毛迸裂出岩浆——喷吐更密，幼犬从熔岩中涌出！",
+      compressNext:{melee:1.2,spit:2.5,breath:4,stomp:3.5,fear:6},
+      burst:{vfx:"roar_aura",y:4,color:0xff2200,count:90,spread:7},
+      spawnAdds:{countKey:"addCount",r:[9,15],zOff:-2}},
+  ],
+  death:{
+    isFinal:false, nextStage:"bridge",
+    sfx:"roar",announce:"玛格曼达倒下了！",
+    log:"巨型熔岩猎犬发出最后一声哀嚎，瘫倒在黑曜岩上。",
+    tip:"岩桥即将开启——准备面对炎魔领主。",
+    xpKey:"magmadar",
+    lootTable:"magmadar", lootPos:[0,0,-10], lootDelay:1200,
+    lootAnnounce:"战利品掉落 · 按 F 拾取",
+    lootLog:"玛格曼达的项圈与犬牙滚落在地。",
+    burst:{vfx:"roar_aura",y:4,color:0xff8040,count:80,spread:6},
+  },
+  defeat:{
+    endTitle:"团 灭",endSub:"YOU HAVE BEEN DEFEATED",
+    endHtml:"玛格曼达的利齿撕碎了你的防线。<br>灵魂医者在等着你——再来一次。",
+  },
+});
+
+function getBossCfg(){return BOSSES[S.b.id]||BOSSES.ragnaros;}
+function bossNum(){return BAL[getBossCfg().statsKey];}
+function skillBal(sk){return bossNum()[sk.bal];}
+
+function applyBossFrame(cfg){
+  const n=$("#bossName .n"), t=$("#bossName .t");
+  if(n)n.textContent="🔥 "+cfg.name;
+  if(t)t.textContent=cfg.title;
+}
+
+function armBossSkills(){
+  const cfg=getBossCfg();
+  S.b.next=S.b.next||{};
+  for(const sk of cfg.skills)S.b.next[sk.id]=S.t+(sk.firstDelay||0);
+}
+
+function scheduleBossSkills(map){
+  S.b.next=S.b.next||{};
+  for(const id in map)S.b.next[id]=S.t+map[id];
+}
+
+function compressBossSkills(map){
+  S.b.next=S.b.next||{};
+  for(const id in map)S.b.next[id]=Math.min(S.b.next[id]!=null?S.b.next[id]:Infinity,S.t+map[id]);
+}
+
+function spawnBossAdds(spec){
+  const n=spec.countKey!=null?bossNum()[spec.countKey]:spec.count;
+  const [r0,r1]=spec.r, zOff=spec.zOff||0;
+  for(let i=0;i<n;i++){
+    const a=i/n*Math.PI*2+rand(0,1);
+    spawnAdd(Math.cos(a)*rand(r0,r1),Math.sin(a)*rand(r0,r1)+zOff);
+  }
+}
+
+/** 切换当前 Boss 网格（缓存于 BOSS_MESHES，避免重复建造） */
+function mountBossMesh(id){
+  const cfg=BOSSES[id];
+  if(!cfg)return;
+  const parent=boss&&boss.parent?boss.parent:sceneRaid;
+  if(boss&&boss.parent)boss.parent.remove(boss);
+  if(BOSS_MESHES[id]){
+    const old=BOSS_MESHES[id];
+    if(old.parent)old.parent.remove(old);
+  }
+  BOSS_MESHES[id]=(cfg.build||buildBoss)();
+  boss=BOSS_MESHES[id];
+  const home=cfg.home||{x:0,z:-14};
+  const y0=(cfg.intro&&cfg.intro.fromY!=null)?cfg.intro.fromY:0;
+  boss.position.set(home.x,y0,home.z);
+  boss.rotation.set(0,0,0);
+  boss.visible=true;
+  parent.add(boss);
+}
+
+/** 激活副本中的一名 Boss：数据状态 + 网格 */
+function activateRaidBoss(id){
+  mountBossMesh(id);
+  createBoss(id);
+  boss.visible=true;
+}
+
+/** 激活/重置一名 Boss 的运行时状态（不碰场景清理） */
+function createBoss(id){
+  const cfg=BOSSES[id];
+  if(!cfg){console.warn("createBoss: unknown",id);return null;}
+  const st=BAL[cfg.statsKey];
+  S.b.id=id;
+  S.b.hp=S.b.hpMax=st.hp;
+  S.b.alive=true;
+  S.b.phase=1;
+  S.b.rising=!!cfg.intro;
+  S.b.riseT=0;
+  S.b.submerged=false; S.b.submergeT=0;
+  S.b.casting=null; S.b.castT=0; S.b.castDur=0;
+  S.b.canLeave=false; S.b.swingT=0;
+  S.b.nextAddSpawn=0; S.b.addWave=null;
+  S.b.phaseCfg=null;
+  armBossSkills();
+  applyBossFrame(cfg);
+  return cfg;
+}
+
 function distToBoss(){return player.position.distanceTo(new THREE.Vector3(boss.position.x,0,boss.position.z));}
 function bossTargetable(){return S.b.alive&&!S.b.rising&&!S.b.submerged;}
 
-/* Boss 实体适配器 */
 const BOSS_ENT={
   get hp(){return S.b.hp}, set hp(v){S.b.hp=v},
   variance:BAL.variance.boss,
   dead(){return !bossTargetable();},
-  fctPos(){return new THREE.Vector3(boss.position.x,9,boss.position.z);},
+  fctPos(){
+    const y=getBossCfg().fctY!=null?getBossCfg().fctY:9;
+    return new THREE.Vector3(boss.position.x,y,boss.position.z);
+  },
   fctSize(label){return label?19:15;},
-  onHit(amount,label){if(label)log(`你的【${label}】对炎魔造成 ${amount} 点伤害！`,"lg-me");},
+  onHit(amount,label){
+    const noun=getBossCfg().hitNoun||"首领";
+    if(label)log(`你的【${label}】对${noun}造成 ${amount} 点伤害！`,"lg-me");
+  },
   onDeath(){bossDie();},
 };
 
@@ -183,183 +413,236 @@ function startCast(name,dur,done){
   S.b.casting={name,done}; S.b.castT=0; S.b.castDur=dur;
   $("#castShell").style.display="block"; $("#castText").textContent=name;
 }
-function bossAI(dt){
+function clearBossCast(){
+  S.b.casting=null; $("#castShell").style.display="none";
+}
+
+function enterBossPhase(ph){
   const B=S.b;
+  B.phase=ph.to;
+  B.phaseCfg=ph;
+  clearBossCast();
+  if(ph.sfx)SFX.play(ph.sfx);
+  if(ph.announce)announce(ph.announce);
+  if(ph.log)log(ph.log,"lg-boss");
+  if(ph.onEnter==="submerge"){
+    B.submerged=true;
+    B.submergeT=bossNum()[ph.submergeTKey];
+    if(ph.spawnAdds)spawnBossAdds(ph.spawnAdds);
+  }else if(ph.onEnter==="enrage"){
+    if(ph.compressNext)compressBossSkills(ph.compressNext);
+    if(ph.burst){
+      const b=ph.burst;
+      VFX.spawn(b.vfx,{pos:new THREE.Vector3(boss.position.x,b.y,boss.position.z),
+        color:b.color,count:b.count,spread:b.spread});
+    }
+    if(ph.spawnAdds)spawnBossAdds(ph.spawnAdds);
+    B.addWave=ph.addWave||null;
+    B.nextAddSpawn=0;   /* 与旧逻辑一致：进入狂暴后下一帧即可刷波 */
+  }
+}
+
+function tickBossIntro(dt,cfg){
+  const B=S.b, intro=cfg.intro;
+  B.riseT+=dt;
+  if(intro.type==="rise"){
+    boss.position.y=THREE.MathUtils.lerp(intro.fromY,intro.toY,Math.min(1,B.riseT/intro.dur));
+    boss.position.y+=Math.sin(S.t*2)*.1;
+  }
+  const bu=intro.burst;
+  if(bu&&B.riseT>bu.at&&B.riseT<bu.at+bu.window){
+    const pos=bu.pos
+      ?new THREE.Vector3(bu.pos[0],bu.pos[1],bu.pos[2])
+      :new THREE.Vector3(boss.position.x,1.5,boss.position.z);
+    VFX.spawn(bu.vfx,{pos,color:bu.color,count:bu.count,spread:bu.spread});
+  }
+  if(B.riseT>=intro.dur){
+    B.rising=false;
+    if(intro.type==="rise")boss.position.y=intro.toY;
+    if(intro.sfx)SFX.play(intro.sfx);
+    if(intro.announce)announce(intro.announce);
+    if(intro.log)log(intro.log,"lg-boss");
+  }
+}
+
+function tickBossSubmerged(dt){
+  const B=S.b, ph=B.phaseCfg;
+  B.submergeT-=dt;
+  boss.position.y=THREE.MathUtils.lerp(boss.position.y,-15,dt*2);
+  if(B.submergeT<=0||S.adds.length===0){
+    B.submerged=false;
+    if(ph){
+      if(ph.emergeAnnounce)announce(ph.emergeAnnounce);
+      if(ph.emergeLog)log(ph.emergeLog,"lg-boss");
+      if(ph.emergeNext)scheduleBossSkills(ph.emergeNext);
+    }
+  }
+}
+
+function runBossSkill(sk){
+  const B=S.b, st=skillBal(sk), d=distToBoss();
+  if(sk.type==="melee"){
+    B.next[sk.id]=S.t+R(st.cd);
+    if(d<st.range){
+      B.swingT=1;
+      const label=sk.label||sk.name, vfx=sk.vfx;
+      setTimeout(()=>{ if(S.over)return;
+        let mul=1;
+        if(sk.phaseMul&&sk.phaseMul[B.phase])mul=st[sk.phaseMul[B.phase]]||1;
+        if(distToBoss()<st.hitRange&&S.p.alive){
+          playerHit(R(st.dmg)*mul,label);
+          if(vfx)VFX.spawn(vfx,{pos:player.position.clone().setY(.5)});
+        }
+      },st.delayMs);
+    }
+    return false;
+  }
+  if(sk.type==="cast_projectile"){
+    B.next[sk.id]=S.t+R(st.cd);
+    startCast(sk.name,st.cast,()=>{
+      if(sk.log)log(sk.log,"lg-boss");
+      let n=1;
+      if(sk.countKey){const key=sk.countKey[B.phase]||sk.countKey[1];n=st[key]||1;}
+      else if(st.count!=null)n=st.count;
+      const fan=sk.fanKey!=null?st[sk.fanKey]:(st.fan||0);
+      const baseAng=Math.atan2(player.position.x-boss.position.x,player.position.z-boss.position.z);
+      const dist=Math.hypot(player.position.x-boss.position.x,player.position.z-boss.position.z)||12;
+      for(let i=0;i<n;i++){
+        const t=n===1?0:(i/(n-1)-.5);
+        const ang=baseAng+t*fan*(n>1?1:0);
+        const tx=boss.position.x+Math.sin(ang)*dist;
+        const tz=boss.position.z+Math.cos(ang)*dist;
+        VFX.spawn(sk.vfx,{targetPos:new THREE.Vector3(tx,0,tz),
+          opt:Object.assign({},st,{name:sk.name})});
+      }
+    });
+    return !!sk.exclusive;
+  }
+  if(sk.type==="cast_line"){
+    B.next[sk.id]=S.t+R(st.cd);
+    startCast(sk.name,st.cast,()=>{
+      if(sk.announce)announce(sk.announce);
+      if(sk.log)log(sk.log,"lg-boss");
+      let segs=st.segs||4;
+      if(sk.segsKey){const key=sk.segsKey[B.phase]||sk.segsKey[1];segs=st[key]||segs;}
+      const dx=player.position.x-boss.position.x, dz=player.position.z-boss.position.z;
+      const len=Math.hypot(dx,dz)||1;
+      const ux=dx/len, uz=dz/len;
+      const step=st.step||4, rr=st.ringR||3.5;
+      for(let i=1;i<=segs;i++){
+        VFX.spawn(sk.vfx,{
+          x:boss.position.x+ux*step*i,
+          z:boss.position.z+uz*step*i,
+          r:rr, delay:st.delay+(i-1)*.12,
+          dmg:st.dmg, label:sk.name});
+      }
+    });
+    return !!sk.exclusive;
+  }
+  if(sk.type==="cast_telegraph"){
+    B.next[sk.id]=S.t+R(st.cd);
+    startCast(sk.name,st.cast,()=>{
+      if(sk.announce)announce(sk.announce);
+      if(sk.log)log(sk.log,"lg-boss");
+      let n=0;
+      if(sk.countKey){
+        const key=sk.countKey[B.phase]||sk.countKey[1];
+        n=st[key]||0;
+      }else if(st.count!=null)n=st.count;
+      const pr=sk.playerRingRKey!=null?st[sk.playerRingRKey]:(sk.playerRingR||4.5);
+      VFX.spawn(sk.vfx,{x:player.position.x,z:player.position.z,r:pr,delay:st.delay,
+        dmg:st.dmg,label:sk.name});
+      for(let i=0;i<n;i++){
+        const a=rand(0,6.28),r=rand(3,ARENA_R-4);
+        VFX.spawn(sk.vfx,{x:Math.cos(a)*r,z:Math.sin(a)*r,r:rand(3.5,5.5),delay:st.delay+i*.25,
+          dmg:st.dmg,label:sk.name});
+      }
+    });
+    return !!sk.exclusive;
+  }
+  if(sk.type==="cast_knockback"){
+    B.next[sk.id]=S.t+R(st.cd);
+    startCast(sk.name,st.cast,()=>{
+      if(sk.announce)announce(sk.announce);
+      VFX.spawn(sk.vfx,{pos:new THREE.Vector3(boss.position.x,sk.vfxY||2,boss.position.z)});
+      if(distToBoss()<st.range&&S.p.alive){
+        playerHit(R(st.dmg),sk.name);
+        const dir=player.position.clone().sub(new THREE.Vector3(boss.position.x,0,boss.position.z)).normalize();
+        S.p.knock={dir,t:sk.knockT||.4};
+        if(sk.hitLog)log(sk.hitLog,"lg-dmg");
+      }
+    });
+    return !!sk.exclusive;
+  }
+  if(sk.type==="cast_fear"){
+    B.next[sk.id]=S.t+R(st.cd);
+    startCast(sk.name,st.cast,()=>{
+      if(sk.announce)announce(sk.announce);
+      VFX.spawn(sk.vfx,{pos:new THREE.Vector3(boss.position.x,sk.vfxY||2,boss.position.z),
+        color:0xff4400,count:60,spread:6});
+      if(sk.panic&&st.panicRings){
+        for(let i=0;i<st.panicRings;i++){
+          const a=rand(0,6.28),r=rand(2,st.panicR||5);
+          VFX.spawn("eruption_ring",{
+            x:player.position.x+Math.cos(a)*r,
+            z:player.position.z+Math.sin(a)*r,
+            r:rand(2.8,3.8), delay:(st.delay||1.5)+i*.2,
+            dmg:st.dmg, label:sk.name});
+        }
+      }
+      if(distToBoss()<st.range&&S.p.alive){
+        playerHit(R(st.dmg),sk.name);
+        S.p.fear={t:st.fearT||2};
+        if(st.knockT){
+          const dir=player.position.clone().sub(new THREE.Vector3(boss.position.x,0,boss.position.z)).normalize();
+          S.p.knock={dir,t:st.knockT};
+        }
+        if(sk.hitLog)log(sk.hitLog,"lg-dmg");
+      }
+    });
+    return !!sk.exclusive;
+  }
+  return false;
+}
+
+function bossAI(dt){
+  const B=S.b, cfg=getBossCfg();
   if(!B.alive)return;
 
-  /* 出场：从岩浆升起 */
-  if(B.rising){
-    B.riseT+=dt;
-    boss.position.y=THREE.MathUtils.lerp(-16,0,Math.min(1,B.riseT/4));
-    boss.position.y+=Math.sin(S.t*2)*.1;
-    if(B.riseT>1.2&&B.riseT<1.3)spawnBurst(new THREE.Vector3(0,1,-14),0xff5a1a,60,4);
-    if(B.riseT>=4){B.rising=false;
-      SFX.play("roar");
-      announce("拉戈斯：太早了！你们竟敢太早唤醒我！");
-      log("炎魔领主 拉戈斯 从熔岩中苏醒了！","lg-boss");}
-    return;
-  }
-  /* 潜地阶段（阶段二召唤烈焰之子） */
-  if(B.submerged){
-    B.submergeT-=dt;
-    boss.position.y=THREE.MathUtils.lerp(boss.position.y,-15,dt*2);
-    if(B.submergeT<=0||S.adds.length===0){
-      B.submerged=false;
-      announce("拉戈斯重新浮出岩浆！");
-      log("烈焰散去，拉戈斯再度现身！","lg-boss");
-      B.nextMelee=S.t+2;B.nextFireball=S.t+5;B.nextEruption=S.t+8;B.nextWrath=S.t+14;
-    }
-    return;
-  }
-  boss.position.y=THREE.MathUtils.lerp(boss.position.y,Math.sin(S.t*1.6)*.25,dt*3);
+  if(B.rising&&cfg.intro){tickBossIntro(dt,cfg);return;}
+  if(B.submerged){tickBossSubmerged(dt);return;}
+  if(cfg.bob)boss.position.y=THREE.MathUtils.lerp(boss.position.y,Math.sin(S.t*1.6)*.25,dt*3);
 
-  /* 阶段切换：50% 血量潜入岩浆并召唤小怪 */
-  if(B.phase===1&&B.hp<=B.hpMax*BAL.boss.phase2At){
-    B.phase=2; B.submerged=true; B.submergeT=BAL.boss.submergeT; B.casting=null; $("#castShell").style.display="none";
-    SFX.play("roar");
-    announce("阶段二 · 烈焰之子！");
-    log("拉戈斯沉入岩浆——烈焰之子从熔岩中涌出！消灭它们！","lg-boss");
-    for(let i=0;i<BAL.boss.addCount;i++){
-      const a=i/BAL.boss.addCount*Math.PI*2+rand(0,1);
-      spawnAdd(Math.cos(a)*rand(10,16),Math.sin(a)*rand(10,16)-4);
+  const st=bossNum();
+  for(const ph of cfg.phases){
+    if(B.phase===ph.from&&B.hp<=B.hpMax*st[ph.hpPctKey]){
+      enterBossPhase(ph);return;
     }
-    return;
-  }
-  /* 阶段三：30% 血量狂暴——小怪死亡后无限刷新，技能更密集 */
-  if(B.phase===2&&B.hp<=B.hpMax*BAL.boss.phase3At){
-    B.phase=3;
-    SFX.play("roar");
-    announce("⚠️ 阶段三 · 拉戈斯狂暴！");
-    log("拉戈斯发出震天咆哮——岩浆沸腾，烈焰之子将不断重生！","lg-boss");
-    /* 清除所有读条，立刻进入狂暴循环 */
-    B.casting=null; $("#castShell").style.display="none";
-    /* 压缩技能冷却 */
-    B.nextMelee=Math.min(B.nextMelee,S.t+1.5);
-    B.nextFireball=Math.min(B.nextFireball,S.t+3);
-    B.nextEruption=Math.min(B.nextEruption,S.t+2.5);
-    B.nextWrath=Math.min(B.nextWrath,S.t+6);
-    spawnBurst(new THREE.Vector3(boss.position.x,6,boss.position.z),0xff2200,80,8);
-    /* 立即召唤一批小怪 */
-    for(let i=0;i<3;i++){
-      const a=i/3*Math.PI*2+rand(0,1);
-      spawnAdd(Math.cos(a)*rand(8,14),Math.sin(a)*rand(8,14)-4);
-    }
-    return;
   }
 
-  /* 读条处理 */
   if(B.casting){
     B.castT+=dt;
     $("#castFill").style.transform=`scaleX(${Math.min(1,B.castT/B.castDur)})`;
     if(B.castT>=B.castDur){
-      const c=B.casting; B.casting=null; $("#castShell").style.display="none"; c.done();
+      const c=B.casting; clearBossCast(); c.done();
     }
     return;
   }
 
-  const d=distToBoss();
-  /* 阶段三：每 5 秒自动刷新 2 只烈焰之子 */
-  if(B.phase===3&&S.t>B.nextAddSpawn){
-    B.nextAddSpawn=S.t+5;
-    for(let i=0;i<2;i++){
-      const a=rand(0,6.28), r=rand(10,16);
-      spawnAdd(Math.cos(a)*r,Math.sin(a)*r-4);
+  if(B.addWave&&S.t>B.nextAddSpawn){
+    const w=B.addWave;
+    B.nextAddSpawn=S.t+w.interval;
+    spawnBossAdds(w);
+    if(w.log)log(w.log,"lg-boss");
+  }
+
+  for(const sk of cfg.skills){
+    if(S.t>(B.next[sk.id]||0)){
+      if(runBossSkill(sk))return;
     }
-    log("熔岩翻涌——新的烈焰之子从岩浆中爬出！","lg-boss");
-  }
-  /* 近战：熔火重击（阶段三 CD 更短 + 伤害更高） */
-  if(S.t>B.nextMelee){
-    B.nextMelee=S.t+R(BAL.boss.melee.cd);
-    if(d<BAL.boss.melee.range){
-      B.swingT=1;
-      setTimeout(()=>{ if(S.over)return;
-        const dmgMul=B.phase===3?BAL.boss.melee.p3Mul:(B.phase===2?BAL.boss.melee.p2Mul:1);
-        if(distToBoss()<BAL.boss.melee.hitRange&&S.p.alive){playerHit(R(BAL.boss.melee.dmg)*dmgMul,"拉戈斯的熔火重击");
-          spawnBurst(player.position.clone().setY(.5),0xff6a1a,14,1.2);}
-      },BAL.boss.melee.delayMs);
-    }
-  }
-  /* 烈焰冲击（火球） */
-  if(S.t>B.nextFireball){
-    B.nextFireball=S.t+R(BAL.boss.fireball.cd);
-    startCast("烈焰冲击",BAL.boss.fireball.cast,()=>{
-      log("拉戈斯掷出烈焰冲击！","lg-boss");
-      fireProjectile(player.position.clone());
-    });
-    return;
-  }
-  /* 熔岩喷发（地面红圈 AoE，阶段三数量翻倍） */
-  if(S.t>B.nextEruption){
-    B.nextEruption=S.t+R(BAL.boss.eruption.cd);
-    startCast("熔岩喷发",BAL.boss.eruption.cast,()=>{
-      announce("熔岩喷发 · 快躲开红圈！");
-      log("大地震颤，熔岩即将喷发！","lg-boss");
-      const n=B.phase===3?BAL.boss.eruption.p3Count:(B.phase===2?BAL.boss.eruption.p2Count:BAL.boss.eruption.count);
-      spawnTelegraph(player.position.x,player.position.z,4.5,BAL.boss.eruption.delay);
-      for(let i=0;i<n;i++){
-        const a=rand(0,6.28),r=rand(3,ARENA_R-4);
-        spawnTelegraph(Math.cos(a)*r,Math.sin(a)*r,rand(3.5,5.5),BAL.boss.eruption.delay+i*.25);
-      }
-    });
-    return;
-  }
-  /* 拉戈斯之怒（近身击退） */
-  if(S.t>B.nextWrath){
-    B.nextWrath=S.t+R(BAL.boss.wrath.cd);
-    startCast("拉戈斯之怒",BAL.boss.wrath.cast,()=>{
-      announce("拉戈斯之怒！");
-      spawnBurst(new THREE.Vector3(boss.position.x,2,boss.position.z),0xffb040,70,7);
-      if(distToBoss()<BAL.boss.wrath.range&&S.p.alive){
-        playerHit(R(BAL.boss.wrath.dmg),"拉戈斯之怒");
-        const dir=player.position.clone().sub(new THREE.Vector3(boss.position.x,0,boss.position.z)).normalize();
-        S.p.knock={dir,t:.4};
-        log("你被巨大的冲击波击飞！","lg-dmg");
-      }
-    });
   }
 }
 
-/* ---------------- 火球投射物 ---------------- */
-function fireProjectile(targetPos,origin,opt){
-  opt=opt||BAL.boss.fireball;
-  const sc=origin?.7:1;
-  const m=new THREE.Mesh(new THREE.SphereGeometry(.9*sc,10,10),
-    new THREE.MeshBasicMaterial({color:0xffa030}));
-  const glow=new THREE.Mesh(new THREE.SphereGeometry(1.4*sc,10,10),
-    new THREE.MeshBasicMaterial({color:0xff4400,transparent:true,opacity:.4}));
-  m.add(glow);
-  if(origin)m.position.copy(origin);
-  else m.position.set(boss.position.x+2.5,9,boss.position.z+2);
-  scene.add(m);
-  S.projectiles.push({mesh:m,target:targetPos.clone().setY(.8),speed:opt.speed,
-    dmg:opt.dmg,hitR:opt.hitR,label:opt.name||"烈焰冲击"});
-}
-/* ---------------- 地面 AoE 红圈 ---------------- */
-function spawnTelegraph(x,z,r,delay){
-  const ring=new THREE.Mesh(new THREE.RingGeometry(r*.86,r,40),
-    new THREE.MeshBasicMaterial({color:0xff2200,transparent:true,opacity:.85,side:THREE.DoubleSide}));
-  ring.rotation.x=-Math.PI/2;ring.position.set(x,.06,z);
-  const disc=new THREE.Mesh(new THREE.CircleGeometry(r,40),
-    new THREE.MeshBasicMaterial({color:0xff3b00,transparent:true,opacity:.22,side:THREE.DoubleSide}));
-  disc.rotation.x=-Math.PI/2;disc.position.set(x,.05,z);
-  scene.add(ring);scene.add(disc);
-  S.telegraphs.push({ring,disc,x,z,r,t:0,delay});
-}
-/* ---------------- 粒子爆发 ---------------- */
-function spawnBurst(pos,color,count,spread){
-  const geo=new THREE.BufferGeometry();
-  const p=new Float32Array(count*3),vel=[];
-  for(let i=0;i<count;i++){
-    p[i*3]=pos.x;p[i*3+1]=pos.y;p[i*3+2]=pos.z;
-    const a=rand(0,6.28),e=rand(.3,1.4);
-    vel.push(new THREE.Vector3(Math.cos(a)*spread*rand(.4,1),e*spread*1.6,Math.sin(a)*spread*rand(.4,1)));
-  }
-  geo.setAttribute("position",new THREE.BufferAttribute(p,3));
-  const pts=new THREE.Points(geo,new THREE.PointsMaterial({color,size:.45,transparent:true,
-    opacity:1,blending:THREE.AdditiveBlending,depthWrite:false}));
-  scene.add(pts);
-  S.bursts.push({pts,vel,life:0});
-}
 /* ---------------- 烈焰之子 ---------------- */
 function spawnAdd(x,z){
   const mesh=buildFlameSpawn();
@@ -371,92 +654,112 @@ function spawnAdd(x,z){
     fctPos(){return this.mesh.position.clone().setY(2.6);},
     onDeath(){addDie(this);},
   });
-  spawnBurst(mesh.position.clone().setY(1),0xff5a1a,20,1.6);
+  VFX.spawn("melee_impact",{pos:mesh.position.clone().setY(1),color:0xff5a1a,count:20,spread:1.6});
 }
 function addDamage(a,amount){hitEntity(a,amount);}
 function addDie(a){
-  spawnBurst(a.mesh.position.clone().setY(1),0xffa040,26,2);
+  VFX.spawn("melee_impact",{pos:a.mesh.position.clone().setY(1),color:0xffa040,count:26,spread:2});
   a.mesh.traverse(o=>{if(o.isMesh){o.userData.liveMat=o.material;o.material=corpseMat;}});
   a.mesh.rotation.z=Math.PI/2; a.mesh.position.y=.25;
   a.corpseT=BAL.loot.corpseT;
   dropLoot(a.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),[rollLoot(LOOT.add)],a);
   log("一只烈焰之子被消灭了！","lg-me");
-  /* 走廊模式：减计数，清完触发岩桥下沉 */
   if(DUNGEON.stage==="corridor"){
     DUNGEON.mobsAlive--;
-    if(DUNGEON.mobsAlive<=0)DUNGEON.setStage("bridge");
+    if(DUNGEON.mobsAlive<=0)DUNGEON.setStage("boss1");
   }
 }
 
 /* ============================================================
-   胜负
+   胜负（文案来自当前 Boss 数据表）
    ============================================================ */
 function bossDie(){
+  const cfg=getBossCfg(), D=cfg.death||{};
   S.b.alive=false;
-  S.b.canLeave=true;
-  if(QUEST.state===2){QUEST.state=3;updateQuest();}
-  SFX.play("roar");
-  announce("炎魔领主 已被击败！");
-  log("拉戈斯发出震天怒吼，缓缓沉回熔岩深处……","lg-boss");
-  log("已拾取战利品后，走进出现的传送门即可离开副本。","lg-sys");
-  gainXP(BAL.levels.xp.boss);
-  spawnBurst(new THREE.Vector3(boss.position.x,6,boss.position.z),0xffc060,120,9);
-  let t=0;const iv=setInterval(()=>{t+=0.05;boss.position.y-=0.16;boss.rotation.z+=0.004;
-    if(t>3)clearInterval(iv);},50);
-  setTimeout(()=>{
-    dropLoot(new THREE.Vector3(0,0,-8),[ITEMS.sulfuras_haft],null);
-    announce("传说战利品 · 按 F 拾取");
-    log("熔岩翻涌，一柄燃烧的锤柄浮出岩浆——靠近按 F 拾取。","lg-sys");
-  },3400);
-  setTimeout(()=>{
-    $("#endTitle").textContent="胜 利";
-    $("#endTitle").style.color="#ffd9a0";
-    $("#endSub").textContent="MOLTEN CORE · CLEARED";
-    $("#endText").innerHTML="炎魔领主的躯体崩解为冷却的黑曜岩。<br>前往副本入口处，走进传送门离开。";
-    $("#endOv").classList.remove("hide");
+  clearBossCast();
+  if(D.sfx)SFX.play(D.sfx);
+  if(D.announce)announce(D.announce);
+  if(D.log)log(D.log,"lg-boss");
+  if(D.tip)log(D.tip,"lg-sys");
+  if(D.questComplete&&QUEST.state===2){QUEST.state=3;updateQuest();}
+  const xp=D.xpKey?BAL.levels.xp[D.xpKey]:BAL.levels.xp.boss;
+  if(xp)gainXP(xp);
+  if(D.burst){
+    const b=D.burst;
+    VFX.spawn(b.vfx,{pos:new THREE.Vector3(boss.position.x,b.y,boss.position.z),
+      color:b.color,count:b.count,spread:b.spread});
+  }
+  /* 倒地动画（终局下沉 / 中段侧倒） */
+  if(D.isFinal){
+    S.b.canLeave=true;
+    let t=0;const iv=setInterval(()=>{t+=0.05;boss.position.y-=0.16;boss.rotation.z+=0.004;
+      if(t>3)clearInterval(iv);},50);
+  }else{
+    boss.rotation.z=Math.PI/2; boss.position.y=.3;
+  }
+  /* 掉落：固定传说件 或 掉落表掷骰 */
+  const dropDelay=D.lootDelay||1200;
+  if(D.lootId||D.lootTable){
     setTimeout(()=>{
-      $("#endOv").classList.add("hide");
-      spawnExitPortal();
-      announce("离开副本的传送门已开启");
-      log("一道旋涡传送门在副本入口处打开——走进即可离开。","lg-sys");
-    },3000);
-  },5000);
+      const p=D.lootPos||[0,0,-8];
+      const items=D.lootId?[ITEMS[D.lootId]]:[rollLoot(LOOT[D.lootTable])];
+      dropLoot(new THREE.Vector3(p[0],p[1],p[2]),items,null);
+      if(D.lootAnnounce)announce(D.lootAnnounce);
+      if(D.lootLog)log(D.lootLog,"lg-sys");
+    },dropDelay);
+  }
+  if(D.isFinal){
+    setTimeout(()=>{
+      $("#endTitle").textContent=D.endTitle||"胜 利";
+      $("#endTitle").style.color="#ffd9a0";
+      $("#endSub").textContent=D.endSub||"";
+      $("#endText").innerHTML=D.endHtml||"";
+      $("#endOv").classList.remove("hide");
+      setTimeout(()=>{
+        $("#endOv").classList.add("hide");
+        spawnExitPortal();
+        announce("离开副本的传送门已开启");
+        log("一道旋涡传送门在副本入口处打开——走进即可离开。","lg-sys");
+      },3000);
+    },5000);
+  }else if(D.nextStage){
+    setTimeout(()=>DUNGEON.setStage(D.nextStage),2200);
+  }
 }
 function playerDie(){
+  const F=(getBossCfg().defeat)||{};
   S.p.alive=false;S.over=true;
   announce("你被击败了……");
   player.rotation.z=Math.PI/2;player.position.y=.5;
   setTimeout(()=>{
-    $("#endTitle").textContent="团 灭";
+    $("#endTitle").textContent=F.endTitle||"团 灭";
     $("#endTitle").style.color="#ff5a3c";
-    $("#endSub").textContent="YOU HAVE BEEN DEFEATED";
-    $("#endText").innerHTML="烈焰吞没了你的身躯，拉戈斯的狂笑响彻洞穴。<br>灵魂医者在等着你——跑尸之后，再来一次。";
+    $("#endSub").textContent=F.endSub||"";
+    $("#endText").innerHTML=F.endHtml||"";
     $("#endOv").classList.remove("hide");
   },2200);
 }
 
-/* 重置 Boss 状态 */
+/* 重置遭遇：场景清理；进本时由 setStage("corridor") 重新开打 */
 function resetBoss(){
-  S.b.hp=S.b.hpMax=BAL.boss.hp;
-  S.b.alive=true; S.b.phase=1; S.b.rising=true; S.b.riseT=0;
-  S.b.submerged=false; S.b.submergeT=0; S.b.casting=null; S.b.castT=0; S.b.castDur=0;
-  S.b.canLeave=false; S.b.swingT=0;
-  S.b.nextMelee=S.t+6; S.b.nextFireball=S.t+10;
-  S.b.nextEruption=S.t+14; S.b.nextWrath=S.t+22;
   removeExitPortal();
-  DUNGEON.stage="boss"; DUNGEON.mobsAlive=0; DUNGEON.bridgeDone=false; DUNGEON.bridgeT=0;
-  /* 重置岩桥视觉 */
+  DUNGEON.mobsAlive=0; DUNGEON.bridgeDone=false; DUNGEON.bridgeT=0;
   for(let i=0;i<bridgeSegs.length;i++){
     const seg=bridgeSegs[i];
     seg.position.y=2.25; seg.material.opacity=1; seg.material.transparent=false;
   }
   for(const a of S.adds)scene.remove(a.mesh);
   S.adds.length=0;
-  for(const p of S.projectiles)scene.remove(p.mesh);
+  for(const p of S.projectiles){scene.remove(p.mesh);disposeVfxMesh(p.mesh);}
   S.projectiles.length=0;
-  for(const t of S.telegraphs){scene.remove(t.ring);scene.remove(t.disc);}
+  for(const t of S.telegraphs){scene.remove(t.ring);scene.remove(t.disc);disposeVfxMesh(t.ring);disposeVfxMesh(t.disc);}
   S.telegraphs.length=0;
   for(let i=DROPS.length-1;i>=0;i--)removeDrop(DROPS[i]);
-  boss.position.set(0,-16,-14); boss.rotation.z=0;
+  S.b.alive=false; S.b.canLeave=false; S.b.casting=null;
+  if(boss){boss.visible=false;boss.rotation.z=0;}
   $("#castShell").style.display="none";
 }
+
+/* 模块加载：预载终局 Boss 数据（网格已在 world.js 建好） */
+createBoss("ragnaros");
+S.b.alive=false;

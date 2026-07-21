@@ -5,7 +5,7 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ rand BAL makeLabel；运行时读 scene）
           icons.js（Icons）· models.js 运行时（setWeapon）
-          combat.js 运行时（S log fct spawnBurst）· world.js 运行时（player）
+          combat.js 运行时（S log fct）· world.js 运行时（player）· vfx.js 运行时（VFX）
    [导出] QUALITY ITEMS LOOT rollLoot dropLoot updateDrops nearestDrop
           tryLoot removeDropOf logLoot DROPS
           equipItem unequipItem toggleBag renderBag applyEquipStats（STEP 4）
@@ -42,6 +42,9 @@ const ITEMS={
   wind_blade   :{id:"wind_blade",   name:"疾风之刃",    icon:"sword",  quality:"uncommon",slot:"weapon",stats:{dmgMul:1.06},model:"sword"},
   harpy_charm  :{id:"harpy_charm",  name:"鹰羽护符",    icon:"feather",quality:"uncommon",slot:"armor", stats:{hpMax:220}},
   greyjaw_tusk :{id:"greyjaw_tusk", name:"老灰鬃的獠牙刃",icon:"sword",quality:"rare",    slot:"weapon",stats:{dmgMul:1.15},model:"sword"},
+  /* —— STEP 9c 玛格曼达 —— */
+  magma_fang   :{id:"magma_fang",   name:"熔岩犬牙项链",icon:"tusk",  quality:"uncommon",slot:"armor", stats:{hpMax:320}},
+  magma_collar :{id:"magma_collar", name:"焚犬项圈",    icon:"armor", quality:"rare",    slot:"armor", stats:{hpMax:520}},
 };
 
 /* ---------------- 掉落表：品质三档池，权重见 BALANCE.loot.weights ---------------- */
@@ -74,6 +77,10 @@ const LOOT={
   boarKing:{
     uncommon:["tusk_blade","hide_vest"],
     rare    :["greyjaw_tusk","mesa_guard"],
+  },
+  magmadar:{
+    uncommon:["magma_fang","sulf_ring"],
+    rare    :["magma_collar","sulf_blade"],
   },
 };
 /* 按权重掷品质档（可传 BAL.loot.eliteWeights 等），再从该档均匀取一件（玩法随机 → rand 路线） */
@@ -147,7 +154,7 @@ function tryLoot(){
     logLoot(it);
   }
   SFX.play("pickup");
-  spawnBurst(d.grp.position.clone().setY(1),0xffd76a,24,1.6);
+  VFX.spawn("loot_spark",{pos:d.grp.position.clone().setY(1)});
   removeDrop(d);
   if(d.onLooted)d.onLooted();
   renderBag();
@@ -191,7 +198,7 @@ function equipItem(id){
   if(it.slot==="weapon")setWeapon(player,it.model||player.userData.defaultWeapon);
   log(`装备【${it.name}】。`,"lg-me");
   SFX.play("pickup");
-  spawnBurst(player.position.clone().setY(1.5),QUALITY[it.quality].hex,20,1.4);
+  VFX.spawn("loot_spark",{pos:player.position.clone().setY(1.5),color:QUALITY[it.quality].hex,count:20,spread:1.4});
   renderBag();
 }
 function unequipItem(slot){

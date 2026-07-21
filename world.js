@@ -6,7 +6,8 @@
           models.js（buildPlayer buildBoss buildElder buildBoar）
           items.js（dropLoot rollLoot LOOT tryLoot）
           combat.js 运行时（S log announce fct spawnBurst hitEntity closeDialogue …）
-   [导出] player boss WORLD_R sceneWorld heli sun worldFlames PORTAL_POS portalUni
+          vfx.js 运行时（VFX spawnBurst）
+   [导出] player boss BOSS_MESHES WORLD_R sceneWorld heli sun worldFlames PORTAL_POS portalUni
           portalLabel enterRaid fadeTo MOBS QUEST moveToward mobDamage mobDie
           setCorpse updateQuest setMarker tryInteract openDialogue closeDialogue
           leaveRaid resetBoss spawnExitPortal removeExitPortal exitPortal
@@ -15,7 +16,8 @@
 "use strict";
 /* ---------------- 实体放置 ---------------- */
 let player=buildPlayer(); player.position.set(0,0,14); scene.add(player);
-const boss=buildBoss(); boss.position.set(0,-16,-14); scene.add(boss); // 初始沉在岩浆下
+let boss=buildBoss(); boss.position.set(0,-16,-14); sceneRaid.add(boss);
+const BOSS_MESHES={ragnaros:boss};
 
 /* ============================================================
    莫高雷 · 外部世界（草原 / 红岩台地 / 牛头人营地 / 副本传送门）
@@ -203,17 +205,10 @@ function enterRaid(){
     player.position.set(0,0,18); S.p.knock=null;
     scene=sceneRaid;
     S.mode="raid";
-    /* 如果 Boss 已死（再次进入），重置 Boss 状态但保留玩家进度 */
-    if(!S.b.alive||S.b.canLeave){
-      resetBoss();
-      log("你再次踏入熔火之心——火焰重新燃起，拉戈斯再度苏醒。","lg-sys");
-    }else{
-      /* 首次进入：走廊分段 + 重置 Boss 技能计时 */
-      DUNGEON.setStage("corridor");
-      S.b.nextMelee=S.t+6; S.b.nextFireball=S.t+10;
-      S.b.nextEruption=S.t+14; S.b.nextWrath=S.t+22;
-      log("你踏入传送门——热浪扑面而来，岩浆在脚下沸腾！","lg-sys");
-    }
+    /* 每次进本：清理遭遇并从走廊开打（双 Boss 流程） */
+    resetBoss();
+    DUNGEON.setStage("corridor");
+    log("你踏入传送门——热浪扑面而来，岩浆在脚下沸腾！","lg-sys");
     $("#bossFrame").classList.add("show");
     SFX.music("raid");   /* 音乐切换：低音鼓点（STEP 6） */
     fadeTo(0);
