@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<title>熔火之心 · 贴图预览（R1）</title>
+<style>
+  :root{--bg:#1a1612;--panel:#2a2218;--ink:#e8dcc8;--muted:#9a8a70;--accent:#c9a06a;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink);}
+  header{padding:1.2rem 1.5rem;border-bottom:1px solid #3a3020;}
+  header h1{margin:0 0 .35rem;font-size:1.25rem;font-weight:650;color:var(--accent);}
+  header p{margin:0;color:var(--muted);font-size:.9rem;}
+  #meta{margin-top:.5rem;font-size:.85rem;color:var(--muted);}
+  #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;padding:1.25rem;}
+  .card{background:var(--panel);border:1px solid #3a3020;border-radius:6px;overflow:hidden;}
+  .card h2{margin:0;padding:.55rem .75rem;font-size:.85rem;font-weight:600;letter-spacing:.02em;
+    border-bottom:1px solid #3a3020;display:flex;justify-content:space-between;align-items:center;}
+  .card h2 span{color:var(--muted);font-weight:400;font-size:.75rem;}
+  .views{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#3a3020;}
+  .views figure{margin:0;background:#120e0a;padding:.5rem;text-align:center;}
+  .views figcaption{font-size:.7rem;color:var(--muted);margin-bottom:.35rem;}
+  .views canvas,.views img{width:100%;height:auto;image-rendering:auto;border-radius:2px;
+    background:repeating-conic-gradient(#2a2218 0% 25%,#1a1612 0% 50%) 50%/16px 16px;}
+  .tiled{background-size:cover !important;}
+</style>
+</head>
+<body>
+<header>
+  <h1>程序化贴图库 · Tex</h1>
+  <p>plan-V2 R1 · 纯 Canvas 配方 · SeededRng 确定性 · 本地打开即可调参</p>
+  <div id="meta">加载中…</div>
+</header>
+<div id="grid"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="../core.js"></script>
+<script src="../palette.js"></script>
+<script src="../textures.js"></script>
+<script>
+(function(){
+  const grid=document.getElementById("grid");
+  const meta=document.getElementById("meta");
+  const keys=Tex.keys();
+  keys.forEach(key=>{
+    const card=document.createElement("div");
+    card.className="card";
+    const h=document.createElement("h2");
+    h.innerHTML=key+'<span>'+Tex.SIZE+'×'+Tex.SIZE+'</span>';
+    card.appendChild(h);
+    const views=document.createElement("div");
+    views.className="views";
+
+    function addView(label, canvasOrNull, tiled){
+      const fig=document.createElement("figure");
+      const cap=document.createElement("figcaption");
+      cap.textContent=label;
+      fig.appendChild(cap);
+      if(!canvasOrNull){
+        const empty=document.createElement("div");
+        empty.style.cssText="aspect-ratio:1;display:grid;place-items:center;color:#6a5a48;font-size:.75rem;";
+        empty.textContent="—";
+        fig.appendChild(empty);
+      }else{
+        const img=document.createElement("img");
+        img.alt=key+" "+label;
+        img.src=canvasOrNull.toDataURL("image/png");
+        if(tiled)img.className="tiled";
+        fig.appendChild(img);
+      }
+      views.appendChild(fig);
+    }
+
+    const albedo=Tex.get(key).image;
+    addView("albedo", albedo, false);
+
+    /* 2×2 平铺预览 */
+    const tile=document.createElement("canvas");
+    tile.width=tile.height=Tex.SIZE;
+    const tcx=tile.getContext("2d");
+    const half=Tex.SIZE/2;
+    for(let y=0;y<2;y++)for(let x=0;x<2;x++)tcx.drawImage(albedo,x*half,y*half,half,half);
+    addView("tile 2×2", tile, true);
+
+    const r=Tex.rough(key);
+    addView("rough", r?r.image:null, false);
+    const n=Tex.normal(key);
+    addView("normal", n?n.image:null, false);
+
+    card.appendChild(views);
+    grid.appendChild(card);
+  });
+
+  /* 确定性抽检：同 key 两次 get 同一实例 */
+  const a=Tex.get("grass"),b=Tex.get("grass");
+  meta.textContent=
+    "配方 "+keys.length+" · GPU 纹理对象 "+Tex.size()+
+    "（预算 ≤16）· 缓存命中 grass "+(a===b?"✓":"✗")+
+    " · 种子 WORLD_SEED="+WORLD_SEED;
+})();
+</script>
+</body>
+</html>

@@ -1043,7 +1043,6 @@ function clearQuestEscort(){
       if(o.material){
         if(Array.isArray(o.material))o.material.forEach(disposeMaterial);
         else disposeMaterial(o.material);
-        if(o.material.map)o.material.map.dispose();
       }
     });
     _questEscortMesh=null;

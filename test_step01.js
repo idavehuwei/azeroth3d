@@ -468,8 +468,85 @@ assert(modelsSrc.includes("PALETTE.grass.dark"),"弓箭手皮甲绿绑定 PALETT
   assert(api.MAT.get("grass.ground")===a,"disposeMaterial 不销毁共享材质");
 })();
 
+/* plan-V2 · R1 程序化纹理库 */
+assert(html.includes('src="textures.js"'),"game.html 加载 textures.js");
+const texSrc=fs.readFileSync(path.join(__dirname,"textures.js"),"utf8");
+assert(texSrc.includes("const Tex=")&&texSrc.includes("Tex.get"),"textures.js 导出 Tex");
+assert(texSrc.includes("valueNoise")&&texSrc.includes("streaks")&&texSrc.includes("speckle")&&texSrc.includes("cracks"),"textures.js 含底层画笔");
+["grass","dirt","rock","bark","leaf","fur","hide","plate","cloth","bone","magma"].forEach(k=>{
+  assert(texSrc.includes(k+":"),"textures.js 配方含 "+k);
+});
+assert(texSrc.includes("SeededRng")&&texSrc.includes('tex:'),"贴图 RNG 走 SeededRng 确定性种子");
+assert(texSrc.includes("Tex.bind")&&texSrc.includes("hookMat")||texSrc.includes("MAT.get="),"Tex 挂接到 MAT");
+assert(fs.existsSync(path.join(__dirname,"tools","tex_preview.html")),"存在 tools/tex_preview.html");
+const preview=fs.readFileSync(path.join(__dirname,"tools","tex_preview.html"),"utf8");
+assert(preview.includes("textures.js")&&preview.includes("Tex.keys"),"预览页加载 Tex 并铺开配方");
+
+(function testTexRuntime(){
+  function makeCx(c){
+    let buf=null;
+    const ensure=()=>{if(!buf)buf=new Uint8ClampedArray(c.width*c.height*4);};
+    return{
+      fillStyle:"#000",strokeStyle:"#000",lineWidth:1,globalAlpha:1,globalCompositeOperation:"source-over",
+      lineCap:"butt",lineJoin:"miter",
+      fillRect(){ensure();},
+      stroke(){},beginPath(){},moveTo(){},lineTo(){},arc(){},fill(){},save(){},restore(){},
+      createImageData(w,h){return{width:w,height:h,data:new Uint8ClampedArray(w*h*4)};},
+      getImageData(){ensure();return{width:c.width,height:c.height,data:new Uint8ClampedArray(buf)};},
+      putImageData(img){ensure();buf=new Uint8ClampedArray(img.data);},
+      drawImage(){},
+    };
+  }
+  const document={createElement(tag){
+    if(tag!=="canvas")return{};
+    const c={width:0,height:0};
+    c.getContext=()=>makeCx(c);
+    return c;
+  }};
+  const THREE={
+    FrontSide:0, DoubleSide:2, RepeatWrapping:1000,
+    LinearFilter:1006, LinearMipmapLinearFilter:1008,
+    MeshStandardMaterial:function(p){this.userData={};Object.assign(this,p);this.needsUpdate=false;},
+    CanvasTexture:function(img){
+      this.image=img; this.userData={}; this.needsUpdate=true;
+      this.repeat={x:1,y:1,set(a,b){this.x=a;this.y=b;},copy(o){this.x=o.x;this.y=o.y;}};
+      this.wrapS=0;this.wrapT=0;this.magFilter=0;this.minFilter=0;this.generateMipmaps=false;
+    },
+    Vector2:function(x,y){this.x=x;this.y=y;},
+  };
+  const pal=new Function("THREE", paletteSrc+"\nreturn {MAT,PALETTE};")(THREE);
+  const api=new Function(
+    "THREE","PALETTE","MAT","WORLD_SEED","SeededRng","hashZoneId","document",
+    texSrc+"\nreturn {Tex,MAT};"
+  )(THREE,pal.PALETTE,pal.MAT,WORLD_SEED,SeededRng,hashZoneId,document);
+
+  const g1=api.Tex.get("grass");
+  const g2=api.Tex.get("grass");
+  assert(g1===g2,"Tex.get 同 key 返回同一 CanvasTexture");
+  assert(api.Tex.keys().length===11,"Tex 配方数为 11");
+  assert(api.Tex.size()<=16,"Tex 缓存纹理数 ≤16（预热后）");
+  assert(api.Tex.rough("grass")===null,"grass 不生成 roughnessMap");
+  assert(!!api.Tex.rough("rock")&&!!api.Tex.normal("rock"),"rock 有 rough + normal");
+  assert(api.Tex.normal("fur")===null,"fur 无 normalMap");
+  const mat=api.MAT.get("grass.ground");
+  assert(mat.map===api.Tex.get("grass"),"MAT grass.ground 挂上 grass 贴图");
+  const rock=api.MAT.get("rock.boulder");
+  assert(rock.map&&rock.roughnessMap&&rock.normalMap,"MAT rock.boulder 挂 map/rough/normal");
+
+  /* 确定性：两次独立加载同像素 */
+  const apiB=new Function(
+    "THREE","PALETTE","MAT","WORLD_SEED","SeededRng","hashZoneId","document",
+    texSrc+"\nreturn {Tex};"
+  )(THREE,pal.PALETTE,pal.MAT,WORLD_SEED,SeededRng,hashZoneId,document);
+  const A=api.Tex.get("bark").image.getContext("2d").getImageData(0,0,api.Tex.SIZE,api.Tex.SIZE).data;
+  const B=apiB.Tex.get("bark").image.getContext("2d").getImageData(0,0,apiB.Tex.SIZE,apiB.Tex.SIZE).data;
+  let same=A.length===B.length;
+  for(let i=0;i<A.length&&same;i++)if(A[i]!==B[i])same=false;
+  assert(same,"世界种子固定时贴图像素一致");
+})();
+
 if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–29 … / V1-A1–A5 · V1-B1–B4 · plan-V2 R0 冒烟");
+console.log("\n全部通过 · STEP 17–29 … / V1-A1–A5 · V1-B1–B4 · plan-V2 R0–R1 冒烟");

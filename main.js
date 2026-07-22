@@ -95,7 +95,9 @@ function updateFps(dt){
 function tick(){
   requestAnimationFrame(tick);
   const dt=Math.min(clock.getDelta(),.05);
-  S.t+=dt; lavaUniforms.uTime.value=S.t; portalUni.uTime.value=S.t;
+  S.t+=dt;
+  if(typeof lavaUniforms!=="undefined"&&lavaUniforms)lavaUniforms.uTime.value=S.t;
+  if(typeof portalUni!=="undefined"&&portalUni)portalUni.uTime.value=S.t;
   updateFps(dt);
 
   /* 出口传送门动画 */

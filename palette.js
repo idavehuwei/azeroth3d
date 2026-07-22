@@ -3,6 +3,7 @@
    色板 PALETTE + 共享材质工厂 MAT（plan-V2 · R0）
    ------------------------------------------------------------
    [依赖] THREE（全局，CDN 引入）
+          textures.js（可选：Tex.bind 由 textures.js 挂钩 MAT.get）
    [导出] PALETTE MAT disposeMaterial
    ============================================================ */
 "use strict";
@@ -164,9 +165,13 @@ const MAT=(function(){
   };
 })();
 
-/** 共享材质不可 dispose，否则会弄坏 MAT 缓存 */
+/** 共享材质不可 dispose；贴图若带 sharedTex 亦跳过 */
 function disposeMaterial(m){
   if(!m)return;
   if(m.userData&&m.userData.sharedMat)return;
+  ["map","roughnessMap","normalMap","emissiveMap","alphaMap","bumpMap"].forEach(k=>{
+    const t=m[k];
+    if(t&&!(t.userData&&t.userData.sharedTex)&&typeof t.dispose==="function")t.dispose();
+  });
   if(typeof m.dispose==="function")m.dispose();
 }
