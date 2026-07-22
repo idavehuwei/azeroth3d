@@ -235,6 +235,8 @@ function tickFrame(){
   if(barrensPortalUni&&barrensPortalUni.uTime)barrensPortalUni.uTime.value=S.t;
   if(durotarPortalUni&&durotarPortalUni.uTime)durotarPortalUni.uTime.value=S.t;
   if(durotarRagefirePortalUni&&durotarRagefirePortalUni.uTime)durotarRagefirePortalUni.uTime.value=S.t;
+  if(typeof durotarOrgPortalUni!=="undefined"&&durotarOrgPortalUni&&durotarOrgPortalUni.uTime)durotarOrgPortalUni.uTime.value=S.t;
+  if(typeof blackrockPortalUni!=="undefined"&&blackrockPortalUni&&blackrockPortalUni.uTime)blackrockPortalUni.uTime.value=S.t;
 
   /* 火星上升 */
   const pp=embers.geometry.attributes.position.array;

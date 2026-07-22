@@ -16,11 +16,17 @@ const NAMES={
     barrens:"枯原荒地",
     durotar:"赭岩谷",
     ashen_canyon:"灰烬峡谷",
+    orgrimmar:"奥格瑞玛",
+    blackrock:"黑石山",
     molten_core:"炽心熔窟",
     wailing:"泣息洞窟",
     ragefire:"焰怒深渊",
     onyxia:"黑曜巢穴",
     hollow_crypt:"灰烬地穴"
+  },
+  race:{
+    tauren:"蹄人",
+    orc:"兽人"
   },
   boss:{
     ragnaros:"熔渊之王 · 卡尔戈",
@@ -58,9 +64,6 @@ const NAMES={
     barrens_greaves:"岔路镇护腿",
     quest_darsok_letter:"岔路镇急信"
   },
-  race:{
-    tauren:"蹄人"
-  },
   poi:{
     bloodhoof:"赤蹄村",
     camp_narache:"岩蹄营地",
@@ -92,7 +95,7 @@ const TEXTS={
     title:"炽心熔窟",
     enter:"进入游戏",
     enterHint:"点击任意处继续",
-    intro:"草原之风吹过赤蹄草甸的红岩台地。蹄人长老在营火旁低语：<br>\n     北方矗立着一道燃烧的传送门，通往地底深处的 <b style=\"color:#ff8a4a\">炽心熔窟</b>——<br>\n     讨伐熔渊之王 <b style=\"color:#ff8a4a\">卡尔戈</b>，或继续未竟的旅程。",
+    intro:"草原之风吹过赤蹄草甸的红岩台地。蹄人长老在营火旁低语：<br>\n     南下枯原，经赭岩谷可至兽人主城 <b style=\"color:#ff9060\">奥格瑞玛</b>；再北上 <b style=\"color:#ff7040\">黑石山</b>，<br>\n     山腹旋涡通往团队副本 <b style=\"color:#ff8a4a\">炽心熔窟</b>——讨伐熔渊之王 <b style=\"color:#ff8a4a\">卡尔戈</b>。",
     hint:"在赤蹄草甸沿土路北行，走进传送门旋涡即进入副本 · 副本内走出地面红圈躲避熔岩喷发"
   },
     ui:{
@@ -108,7 +111,10 @@ const TEXTS={
     zone_sub_barrens:"岔路镇 · 尘土与刺背",
     zone_sub_durotar:"赭岩哨站 · 焦土谷地",
     zone_sub_ashen_canyon:"烬营 · 枯木与熔岩裂隙",
-    zone_sub_raid:"地下城",
+    zone_sub_orgrimmar:"石拳城 · 兽人主城",
+    zone_sub_blackrock:"黑曜山脊 · 团本门户",
+    zone_sub_raid:"团队副本",
+    zone_sub_molten_core:"黑石山腹 · 团队副本",
     submerged:"—— 潜入岩浆 ·先消灭火裔 ——",
     death_raid:"在炽心熔窟中倒下了……",
     death_world:"灵魂将前往营地的灵魂医者处"
@@ -130,13 +136,13 @@ const TEXTS={
   save:{
     wake_narache:"赤蹄草甸 · 岩蹄营地",
     wake_narache_log:"你从岩蹄营地醒来。北上红云台地猎杀野兽，再前往赤蹄村拜见长老。",
-    wake_raid:"你在炽心熔窟外苏醒……"
+    wake_raid:"你在黑石山 · 炽心熔窟门外苏醒……"
   },
   zone:{
     enter_molten:"正在进入 · 炽心熔窟",
-    leave_molten_roar:"你回到赤蹄草甸，熔渊的咆哮在远方回荡……",
+    leave_molten_roar:"你退出炽心熔窟，黑石山的热风扑面而来……",
     leave_molten_camp:"你回到圣山草原，蹄人营地的炊烟在远处升起。",
-    molten_portal:"炽心熔窟 · 副本入口",
+    molten_portal:"炽心熔窟 · 团队副本入口",
     mulgore_announce:"赤蹄草甸 · 圣山草原",
     mulgore_hint:"北行土路通往蹄人营地……",
     wailing_portal:"泣息洞窟 · 副本入口",
@@ -172,7 +178,7 @@ const TEXTS={
     mulgore_crisis_done:"赤蹄草甸的危机 · 完成",
     ragnaros_whisper_title:"熔渊的低语",
     ragnaros_whisper_sub:"讨伐卡尔戈",
-    ragnaros_whisper_accept:"接受任务【熔渊的低语】：进入北方传送门，击败熔渊之王卡尔戈。",
+    ragnaros_whisper_accept:"接受任务【熔渊的低语】：经奥格瑞玛前往黑石山，进入炽心熔窟，击败熔渊之王卡尔戈。",
     ragnaros_whisper_done:"熔渊的低语 · 完成",
     ragnaros_whisper_log:"卡尔戈沉回熔岩——圣山的危机暂息。",
     hunt_continues_sub:"刺背野豕",

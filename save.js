@@ -287,15 +287,17 @@ function rebuildLevelStats(level){
 function applySaveData(data){
   /* 副本态不恢复遭遇，回世界；野外按 zoneId 重建 */
   const wantZone=normalizeSaveZoneId(data.zoneId||data.zone);
-  /* 副本遭遇不恢复：熔火回赤蹄草甸，哀嚎/奥妮回贫瘠，怒焰回赭岩 */
-  const restoreZone=wantZone==="molten_core"?"mulgore"
+  /* 副本遭遇不恢复：熔火回黑石山，哀嚎/奥妮回贫瘠，怒焰回赭岩 */
+  const restoreZone=wantZone==="molten_core"?"blackrock"
     :(wantZone==="wailing_caverns"||wantZone==="onyxias_lair"?"barrens"
       :(wantZone==="ragefire_chasm"?"durotar":wantZone));
   const gate=restoreZone==="durotar"
     ?(wantZone==="ragefire_chasm"?"from_ragefire":"outpost")
     :(restoreZone==="barrens"
       ?(wantZone==="wailing_caverns"?"from_wailing":wantZone==="onyxias_lair"?"from_onyxia":"crossroads")
-      :"camp");
+      :(restoreZone==="blackrock"
+        ?(wantZone==="molten_core"?"from_raid":"camp")
+        :"camp"));
   if(S.mode==="raid"||(typeof getCurrentZoneId==="function"&&getCurrentZoneId()!==restoreZone)||scene!==(ZONES[restoreZone]&&ZONES[restoreZone].scene)){
     if(typeof enterZone==="function"){
       enterZone(restoreZone,gate,{skipFade:true,skipSave:true,silent:true,force:true});

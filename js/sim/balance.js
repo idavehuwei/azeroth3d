@@ -319,6 +319,8 @@ const BALANCE={
       barrens:{x:-8,z:5},
       durotar:{x:0,z:6},
       ashen_canyon:{x:0,z:8},
+      orgrimmar:{x:10,z:10},
+      blackrock:{x:-6,z:14},
     },
   },
   /* plan-v1 · V1-A5 音效（可关） */
@@ -431,6 +433,8 @@ const BALANCE={
       well_pollution:{xp:220,copper:90,kills:4},
       cleanse_well:{xp:240,copper:100,kills:1},
       mulgore_crisis:{xp:300,copper:120,kills:1},
+      road_to_org:{xp:280,copper:110,kills:1},
+      blackrock_gate:{xp:320,copper:140,kills:1},
       earthmother_gift:{xp:100,copper:40,kills:4},
       wind_totem_quest:{xp:150,copper:60,kills:3},
       red_cloud_land:{xp:180,copper:75,kills:6},
@@ -575,6 +579,23 @@ const BALANCE={
     hemiSky:0xe09060, hemiGround:0x3a2010, hemiIntensity:.95,
     sunColor:0xff9040, sunIntensity:1.15,
   },
+  /* 奥格瑞玛 · 兽人主城（赭岩谷北） */
+  orgrimmar:{
+    radius:300,
+    minLevel:12,
+    ground:0xb84828, dirt:0x6a2818, sky:0xd86838, fog:0xb84828, fogDensity:0.006,
+    hemiSky:0xffb080, hemiGround:0x5a2010, hemiIntensity:1.05,
+    sunColor:0xffa060, sunIntensity:1.25,
+  },
+  /* 黑石山 · 炽心熔窟团本外域 */
+  blackrock:{
+    radius:280,
+    minLevel:14,
+    moltenMinLevel:14,
+    ground:0x2a1410, dirt:0x1a0a06, sky:0x4a1810, fog:0x2a0c08, fogDensity:0.0075,
+    hemiSky:0xff6030, hemiGround:0x1a0804, hemiIntensity:.9,
+    sunColor:0xff5020, sunIntensity:1.1,
+  },
   /* 掉落与尸体拾取（STEP 2）：品质权重 70/25/5 · 尸体停留秒数 · 拾取距离 */
   loot:{weights:{poor:8,common:62,uncommon:25,rare:5}, corpseT:8, pickupR:5,
         eliteWeights:{uncommon:72,rare:28},   /* 精英必掉优秀以上（STEP 5） */
@@ -602,6 +623,7 @@ const BALANCE={
       barrens_armor:["camp_leather_vest","plains_boots","hide_bracers","linen_bandage"],
       ochre_vendor:["plain_bread","spring_water","linen_bandage","minor_potion","whetstone"],
       ember_vendor:["plain_bread","spring_water","linen_bandage","minor_potion","whetstone"],
+      org_vendor:["plain_bread","spring_water","linen_bandage","minor_potion","whetstone","camp_shortsword"],
     },
     food:{healPct:.35,duration:18},      /* C10：坐下进食 18 秒回血 */
     drink:{manaPct:.45,duration:18},     /* C10：饮水回法力/能量类资源 */
@@ -616,16 +638,16 @@ const BALANCE={
     gatherCast:1.5,
     respawn:75,
     yieldMin:1, yieldMax:2,
-    herbCount:{mulgore:10, barrens:9, durotar:9, ashen_canyon:8},
-    oreCount:{mulgore:9, barrens:10, durotar:9, ashen_canyon:10},
+    herbCount:{mulgore:10, barrens:9, durotar:9, ashen_canyon:8, orgrimmar:6, blackrock:5},
+    oreCount:{mulgore:9, barrens:10, durotar:9, ashen_canyon:10, orgrimmar:7, blackrock:9},
     campR:24,          /* 采集点避开营地半径 */
     portalR:14,        /* 避开传送门 */
     matsMax:99,
     nodeGap:6,
     placeTries:40,
     workbench:{x:-8,z:48},
-    herbChance:{mulgore:.55, barrens:.5, durotar:.48, ashen_canyon:.5},
-    oreChance:{mulgore:.7, barrens:.45, durotar:.5, ashen_canyon:.55},
+    herbChance:{mulgore:.55, barrens:.5, durotar:.48, ashen_canyon:.5, orgrimmar:.4, blackrock:.35},
+    oreChance:{mulgore:.7, barrens:.45, durotar:.5, ashen_canyon:.55, orgrimmar:.5, blackrock:.65},
   },
   /* 上帝模式（首页勾选）：玩家每次攻击的固定伤害 */
   god:{dmg:5000},
@@ -683,6 +705,8 @@ const BALANCE={
       barrens:"dust",
       durotar:"dust",
       ashen_canyon:"dust",
+      orgrimmar:"dust",
+      blackrock:"dust",
       molten_core:"clear",
       wailing_caverns:"mist",
       onyxias_lair:"clear",
@@ -769,7 +793,7 @@ const BALANCE={
     meleeAutoR:5.5,          /* 贴身普攻距离（全职业挥砍） */
     showTot:true,            /* 目标的目标小框 */
   },
-  npcLevel:{hawkwind:10,grull:8,grayhorn:12,raoul:6,vera:5,whiterock:10,baine:40,bloodhoof_elder:35,tark:18,mull:16,haru:18,mara:14,kur:15,aska:20,cairne:60,stonetalon:40,seen:22,pala:20,hamya:24,magatha:50,runetotem:45,thunderhorn_guard:12,winterhoof_guard:10,windfury_sentinel:25,elder:40,vendor:25,varg:25,weaponsmith:26,hunter:18,cook:20,spirit:55,crossroads:30,darsok:28,kag:26,mankrik:30,thom:27,kil:24,serra:25,lal:28,zinge:26,scriven:22,innkeeper:22,flightmaster:25,barrens_vendor:24,barrens_armor:24,ochre:28,ochre_guard:26,ochre_vendor:24,ember_scout:22,ember_vendor:20,companion:null},
+  npcLevel:{hawkwind:10,grull:8,grayhorn:12,raoul:6,vera:5,whiterock:10,baine:40,bloodhoof_elder:35,tark:18,mull:16,haru:18,mara:14,kur:15,aska:20,cairne:60,stonetalon:40,seen:22,pala:20,hamya:24,magatha:50,runetotem:45,thunderhorn_guard:12,winterhoof_guard:10,windfury_sentinel:25,elder:40,vendor:25,varg:25,weaponsmith:26,hunter:18,cook:20,spirit:55,crossroads:30,darsok:28,kag:26,mankrik:30,thom:27,kil:24,serra:25,lal:28,zinge:26,scriven:22,innkeeper:22,flightmaster:25,barrens_vendor:24,barrens_armor:24,ochre:28,ochre_guard:26,ochre_vendor:24,ember_scout:22,ember_vendor:20,thrall:45,org_vendor:28,br_scout:22,companion:null},
   /* 营地 NPC 外观：体型缩放 + 姓名板高度（相对缩放后头顶） */
   npc:{scale:.72, labelY:3.85, labelW:3.6,
     /* 任务标记（魔兽式头顶 ! / ?）：更大、更高、轻弹跳 */
@@ -964,10 +988,12 @@ const BALANCE={
     terrainThumbN:72,       /* C13：mulgore 高度场降采样边长 */
     /* C13：大陆拼贴布局（归一化 0–1 相对世界地图画布） */
     continental:[
-      {id:"mulgore",  x:.06,y:.08,w:.42,h:.55},
-      {id:"ashen_canyon", x:.48,y:.06,w:.28,h:.32},
-      {id:"barrens",  x:.52,y:.28,w:.42,h:.40},
-      {id:"durotar",  x:.52,y:.70,w:.42,h:.24},
+      {id:"mulgore",  x:.04,y:.08,w:.36,h:.50},
+      {id:"ashen_canyon", x:.40,y:.06,w:.24,h:.28},
+      {id:"barrens",  x:.42,y:.28,w:.36,h:.36},
+      {id:"durotar",  x:.42,y:.66,w:.28,h:.20},
+      {id:"orgrimmar", x:.70,y:.58,w:.26,h:.22},
+      {id:"blackrock", x:.72,y:.28,w:.24,h:.28},
     ],
     splashMs:2800,          /* 区域名淡入停留 */
   },
@@ -1053,7 +1079,7 @@ const BALANCE={
     difficulties:["normal","heroic"],
     labels:{normal:"普通",heroic:"英雄"},
     entries:[
-      {id:"molten_core",    name:T("zone.molten_core"),       blurb:"走廊 → "+T("boss.magmadar")+" → "+T("boss.ragnaros_short"), minLevel:0,  gate:"entrance", icon:"dungeon"},
+      {id:"molten_core",    name:T("zone.molten_core"),       blurb:"团本 · 黑石山入口 · 走廊 → "+T("boss.magmadar")+" → "+T("boss.ragnaros_short"), minLevel:14,  gate:"entrance", icon:"dungeon"},
       {id:"ragefire_chasm", name:T("zone.ragefire"),       blurb:"燃刃兽人 → 奥格弗林特 → 饥饿者", minLevel:13, gate:"entrance", icon:"fireball"},
       {id:"wailing_caverns",name:T("zone.wailing"),       blurb:"变异蛇 → "+T("boss.cobrahn_short")+" → 吞噬者", minLevel:15, gate:"entrance", icon:"venom"},
       {id:"onyxias_lair",   name:T("zone.onyxia"), blurb:"幼龙 → 黑龙女王三阶段",   minLevel:16, gate:"entrance", icon:"fireball"},

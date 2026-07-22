@@ -149,19 +149,19 @@ registerZone({
     default:{x:0,z:18},
   },
   portals:[{
-    id:"to_mulgore",
+    id:"to_blackrock",
     pos:()=>EXIT_PORTAL_POS,
     enterR:()=>BAL.zones.exitPortalEnterR,
     visible:()=>!!(S.b&&S.b.canLeave&&exitPortal),
     autoEnter:false,   /* 需 F / 交互按钮，与旧行为一致 */
-    targetZone:"mulgore",
+    targetZone:"blackrock",
     targetGate:"from_raid",
   }],
   onEnter(fromId,gateId,opts){
     if(opts&&opts.silent)return;
     if(typeof resetBoss==="function")resetBoss();
     if(typeof DUNGEON!=="undefined"&&DUNGEON.setStage)DUNGEON.setStage("corridor");
-    log("你踏入传送门——热浪扑面而来，岩浆在脚下沸腾！","lg-sys");
+    log("你踏入黑石山腹的旋涡——热浪扑面而来，岩浆在脚下沸腾！","lg-sys");
     $("#bossFrame").classList.add("show");
   },
   onLeave(){
@@ -181,7 +181,7 @@ const DUNGEON={
   bridgeT:0,
   bridgeDone:false,
   wipePolicy:"keep_stage",
-  exitZone:"mulgore",
+  exitZone:"blackrock",
   exitGate:"from_raid",
   raidSpawn:{x:0,z:18},
   wipeBoss1:"magmadar",
@@ -1570,7 +1570,7 @@ function releaseSpiritLeaveRaid(){
   hideDeathUi();
   clearGhostForm();
   const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
-  const hub=D.exitZone||"mulgore";
+  const hub=D.exitZone||"blackrock";
   const gate=hub==="barrens"?"spirit":"spirit";
   const worldSp=(BAL.death.spawns&&BAL.death.spawns[hub])||BAL.death.worldSpawn;
   enterZone(hub,gate,{

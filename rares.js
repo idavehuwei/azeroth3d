@@ -24,6 +24,9 @@ const RARES=[
   {id:"scorchtusk_ashen", type:"scorchtusk", zone:"ashen_canyon",
     x:-150, z:-100, rare:true, label:T("mob.scorchtusk"),
     name:T("mob.scorchtusk"), respawnT:3600},
+  {id:"slagking_blackrock", type:"slagimp", zone:"blackrock",
+    x:-95, z:-55, rare:true, elite:true, label:"熔渣领主",
+    name:"熔渣领主", respawnT:3600},
   /* 粉色精英也走表，便于小地图统一 · 风啸岗（非稀有，短刷新） */
   {id:"harpy_mulgore", type:"harpy", zone:"mulgore",
     x:62, z:-300, rare:false, label:"鹰身女妖"},

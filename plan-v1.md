@@ -328,7 +328,7 @@
 
 - WoC 仓库与 README：[levy-street/world-of-claudecraft](https://github.com/levy-street/world-of-claudecraft)  
 - WoC 原则：程序化一切 · Content as data · 天气 render-only · 每步可验证  
-- 本项目：`plan-merged.md` · `DESIGN.md` · `AGENTS.md` · `CLAUDE.md`
+- 本项目：`plan-v0.md` · `plan-v4.md` · `DESIGN.md` · `AGENTS.md` · `CLAUDE.md`
 
 ---
 

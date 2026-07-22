@@ -254,52 +254,23 @@ for(let i=0;i<10;i++){
   bl.position.set(B.x,_gy(B.x,B.z)+5,B.z); sceneWorld.add(bl);
 })();
 
-/* ---------------- 副本传送门：炽心入口 ---------------- */
-const PORTAL_POS=new THREE.Vector3(0,0,-(WORLD_R-8));
+/* ---------------- 圣山北麓（原熔火门口改为风景岩脊，无副本入口） ---------------- */
+const PORTAL_POS=new THREE.Vector3(0,0,-(WORLD_R-8)); /* 北界地标坐标（采集避让等仍用） */
 const _pg=_gy(PORTAL_POS.x,PORTAL_POS.z);
-const obsidian=MAT.get("obsidian.gate");
-const pPlat=new THREE.Mesh(new THREE.CylinderGeometry(8,9.5,1,12),obsidian);
-pPlat.position.set(PORTAL_POS.x,_pg+.5,PORTAL_POS.z); pPlat.receiveShadow=true; sceneWorld.add(pPlat);
-[[-3.8],[3.8]].forEach(([sx])=>{
-  const pil=new THREE.Mesh(new THREE.BoxGeometry(1.7,9.5,1.7),obsidian);
-  pil.position.set(PORTAL_POS.x+sx,_pg+5.7,PORTAL_POS.z); pil.castShadow=true; sceneWorld.add(pil);
-  const spike=new THREE.Mesh(new THREE.ConeGeometry(.8,2.2,5),obsidian);
-  spike.position.set(PORTAL_POS.x+sx,_pg+11.5,PORTAL_POS.z); sceneWorld.add(spike);
+const northRidgeMat=MAT.get("rock.north_ridge",{color:0x4a3a28,roughness:.95,flatShading:true,
+  emissive:0x2a1810,emissiveIntensity:.12});
+[[-8,0],[8,0],[-4,-6],[4,-6],[0,-10]].forEach(([sx,sz],i)=>{
+  const rk=new THREE.Mesh(new THREE.DodecahedronGeometry(2.2+i*.35,0),northRidgeMat);
+  rk.position.set(PORTAL_POS.x+sx,_pg+1.2+i*.2,PORTAL_POS.z+sz);
+  rk.rotation.set(.2,i, .1); rk.castShadow=true; sceneWorld.add(rk);
 });
-const lintel=new THREE.Mesh(new THREE.BoxGeometry(10.4,1.7,1.9),obsidian);
-lintel.position.set(PORTAL_POS.x,_pg+10.4,PORTAL_POS.z); lintel.castShadow=true; sceneWorld.add(lintel);
-/* 旋涡传送门（Shader 动画） */
-portalUni={uTime:{value:0}};
-const portalDisc=new THREE.Mesh(new THREE.CircleGeometry(3.1,40),new THREE.ShaderMaterial({
-  uniforms:portalUni,transparent:true,side:THREE.DoubleSide,depthWrite:false,
-  vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-  fragmentShader:`
-    varying vec2 vUv;uniform float uTime;
-    void main(){
-      vec2 p=vUv-.5; float r=length(p)*2.; float ang=atan(p.y,p.x);
-      float sw=sin(ang*3.-uTime*3.2+r*9.);
-      vec3 c=mix(vec3(1.,.78,.32),vec3(.85,.2,.02),smoothstep(-.6,.8,sw));
-      c=mix(c,vec3(.14,.02,0.),smoothstep(.7,1.,r));
-      c+=vec3(1.,.6,.2)*smoothstep(.25,0.,r);
-      gl_FragColor=vec4(c*1.25,smoothstep(1.,.9,r));
-    }`}));
-portalDisc.position.set(PORTAL_POS.x,_pg+5.2,PORTAL_POS.z); sceneWorld.add(portalDisc);
-/* 门前火盆 */
-[[-6.5],[6.5]].forEach(([sx])=>{
-  const bz=new THREE.Mesh(new THREE.CylinderGeometry(.8,.5,1.4,7),obsidian);
-  bz.position.set(PORTAL_POS.x+sx,_pg+.9,PORTAL_POS.z+4); sceneWorld.add(bz);
-  const fl=new THREE.Mesh(new THREE.ConeGeometry(.55,1.5,7),
-    new THREE.MeshBasicMaterial({color:0xffa030,transparent:true,opacity:.92}));
-  fl.position.set(PORTAL_POS.x+sx,_pg+2.2,PORTAL_POS.z+4); sceneWorld.add(fl);
-  const li=new THREE.PointLight(0xff6a20,1.2,18,1.8);
-  li.position.set(PORTAL_POS.x+sx,_pg+2.6,PORTAL_POS.z+4); sceneWorld.add(li);
-  worldFlames.push({fl,li});
-});
-/* 门楣悬浮文字（makeLabel 已迁入 core.js，供掉落系统等全局复用） */
-portalLabel=makeLabel(T("zone.molten_core"),14);
-portalLabel.position.set(PORTAL_POS.x,_pg+13.6,PORTAL_POS.z); sceneWorld.add(portalLabel);
-const portalLabel2=makeLabel("· 副本入口 ·",8);
-portalLabel2.position.set(PORTAL_POS.x,_pg+12,PORTAL_POS.z); sceneWorld.add(portalLabel2);
+const northRidgePlat=new THREE.Mesh(new THREE.CylinderGeometry(6,7.5,.8,10),northRidgeMat);
+northRidgePlat.position.set(PORTAL_POS.x,_pg+.35,PORTAL_POS.z); northRidgePlat.receiveShadow=true; sceneWorld.add(northRidgePlat);
+portalLabel=makeLabel("圣山北麓",11,"#d8c090","rgba(60,40,20,.88)");
+portalLabel.position.set(PORTAL_POS.x,_pg+8.5,PORTAL_POS.z); sceneWorld.add(portalLabel);
+const portalLabel2=makeLabel(T("zone.molten_core")+"已迁往"+T("zone.blackrock"),6,"#c9a06a","rgba(50,30,15,.85)");
+portalLabel2.position.set(PORTAL_POS.x,_pg+7.2,PORTAL_POS.z); sceneWorld.add(portalLabel2);
+/* portalUni 保持 null：北界不再有旋涡门 */
 
 /* ---------------- 枯原荒地传送门（营地南，STEP 18）：Lv10+ 可见可进 ---------------- */
 const PORTAL_BARRENS=new THREE.Vector3(0,0,WORLD_R-8);
@@ -361,7 +332,7 @@ if(typeof spawnGatherNodesForZone==="function"){
   spawnGatherNodesForZone("mulgore",sceneWorld,{
     radius:WORLD_R,
     camp:BLOODHOOF,
-    portals:[{x:PORTAL_POS.x,z:PORTAL_POS.z},{x:PORTAL_BARRENS.x,z:PORTAL_BARRENS.z},{x:PORTAL_ASHEN.x,z:PORTAL_ASHEN.z}],
+    portals:[{x:PORTAL_BARRENS.x,z:PORTAL_BARRENS.z},{x:PORTAL_ASHEN.x,z:PORTAL_ASHEN.z}],
   });
 }
 
@@ -402,7 +373,7 @@ function leaveRaid(){
   if(S.mode!=="raid")return;
   S.difficulty="normal";
   const D=typeof getDungeon==="function"?getDungeon():null;
-  const hub=(D&&D.exitZone)||"mulgore";
+  const hub=(D&&D.exitZone)||"blackrock";
   const gate=(D&&D.exitGate)||"from_raid";
   enterZone(hub,gate);
 }
@@ -421,7 +392,7 @@ registerZone({
   dayNight:true,
   gates:{
     camp:CAMP_NARACHE,
-    from_raid:BLOODHOOF,
+    from_raid:BLOODHOOF, /* 旧存档兼容：曾从熔火回血蹄 */
     from_barrens:{x:0,z:WORLD_R-22},   /* 远离南口传送门，避免进出乒乓 */
     from_ashen:{x:-(WORLD_R-22),z:0}, /* 西侧山口回落点 */
     spirit:{x:BLOODHOOF.x,z:BLOODHOOF.z+22},
@@ -430,17 +401,6 @@ registerZone({
     default:CAMP_NARACHE,
   },
   portals:[{
-    id:"to_molten_core",
-    pos:()=>PORTAL_POS,
-    hintR:()=>BAL.zones.portalHintR,
-    enterR:()=>BAL.zones.portalEnterR,
-    announce:T("zone.molten_core")+" · 副本入口",
-    logHint:"灼热的气息从旋涡中渗出……走进传送门即可进入副本。",
-    requireAlive:true,
-    autoEnter:true,
-    targetZone:"molten_core",
-    targetGate:"entrance",
-  },{
     id:"to_barrens",
     pos:()=>PORTAL_BARRENS,
     hintR:()=>BAL.zones.portalHintR,
@@ -472,10 +432,10 @@ registerZone({
   lights:{heli,sun,flames:worldFlames,fireflies,fill:_mulgoreSkyInit&&_mulgoreSkyInit.fill},
   onEnter(fromId,gateId,opts){
     if(opts&&opts.silent)return;
-    if(fromId==="molten_core"){
-      log(T("zone.leave_molten_roar"),"lg-sys");
-    }else if(fromId==="barrens"){
+    if(fromId==="barrens"){
       log("你回到圣山草原，"+T("race.tauren")+"营地的炊烟在远处升起。","lg-sys");
+    }else if(fromId==="ashen_canyon"){
+      log("山口风息渐缓——你重回"+T("zone.mulgore")+"。","lg-sys");
     }
     if(typeof updateQuest==="function")updateQuest();
   },
@@ -748,14 +708,11 @@ updateNameplateHp(spiritLabel,1,1);
 registerNpcInteract(spiritHealer,()=>openSpiritDialogue());
 function spiritDist(){return Math.hypot(player.position.x-spiritHealer.position.x,player.position.z-spiritHealer.position.z);}
 
-/* STEP 17：营地墓地（医者旁）+ 熔火门口墓地 */
+/* STEP 17：营地墓地（医者旁）；北界不再设熔火门口墓地 */
 (function placeMulgoreGraveyards(){
   const sx=spiritHealer.position.x-3.5, sz=spiritHealer.position.z+2.5;
   placeProp(sceneWorld,buildGraveyard(),sx,sz,Math.PI*.2);
   registerGraveyard("mulgore",sx,sz,"camp");
-  const gx=PORTAL_POS.x+6, gz=PORTAL_POS.z+11;
-  placeProp(sceneWorld,buildGraveyard({size:.95}),gx,gz,-Math.PI*.15);
-  registerGraveyard("mulgore",gx,gz,"portal");
   if(BAL.death&&BAL.death.spawns)BAL.death.spawns.mulgore={x:sx,z:sz};
   if(BAL.death)BAL.death.worldSpawn={x:sx,z:sz};
 })();
@@ -1209,6 +1166,8 @@ function tryInteract(){
       &&typeof openDurotarSpiritDialogue==="function"){openDurotarSpiritDialogue();return;}
     if(zid==="ashen_canyon"&&typeof ashenSpiritDist==="function"&&ashenSpiritDist()<R
       &&typeof openAshenSpiritDialogue==="function"){openAshenSpiritDialogue();return;}
+    if(zid==="orgrimmar"&&typeof tryInteractOrgrimmar==="function"){tryInteractOrgrimmar();return;}
+    if(zid==="blackrock"&&typeof tryInteractBlackrock==="function"){tryInteractBlackrock();return;}
     return;
   }
   if(!S.p.alive)return;
@@ -1225,6 +1184,10 @@ function tryInteract(){
     &&typeof tryInteractDurotar==="function"){tryInteractDurotar();return;}
   if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="ashen_canyon"
     &&typeof tryInteractAshen==="function"){tryInteractAshen();return;}
+  if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="orgrimmar"
+    &&typeof tryInteractOrgrimmar==="function"){tryInteractOrgrimmar();return;}
+  if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="blackrock"
+    &&typeof tryInteractBlackrock==="function"){tryInteractBlackrock();return;}
   const near=pickNearestNpc(_mulgoreInteractNpcs);
   if(near)near.open();
 }

@@ -592,6 +592,7 @@ function questEntries(){
 }
 
 const QUEST_ZONE_NAME={mulgore:T("zone.mulgore"),barrens:T("zone.barrens"),durotar:T("zone.durotar"),
+  ashen_canyon:T("zone.ashen_canyon"),orgrimmar:T("zone.orgrimmar"),blackrock:T("zone.blackrock"),
   molten_core:T("zone.molten_core"),wailing_caverns:T("zone.wailing"),ragefire_chasm:T("zone.ragefire"),
   onyxias_lair:T("zone.onyxia")};
 let _questLogSel=null;

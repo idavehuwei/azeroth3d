@@ -46,7 +46,7 @@ const MAP_ZONES={
       {id:"weaponsmith", label:"武器匠", color:"#e8c898", kind:"npc"},
       {id:"hunter", label:"哈鲁", color:"#d0e8a0", kind:"npc"},
       {id:"spirit", label:"灵魂医者", color:"#a8d8ff", kind:"npc"},
-      {id:"portal",  label:T("zone.molten_core"),   x:0,   z:-344,color:"#ff8a4a", kind:"portal"},
+      {id:"north_ridge", label:"圣山北麓",   x:0,   z:-344,color:"#c9a06a", kind:"poi"},
       {id:"barrens", label:T("zone.barrens"),   x:0,   z:344, color:"#e8c898", kind:"portal"},
       {id:"ashen",   label:T("zone.ashen_canyon"), x:-344, z:0, color:"#ff9060", kind:"portal"},
     ],
@@ -62,7 +62,7 @@ const MAP_ZONES={
       road:[
         ["narache","camp"],
         ["camp","thunder"],
-        ["thunder","portal"],
+        ["thunder","north_ridge"],
         ["camp","barrens"],
         ["camp","ashen"],
         ["camp","lake"],
@@ -83,6 +83,52 @@ const MAP_ZONES={
     outline:[
       [0,-1],[.7,-.7],[1,0],[.7,.7],[0,1],[-.7,.7],[-1,0],[-.7,-.7],
     ],
+  },
+  orgrimmar:{
+    id:"orgrimmar",
+    name:T("zone.orgrimmar"),
+    radius:()=>typeof ORGRIMMAR_R==="number"?ORGRIMMAR_R:(BAL.orgrimmar&&BAL.orgrimmar.radius)||300,
+    landmarks:[
+      {id:"valley",label:"石拳谷",x:0,z:0,color:"#ff9060",kind:"camp"},
+      {id:"portal_s",label:T("zone.durotar"),x:0,z:290,color:"#ffb070",kind:"portal"},
+      {id:"portal_n",label:T("zone.blackrock"),x:0,z:-290,color:"#ff6030",kind:"portal"},
+      {id:"thrall",label:"大酋长",x:2,z:-4,color:"#ffd9a0",kind:"npc"},
+      {id:"org_vendor",label:"军需官",x:-12,z:-8,color:"#8aff9a",kind:"npc"},
+      {id:"spirit",label:"灵魂医者",x:10,z:10,color:"#a8d8ff",kind:"npc"},
+    ],
+    elites:[],
+    outline:[
+      [0,-1],[.5,-.85],[.9,-.3],[.95,.3],[.55,.85],[0,1],[-.55,.85],[-.95,.3],[-.9,-.3],[-.5,-.85],
+    ],
+    terrain:{
+      bg:"#1a0804",
+      fill:"rgba(160,50,30,.45)",
+      stroke:"rgba(220,100,50,.55)",
+      road:[["valley","portal_s"],["valley","portal_n"]],
+    },
+  },
+  blackrock:{
+    id:"blackrock",
+    name:T("zone.blackrock"),
+    radius:()=>typeof BLACKROCK_R==="number"?BLACKROCK_R:(BAL.blackrock&&BAL.blackrock.radius)||280,
+    landmarks:[
+      {id:"ridge",label:"黑曜山脊",x:0,z:0,color:"#c07040",kind:"camp"},
+      {id:"portal_s",label:T("zone.orgrimmar"),x:0,z:270,color:"#ffb070",kind:"portal"},
+      {id:"portal",label:T("zone.molten_core"),x:0,z:-268,color:"#ff8a4a",kind:"portal"},
+      {id:"br_scout",label:"黑牙",x:4,z:6,color:"#ff9060",kind:"npc"},
+      {id:"spirit",label:"灵魂医者",x:-8,z:12,color:"#a8d8ff",kind:"npc"},
+      {id:"slagking",label:"熔渣领主",x:-95,z:-55,color:"#ffd700",kind:"elite"},
+    ],
+    elites:[],
+    outline:[
+      [0,-1],[.55,-.8],[.95,-.15],[.85,.5],[.35,.95],[-.35,.95],[-.85,.5],[-.95,-.15],[-.55,-.8],
+    ],
+    terrain:{
+      bg:"#0c0604",
+      fill:"rgba(80,30,20,.5)",
+      stroke:"rgba(200,80,40,.55)",
+      road:[["ridge","portal_s"],["ridge","portal"]],
+    },
   },
   barrens:{
     id:"barrens",
@@ -137,6 +183,7 @@ const MAP_ZONES={
       {id:"ochre_outpost",label:"赭岩哨站",x:0,z:0,color:"#ffb070",kind:"camp"},
       {id:"portal_e",label:T("zone.barrens"),x:342,z:0,color:"#e8c898",kind:"portal"},
       {id:"portal_w",label:T("zone.ragefire"),x:-342,z:8,color:"#ff7040",kind:"portal"},
+      {id:"portal_n",label:T("zone.orgrimmar"),x:0,z:-342,color:"#ff9060",kind:"portal"},
       {id:"spirit",label:"灵魂医者",x:-8,z:22,color:"#a8d8ff",kind:"npc"},
       {id:"ochre_vendor",label:"商人",x:-14,z:-10,color:"#8aff9a",kind:"npc"},
       {id:"ochre_guard",label:"卫士",x:18,z:12,color:"#ff9a70",kind:"npc"},
@@ -152,7 +199,7 @@ const MAP_ZONES={
       bg:"#1a0c06",
       fill:"rgba(160,70,30,.42)",
       stroke:"rgba(220,120,60,.55)",
-      road:[["ochre_outpost","portal_e"],["ochre_outpost","portal_w"]],
+      road:[["ochre_outpost","portal_e"],["ochre_outpost","portal_w"],["ochre_outpost","portal_n"]],
     },
   },
   ashen_canyon:{
@@ -881,7 +928,7 @@ function zoneMapFocusId(){
   if(f&&f.zone&&MAP_ZONES[f.zone])return f.zone;
   const cur=typeof getCurrentZoneId==="function"?getCurrentZoneId():(_mapZoneId||"mulgore");
   if(MAP_ZONES[cur])return cur;
-  if(cur==="molten_core")return"mulgore";
+  if(cur==="molten_core")return"blackrock";
   return"mulgore";
 }
 
@@ -930,7 +977,7 @@ function drawContinentalMapPanel(ctx,sz){
     const ox=x+(w-side)/2, oy=y+(h-side)/2;
     ctx.drawImage(getContinentalTile(cell.id,side),ox,oy);
 
-    const isCur=cell.id===cur||(cur==="molten_core"&&cell.id==="mulgore");
+    const isCur=cell.id===cur||(cur==="molten_core"&&cell.id==="blackrock");
     const isQuest=qZone&&qZone===cell.id;
     ctx.strokeStyle=isQuest?"#ffe9a0":(isCur?"#ff9a55":"rgba(180,140,80,.45)");
     ctx.lineWidth=isQuest||isCur?3:1.5;

@@ -14,7 +14,7 @@
           professions.js 运行时（spawnGatherNodesForZone）
           rares.js 运行时（spawnRaresForZone）
           save.js 运行时（saveGame）
-   [导出] sceneDurotar DUROTAR_R DUROTAR_PORTAL_E DUROTAR_PORTAL_W
+   [导出] sceneDurotar DUROTAR_R DUROTAR_PORTAL_E DUROTAR_PORTAL_W DUROTAR_PORTAL_N
           durotarHeli durotarSun durotarFlames
           buildDurotarZone tryInteractDurotar
           updateDurotarMarkers ochreOutpostDist durotarSpiritDist ochreVendorDist ochreGuardDist
@@ -23,9 +23,10 @@
 
 const DUROTAR_R=BAL.durotar.radius;
 const sceneDurotar=new THREE.Scene();
-/* 东口回贫瘠；西口进怒焰；落点与门距开，防乒乓 */
+/* 东口回贫瘠；西口进怒焰；北口进奥格瑞玛；落点与门距开，防乒乓 */
 const DUROTAR_PORTAL_E=new THREE.Vector3(DUROTAR_R-10,0,0);
 const DUROTAR_PORTAL_W=new THREE.Vector3(-(DUROTAR_R-10),0,8);
+const DUROTAR_PORTAL_N=new THREE.Vector3(0,0,-(DUROTAR_R-10));
 
 let durotarHeli=null,durotarSun=null;
 const durotarFlames=[];
@@ -34,7 +35,7 @@ let durotarSpirit=null,durotarSpiritLabel=null;
 let ochreVendor=null,ochreVendorLabel=null;
 let ochreGuard=null,ochreGuardLabel=null;
 let durotarMarkerExcl=null,durotarMarkerExclGrey=null,durotarMarkerQ=null;
-let durotarPortalUni=null,durotarRagefirePortalUni=null;
+let durotarPortalUni=null,durotarRagefirePortalUni=null,durotarOrgPortalUni=null;
 
 function buildDurotarZone(scn){
   const root=scn||sceneDurotar;
@@ -165,6 +166,35 @@ function buildDurotarZone(scn){
   wLab.position.set(DUROTAR_PORTAL_W.x,11.8,DUROTAR_PORTAL_W.z); root.add(wLab);
   const wLab2=makeLabel("副本入口",8,"#ffb090","rgba(80,20,8,.85)");
   wLab2.position.set(DUROTAR_PORTAL_W.x,10.4,DUROTAR_PORTAL_W.z); root.add(wLab2);
+
+  /* 北口 → 奥格瑞玛 */
+  const orgMat=MAT.get("wood.org_gate",{color:0x6a2810,roughness:.9,flatShading:true,emissive:0x8a2010,emissiveIntensity:.22});
+  const nPlat=new THREE.Mesh(new THREE.CylinderGeometry(6.5,7.5,1,12),orgMat);
+  nPlat.position.set(DUROTAR_PORTAL_N.x,.5,DUROTAR_PORTAL_N.z); nPlat.receiveShadow=true; root.add(nPlat);
+  [[-3.2],[3.2]].forEach(([sx])=>{
+    const pil=new THREE.Mesh(new THREE.BoxGeometry(1.4,8.2,1.4),orgMat);
+    pil.position.set(DUROTAR_PORTAL_N.x+sx,4.6,DUROTAR_PORTAL_N.z); pil.castShadow=true; root.add(pil);
+  });
+  const nLintel=new THREE.Mesh(new THREE.BoxGeometry(8.5,1.3,1.5),orgMat);
+  nLintel.position.set(DUROTAR_PORTAL_N.x,9.0,DUROTAR_PORTAL_N.z); root.add(nLintel);
+  durotarOrgPortalUni={uTime:{value:0}};
+  const nDisc=new THREE.Mesh(new THREE.CircleGeometry(2.7,36),new THREE.ShaderMaterial({
+    uniforms:durotarOrgPortalUni,transparent:true,side:THREE.DoubleSide,depthWrite:false,
+    vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`
+      varying vec2 vUv;uniform float uTime;
+      void main(){
+        vec2 p=vUv-.5; float r=length(p)*2.; float ang=atan(p.y,p.x);
+        float sw=sin(ang*2.8-uTime*2.3+r*7.);
+        vec3 c=mix(vec3(1.,.5,.2),vec3(.65,.15,.05),smoothstep(-.5,.7,sw));
+        c=mix(c,vec3(.1,.02,0.),smoothstep(.7,1.,r));
+        gl_FragColor=vec4(c*1.18,smoothstep(1.,.88,r));
+      }`}));
+  nDisc.position.set(DUROTAR_PORTAL_N.x,4.5,DUROTAR_PORTAL_N.z); root.add(nDisc);
+  const nLab=makeLabel(T("zone.orgrimmar"),11,"#ffb070","rgba(100,30,12,.92)");
+  nLab.position.set(DUROTAR_PORTAL_N.x,11.8,DUROTAR_PORTAL_N.z); root.add(nLab);
+  const nLab2=makeLabel("兽人主城",7,"#ff9060","rgba(80,20,8,.88)");
+  nLab2.position.set(DUROTAR_PORTAL_N.x,10.4,DUROTAR_PORTAL_N.z); root.add(nLab2);
 
   const _npcLy=(BAL.npc&&BAL.npc.labelY)||4.05, _npcMy=(BAL.npc&&BAL.npc.markerY)||5.15, _npcLw=(BAL.npc&&BAL.npc.labelW)||6.2;
   ochreOutpost=tintNpcCloth(buildVendor(),0x8a4020);
@@ -332,7 +362,7 @@ function openOchreDialogue(){
     const k=questProgress("ochre_sting").kills|0;
     tx.textContent=`巨蝎还在谷地游荡（${k}/${need}）。干完再来找我。`;
   }else{
-    tx.textContent="赭岩谷热得很。买卖找赤蹄，清剿找焦刺；东边旋涡通往"+T("zone.barrens")+"。";
+    tx.textContent="赭岩谷热得很。买卖找赤蹄，清剿找焦刺；东边通往"+T("zone.barrens")+"，北门通往"+T("zone.orgrimmar")+"。";
   }
 
   appendNpcQuestButtons("ochre_outpost",btn,null,["ochre_sting"]);
@@ -352,6 +382,7 @@ registerZone({
   gates:{
     from_barrens:{x:DUROTAR_R-24,z:0},
     from_ragefire:{x:-(DUROTAR_R-24),z:8},
+    from_orgrimmar:{x:0,z:-(DUROTAR_R-24)},
     outpost:{x:0,z:0},
     spirit:{x:0,z:6},
     default:{x:0,z:0},
@@ -381,15 +412,30 @@ registerZone({
     lockedLog:()=>`${T("zone.ragefire")}危机四伏——当前 Lv.${S.p.level}，建议升到 Lv.${BAL.durotar.ragefireMinLevel||13} 后再挑战。`,
     targetZone:"ragefire_chasm",
     targetGate:"entrance",
+  },{
+    id:"to_orgrimmar",
+    pos:()=>DUROTAR_PORTAL_N,
+    hintR:()=>BAL.zones.portalHintR,
+    enterR:()=>BAL.zones.portalEnterR,
+    announce:T("zone.orgrimmar")+" · 兽人主城",
+    logHint:"北门鼓声隐约可闻……走进即可进入"+T("zone.orgrimmar")+"。",
+    requireAlive:true,
+    autoEnter:true,
+    minLevel:()=>(BAL.orgrimmar&&BAL.orgrimmar.minLevel)||12,
+    lockedAnnounce:()=>`等级不足！需要 Lv.${(BAL.orgrimmar&&BAL.orgrimmar.minLevel)||12}`,
+    lockedLog:()=>`奥格瑞玛大门只对更强的勇士敞开——当前 Lv.${S.p.level}。`,
+    targetZone:"orgrimmar",
+    targetGate:"from_durotar",
   }],
   onEnter(fromId,gateId,opts){
     if(opts&&opts.silent)return;
     if(fromId==="barrens")log("灼热的橙土迎面扑来——你已踏入赭岩谷。","lg-sys");
     if(fromId==="ragefire_chasm")log("你离开"+T("zone.ragefire")+"，重回赭岩哨站的热风中。","lg-sys");
+    if(fromId==="orgrimmar")log("你离开奥格瑞玛，重回赭岩谷的焦土。","lg-sys");
     updateDurotarMarkers();
     if(typeof updateQuest==="function")updateQuest();
   },
   onLeave(){},
 });
 
-console.info("[durotar] V1-B1 就绪：赭岩谷 · 哨站 · 巨蝎/刺脊/崖风鹰身 · 西口怒焰");
+console.info("[durotar] V1-B1 就绪：赭岩谷 · 哨站 · 北口奥格瑞玛 · 西口怒焰");

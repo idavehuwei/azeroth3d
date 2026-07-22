@@ -59,6 +59,8 @@
 | `barrens.js` | 贫瘠之地 | sceneBarrens, BARRENS_QUEST, buildBarrensZone |
 | `durotar.js` | 赭岩谷 | sceneDurotar, buildDurotarZone, tryInteractDurotar |
 | `ashen_canyon.js` | 灰烬峡谷（6–12） | sceneAshen, buildAshenZone, tryInteractAshen |
+| `orgrimmar.js` | 奥格瑞玛（兽人主城） | sceneOrgrimmar, buildOrgrimmarZone, tryInteractOrgrimmar |
+| `blackrock.js` | 黑石山（熔火团本入口） | sceneBlackrock, buildBlackrockZone, tryInteractBlackrock |
 | `raid.js` | 副本系统 | BOSSES, createBoss, bossAI, DUNGEON, DUNGEONS, getDungeon, buildRaidScene, spawnAdd |
 | `wailing.js` | 哀嚎洞穴 | sceneWailing, WAILING_DUNGEON, buildWailingZone |
 | `ragefire.js` | 怒焰裂谷 | sceneRagefire, RAGEFIRE_DUNGEON, buildRagefireZone |
