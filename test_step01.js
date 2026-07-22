@@ -275,6 +275,9 @@ assert(worldSrc.includes("centaurHerald")&&worldSrc.includes("worldBoss"),"world
 assert(barrensSrc.includes("spawnRaresForZone"),"barrens.js 挂接稀有表");
 const mapSrc=fs.readFileSync(path.join(__dirname,"map.js"),"utf8");
 assert(mapSrc.includes("getRareMapEntries")||mapSrc.includes("m.rare"),"map.js 稀有点走 rare 标记");
+assert(mapSrc.includes("Math.PI-")&&mapSrc.includes("playerMapFace"),"小地图箭头对齐角色面向");
+assert(coreSrc.includes("miniRadius:")||mapSrc.includes("miniRadius"),"小地图本地视野半径");
+assert(mapSrc.includes("collectNearbyMobs")&&mapSrc.includes("drawQuestMark"),"小地图含野怪与任务标记");
 assert(mapSrc.includes("血蹄村")&&mapSrc.includes("纳拉其营地")&&mapSrc.includes("乱风岗")&&mapSrc.includes("十字路口"),"小地图可见莫高雷经典地标");
 
 /* STEP 25 功绩之书冒烟 */

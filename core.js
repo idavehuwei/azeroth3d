@@ -728,6 +728,12 @@ const BALANCE={
     padding:10,
     worldPad:18,            /* 世界地图内边距（留标签） */
     showInRaid:true,        /* 副本内显示局部小地图 */
+    miniRadius:96,          /* 小地图本地视野半宽（世界单位） */
+    miniMobR:110,           /* 显示附近野怪的距离 */
+    miniLabelR:72,          /* 近距地标短标签 */
+    miniParty:true,
+    miniMobs:true,
+    miniQuest:true,
   },
   /* 多场景注册表（STEP 17）：淡入淡出与传送门半径 */
   zones:{

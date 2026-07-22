@@ -8,7 +8,7 @@
           zones.js 运行时（getCurrentZoneId）· raid.js 运行时（ARENA_R）
           rares.js 运行时（getRareMapEntries）
    [导出] updateMinimap toggleWorldMap worldMapOpen closeWorldMap drawWorldMap
-          MAP_ZONES getActiveMapZone setMapZone
+          MAP_ZONES getActiveMapZone setMapZone mapWorldToCanvas playerMapFace
    ============================================================ */
 "use strict";
 
@@ -210,9 +210,24 @@ function setMapZone(id){if(MAP_ZONES[id])_mapZoneId=id;}
 
 const _mm={cv:null,ctx:null,size:0};
 
-function mapWorldToCanvas(x,z,size,pad,R){
+/**
+ * 世界 XZ → 画布 UV
+ * 约定：+X 向右，+Z 向下（南）。
+ * view:{cx,cz,half} 时以玩家为中心的本地视野。
+ */
+function mapWorldToCanvas(x,z,size,pad,R,view){
+  if(view&&view.half>0){
+    const half=view.half;
+    const s=(size-pad*2)/(half*2);
+    return{u:pad+(x-view.cx+half)*s, v:pad+(z-view.cz+half)*s};
+  }
   const s=(size-pad*2)/(R*2);
-  return {u:pad+(x+R)*s, v:pad+(z+R)*s};
+  return{u:pad+(x+R)*s, v:pad+(z+R)*s};
+}
+
+function playerMapFace(){
+  /* 世界朝向 face：前进=(sin,cos)·(x,z)；画布 tip 初值朝上(-v)，需 π-face 才对齐 */
+  return(S.p&&S.p.face!=null)?S.p.face:0;
 }
 
 function liveLandmarkPos(lm){
@@ -313,12 +328,13 @@ function liveLandmarkPos(lm){
   return {x:lm.x,z:lm.z};
 }
 
-function drawTerrain(ctx,size,pad,zone){
+function drawTerrain(ctx,size,pad,zone,view){
   const R=zone.radius();
   const T=zone.terrain||{};
+  const to=(x,z)=>mapWorldToCanvas(x,z,size,pad,R,view);
   ctx.fillStyle=T.bg||"#0c1208";
   ctx.fillRect(0,0,size,size);
-  const g=ctx.createRadialGradient(size/2,size/2,size*.1,size/2,size/2,size*.7);
+  const g=ctx.createRadialGradient(size/2,size/2,size*.08,size/2,size/2,size*.72);
   if(zone.id==="barrens"){
     g.addColorStop(0,"#3a2a14"); g.addColorStop(.55,"#241808"); g.addColorStop(1,"#120e06");
   }else if(zone.id==="durotar"){
@@ -327,42 +343,76 @@ function drawTerrain(ctx,size,pad,zone){
     g.addColorStop(0,"#2a3a1a"); g.addColorStop(.55,"#1a2810"); g.addColorStop(1,"#0c1008");
   }
   ctx.fillStyle=g; ctx.fillRect(0,0,size,size);
-  ctx.beginPath();
-  zone.outline.forEach((p,i)=>{
-    const pt=mapWorldToCanvas(p[0]*R,p[1]*R,size,pad,R);
-    if(i===0)ctx.moveTo(pt.u,pt.v); else ctx.lineTo(pt.u,pt.v);
+
+  /* 水域 POI 软斑 */
+  (zone.landmarks||[]).forEach(lm=>{
+    if(lm.kind!=="poi")return;
+    const lab=lm.label||"";
+    if(lab.indexOf("湖")<0&&lab.indexOf("井")<0&&lab.indexOf("绿洲")<0&&lm.id!=="lake"&&lm.id!=="dead_oasis")return;
+    const pos=liveLandmarkPos(lm);
+    const p=to(pos.x,pos.z);
+    const rad=Math.max(6,size*(view?0.07:0.035));
+    const wg=ctx.createRadialGradient(p.u,p.v,1,p.u,p.v,rad);
+    wg.addColorStop(0,"rgba(80,160,220,.45)");
+    wg.addColorStop(1,"rgba(40,100,160,0)");
+    ctx.fillStyle=wg;
+    ctx.beginPath(); ctx.arc(p.u,p.v,rad,0,Math.PI*2); ctx.fill();
   });
-  ctx.closePath();
-  ctx.fillStyle=T.fill||"rgba(60,90,35,.35)";
-  ctx.fill();
-  ctx.strokeStyle=T.stroke||"rgba(200,160,80,.45)";
-  ctx.lineWidth=1.5;
-  ctx.stroke();
-  ctx.strokeStyle="rgba(140,100,50,.55)";
-  ctx.lineWidth=Math.max(1.5,size/80);
+
+  /* 营地光晕 */
+  (zone.landmarks||[]).forEach(lm=>{
+    if(lm.kind!=="camp")return;
+    const pos=liveLandmarkPos(lm);
+    const p=to(pos.x,pos.z);
+    const rad=Math.max(5,size*(view?0.055:0.028));
+    const cg=ctx.createRadialGradient(p.u,p.v,1,p.u,p.v,rad);
+    cg.addColorStop(0,"rgba(220,170,80,.28)");
+    cg.addColorStop(1,"rgba(180,120,40,0)");
+    ctx.fillStyle=cg;
+    ctx.beginPath(); ctx.arc(p.u,p.v,rad,0,Math.PI*2); ctx.fill();
+  });
+
+  if(!view){
+    ctx.beginPath();
+    zone.outline.forEach((p,i)=>{
+      const pt=to(p[0]*R,p[1]*R);
+      if(i===0)ctx.moveTo(pt.u,pt.v); else ctx.lineTo(pt.u,pt.v);
+    });
+    ctx.closePath();
+    ctx.fillStyle=T.fill||"rgba(60,90,35,.35)";
+    ctx.fill();
+    ctx.strokeStyle=T.stroke||"rgba(200,160,80,.45)";
+    ctx.lineWidth=1.5;
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle="rgba(160,120,60,.7)";
+  ctx.lineWidth=Math.max(1.5,size/(view?55:80));
   if(T.road&&Array.isArray(T.road)){
     const byId={};
     (zone.landmarks||[]).forEach(lm=>{byId[lm.id]=liveLandmarkPos(lm);});
     T.road.forEach(([a,b])=>{
       const pa=byId[a],pb=byId[b]; if(!pa||!pb)return;
-      const ca=mapWorldToCanvas(pa.x,pa.z,size,pad,R);
-      const cb=mapWorldToCanvas(pb.x,pb.z,size,pad,R);
+      const ca=to(pa.x,pa.z);
+      const cb=to(pb.x,pb.z);
       ctx.beginPath(); ctx.moveTo(ca.u,ca.v); ctx.lineTo(cb.u,cb.v); ctx.stroke();
     });
-  }else{
+  }else if(!view){
     const camp=liveLandmarkPos({id:"camp",x:0,z:104});
     const portal=liveLandmarkPos({id:"portal",x:0,z:-344});
-    const ca=mapWorldToCanvas(camp.x,camp.z,size,pad,R);
-    const cb=mapWorldToCanvas(portal.x,portal.z,size,pad,R);
+    const ca=to(camp.x,camp.z);
+    const cb=to(portal.x,portal.z);
     ctx.beginPath(); ctx.moveTo(ca.u,ca.v); ctx.lineTo(cb.u,cb.v); ctx.stroke();
   }
-  const c0=mapWorldToCanvas(0,0,size,pad,R);
-  const edge=mapWorldToCanvas(R,0,size,pad,R);
-  ctx.beginPath();
-  ctx.arc(c0.u,c0.v,Math.abs(edge.u-c0.u),0,Math.PI*2);
-  ctx.strokeStyle="rgba(255,140,60,.2)";
-  ctx.lineWidth=1;
-  ctx.stroke();
+  if(!view){
+    const c0=to(0,0);
+    const edge=to(R,0);
+    ctx.beginPath();
+    ctx.arc(c0.u,c0.v,Math.abs(edge.u-c0.u),0,Math.PI*2);
+    ctx.strokeStyle="rgba(255,140,60,.2)";
+    ctx.lineWidth=1;
+    ctx.stroke();
+  }
 }
 
 function drawBlip(ctx,u,v,color,r,shape){
@@ -385,14 +435,71 @@ function drawBlip(ctx,u,v,color,r,shape){
 function drawPlayerArrow(ctx,u,v,face,color){
   ctx.save();
   ctx.translate(u,v);
-  ctx.rotate(face||0);
+  /* 世界 face=0 朝 +Z（画布向下）；箭头几何 tip 朝本地 -Y（画布向上）→ 转 π-face */
+  ctx.rotate(Math.PI-(face||0));
   ctx.fillStyle=color||"#7ab8ff";
   ctx.strokeStyle="#061018";
-  ctx.lineWidth=1;
+  ctx.lineWidth=1.2;
+  ctx.shadowColor="rgba(0,0,0,.55)";
+  ctx.shadowBlur=3;
   ctx.beginPath();
-  ctx.moveTo(0,-7); ctx.lineTo(5,6); ctx.lineTo(0,3); ctx.lineTo(-5,6);
+  ctx.moveTo(0,-8); ctx.lineTo(5.5,7); ctx.lineTo(0,3.5); ctx.lineTo(-5.5,7);
   ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.restore();
+}
+
+function drawCompassN(ctx,size){
+  ctx.save();
+  ctx.fillStyle="#e8c080";
+  ctx.font="bold 11px 'Noto Sans SC','Microsoft YaHei',sans-serif";
+  ctx.textAlign="center";
+  ctx.textBaseline="top";
+  ctx.shadowColor="rgba(0,0,0,.8)";
+  ctx.shadowBlur=2;
+  ctx.fillText("N",size/2,4);
+  ctx.restore();
+}
+
+function drawQuestMark(ctx,u,v,kind){
+  ctx.save();
+  ctx.font="bold 12px Georgia,serif";
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+  ctx.lineWidth=2;
+  ctx.strokeStyle="#1a1008";
+  ctx.fillStyle=kind==="turnin"?"#ffd060":"#ffe040";
+  const ch=kind==="turnin"?"?":"!";
+  ctx.strokeText(ch,u,v-9);
+  ctx.fillText(ch,u,v-9);
+  ctx.restore();
+}
+
+function collectNearbyMobs(cx,cz,maxR,zid){
+  const list=[];
+  if(typeof MOBS==="undefined"||!BAL.map.miniMobs)return list;
+  const r2=maxR*maxR;
+  for(const m of MOBS){
+    if(!m||m.state==="dead"||!m.mesh)continue;
+    if((m.zoneId||"mulgore")!==zid)continue;
+    const dx=m.mesh.position.x-cx, dz=m.mesh.position.z-cz;
+    if(dx*dx+dz*dz>r2)continue;
+    list.push({
+      x:m.mesh.position.x, z:m.mesh.position.z,
+      elite:!!m.elite, rare:!!(m.rare||m.worldBoss),
+      hostile:m.aggroR==null||m.aggroR>0,
+    });
+  }
+  return list;
+}
+
+function collectPartyBlips(){
+  const list=[];
+  if(!BAL.map.miniParty||typeof PARTY==="undefined")return list;
+  for(const c of PARTY){
+    if(!c||!c.alive||!c.mesh)continue;
+    list.push({x:c.mesh.position.x,z:c.mesh.position.z,role:c.role||"dps"});
+  }
+  return list;
 }
 
 function collectDynamicElites(){
@@ -418,33 +525,73 @@ function paintMap(ctx,size,opts){
   const pad=opts.pad!=null?opts.pad:BAL.map.padding;
   const R=zone.radius();
   const showLabels=!!opts.labels;
-  drawTerrain(ctx,size,pad,zone);
+  const view=opts.view||null;
+  const enrich=!!opts.enrich;
+  const to=(x,z)=>mapWorldToCanvas(x,z,size,pad,R,view);
+  const px=(typeof player!=="undefined"&&player)?player.position.x:0;
+  const pz=(typeof player!=="undefined"&&player)?player.position.z:0;
 
+  drawTerrain(ctx,size,pad,zone,view);
+
+  /* 附近野怪（小地图 enrich） */
+  if(enrich){
+    const mobR=BAL.map.miniMobR||110;
+    const mobs=collectNearbyMobs(px,pz,mobR,zone.id);
+    for(const m of mobs){
+      const p=to(m.x,m.z);
+      const col=m.rare?"#ffd700":m.elite?"#ff9ad0":(m.hostile?"#e06050":"#c8b070");
+      drawBlip(ctx,p.u,p.v,col,m.elite||m.rare?3.2:2.2,m.rare?"diamond":"circle");
+    }
+    const party=collectPartyBlips();
+    for(const c of party){
+      const p=to(c.x,c.z);
+      const col=c.role==="tank"?"#6a9cff":c.role==="healer"?"#6aff9a":"#ffc060";
+      drawBlip(ctx,p.u,p.v,col,3.4,"square");
+    }
+  }
+
+  const labelR=BAL.map.miniLabelR||72;
   for(const lm of zone.landmarks){
     const pos=liveLandmarkPos(lm);
-    const p=mapWorldToCanvas(pos.x,pos.z,size,pad,R);
+    if(view){
+      const dx=pos.x-view.cx, dz=pos.z-view.cz;
+      if(dx*dx+dz*dz>(view.half*1.35)*(view.half*1.35))continue;
+    }
+    const p=to(pos.x,pos.z);
+    if(p.u<-8||p.v<-8||p.u>size+8||p.v>size+8)continue;
     const shape=lm.kind==="portal"?"diamond":lm.kind==="camp"?"square":"circle";
-    drawBlip(ctx,p.u,p.v,lm.color,showLabels?5:3.5,shape);
-    if(showLabels){
-      ctx.fillStyle="#e8d8bc";
-      ctx.font="10px 'Noto Sans SC','Microsoft YaHei',sans-serif";
+    const r=showLabels?5:(lm.kind==="portal"||lm.kind==="camp"?4:3.2);
+    drawBlip(ctx,p.u,p.v,lm.color,r,shape);
+
+    let qk=null;
+    if(enrich&&BAL.map.miniQuest!==false&&lm.kind==="npc"&&typeof npcHasQuestOffer==="function"){
+      if(npcHasQuestTurnIn(lm.id))qk="turnin";
+      else if(npcHasQuestOffer(lm.id))qk="offer";
+    }
+    if(qk)drawQuestMark(ctx,p.u,p.v,qk);
+
+    const near=enrich&&!showLabels&&Math.hypot(pos.x-px,pos.z-pz)<=labelR
+      &&(lm.kind==="camp"||lm.kind==="portal"||lm.kind==="poi");
+    if(showLabels||near){
+      ctx.fillStyle=near?"#e8d8bc":"#e8d8bc";
+      ctx.font=(near?"9px":"10px")+" 'Noto Sans SC','Microsoft YaHei',sans-serif";
       ctx.textAlign="left";
-      ctx.fillText(lm.label,p.u+7,p.v+3);
+      ctx.fillText(lm.label,p.u+6,p.v+3);
     }
   }
 
   const dyn=collectDynamicElites();
   if(dyn.length){
     for(const e of dyn){
-      const p=mapWorldToCanvas(e.x,e.z,size,pad,R);
+      const p=to(e.x,e.z);
       drawBlip(ctx,p.u,p.v,e.color,showLabels?5:3.5,e.rare?"diamond":"circle");
     }
-  }else{
+  }else if(!enrich){
     const staticElites=typeof getRareMapEntries==="function"
       ?getRareMapEntries(zone.id)
       :(zone.elites||[]);
     for(const e of staticElites){
-      const p=mapWorldToCanvas(e.x,e.z,size,pad,R);
+      const p=to(e.x,e.z);
       drawBlip(ctx,p.u,p.v,e.color,showLabels?5:3.5,e.rare?"diamond":"circle");
       if(showLabels){
         ctx.fillStyle=e.color;
@@ -455,10 +602,17 @@ function paintMap(ctx,size,opts){
   }
 
   if(typeof player!=="undefined"&&player){
-    const p=mapWorldToCanvas(player.position.x,player.position.z,size,pad,R);
-    const face=(S.p&&S.p.face!=null)?S.p.face:0;
-    drawPlayerArrow(ctx,p.u,p.v,face,"#7ab8ff");
+    const p=to(player.position.x,player.position.z);
+    /* 玩家位置环 */
+    ctx.save();
+    ctx.strokeStyle="rgba(120,180,255,.45)";
+    ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(p.u,p.v,10,0,Math.PI*2); ctx.stroke();
+    ctx.restore();
+    drawPlayerArrow(ctx,p.u,p.v,playerMapFace(),"#7ab8ff");
   }
+
+  if(opts.compass)drawCompassN(ctx,size);
 }
 
 function ensureMinimap(){
@@ -488,24 +642,61 @@ function updateMinimap(){
     title.textContent=(zn&&zn.name?zn.name:S.mode==="raid"?"熔火之心":"莫高雷").split("").join(" ");
   }
   const size=_mm.size, pad=BAL.map.padding;
-  _mm.ctx.clearRect(0,0,size,size);
+  const ctx=_mm.ctx;
+  ctx.clearRect(0,0,size,size);
+  /* 圆形裁剪（魔兽式小地图） */
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(size/2,size/2,size/2-1.5,0,Math.PI*2);
+  ctx.clip();
+
   if(S.mode==="raid"){
     const R=(typeof ARENA_R==="number"?ARENA_R:26)+4;
-    _mm.ctx.fillStyle="#1a0802";
-    _mm.ctx.fillRect(0,0,size,size);
-    const c=mapWorldToCanvas(0,0,size,pad,R);
-    const edge=mapWorldToCanvas(R,0,size,pad,R);
-    _mm.ctx.beginPath();
-    _mm.ctx.arc(c.u,c.v,Math.abs(edge.u-c.u),0,Math.PI*2);
-    _mm.ctx.strokeStyle="rgba(255,100,40,.35)";
-    _mm.ctx.stroke();
-    if(player){
-      const p=mapWorldToCanvas(player.position.x,player.position.z,size,pad,R);
-      drawPlayerArrow(_mm.ctx,p.u,p.v,S.p.face,"#7ab8ff");
+    const half=Math.min(R,BAL.map.miniRadius||96);
+    const view={
+      cx:player?player.position.x:0,
+      cz:player?player.position.z:0,
+      half,
+    };
+    ctx.fillStyle="#1a0802";
+    ctx.fillRect(0,0,size,size);
+    const zone=getActiveMapZone();
+    const to=(x,z)=>mapWorldToCanvas(x,z,size,pad,zone.radius(),view);
+    const c=to(0,0);
+    const edge=to(R,0);
+    ctx.beginPath();
+    ctx.arc(c.u,c.v,Math.abs(edge.u-c.u),0,Math.PI*2);
+    ctx.strokeStyle="rgba(255,100,40,.35)";
+    ctx.stroke();
+    if(typeof MOBS!=="undefined"){
+      for(const m of MOBS){
+        if(!m||m.state==="dead"||!m.mesh)continue;
+        if((m.zoneId||"")&&m.zoneId!==zone.id&&zone.id!=="molten_core")continue;
+        const p=to(m.mesh.position.x,m.mesh.position.z);
+        drawBlip(ctx,p.u,p.v,m.elite?"#ff9ad0":"#e06050",2.4,"circle");
+      }
     }
+    if(player){
+      const p=to(player.position.x,player.position.z);
+      drawPlayerArrow(ctx,p.u,p.v,playerMapFace(),"#7ab8ff");
+    }
+    drawCompassN(ctx,size);
   }else{
-    paintMap(_mm.ctx,size,{pad,labels:false});
+    const half=BAL.map.miniRadius||96;
+    const view={
+      cx:player?player.position.x:0,
+      cz:player?player.position.z:0,
+      half,
+    };
+    paintMap(ctx,size,{pad,labels:false,view,enrich:true,compass:true});
   }
+  ctx.restore();
+  /* 外圈描边 */
+  ctx.beginPath();
+  ctx.arc(size/2,size/2,size/2-1.5,0,Math.PI*2);
+  ctx.strokeStyle="rgba(255,160,70,.55)";
+  ctx.lineWidth=2;
+  ctx.stroke();
   if(worldMapOpen())drawWorldMap();
 }
 
