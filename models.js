@@ -8,7 +8,7 @@
           tintNpcCloth
           buildBoar buildFlameSpawn
           buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem buildMarketStall buildCratePile
-          BUILD_PAL placeProp（plan-v1 · V1-A1）
+          BUILD_PAL placeProp（plan-v1 · V1-A1；R3 升级 tent/totem/campfire）
    ------------------------------------------------------------
     3D 模型库（全部程序化几何体，零模型文件）
    STEP 4：人形基座 buildHumanoid(config)——躯干/四肢/头/披风 + 动画挂点，
@@ -1141,7 +1141,7 @@ function buildHut(cfg){
   return g;
 }
 
-/** 兽皮帐篷：锥顶 + 一圈木桩 */
+/** 兽皮帐篷：hide 贴图锥顶 + 缝线环 + 门帘 + 木桩（plan-V2 · R3） */
 function buildTent(cfg){
   const c=Object.assign({
     hide:BUILD_PAL.mulgore.hide, stake:BUILD_PAL.mulgore.stake,
@@ -1149,15 +1149,36 @@ function buildTent(cfg){
   },cfg||{});
   const g=new THREE.Group();
   const hide=MAT.get("fur.tent",{color:c.hide,roughness:.95,flatShading:true});
+  const hideD=MAT.get("fur.hideDark",{color:c.hide,roughness:.98,flatShading:true});
   const stakeM=MAT.get("wood.stake",{color:c.stake,roughness:1,flatShading:true});
   const cone=new THREE.Mesh(new THREE.ConeGeometry(c.r,c.h,7),hide);
   cone.position.y=c.h/2; g.add(cone);
+  /* 缝线环（几何细节） */
+  for(const t of [.28,.52,.78]){
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(c.r*(1-t*.55),.04,5,14),hideD);
+    ring.rotation.x=Math.PI/2;
+    ring.position.y=c.h*t;
+    ring.scale.set(1,1,.35);
+    g.add(ring);
+  }
+  /* 门帘 */
+  const flap=new THREE.Mesh(new THREE.PlaneGeometry(c.r*.7,c.h*.55),hideD);
+  flap.position.set(0,c.h*.28,c.r*.72);
+  flap.rotation.x=-.08;
+  g.add(flap);
   const n=Math.max(3,c.stakes|0);
   for(let k=0;k<n;k++){
     const a=k/n*Math.PI*2;
     const st=new THREE.Mesh(new THREE.ConeGeometry(.18,c.h*.55,5),stakeM);
     st.position.set(Math.cos(a)*c.r*.92,c.h*.22,Math.sin(a)*c.r*.92);
     g.add(st);
+  }
+  /* 顶上撑杆 */
+  for(let k=0;k<3;k++){
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,c.h*.35,5),stakeM);
+    pole.position.set(Math.cos(k)* .35,c.h+.15,Math.sin(k)*.35);
+    pole.rotation.set(.2*(k-1),0,.15*(k-1));
+    g.add(pole);
   }
   g.scale.setScalar(c.size);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
@@ -1218,7 +1239,7 @@ function buildWatchtower(cfg){
   return g;
 }
 
-/** 营火：石圈 + 火苗 + 点光；调用方把 fl/li 推进 flames 数组 */
+/** 营火：柴堆 + 多层火焰锥 + 火星 + 点光（plan-V2 · R3）；fl/li 兼容 worldFlames */
 function buildCampfire(cfg){
   const c=Object.assign({
     stone:0x6a5040, flame:0xffa030, light:0xff8a30,
@@ -1226,40 +1247,70 @@ function buildCampfire(cfg){
   },cfg||{});
   const g=new THREE.Group();
   const stoneM=MAT.get("rock.camp",{color:c.stone,roughness:1,flatShading:true});
+  const woodM=MAT.get("wood.prop",{color:0x4a3020,roughness:1,flatShading:true});
   for(let k=0;k<6;k++){
     const a=k/6*Math.PI*2;
     const st=new THREE.Mesh(new THREE.DodecahedronGeometry(.38,0),stoneM);
     st.position.set(Math.cos(a)*c.r,.28,Math.sin(a)*c.r); g.add(st);
   }
-  const fl=new THREE.Mesh(new THREE.ConeGeometry(.65,1.6,7),
-    new THREE.MeshBasicMaterial({color:c.flame,transparent:true,opacity:.9}));
-  fl.position.y=1.0; g.add(fl);
+  /* 柴堆 */
+  for(let k=0;k<5;k++){
+    const log=new THREE.Mesh(new THREE.CylinderGeometry(.12,.14,1.35,6),woodM);
+    log.rotation.z=Math.PI/2;
+    log.rotation.y=k/5*Math.PI*2;
+    log.position.set(Math.cos(k)* .25,.22,Math.sin(k)*.25);
+    g.add(log);
+  }
+  const layers=[];
+  const specs=[
+    {h:1.7,r:.7,y:1.05,col:c.flame,op:.92,freq:8},
+    {h:1.35,r:.48,y:.95,col:0xffcc44,op:.75,freq:11},
+    {h:1.0,r:.32,y:.85,col:0xfff0a0,op:.55,freq:14},
+  ];
+  specs.forEach((s,i)=>{
+    const fl=new THREE.Mesh(new THREE.ConeGeometry(s.r,s.h,7),
+      new THREE.MeshBasicMaterial({color:s.col,transparent:true,opacity:s.op,depthWrite:false}));
+    fl.position.y=s.y; g.add(fl);
+    layers.push({mesh:fl,freq:s.freq,phase:i*1.7});
+  });
+  const fl=layers[0].mesh;
   const li=new THREE.PointLight(c.light,c.intensity,c.dist,1.8);
   li.position.y=2.0; g.add(li);
+  if(typeof PROPS!=="undefined"&&PROPS.attachCampfireEmbers)PROPS.attachCampfireEmbers(g,0,0);
   g.scale.setScalar(c.size);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   g.userData.building="campfire";
-  g.userData.flame={fl,li};
+  g.userData.flame={fl,li,layers};
   return g;
 }
 
-/** 图腾柱：木柱 + 色环 + 横翼 */
+/** 图腾柱：bark 木柱 + 噪点彩绘环 + 横翼（plan-V2 · R3） */
 function buildTotem(cfg){
   const c=Object.assign({
     wood:0x5a3820, paintA:0xd94f2a, paintB:0x3a7ac9, h:7.2, size:1,
   },cfg||{});
   const g=new THREE.Group();
-  const wood=MAT.get("wood.build",{color:c.wood,roughness:.9,flatShading:true});
+  const wood=MAT.get("wood.totem",{color:c.wood,roughness:.9,flatShading:true});
   const aM=MAT.get("paint.a",{color:c.paintA,roughness:.8});
   const bM=MAT.get("paint.b",{color:c.paintB,roughness:.8});
   const pole=new THREE.Mesh(new THREE.CylinderGeometry(.48,.6,c.h,7),wood);
   pole.position.y=c.h/2; g.add(pole);
-  [[c.h*.28,aM],[c.h*.5,bM],[c.h*.72,aM]].forEach(([y,m])=>{
+  [[c.h*.28,aM],[c.h*.5,bM],[c.h*.72,aM]].forEach(([y,m],i)=>{
     const ring=new THREE.Mesh(new THREE.CylinderGeometry(.68,.68,.5,7),m);
     ring.position.y=y; g.add(ring);
+    /* 噪点块：彩绘斑驳感 */
+    for(let k=0;k<4;k++){
+      const blot=new THREE.Mesh(new THREE.BoxGeometry(.22,.28,.12),i%2?bM:aM);
+      const ang=k/4*Math.PI*2+(i*.4);
+      blot.position.set(Math.cos(ang)*.7,y+((k%2)*.15-.08),Math.sin(ang)*.7);
+      blot.rotation.y=ang;
+      g.add(blot);
+    }
   });
   const wing=new THREE.Mesh(new THREE.BoxGeometry(3.2,.5,.22),bM);
   wing.position.y=c.h*.95; g.add(wing);
+  const tip=new THREE.Mesh(new THREE.ConeGeometry(.35,.7,6),wood);
+  tip.position.y=c.h+.35; g.add(tip);
   g.scale.setScalar(c.size);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   g.userData.building="totem";

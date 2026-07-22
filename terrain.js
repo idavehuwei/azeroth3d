@@ -6,6 +6,7 @@
           textures.js（可选 Tex.get）
    [导出] heightAt buildMulgoreTerrain TERRAIN
           heightAt(x,z) → number（与网格同一公式，确定性）
+          TERRAIN.slopeAt / roadWeight / lakeBlend（props 植被筛选）
           buildMulgoreTerrain(cfg) → {mesh, size, segs}
    ============================================================ */
 "use strict";
@@ -357,6 +358,8 @@ const TERRAIN=(function(){
   return{
     heightAt,
     slopeAt,
+    roadWeight,
+    lakeBlend,
     buildMulgoreTerrain,
     get cfg(){return CFG;},
     _arm(cfg){

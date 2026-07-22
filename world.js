@@ -4,6 +4,7 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ rand srand worldRng BAL makeLabel scene camera setZoneSeed）
           palette.js（PALETTE · MAT）· terrain.js（heightAt · buildMulgoreTerrain）
+          props.js（spawnMulgoreProps · updateProps）
           zones.js（registerZone enterZone）
           models.js（buildPlayer buildBoss buildElder buildVendor buildSpiritHealer
             tintNpcCloth buildHut buildTent buildFence buildWatchtower buildCampfire
@@ -161,15 +162,21 @@ const _terrainBuilt=buildMulgoreTerrain({
 sceneWorld.add(_terrainBuilt.mesh);
 function _gy(x,z){return heightAt(x,z);}
 
-/* 石牛湖 + 水井旁水洼 */
-const pond=new THREE.Mesh(new THREE.CircleGeometry(24,48),
-  MAT.get("water.pond"));
-pond.rotation.x=-Math.PI/2;
-pond.position.set(REDROCK_LAKE.x,_gy(REDROCK_LAKE.x,REDROCK_LAKE.z)+.08,REDROCK_LAKE.z); sceneWorld.add(pond);
-[[MULGORE.thunderhorn.x-6,MULGORE.thunderhorn.z+4,7],[MULGORE.winterhoof.x+4,MULGORE.winterhoof.z-3,6]].forEach(([x,z,r])=>{
-  const p=new THREE.Mesh(new THREE.CircleGeometry(r,24),MAT.get("water.pond"));
-  p.rotation.x=-Math.PI/2;
-  p.position.set(x,_gy(x,z)+.06,z); sceneWorld.add(p);
+/* 篝火引用（placeMulgoreCampBuildings 填充；旧散布已迁至 props.js） */
+const worldFlames=[];
+
+/* 植被 · 镜湖 · 云（plan-V2 · R3）—— 替换静态 pond / 旧树岩帐篷散布 */
+spawnMulgoreProps(sceneWorld,{
+  worldR:WORLD_R,
+  camp:BLOODHOOF,
+  avoid:[
+    {x:BLOODHOOF.x,z:BLOODHOOF.z,r:55},
+    {x:CAMP_NARACHE.x,z:CAMP_NARACHE.z,r:40},
+    {x:MULGORE.thunderBluff.x,z:MULGORE.thunderBluff.z,r:55},
+    {x:MULGORE.redCloud.x,z:MULGORE.redCloud.z,r:50},
+    {x:MULGORE.windfury.x,z:MULGORE.windfury.z,r:45},
+    {x:REDROCK_LAKE.x,z:REDROCK_LAKE.z,r:40},
+  ],
 });
 
 /* 风投矿洞洞口 */
@@ -210,103 +217,6 @@ for(let i=0;i<10;i++){
     const cliff=new THREE.Mesh(new THREE.CylinderGeometry(srand(2.5,4.5),srand(3,5.5),h,7),mesaMat);
     cliff.position.set(x,_gy(x,z)+h*.35,z); cliff.castShadow=true; sceneWorld.add(cliff);
   }
-});
-/* 散布的树木与巨石 */
-const trunkMat=MAT.get("wood.trunk");
-const leafMat=MAT.get("grass.canopy");
-const boulderMat=MAT.get("rock.boulder");
-for(let i=0;i<14;i++){
-  const a=srand(0,6.28),r=srand(20,WORLD_R-10);
-  const x=Math.cos(a)*r,z=Math.sin(a)*r;
-  if(Math.hypot(x-BLOODHOOF.x,z-BLOODHOOF.z)<55)continue;
-  if(Math.hypot(x-CAMP_NARACHE.x,z-CAMP_NARACHE.z)<40)continue;
-  if(Math.hypot(x-MULGORE.thunderBluff.x,z-MULGORE.thunderBluff.z)<55)continue;
-  if(Math.hypot(x-MULGORE.redCloud.x,z-MULGORE.redCloud.z)<50)continue;
-  if(Math.hypot(x-MULGORE.windfury.x,z-MULGORE.windfury.z)<45)continue;
-  if(Math.hypot(x-REDROCK_LAKE.x,z-REDROCK_LAKE.z)<40)continue;
-  if(typeof TERRAIN!=="undefined"&&TERRAIN.cfg&&TERRAIN.cfg.ready){
-    /* 避开土路带 */
-    try{
-      const rw=(function(){
-        const roads=TERRAIN.cfg.roads||[];
-        let best=1e9;
-        for(let r=0;r<roads.length;r++){
-          const pts=roads[r].pts; if(!pts)continue;
-          for(let i=0;i<pts.length-1;i++){
-            const a=pts[i],b=pts[i+1];
-            const abx=b.x-a.x,abz=b.z-a.z,len2=abx*abx+abz*abz;
-            let t=len2<1e-6?0:((x-a.x)*abx+(z-a.z)*abz)/len2;
-            t=Math.max(0,Math.min(1,t));
-            const d=Math.hypot(x-(a.x+abx*t),z-(a.z+abz*t));
-            if(d<best)best=d;
-          }
-        }
-        return best;
-      })();
-      if(rw<8)continue;
-    }catch(e){}
-  }
-  if(worldRng()<.65){
-    const th=srand(3,5);
-    const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.35,.5,th,6),trunkMat);
-    const gy=_gy(x,z);
-    trunk.position.set(x,gy+th/2,z); trunk.castShadow=true; sceneWorld.add(trunk);
-    const leaf=new THREE.Mesh(new THREE.SphereGeometry(srand(1.8,2.8),7,6),leafMat);
-    leaf.position.set(x,gy+th+1.4,z); leaf.scale.y=.8; leaf.castShadow=true; sceneWorld.add(leaf);
-  }else{
-    const b=new THREE.Mesh(new THREE.DodecahedronGeometry(srand(1,2.4),0),boulderMat);
-    b.position.set(x,_gy(x,z)+.6,z); b.castShadow=true; b.receiveShadow=true; sceneWorld.add(b);
-  }
-}
-
-/* 血蹄村：兽皮帐篷 + 图腾柱 + 篝火 */
-const hideMat=MAT.get("fur.hide");
-const hideMat2=MAT.get("fur.hideDark");
-const _bh=BLOODHOOF;
-[[_bh.x+28,_bh.z-4],[_bh.x-30,_bh.z-8],[_bh.x+14,_bh.z+22]].forEach(([x,z],i)=>{
-  const gy=_gy(x,z);
-  const tent=new THREE.Mesh(new THREE.ConeGeometry(4.2,6.8,8),i%2?hideMat:hideMat2);
-  tent.position.set(x,gy+3.4,z); tent.castShadow=true; sceneWorld.add(tent);
-  for(let k=0;k<3;k++){
-    const pole=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,2.4,5),trunkMat);
-    pole.position.set(x+srand(-.5,.5),gy+7.4,z+srand(-.5,.5));
-    pole.rotation.set(srand(-.3,.3),0,srand(-.3,.3)); sceneWorld.add(pole);
-  }
-});
-/* 纳拉其营地小帐篷 */
-[[CAMP_NARACHE.x+10,CAMP_NARACHE.z-6],[CAMP_NARACHE.x-12,CAMP_NARACHE.z+4]].forEach(([x,z],i)=>{
-  const gy=_gy(x,z);
-  const tent=new THREE.Mesh(new THREE.ConeGeometry(3.4,5.4,8),i%2?hideMat2:hideMat);
-  tent.position.set(x,gy+2.7,z); tent.castShadow=true; sceneWorld.add(tent);
-});
-/* 图腾柱 */
-const paintA=MAT.get("paint.red",{color:PALETTE.paintRed.base,roughness:.8});
-const paintB=MAT.get("paint.blue",{color:PALETTE.paintBlue.base,roughness:.8});
-[[_bh.x-14,_bh.z+12],[_bh.x+22,_bh.z+16],[MULGORE.thunderBluff.x-8,MULGORE.thunderBluff.z+6]].forEach(([x,z])=>{
-  const gy=_gy(x,z);
-  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.55,.7,7.5,7),trunkMat);
-  pole.position.set(x,gy+3.75,z); pole.castShadow=true; sceneWorld.add(pole);
-  [[1.8,paintA],[3.6,paintB],[5.4,paintA]].forEach(([y,m])=>{
-    const ring=new THREE.Mesh(new THREE.CylinderGeometry(.72,.72,.55,7),m);
-    ring.position.set(x,gy+y,z); sceneWorld.add(ring);
-  });
-  const wing=new THREE.Mesh(new THREE.BoxGeometry(3.4,.55,.25),paintB);
-  wing.position.set(x,gy+7,z); sceneWorld.add(wing);
-});
-/* 篝火（存引用做火光闪烁） */
-const worldFlames=[];
-[[_bh.x,_bh.z+4],[CAMP_NARACHE.x,CAMP_NARACHE.z]].forEach(([x,z])=>{
-  const gy=_gy(x,z);
-  for(let k=0;k<6;k++){
-    const a=k/6*Math.PI*2;
-    const st=new THREE.Mesh(new THREE.DodecahedronGeometry(.4,0),boulderMat);
-    st.position.set(x+Math.cos(a)*1.1,gy+.3,z+Math.sin(a)*1.1); sceneWorld.add(st);
-  }
-  const fl=new THREE.Mesh(new THREE.ConeGeometry(.7,1.8,7),
-    new THREE.MeshBasicMaterial({color:0xffa030,transparent:true,opacity:.92}));
-  fl.position.set(x,gy+1.1,z); sceneWorld.add(fl);
-  const li=new THREE.PointLight(0xff8a30,1.4,22,1.8); li.position.set(x,gy+2.2,z); sceneWorld.add(li);
-  worldFlames.push({fl,li});
 });
 /* 水井标记（雷角 / 冬蹄） */
 [[MULGORE.thunderhorn.x,MULGORE.thunderhorn.z,"雷角水井"],[MULGORE.winterhoof.x,MULGORE.winterhoof.z,"冬蹄水井"]].forEach(([x,z,lab])=>{

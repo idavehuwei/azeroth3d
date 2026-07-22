@@ -17,6 +17,7 @@
           buffs.js 运行时（tickBuffs）
           anim.js 运行时（updateMobAnim updateBossWingAnim）
           weather.js 运行时（updateWeather）
+          props.js 运行时（updateProps）
           items.js（updateDrops nearestDrop removeDropOf cancelConsume）
           vfx.js（VFX spawnBurst fireProjectile disposeVfxMesh）
           raid.js 运行时（bossAI distToBoss bossTargetable DUNGEON）
@@ -98,6 +99,7 @@ function tick(){
   S.t+=dt;
   if(typeof lavaUniforms!=="undefined"&&lavaUniforms)lavaUniforms.uTime.value=S.t;
   if(typeof portalUni!=="undefined"&&portalUni)portalUni.uTime.value=S.t;
+  if(typeof updateProps==="function")updateProps(S.t,dt);
   updateFps(dt);
 
   /* 出口传送门动画 */
@@ -165,6 +167,11 @@ function tick(){
     if(flames)flames.forEach((f,i)=>{
       f.fl.scale.y=1+Math.sin(S.t*8+i*2)*.2;
       f.li.intensity=1.2+Math.sin(S.t*9+i)*.35+nightFactor*dn.campfire.nightBoost;
+      if(f.layers)f.layers.forEach((ly,j)=>{
+        if(!ly.mesh)return;
+        ly.mesh.scale.y=1+Math.sin(S.t*ly.freq+ly.phase+i)*.22;
+        ly.mesh.scale.x=1+Math.sin(S.t*(ly.freq*.7)+j)*.08;
+      });
     });
     if(cz.id==="mulgore"&&fireflies){
       fireflies.material.opacity=nightFactor*.7;

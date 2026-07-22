@@ -630,8 +630,22 @@ assert(!/CircleGeometry\(WORLD_R\+50/.test(worldSrc),"莫高雷不再用大圆�
   assert(Number.isFinite(mid)&&mid>-10&&mid<12,"heightAt 值域合理");
 })();
 
+/* plan-V2 · R3 植被 · 水体 · 场景道具 */
+assert(html.includes('src="props.js"'),"game.html 加载 props.js");
+assert(coreSrc.includes("props:{")&&coreSrc.includes("grassCount:"),"BALANCE.props 草数量");
+const propsSrc=fs.readFileSync(path.join(__dirname,"props.js"),"utf8");
+assert(propsSrc.includes("InstancedMesh")||propsSrc.includes("buildGrassField"),"props.js 含草丛 InstancedMesh 工厂");
+assert(propsSrc.includes("buildPine")&&propsSrc.includes("buildOak"),"props.js 含松/橡工厂");
+assert(propsSrc.includes("buildMirrorLake")&&propsSrc.includes("buildCloudField"),"props.js 含镜湖/云");
+assert(propsSrc.includes("spawnMulgoreProps")&&propsSrc.includes("updateProps"),"props.js 导出 spawn/update");
+assert(worldSrc.includes("spawnMulgoreProps"),"world.js 调用 spawnMulgoreProps");
+assert(!worldSrc.includes('MAT.get("water.pond")'),"莫高雷不再用静态 water.pond 圆盘");
+assert(modelsSrc.includes("柴堆")||modelsSrc.includes("多层火焰")||modelsSrc.includes("layers"),"营火已升级多层火焰");
+assert(modelsSrc.includes("门帘")||modelsSrc.includes("缝线"),"帐篷含细节几何");
+assert(mainSrc.includes("updateProps"),"main.js 驱动 props 动画");
+
 if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–29 … / V1 · plan-V2 R0–R2 冒烟");
+console.log("\n全部通过 · STEP 17–29 … / V1 · plan-V2 R0–R3 冒烟");
