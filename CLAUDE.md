@@ -76,9 +76,10 @@
 
 ## 开发进度
 
-- 已执行账本：`plan-merged.md`（STEP 0–29 / v4.0 完成）
+- 已执行账本：早期路线见 `plan-v0.md`；STEP 0–29 / v4.0 已收口
 - **plan-V2 已完成：R0–R8 + G1–G7（M1–M5）**（见 `plan-V2.md`）
 - **plan-V3：C0–C11、C13、Track E 已完成**；下一步见 `plan-V3.md`（C12 等）
+- 当前主线：`plan-v4.md`
 - 公式单测：`node test_formulas.js`
 - 后续可对照 `plan-v1.md` 打磨内容；默认不做联机
 
@@ -90,7 +91,8 @@
 
 - `README.md` — 项目介绍与快速开始
 - `AGENTS.md` — AI 协作角色定义
-- `plan-merged.md` — 逐步执行计划
+- `plan-v4.md` — 当前逐步执行计划
+- `plan-v0.md` — 早期计划底稿（归档）
 - `DESIGN.md` — 设计语言与视觉规范
 - `CONTRIBUTING.md` — 贡献指南
 - `DEPLOY.md` — 部署指南
