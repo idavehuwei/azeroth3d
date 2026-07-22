@@ -48,6 +48,7 @@ function spawnRareEntry(entry){
     zoneId:entry.zone,
     rare:!!entry.rare,
     worldBoss:!!entry.worldBoss,
+    elite:!!(entry.elite||entry.rare||entry.worldBoss),
     rareId:entry.id,
   };
   if(entry.name)opts.name=entry.name;
