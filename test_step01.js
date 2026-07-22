@@ -218,10 +218,26 @@ assert(coreSrc.includes("level:3")||coreSrc.includes("boar    :{level:"),"野怪
 assert(html.includes("Q/E 平移")||html.includes("A/D 转向"),"操作提示含魔兽式键位");
 assert(questsSrc.includes("function tickQuestWorld")&&questsSrc.includes("function onQuestUseItem"),"V1-B2 到达/使用/护送 API");
 assert(questsSrc.includes("flags:")&&questsSrc.includes("collectQuestSave"),"任务存档含 flags");
-assert(coreSrc.includes("radius:184")||coreSrc.includes("radius:176"),"V1-B2 开放区半径扩大");
-assert(worldSrc.includes("WORLD_R=176")||worldSrc.includes("WORLD_R = 176"),"莫高雷 WORLD_R×2");
+assert(coreSrc.includes("radius:368")||coreSrc.includes("radius:352"),"V2 开放区半径再×2");
+assert(worldSrc.includes("WORLD_R=352")||worldSrc.includes("WORLD_R = 352"),"莫高雷 WORLD_R×2→352");
+assert(worldSrc.includes("BLOODHOOF")&&worldSrc.includes("REDROCK_LAKE")&&worldSrc.includes("CAMP_NARACHE"),"血蹄村/石牛湖/纳拉其常量");
+assert(worldSrc.includes("MULGORE")&&worldSrc.includes("mulgoreWow")&&worldSrc.includes("*.82"),"经典莫高雷坐标映射铺满");
+assert(worldSrc.includes("palemane")&&worldSrc.includes("windfury")&&worldSrc.includes("baeldun"),"莫高雷分区怪种");
+assert(modelsSrc.includes("buildMeleeHumanoid")&&modelsSrc.includes("kodo"),"科多/人形敌对工厂");
 assert(html.includes("#questLogBody")&&html.includes("ql-split")&&html.includes("overflow-y:auto"),"L 任务日志左右分栏可滚动");
-assert(itemsSrc.includes("quest_sacred_oil")&&itemsSrc.includes("barrens_cleaver")&&itemsSrc.includes("ochre_fang"),"V1-B2 任务物与分区装备");
+assert(itemsSrc.includes("quest_sacred_oil")&&itemsSrc.includes("quest_winterhoof_totem")&&itemsSrc.includes("barrens_cleaver")&&itemsSrc.includes("ochre_fang"),"V1-B2 任务物与分区装备");
+assert(worldSrc.includes("placeTalkNpc")&&worldSrc.includes("_mulgoreInteractNpcs")&&worldSrc.includes("registerNpcInteract"),"莫高雷 NPC 统一 F 对话注册");
+assert((worldSrc.match(/placeTalkNpc\(/g)||[]).length>=24,"莫高雷可对话 NPC≥24");
+assert(barrensSrc.includes("barrensWow")&&barrensSrc.includes("CROSSROADS")&&barrensSrc.includes("placeBarrensTalkNpc"),"贫瘠十字路口 POI/NPC 工厂");
+const mainSrc=fs.readFileSync(path.join(__dirname,"main.js"),"utf8");
+assert(barrensSrc.includes("nearBarrensNpc")&&mainSrc.includes("nearBarrensNpc"),"贫瘠全量 NPC F 提示");
+assert(questsSrc.includes('id:"crossroads_trouble"')&&questsSrc.includes("野猪人的威胁")&&questsSrc.includes("darsok"),"贫瘠刺背威胁主线");
+assert(questsSrc.includes("mankrik")&&questsSrc.includes("serra")&&questsSrc.includes("lal")&&questsSrc.includes("thom"),"十字路口经典任务 NPC");
+assert((barrensSrc.match(/placeBarrensTalkNpc\(/g)||[]).length>=8,"十字路口可对话 NPC≥8");
+assert(mainSrc.includes("nearMulgoreNpc"),"主循环用全量 NPC 距离判断 F 提示");
+assert(questsSrc.includes('id:"elder_boars"')&&questsSrc.includes("开始狩猎")&&questsSrc.includes('id:"mulgore_crisis"')&&questsSrc.includes('id:"bloodhoof_journey"'),"莫高雷经典主线链");
+assert(questsSrc.includes("grayhorn")&&questsSrc.includes("windfury_sentinel")&&questsSrc.includes("thunderhorn_guard"),"莫高雷表内 NPC 绑定");
+assert(worldSrc.includes("bristleback")&&worldSrc.includes("plainslion")&&worldSrc.includes("waterElement"),"刺背/平原狮/水元素");
 assert((questsSrc.match(/chapter:"side", zone:"mulgore"/g)||[]).length>=10,"莫高雷支线≥10");
 assert((questsSrc.match(/chapter:"side", zone:"barrens"/g)||[]).length>=10,"贫瘠支线≥10");
 assert((questsSrc.match(/chapter:"side", zone:"durotar"/g)||[]).length>=10,"赭岩支线≥10");
@@ -259,6 +275,7 @@ assert(worldSrc.includes("centaurHerald")&&worldSrc.includes("worldBoss"),"world
 assert(barrensSrc.includes("spawnRaresForZone"),"barrens.js 挂接稀有表");
 const mapSrc=fs.readFileSync(path.join(__dirname,"map.js"),"utf8");
 assert(mapSrc.includes("getRareMapEntries")||mapSrc.includes("m.rare"),"map.js 稀有点走 rare 标记");
+assert(mapSrc.includes("血蹄村")&&mapSrc.includes("纳拉其营地")&&mapSrc.includes("乱风岗")&&mapSrc.includes("十字路口"),"小地图可见莫高雷经典地标");
 
 /* STEP 25 功绩之书冒烟 */
 const deedsSrc=fs.readFileSync(path.join(__dirname,"deeds.js"),"utf8");
@@ -275,7 +292,6 @@ assert(DEEDS_COUNT_OK(deedsSrc),"DEEDS 条目不少于 15");
 
 /* STEP 27 仇恨与职责冒烟 */
 const threatSrc=fs.readFileSync(path.join(__dirname,"threat.js"),"utf8");
-const mainSrc=fs.readFileSync(path.join(__dirname,"main.js"),"utf8");
 assert(mainSrc.includes("getPlayerAggroMul"),"main.js aggro 挂接潜行倍率");
 assert(mainSrc.includes("mouselook")&&mainSrc.includes("strafe")&&mainSrc.includes("keys.q"),"魔兽式 A/D 转向 · Q/E 平移");
 assert(mainSrc.includes("recenterSpd")||mainSrc.includes("yawOff"),"前进回正视角");
@@ -551,7 +567,9 @@ const terrainSrc=fs.readFileSync(path.join(__dirname,"terrain.js"),"utf8");
 assert(terrainSrc.includes("heightAt"),"terrain.js 导出 heightAt");
 assert(terrainSrc.includes("buildMulgoreTerrain"),"terrain.js 导出 buildMulgoreTerrain");
 assert(terrainSrc.includes("vertexColor")||terrainSrc.includes("vertexColors"),"terrain.js 含顶点着色");
+assert(terrainSrc.includes("mesas")&&terrainSrc.includes("pits")&&terrainSrc.includes("roads"),"地形含台地/矿洞/多段路");
 assert(worldSrc.includes("buildMulgoreTerrain"),"world.js 使用高度场");
+assert(worldSrc.includes("mesas:")&&worldSrc.includes("pits:")&&worldSrc.includes("roads:"),"world 传入经典地貌配置");
 assert(!/CircleGeometry\(WORLD_R\+50/.test(worldSrc),"莫高雷不再用大圆盘草皮");
 (function testHeightAt(){
   const PALETTE={
@@ -580,20 +598,36 @@ assert(!/CircleGeometry\(WORLD_R\+50/.test(worldSrc),"莫高雷不再用大圆�
   )(THREE,WORLD_SEED,hashZoneId,PALETTE);
   api.TERRAIN._arm({
     ready:true,
-    camp:{x:0,z:52},
-    portalMC:{x:0,z:-168},
-    portalBarrens:{x:0,z:168},
-    lake:{x:-38,z:14},
-    road:{p0:{x:0,z:52},p1:{x:10,z:-40},p2:{x:0,z:-168},halfW:3.5},
-    ampLarge:3,ampMid:1.2,ampDetail:.28,
+    camp:{x:-36,z:40},
+    portalMC:{x:0,z:-344},
+    portalBarrens:{x:0,z:344},
+    lakes:[{x:-126,z:33,inner:16,outer:34,depth:.7}],
+    flats:[
+      {x:-36,z:40,inner:34,outer:58},
+      {x:-90,z:281,inner:22,outer:40},
+      {x:-72,z:-208,inner:28,outer:50},
+    ],
+    mesas:[
+      {x:-72,z:-208,rInner:42,rOuter:72,h:14,cliff:1.65},
+      {x:-180,z:208,rInner:48,rOuter:78,h:11,cliff:1.5},
+    ],
+    pits:[{x:216,z:-26,rInner:10,rOuter:22,depth:5.2}],
+    roads:[
+      {halfW:5,pts:[{x:-90,z:281},{x:-36,z:40}]},
+      {halfW:5.5,pts:[{x:-36,z:40},{x:-72,z:-208},{x:0,z:-344}]},
+    ],
+    ampLarge:2.6,ampMid:1.1,ampDetail:.32,
   });
   const a=api.heightAt(10,20);
   const b=api.heightAt(10,20);
   assert(a===b,"heightAt 同参数同结果");
-  assert(Math.abs(api.heightAt(0,52))<0.4,"营地掩膜近似压平");
-  assert(Math.abs(api.heightAt(0,-168))<0.5,"熔火传送门掩膜近似压平");
-  const mid=api.heightAt(90,-90);
-  assert(Number.isFinite(mid)&&mid>-8&&mid<8,"heightAt 值域合理");
+  assert(Math.abs(api.heightAt(-36,40))<0.5,"血蹄村掩膜近似压平");
+  assert(Math.abs(api.heightAt(0,-344))<0.5,"熔火传送门掩膜近似压平");
+  assert(api.heightAt(-72,-208)>8,"雷霆崖台地抬升");
+  assert(api.heightAt(216,-26)<-2,"风投矿洞凹陷");
+  assert(api.heightAt(-126,33)<0,"石牛湖盆底低于平原");
+  const mid=api.heightAt(180,-180);
+  assert(Number.isFinite(mid)&&mid>-10&&mid<12,"heightAt 值域合理");
 })();
 
 if(process.exitCode){

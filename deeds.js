@@ -40,7 +40,7 @@ const DEEDS=[
   {id:"world_boss_warbringer", title:"战争使者之敌", desc:"击败世界首领「半人马战争使者」。",
     cat:"rare", need:{type:"worldBoss", mob:"centaurHerald"},
     reward:{title:"战争克星", border:"deed-border-orange"}},
-  {id:"quest_elder_boars", title:"大地祝福", desc:"完成任务「长老的试炼」。",
+  {id:"quest_elder_boars", title:"大地祝福", desc:"完成任务「开始狩猎」。",
     cat:"quest", need:{type:"quest", id:"elder_boars"},
     reward:{title:"岩蹄传人"}},
   {id:"quest_crossroads", title:"十字路口英雄", desc:"完成任务「十字路口的麻烦」。",

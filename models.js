@@ -3,7 +3,7 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（rand）· palette.js（PALETTE · MAT）
    [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS
-          buildQuadruped buildScorpion buildHumanoidMob buildCentaur QUADS MOB_HUMANOIDS（STEP 5/18 族群工厂）
+          buildQuadruped buildScorpion buildElemental buildHumanoidMob buildMeleeHumanoid buildCentaur QUADS MOB_HUMANOIDS MELEE_HUMANOIDS（STEP 5/18 族群工厂）
           buildPlayer buildMage buildArcher buildPriest buildShaman buildRogue buildBoss buildOnyxia buildElder buildVendor buildSpiritHealer
           tintNpcCloth
           buildBoar buildFlameSpawn
@@ -543,7 +543,32 @@ const QUADS={
   /* —— V1-B3 怒焰裂谷 —— */
   oggleflint:{fur:0x8a3018,furD:0x3a1008,accent:0xff6020,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:4.0,style:"wolf",glow:0xff4400},
   taragaman :{fur:0xa82810,furD:0x481008,accent:0xff8030,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:5.2,style:"wolf",glow:0xff5500},
+  /* —— 经典莫高雷 —— */
+  kodo    :{fur:0x8a6a40,furD:0x4a3820,accent:0xb09060,tusks:true,ears:true,mane:true,tail:'bushy',size:2.35,style:"wolf"},
+  youngBoar:{fur:0x7a5a38,furD:0x4a3820,accent:0x9a7848,tusks:true,mane:true,ears:true,tail:'up',size:.78,style:"boar"},
+  palemane:{fur:0xb89870,furD:0x6a5840,accent:0xd0b890,snoutLong:true,ears:true,mane:true,tail:'bushy',size:1.05,style:"wolf"},
+  thunderhawk:{fur:0x6a7088,furD:0x3a4050,accent:0x90a0b8,legs:2,neck:1.25,beak:true,crest:true,tail:'plume',size:1.15,style:"bird"},
+  plainslion:{fur:0xc8a050,furD:0x6a5028,accent:0xe0c070,snoutLong:true,ears:true,mane:true,tail:'bushy',size:1.12,style:"wolf"},
+  bristleback:{fur:0xb06830,furD:0x6a3818,accent:0xd09050,tusks:true,mane:true,ears:true,tail:'up',size:.95,quills:true,style:"boar"},
+  raptor  :{fur:0x4a8a38,furD:0x2a5020,accent:0x6ab050,legs:2,neck:1.05,beak:true,crest:true,tail:'plume',size:1.2,style:"bird"},
+  crocolisk:{fur:0x4a6a48,furD:0x2a3a28,accent:0x6a8a58,snoutLong:true,ears:false,mane:false,tail:'bushy',size:1.25,style:"wolf"},
 };
+
+/** 元素体：简易结晶核心（风/水/土） */
+function buildElemental(cfg){
+  const c=Object.assign({color:0x88c8ff,emissive:0x4488cc,size:1},cfg);
+  const g=new THREE.Group();
+  const mat=MAT.get("elem.core",{color:c.color,roughness:.35,metalness:.25,
+    transparent:true,opacity:.88,emissive:c.emissive||c.color,emissiveIntensity:.45,flatShading:true});
+  const core=new THREE.Mesh(new THREE.IcosahedronGeometry(.85,1),mat);
+  core.position.y=1.1; g.add(core);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.95,.08,6,16),mat);
+  ring.position.y=1.1; ring.rotation.x=Math.PI/2; g.add(ring);
+  g.scale.setScalar(c.size);
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  g.userData={kind:"elemental", anim:{state:"idle",walkPhase:0,attackAnim:0,deathRoll:0}};
+  return g;
+}
 
 function _quadMat(hex,opts){
   opts=opts||{};
@@ -859,9 +884,39 @@ function buildCentaur(cfg){
 const MOB_HUMANOIDS={
   harpy:{size:1.55,skin:0xc9a2b8,feather:0x5a3a6e,featherD:0x3a2450,hair:0x2a1a3e,claw:0xe8e0c8},
   cliffHarpy:{size:1.75,skin:0xd4a090,feather:0x6a3020,featherD:0x3a1810,hair:0x2a1008,claw:0xe8d0a0,wings:true},
+  windfury:{size:1.35,skin:0xc8b0d0,feather:0x4a3a70,featherD:0x2a1a48,hair:0x1a1030,claw:0xe8e0c8,wings:true},
   centaur:{size:1.2,skin:0xc9a080,fur:0x8a6a40,furD:0x5a4028,cloth:0x6a4030},
   /* STEP 24 半人马战争使者 */
   centaurHerald:{size:1.55,skin:0xd4a878,fur:0x6a5030,furD:0x3a2818,cloth:0x8a3020,banner:true},
+};
+
+/** 地面人形敌对（矮人 / 地精工人）：箱体短装，无羽翼 */
+function buildMeleeHumanoid(cfg){
+  const c=Object.assign({size:1,skin:0xc9a080,cloth:0x4a5a6a,clothD:0x2a3038,helm:0x6a7078,weapon:0xb0b0b8},cfg);
+  const g=new THREE.Group();
+  const mk=(col,r)=>MAT.get("_",{color:col,roughness:r??.9,flatShading:true});
+  const skin=mk(c.skin,.85), cloth=mk(c.cloth), dark=mk(c.clothD), helm=mk(c.helm,.55), weap=mk(c.weapon,.45);
+  const torso=new THREE.Mesh(new THREE.BoxGeometry(.7,.85,.45),cloth); torso.position.y=1.55; g.add(torso);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(.42,.42,.4),skin); head.position.y=2.25; g.add(head);
+  const hat=new THREE.Mesh(new THREE.CylinderGeometry(.28,.32,.22,7),helm); hat.position.y=2.52; g.add(hat);
+  [-1,1].forEach(s=>{
+    const arm=new THREE.Mesh(new THREE.BoxGeometry(.2,.7,.2),cloth);
+    arm.position.set(s*.5,1.55,0); arm.rotation.z=s*.35; g.add(arm);
+    const leg=new THREE.Mesh(new THREE.BoxGeometry(.22,.7,.25),dark);
+    leg.position.set(s*.18,.45,0); g.add(leg);
+  });
+  const blade=new THREE.Mesh(new THREE.BoxGeometry(.12,.08,1.1),weap);
+  blade.position.set(.55,1.7,.35); blade.rotation.x=-.4; g.add(blade);
+  g.scale.setScalar(c.size);
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  g.userData={kind:"meleeHumanoid", anim:{state:"idle",walkPhase:0,attackAnim:0,deathRoll:0}};
+  return g;
+}
+const MELEE_HUMANOIDS={
+  baeldun:{size:.95,skin:0xc9a090,cloth:0x3a5a7a,clothD:0x1a3048,helm:0x8a9098,weapon:0xc0c8d0},
+  baeldunDigger:{size:.9,skin:0xb89070,cloth:0x6a5a40,clothD:0x3a3020,helm:0x8a7848,weapon:0xa09060},
+  venture:{size:.88,skin:0x90b070,cloth:0x4a6a38,clothD:0x2a3a20,helm:0x6a8040,weapon:0xc0a040},
+  ventureBoss:{size:1.05,skin:0x88a868,cloth:0x3a5028,clothD:0x1a2810,helm:0x506030,weapon:0xd0b050},
 };
 function buildHumanoidMob(cfg){
   const c=Object.assign({size:1,wings:true},cfg);

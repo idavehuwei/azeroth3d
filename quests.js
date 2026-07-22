@@ -10,7 +10,7 @@
    [导出] QUESTS getQuestDef questStatus questProgress
           acceptQuest turnInQuest abandonQuest completeQuestObjective
           onQuestMobKill onQuestBossKill onQuestZoneEnter
-          onQuestUseItem tickQuestWorld clearQuestEscort
+          onQuestUseItem canUseQuestItem tickQuestWorld clearQuestEscort
           canAcceptQuest canTurnInQuest canAbandonQuest questsForNpc
           npcHasQuestOffer npcHasQuestTurnIn
           getActiveQuestEntries getQuestLogEntries
@@ -22,110 +22,193 @@
    ============================================================ */
 "use strict";
 
-/* ---- 静态任务表（V1-B2：主线链 + 每区≥10 支线；数值引用 BAL） ---- */
+/* ---- 静态任务表（莫高雷按经典 POI 任务表重构；数值引用 BAL） ---- */
 const QUESTS=[
-  /* ===== 莫高雷主线（5 节） ===== */
-  {id:"elder_boars", title:"长老的试炼", subtitle:"狂躁的野猪",
+  /* ===== 莫高雷主线：纳拉其 → 血蹄 → 雷霆崖 ===== */
+  {id:"elder_boars", title:"开始狩猎", subtitle:"草原漫步者的肉",
     chapter:"main", zone:"mulgore", sort:10,
     minLevel:1, prereq:[],
-    giver:"elder", turnIn:"elder",
-    objectives:[{type:"kill", mob:"boar", countKey:"boar"}],
+    giver:"hawkwind", turnIn:"hawkwind",
+    objectives:[{type:"deliver", item:"bird_meat", count:4}],
     rewards:{xpKey:"quest", copperKey:"boarCopper", hpMaxKey:"boarHp", dmgMulAddKey:"boarDmg"},
-    acceptLog:"接受任务【长老的试炼】：猎杀草原野猪。",
-    readyAnnounce:"任务目标完成 · 回去找长老",
+    acceptLog:"接受任务【开始狩猎】：击杀草原漫步者，收集肉块交给鹰风酋长。",
+    readyAnnounce:"肉块已齐 · 回鹰风酋长处",
     completeAnnounce:"获得 · 大地母亲的祝福",
-    next:"sacred_pool"},
-  {id:"sacred_pool", title:"圣湖之水", subtitle:"抵达红石湖",
+    next:"hawkwind_totem"},
+  {id:"hawkwind_totem", title:"鹰风图腾", subtitle:"交给营地长者",
     chapter:"main", zone:"mulgore", sort:12,
-    minLevel:1, prereq:["elder_boars"],
-    giver:"elder", turnIn:"elder",
-    objectives:[{type:"arrive", x:-56, z:8, r:14, label:"红石湖畔"}],
-    rewards:{sideKey:"sacred_pool_main"},
-    acceptLog:"接受任务【圣湖之水】：前往营地西边的红石湖畔。",
-    readyAnnounce:"已抵达红石湖 · 回长老处",
-    completeAnnounce:"圣湖之水 · 完成",
-    next:"ancestor_tusk_main"},
-  {id:"ancestor_tusk_main", title:"先祖的獠牙", subtitle:"献上野猪獠牙",
+    minLevel:2, prereq:["elder_boars"],
+    giver:"grull", turnIn:"grayhorn",
+    grantItems:["quest_hawkwind_totem"],
+    objectives:[{type:"deliver", item:"quest_hawkwind_totem", count:1}],
+    rewards:{sideKey:"hawkwind_totem"},
+    acceptLog:"接受任务【鹰风图腾】：把图腾交给纳拉其营地的长者灰角。",
+    readyAnnounce:"图腾在身 · 交给长者灰角",
+    completeAnnounce:"鹰风图腾 · 完成",
+    next:"hunt_continues"},
+  {id:"hunt_continues", title:"狩猎继续", subtitle:"刺背野猪人",
     chapter:"main", zone:"mulgore", sort:14,
-    minLevel:2, prereq:["sacred_pool"],
-    giver:"elder", turnIn:"elder",
-    objectives:[{type:"deliver", item:"boar_tusk", count:3}],
-    rewards:{sideKey:"ancestor_main"},
-    acceptLog:"接受任务【先祖的獠牙】：收集破损的獠牙交给长老。",
-    readyAnnounce:"獠牙已齐 · 回长老处献上",
-    completeAnnounce:"先祖收下了獠牙",
-    next:"plains_wolves"},
-  {id:"plains_wolves", title:"草原之狼", subtitle:"清剿狼群",
+    minLevel:3, prereq:["hawkwind_totem"],
+    giver:"hawkwind", turnIn:"hawkwind",
+    objectives:[{type:"kill", mob:"bristleback", countKey:"hunt_continues"}],
+    rewards:{sideKey:"hunt_continues"},
+    acceptLog:"接受任务【狩猎继续】：击杀刺背野猪人。",
+    readyAnnounce:"野猪人已除 · 回鹰风酋长处",
+    completeAnnounce:"狩猎继续 · 完成",
+    next:"raoul_supply"},
+  {id:"raoul_supply", title:"猎蹄的补给", subtitle:"送往血蹄村",
     chapter:"main", zone:"mulgore", sort:16,
-    minLevel:3, prereq:["ancestor_tusk_main"],
-    giver:"elder", turnIn:"elder",
-    objectives:[{type:"kill", mob:"wolf", countKey:"plains_wolves"}],
-    rewards:{sideKey:"plains_wolves"},
-    acceptLog:"接受任务【草原之狼】：猎杀草原狼。",
-    readyAnnounce:"狼群已退 · 回长老处",
-    completeAnnounce:"草原之狼 · 完成",
+    minLevel:3, prereq:["hunt_continues"],
+    giver:"raoul", turnIn:"baine",
+    grantItems:["quest_raoul_crate"],
+    objectives:[{type:"deliver", item:"quest_raoul_crate", count:1}],
+    rewards:{sideKey:"raoul_supply"},
+    acceptLog:"接受任务【猎蹄的补给】：把补给送到血蹄村交给贝恩·血蹄。",
+    readyAnnounce:"补给在身 · 交给贝恩",
+    completeAnnounce:"猎蹄的补给 · 完成",
+    next:"bloodhoof_journey"},
+  {id:"bloodhoof_journey", title:"血蹄村之旅", subtitle:"向贝恩报到",
+    chapter:"main", zone:"mulgore", sort:18,
+    minLevel:5, prereq:["raoul_supply"],
+    giver:"baine", turnIn:"baine",
+    objectives:[{type:"arrive", x:BLOODHOOF.x, z:BLOODHOOF.z, r:14, label:"贝恩·血蹄", liveNpc:"baine"}],
+    rewards:{sideKey:"bloodhoof_journey"},
+    acceptLog:"接受任务【血蹄村之旅】：在血蹄村向贝恩·血蹄报到。",
+    readyAnnounce:"已报到 · 与贝恩对话",
+    completeAnnounce:"血蹄村之旅 · 完成",
+    next:"clear_palemane"},
+  {id:"clear_palemane", title:"清除贫瘠石", subtitle:"击杀豺狼人",
+    chapter:"main", zone:"mulgore", sort:20,
+    minLevel:7, prereq:["bloodhoof_journey"],
+    giver:"baine", turnIn:"baine",
+    objectives:[{type:"kill", mob:"palemane", countKey:"clear_palemane"}],
+    rewards:{sideKey:"clear_palemane"},
+    acceptLog:"接受任务【清除贫瘠石】：清剿贫瘠石的苍鬃豺狼人。",
+    readyAnnounce:"豺狼人已退 · 回贝恩处",
+    completeAnnounce:"清除贫瘠石 · 完成",
+    next:"thunderhorn_trouble"},
+  {id:"thunderhorn_trouble", title:"雷角水井的麻烦", subtitle:"前往调查",
+    chapter:"main", zone:"mulgore", sort:22,
+    minLevel:7, prereq:["clear_palemane"],
+    giver:"mull", turnIn:"thunderhorn_guard",
+    objectives:[{type:"arrive", x:MULGORE.thunderhorn.x, z:MULGORE.thunderhorn.z, r:16, label:"雷角水井", livePoi:"thunderhorn"}],
+    rewards:{sideKey:"thunderhorn_trouble"},
+    acceptLog:"接受任务【雷角水井的麻烦】：前往雷角水井调查污染。",
+    readyAnnounce:"已抵达雷角水井 · 与守卫对话",
+    completeAnnounce:"雷角水井调查 · 完成",
+    next:"well_pollution"},
+  {id:"well_pollution", title:"水井的污染", subtitle:"击杀水元素",
+    chapter:"main", zone:"mulgore", sort:24,
+    minLevel:7, prereq:["thunderhorn_trouble"],
+    giver:"thunderhorn_guard", turnIn:"thunderhorn_guard",
+    objectives:[{type:"kill", mob:"waterElement", countKey:"well_pollution"}],
+    rewards:{sideKey:"well_pollution"},
+    acceptLog:"接受任务【水井的污染】：击杀污染雷角水井的水元素。",
+    readyAnnounce:"水元素已除 · 回雷角守卫处",
+    completeAnnounce:"水井的污染 · 完成",
+    next:"cleanse_well"},
+  {id:"cleanse_well", title:"净化水井", subtitle:"使用净化图腾",
+    chapter:"main", zone:"mulgore", sort:26,
+    minLevel:7, prereq:["well_pollution"],
+    giver:"thunderhorn_guard", turnIn:"mull",
+    grantItems:["quest_winterhoof_totem"],
+    objectives:[{type:"use", item:"quest_winterhoof_totem", nearPoi:"thunderhorn", nearR:18}],
+    rewards:{sideKey:"cleanse_well"},
+    acceptLog:"接受任务【净化水井】：在雷角水井使用净化图腾，再回报穆尔·雷角。",
+    readyAnnounce:"水井已净 · 回穆尔处",
+    completeAnnounce:"净化水井 · 完成",
+    next:"mulgore_crisis"},
+  {id:"mulgore_crisis", title:"莫高雷的危机", subtitle:"侦察贫瘠之地",
+    chapter:"main", zone:"mulgore", sort:28,
+    minLevel:10, prereq:["cleanse_well"],
+    giver:"cairne", turnIn:"cairne",
+    objectives:[{type:"enter", zone:"barrens", countKey:"mulgore_crisis"}],
+    rewards:{sideKey:"mulgore_crisis"},
+    acceptLog:"接受任务【莫高雷的危机】：前往贫瘠之地侦察，再回报凯恩·血蹄。",
+    readyAnnounce:"已踏入贫瘠之地 · 回雷霆崖见凯恩",
+    completeAnnounce:"莫高雷的危机 · 完成",
     next:"ragnaros_whisper"},
   {id:"ragnaros_whisper", title:"炎魔的低语", subtitle:"讨伐拉戈斯",
-    chapter:"main", zone:"molten_core", sort:20,
-    minLevel:1, prereq:["plains_wolves"],
-    giver:"elder", turnIn:null, autoComplete:true,
+    chapter:"main", zone:"molten_core", sort:30,
+    minLevel:5, prereq:["mulgore_crisis"],
+    giver:"cairne", turnIn:null, autoComplete:true,
     objectives:[{type:"boss", bossId:"ragnaros", countKey:"boss"}],
     rewards:{xpKey:null, copper:0},
     acceptLog:"接受任务【炎魔的低语】：进入北方传送门，击败炎魔领主拉戈斯。",
     completeAnnounce:"炎魔的低语 · 完成",
-    completeLog:"拉戈斯沉回熔岩——长老的预言应验了。"},
+    completeLog:"拉戈斯沉回熔岩——圣山的危机暂息。"},
 
-  /* ===== 贫瘠之地主线（5 节） ===== */
-  {id:"crossroads_trouble", title:"十字路口的麻烦",
-    chapter:"main", zone:"barrens", sort:30,
+  /* ===== 贫瘠之地主线（十字路口营地 NPC 发放） ===== */
+  {id:"darsok_supply", title:"十字路口的补给", subtitle:"送信至陶拉祖",
+    chapter:"main", zone:"barrens", sort:29,
     minLevel:10, prereq:[],
-    giver:"crossroads", turnIn:"crossroads",
-    objectives:[{type:"kill", mob:"quilboar", countKey:"quilboar"}],
+    giver:"darsok", turnIn:"darsok",
+    grantItems:["quest_darsok_letter"],
+    objectives:[{type:"arrive", x:BARRENS.taurajo.x, z:BARRENS.taurajo.z, r:22, label:"陶拉祖营地", livePoi:"taurajo"}],
+    rewards:{sideKey:"darsok_supply"},
+    acceptLog:"接受任务【十字路口的补给】：将急信带往陶拉祖营地方向，再回报达索克。",
+    readyAnnounce:"已抵达陶拉祖方向 · 回达索克处",
+    completeAnnounce:"补给信已送达",
+    next:"crossroads_trouble"},
+  {id:"crossroads_trouble", title:"野猪人的威胁",
+    chapter:"main", zone:"barrens", sort:30,
+    minLevel:11, prereq:["darsok_supply"],
+    giver:"darsok", turnIn:"darsok",
+    objectives:[{type:"kill", mob:"barrensBristle", countKey:"quilboar"}],
     rewards:{xpKey:"barrensQuest", copperKey:"barrensCopper"},
-    acceptLog:"接受任务【十字路口的麻烦】：清剿野猪人斥候。",
-    readyAnnounce:"任务目标完成 · 回十字路口找哨兵",
-    completeAnnounce:"完成 · 十字路口的麻烦",
-    next:"supply_crate_main"},
-  {id:"supply_crate_main", title:"失落的木箱", subtitle:"交还补给箱",
+    acceptLog:"接受任务【野猪人的威胁】：清剿刺背野猪人。",
+    readyAnnounce:"刺背已退 · 回达索克 · 快刀处",
+    completeAnnounce:"完成 · 野猪人的威胁",
+    next:"thom_scout"},
+  {id:"thom_scout", title:"侦察北方城堡",
+    chapter:"main", zone:"barrens", sort:31,
+    minLevel:11, prereq:["crossroads_trouble"],
+    giver:"thom", turnIn:"thom",
+    objectives:[{type:"arrive", x:BARRENS.northWatch.x, z:BARRENS.northWatch.z, r:24, label:"北方城堡", livePoi:"northWatch"}],
+    rewards:{sideKey:"thom_scout"},
+    acceptLog:"接受任务【侦察北方城堡】：抵达北方城堡并回报托姆·鹰眼。",
+    readyAnnounce:"已侦察北方城堡 · 回托姆处",
+    completeAnnounce:"侦察完成",
+    next:"kag_lions"},
+  {id:"kag_lions", title:"草原狮的威胁",
     chapter:"main", zone:"barrens", sort:32,
-    minLevel:10, prereq:["crossroads_trouble"],
-    giver:"crossroads", turnIn:"crossroads",
-    grantItems:["quest_supply_crate"],
-    objectives:[{type:"deliver", item:"quest_supply_crate", count:1}],
-    rewards:{sideKey:"supply_crate_main"},
-    acceptLog:"接受任务【失落的木箱】：把补给箱交还给哨兵碎牙（已放入背包）。",
-    readyAnnounce:"补给箱在身 · 与碎牙对话交付",
-    completeAnnounce:"补给已归队",
-    next:"centaur_threat_main"},
-  {id:"centaur_threat_main", title:"半人马的威胁",
+    minLevel:12, prereq:["thom_scout"],
+    giver:"kag", turnIn:"kag",
+    objectives:[{type:"kill", mob:"barrensLion", countKey:"kag_lions"}],
+    rewards:{sideKey:"kag_lions"},
+    acceptLog:"接受任务【草原狮的威胁】：猎杀黄金之路沿线的草原狮。",
+    readyAnnounce:"狮群已退 · 回卡格·血怒处",
+    completeAnnounce:"草原狮的威胁 · 完成",
+    next:"serra_harpies"},
+  {id:"serra_harpies", title:"血羽的鹰身人",
     chapter:"main", zone:"barrens", sort:34,
-    minLevel:12, prereq:["supply_crate_main"],
-    giver:"crossroads", turnIn:"crossroads",
-    objectives:[{type:"kill", mob:"centaur", countKey:"centaur_threat"}],
-    rewards:{sideKey:"centaur_threat"},
-    acceptLog:"接受任务【半人马的威胁】：清剿东南半人马营地。",
-    readyAnnounce:"半人马已退 · 回哨兵处",
-    completeAnnounce:"半人马的威胁 · 完成",
-    next:"supply_run"},
-  {id:"supply_run", title:"失落的补给",
-    chapter:"main", zone:"barrens", sort:36,
-    minLevel:10, prereq:["centaur_threat_main"],
-    giver:"crossroads", turnIn:"crossroads",
-    objectives:[{type:"kill", mob:"zebra", countKey:"supply_run"}],
-    rewards:{sideKey:"supply_run"},
-    acceptLog:"接受任务【失落的补给】：猎杀斑马，为十字路口收集肉干。",
-    readyAnnounce:"肉干够了 · 回哨兵处",
-    completeAnnounce:"失落的补给 · 完成",
+    minLevel:13, prereq:["kag_lions"],
+    giver:"serra", turnIn:"serra",
+    objectives:[{type:"kill", mob:"oasisHarpy", countKey:"serra_harpies"}],
+    rewards:{sideKey:"serra_harpies"},
+    acceptLog:"接受任务【血羽的鹰身人】：击杀死水绿洲的鹰身人。",
+    readyAnnounce:"鹰身人已清 · 回塞拉·血羽处",
+    completeAnnounce:"血羽的鹰身人 · 完成",
     next:"wailing_call"},
-  {id:"wailing_call", title:"洞穴的呼唤",
+  {id:"wailing_call", title:"哀嚎洞穴的入口",
     chapter:"main", zone:"barrens", sort:38,
-    minLevel:15, prereq:["supply_run"],
-    giver:"crossroads", turnIn:"crossroads",
-    objectives:[{type:"enter", zone:"wailing_caverns", countKey:"wailing_call"}],
-    rewards:{sideKey:"wailing_call"},
-    acceptLog:"接受任务【洞穴的呼唤】：踏入南方哀嚎洞穴一探究竟。",
-    readyAnnounce:"你已踏入洞穴 · 回哨兵汇报",
-    autoReadyOnEnter:true},
+    minLevel:13, prereq:["serra_harpies"],
+    giver:"lal", turnIn:"lal",
+    objectives:[{type:"arrive", x:BARRENS.wailing.x, z:BARRENS.wailing.z, r:20, label:"哀嚎洞穴入口", livePoi:"wailing"}],
+    rewards:{sideKey:"lal_wc_entrance"},
+    acceptLog:"接受任务【哀嚎洞穴的入口】：调查哀嚎洞穴入口。",
+    readyAnnounce:"已抵达洞穴入口 · 回拉尔·野性图腾处",
+    completeAnnounce:"哀嚎洞穴入口 · 完成",
+    next:"mankrik_revenge"},
+  {id:"mankrik_revenge", title:"复仇",
+    chapter:"main", zone:"barrens", sort:40,
+    minLevel:15, prereq:["wailing_call"],
+    giver:"mankrik", turnIn:"mankrik",
+    objectives:[{type:"kill", mob:"quilboarElder", countKey:"mankrik_revenge"}],
+    rewards:{sideKey:"mankrik_revenge", items:["barrens_cleaver"]},
+    acceptLog:"接受任务【复仇】：击杀陶拉祖附近的野猪人长老。",
+    readyAnnounce:"长老已除 · 回曼科里克处",
+    completeAnnounce:"复仇 · 完成"},
 
   /* ===== 赭岩谷主线（4 节） ===== */
   {id:"ochre_sting", title:"赭岩毒刺",
@@ -152,7 +235,7 @@ const QUESTS=[
     chapter:"main", zone:"durotar", sort:44,
     minLevel:12, prereq:["razor_patrol"],
     giver:"ochre_outpost", turnIn:"ochre_outpost",
-    objectives:[{type:"arrive", x:72, z:-56, r:16, label:"南崖信标"}],
+    objectives:[{type:"arrive", x:54, z:-288, r:28, label:"乱风岗信标"}],
     rewards:{sideKey:"cliff_beacon_main"},
     acceptLog:"接受任务【崖顶烽火】：前往东南崖顶查看信标。",
     readyAnnounce:"信标已确认 · 回赤牙处",
@@ -168,187 +251,370 @@ const QUESTS=[
     readyAnnounce:"信使已安全抵达 · 回赤牙处",
     completeAnnounce:"赤牙信使 · 完成"},
 
-  {id:"plains_patrol", title:"草原巡视",
+  /* ===== 莫高雷支线（按经典表 · ≥10） ===== */
+  {id:"earthmother_gift", title:"大地之母的恩赐",
     chapter:"side", zone:"mulgore", sort:100,
-    minLevel:3, prereq:["elder_boars"],
-    giver:"hunter", turnIn:"hunter",
-    objectives:[{type:"kill", mob:"wolf", countKey:"plains_patrol"}],
-    rewards:{sideKey:"plains_patrol"},
-    acceptLog:"接受任务【草原巡视】：猎杀草原狼。",
-    readyAnnounce:"草原巡视目标完成 · 回猎手迅羽处"},
-  {id:"harpy_nest", title:"鹰身女妖的巢穴",
+    minLevel:2, prereq:["elder_boars"],
+    giver:"grayhorn", turnIn:"grayhorn",
+    objectives:[{type:"kill", mob:"wolf", countKey:"earthmother_gift"}],
+    rewards:{sideKey:"earthmother_gift"},
+    acceptLog:"接受任务【大地之母的恩赐】：猎杀野兽，取回大地的赠礼。",
+    readyAnnounce:"猎物已足 · 回长者灰角处"},
+  {id:"wind_totem_quest", title:"风之图腾",
     chapter:"side", zone:"mulgore", sort:102,
-    minLevel:6, prereq:["elder_boars"],
-    giver:"hunter", turnIn:"hunter",
-    objectives:[{type:"kill", mob:"harpy", countKey:"harpy_nest"}],
-    rewards:{sideKey:"harpy_nest"},
-    acceptLog:"接受任务【鹰身女妖的巢穴】：消灭东边的鹰身女妖首领。",
-    readyAnnounce:"鹰身女妖已除 · 回猎手迅羽处"},
-  {id:"greyjaw_bounty", title:"老灰鬃的悬赏",
+    minLevel:4, prereq:["hunt_continues"],
+    giver:"hawkwind", turnIn:"hawkwind",
+    objectives:[{type:"deliver", item:"wind_essence", count:3}],
+    rewards:{sideKey:"wind_totem_quest"},
+    acceptLog:"接受任务【风之图腾】：击杀风元素，收集风之精华。",
+    readyAnnounce:"精华已齐 · 回鹰风酋长处"},
+  {id:"red_cloud_land", title:"红云之地",
     chapter:"side", zone:"mulgore", sort:104,
-    minLevel:8, prereq:["elder_boars"],
-    giver:"vendor", turnIn:"vendor",
-    objectives:[{type:"kill", mob:"boarKing", countKey:"greyjaw_bounty"}],
-    rewards:{sideKey:"greyjaw_bounty", items:["mesa_guard"]},
-    acceptLog:"接受任务【老灰鬃的悬赏】：猎人商人要那头稀有野猪王的獠牙。",
-    readyAnnounce:"老灰鬃倒下了 · 回商人火蹄处领赏"},
-  {id:"bird_cull", title:"陆行鸟之扰",
+    minLevel:4, prereq:["hunt_continues"],
+    giver:"hawkwind", turnIn:"hawkwind",
+    objectives:[{type:"kill", mobs:["kodo","bird"], countKey:"red_cloud_land"}],
+    rewards:{sideKey:"red_cloud_land"},
+    acceptLog:"接受任务【红云之地】：在红云台地击杀科多兽与陆行鸟。",
+    readyAnnounce:"台地猎物已清 · 回鹰风酋长处"},
+  {id:"lost_necklace", title:"丢失的项链",
     chapter:"side", zone:"mulgore", sort:106,
-    minLevel:2, prereq:["elder_boars"],
-    giver:"hunter", turnIn:"hunter",
-    objectives:[{type:"kill", mob:"bird", countKey:"bird_cull"}],
-    rewards:{sideKey:"bird_cull"},
-    acceptLog:"接受任务【陆行鸟之扰】：猎杀陆行鸟。",
-    readyAnnounce:"陆行鸟已少 · 回猎手迅羽处"},
-  {id:"boar_cull", title:"再清野猪",
+    minLevel:3, prereq:["elder_boars"],
+    giver:"vera", turnIn:"vera",
+    objectives:[{type:"arrive", x:MULGORE.redCloud.x-18, z:MULGORE.redCloud.z+14, r:14, label:"台地边缘"}],
+    rewards:{sideKey:"lost_necklace"},
+    acceptLog:"接受任务【丢失的项链】：在红云台地边缘找回项链。",
+    readyAnnounce:"项链已寻 · 回维拉·猎蹄处"},
+  {id:"soul_stone", title:"灵魂之石",
     chapter:"side", zone:"mulgore", sort:108,
-    minLevel:2, prereq:["elder_boars"],
-    giver:"vendor", turnIn:"vendor",
-    objectives:[{type:"kill", mob:"boar", countKey:"boar_cull"}],
-    rewards:{sideKey:"boar_cull"},
-    acceptLog:"接受任务【再清野猪】：再猎杀一批草原野猪。",
-    readyAnnounce:"野猪够了 · 回商人火蹄处"},
-  {id:"lake_shrine", title:"湖畔祭坛",
+    minLevel:4, prereq:["hunt_continues"],
+    giver:"whiterock", turnIn:"whiterock",
+    objectives:[{type:"deliver", item:"soul_shard", count:3}],
+    rewards:{sideKey:"soul_stone"},
+    acceptLog:"接受任务【灵魂之石】：从刺背野猪人身上收集灵魂碎片。",
+    readyAnnounce:"碎片已齐 · 回长者白岩处"},
+  {id:"land_spirit", title:"土地之灵",
     chapter:"side", zone:"mulgore", sort:110,
-    minLevel:2, prereq:["elder_boars"],
-    giver:"elder", turnIn:"elder",
-    objectives:[{type:"arrive", x:-56, z:8, r:12, label:"湖畔祭坛"}],
-    rewards:{sideKey:"lake_shrine"},
-    acceptLog:"接受任务【湖畔祭坛】：抵达西边湖畔祭坛。",
-    readyAnnounce:"祭坛已寻 · 回长老处"},
-  {id:"mesa_path", title:"台地小径",
+    minLevel:6, prereq:["bloodhoof_journey"],
+    giver:"bloodhoof_elder", turnIn:"bloodhoof_elder",
+    objectives:[{type:"deliver", item:"earth_shard", count:3}],
+    rewards:{sideKey:"land_spirit"},
+    acceptLog:"接受任务【土地之灵】：收集土地元素碎片。",
+    readyAnnounce:"碎片已齐 · 回血蹄长者处"},
+  {id:"tark_request", title:"风蹄的请求",
     chapter:"side", zone:"mulgore", sort:112,
-    minLevel:3, prereq:["elder_boars"],
-    giver:"elder", turnIn:"elder",
-    objectives:[{type:"arrive", x:70, z:-40, r:14, label:"东台地"}],
-    rewards:{sideKey:"mesa_path"},
-    acceptLog:"接受任务【台地小径】：探查东南台地。",
-    readyAnnounce:"台地已踏 · 回长老处"},
-  {id:"wind_feather", title:"疾风之羽",
+    minLevel:6, prereq:["bloodhoof_journey"],
+    giver:"tark", turnIn:"tark",
+    objectives:[{type:"kill", mob:"plainslion", countKey:"tark_request"}],
+    rewards:{sideKey:"tark_request"},
+    acceptLog:"接受任务【风蹄的请求】：击杀平原狮。",
+    readyAnnounce:"平原狮已除 · 回塔克·风蹄处"},
+  {id:"haru_prey", title:"鹰眼的猎物",
     chapter:"side", zone:"mulgore", sort:114,
-    minLevel:3, prereq:["elder_boars"],
-    giver:"vendor", turnIn:"vendor",
-    objectives:[{type:"deliver", item:"bird_feather", count:3}],
-    rewards:{sideKey:"wind_feather", items:["wind_blade"]},
-    acceptLog:"接受任务【疾风之羽】：收集陆行鸟羽毛交给商人。",
-    readyAnnounce:"羽毛已齐 · 回商人火蹄处"},
-  {id:"wolf_pelts", title:"灰狼皮货",
+    minLevel:7, prereq:["bloodhoof_journey"],
+    giver:"haru", turnIn:"haru",
+    objectives:[{type:"kill", mobs:["wolf","thunderhawk"], countKey:"plains_patrol"}],
+    rewards:{sideKey:"plains_patrol"},
+    acceptLog:"接受任务【鹰眼的猎物】：击杀草原狼与雷鹰。",
+    readyAnnounce:"猎物已足 · 回哈鲁·鹰眼处"},
+  {id:"mara_supply", title:"雷蹄的补给",
     chapter:"side", zone:"mulgore", sort:116,
-    minLevel:3, prereq:["elder_boars"],
-    giver:"vendor", turnIn:"vendor",
-    objectives:[{type:"deliver", item:"wolf_pelt", count:4}],
-    rewards:{sideKey:"wolf_pelts", items:["hide_vest"]},
-    acceptLog:"接受任务【灰狼皮货】：收集灰狼皮交给商人。",
-    readyAnnounce:"狼皮已齐 · 回商人火蹄处"},
-  {id:"sacred_salve", title:"圣油涂抹",
+    minLevel:5, prereq:["bloodhoof_journey"],
+    giver:"mara", turnIn:"cairne",
+    grantItems:["quest_mara_letter"],
+    objectives:[{type:"deliver", item:"quest_mara_letter", count:1}],
+    rewards:{sideKey:"mara_supply"},
+    acceptLog:"接受任务【雷蹄的补给】：送信到雷霆崖交给凯恩·血蹄。",
+    readyAnnounce:"信件在身 · 交给凯恩"},
+  {id:"stonehoof_trial", title:"石蹄的试验",
     chapter:"side", zone:"mulgore", sort:118,
-    minLevel:2, prereq:["elder_boars"],
-    giver:"elder", turnIn:"elder",
-    grantItems:["quest_sacred_oil"],
-    objectives:[{type:"use", item:"quest_sacred_oil"}],
-    rewards:{sideKey:"sacred_salve"},
-    acceptLog:"接受任务【圣油涂抹】：在背包使用圣油（完成仪式）。",
-    readyAnnounce:"仪式完成 · 回长老处"},
-  {id:"mesa_escort", title:"台地护送",
+    minLevel:6, prereq:["bloodhoof_journey"],
+    giver:"kur", turnIn:"kur",
+    objectives:[{type:"deliver", item:"quilboar_gland", count:3}],
+    rewards:{sideKey:"stonehoof_trial"},
+    acceptLog:"接受任务【石蹄的试验】：收集野猪人毒腺。",
+    readyAnnounce:"毒腺已齐 · 回库尔·石蹄处"},
+  {id:"mist_clue", title:"迷雾中的线索",
     chapter:"side", zone:"mulgore", sort:120,
-    minLevel:4, prereq:["elder_boars"],
-    giver:"elder", turnIn:"elder",
-    objectives:[{type:"escort", destX:0, destZ:-160, r:16, label:"北部门口", name:"学徒 · 石蹄"}],
+    minLevel:7, prereq:["bloodhoof_journey"],
+    giver:"aska", turnIn:"aska",
+    objectives:[{type:"arrive", x:MULGORE.windfury.x, z:MULGORE.windfury.z, r:22, label:"乱风岗", livePoi:"windfury"}],
+    rewards:{sideKey:"mist_clue"},
+    acceptLog:"接受任务【迷雾中的线索】：调查乱风岗。",
+    readyAnnounce:"乱风岗已探 · 回阿斯卡处"},
+  {id:"dwarf_invasion", title:"矮人的入侵",
+    chapter:"side", zone:"mulgore", sort:122,
+    minLevel:8, prereq:["bloodhoof_journey"],
+    giver:"baine", turnIn:"baine",
+    objectives:[{type:"arrive", x:MULGORE.baeldun.x, z:MULGORE.baeldun.z, r:20, label:"巴尔丹挖掘场", livePoi:"baeldun"}],
+    rewards:{sideKey:"dwarf_invasion"},
+    acceptLog:"接受任务【矮人的入侵】：调查巴尔丹挖掘场。",
+    readyAnnounce:"挖掘场已探 · 回贝恩处"},
+  {id:"palemane_totem", title:"贫瘠石的图腾",
+    chapter:"side", zone:"mulgore", sort:124,
+    minLevel:8, prereq:["clear_palemane"],
+    giver:"tark", turnIn:"tark",
+    objectives:[{type:"arrive", x:MULGORE.palemane.x+8, z:MULGORE.palemane.z-6, r:12, label:"豺狼人图腾"}],
+    rewards:{sideKey:"palemane_totem"},
+    acceptLog:"接受任务【贫瘠石的图腾】：摧毁贫瘠石的豺狼人图腾。",
+    readyAnnounce:"图腾已毁 · 回塔克处"},
+  {id:"golden_hunt", title:"黄金平原的狩猎",
+    chapter:"side", zone:"mulgore", sort:126,
+    minLevel:6, prereq:["bloodhoof_journey"],
+    giver:"tark", turnIn:"tark",
+    objectives:[{type:"kill", mobs:["plainslion","kodo"], countKey:"golden_hunt"}],
+    rewards:{sideKey:"golden_hunt"},
+    acceptLog:"接受任务【黄金平原的狩猎】：击杀平原狮与科多兽。",
+    readyAnnounce:"狩猎完成 · 回塔克处"},
+  {id:"plains_pelt", title:"草原行者皮毛",
+    chapter:"side", zone:"mulgore", sort:128,
+    minLevel:7, prereq:["bloodhoof_journey"],
+    giver:"haru", turnIn:"haru",
+    objectives:[{type:"deliver", item:"plainstrider_pelt", count:4}],
+    rewards:{sideKey:"plains_pelt"},
+    acceptLog:"接受任务【草原行者皮毛】：收集草原漫步者皮毛。",
+    readyAnnounce:"皮毛已齐 · 回哈鲁处"},
+  {id:"winterhoof_trouble", title:"冬蹄的麻烦",
+    chapter:"side", zone:"mulgore", sort:130,
+    minLevel:6, prereq:["bloodhoof_journey"],
+    giver:"winterhoof_guard", turnIn:"winterhoof_guard",
+    objectives:[{type:"kill", mob:"bristleback", countKey:"winterhoof_trouble"}],
+    rewards:{sideKey:"winterhoof_trouble"},
+    acceptLog:"接受任务【冬蹄的麻烦】：击杀冬蹄水井附近的野猪人。",
+    readyAnnounce:"野猪人已除 · 回冬蹄守卫处"},
+  {id:"winterhoof_water", title:"冬蹄之水",
+    chapter:"side", zone:"mulgore", sort:132,
+    minLevel:7, prereq:["winterhoof_trouble"],
+    giver:"winterhoof_guard", turnIn:"mull",
+    grantItems:["quest_winterhoof_sample"],
+    objectives:[{type:"deliver", item:"quest_winterhoof_sample", count:1}],
+    rewards:{sideKey:"winterhoof_water"},
+    acceptLog:"接受任务【冬蹄之水】：取水样送回血蹄村穆尔·雷角处。",
+    readyAnnounce:"水样在身 · 交给穆尔"},
+  {id:"windfury_harpies", title:"乱风岗的鹰身人",
+    chapter:"side", zone:"mulgore", sort:134,
+    minLevel:10, prereq:["mist_clue"],
+    giver:"windfury_sentinel", turnIn:"windfury_sentinel",
+    objectives:[{type:"kill", mob:"windfury", countKey:"harpy_nest"}],
+    rewards:{sideKey:"harpy_nest"},
+    acceptLog:"接受任务【乱风岗的鹰身人】：击杀乱风岗鹰身人。",
+    readyAnnounce:"鹰身人已除 · 回乱风岗哨兵处"},
+  {id:"baeldun_dwarves", title:"巴尔丹的矮人",
+    chapter:"side", zone:"mulgore", sort:136,
+    minLevel:9, prereq:["dwarf_invasion"],
+    giver:"baine", turnIn:"baine",
+    objectives:[{type:"kill", mob:"baeldun", countKey:"dwarven_digsite"}],
+    rewards:{sideKey:"dwarven_digsite"},
+    acceptLog:"接受任务【巴尔丹的矮人】：击杀巴尔丹矮人。",
+    readyAnnounce:"矮人已退 · 回贝恩处"},
+  {id:"dwarf_plans", title:"矮人的计划",
+    chapter:"side", zone:"mulgore", sort:138,
+    minLevel:10, prereq:["baeldun_dwarves"],
+    giver:"baine", turnIn:"baine",
+    grantItems:["quest_dwarf_plans"],
+    objectives:[{type:"deliver", item:"quest_dwarf_plans", count:1}],
+    rewards:{sideKey:"dwarf_plans"},
+    acceptLog:"接受任务【矮人的计划】：把偷来的矮人文件交给贝恩（已放入背包）。",
+    readyAnnounce:"文件在身 · 交给贝恩"},
+  {id:"venture_co", title:"风险投资公司",
+    chapter:"side", zone:"mulgore", sort:140,
+    minLevel:8, prereq:["bloodhoof_journey"],
+    giver:"baine", turnIn:"baine",
+    objectives:[{type:"kill", mob:"venture", countKey:"venture_co"}],
+    rewards:{sideKey:"venture_co"},
+    acceptLog:"接受任务【风险投资公司】：击杀地精矿工。",
+    readyAnnounce:"矿工已散 · 回贝恩处"},
+  {id:"mine_machines", title:"矿洞的机械",
+    chapter:"side", zone:"mulgore", sort:142,
+    minLevel:9, prereq:["venture_co"],
+    giver:"cairne", turnIn:"cairne",
+    objectives:[{type:"arrive", x:MULGORE.venture.x, z:MULGORE.venture.z, r:14, label:"采矿机械", livePoi:"venture"}],
+    rewards:{sideKey:"mine_machines"},
+    acceptLog:"接受任务【矿洞的机械】：摧毁风险投资公司矿洞的采矿机械。",
+    readyAnnounce:"机械已毁 · 回凯恩处"},
+  {id:"goblin_supply", title:"地精的补给",
+    chapter:"side", zone:"mulgore", sort:144,
+    minLevel:9, prereq:["venture_co"],
+    giver:"cairne", turnIn:"cairne",
+    objectives:[{type:"deliver", item:"quest_venture_crate", count:2}],
+    rewards:{sideKey:"goblin_supply"},
+    acceptLog:"接受任务【地精的补给】：收集矿洞补给箱。",
+    readyAnnounce:"补给已齐 · 回凯恩处"},
+  {id:"blasting_mats", title:"爆破材料",
+    chapter:"side", zone:"mulgore", sort:146,
+    minLevel:9, prereq:["dwarf_invasion"],
+    giver:"seen", turnIn:"seen",
+    objectives:[{type:"deliver", item:"blasting_powder", count:3}],
+    rewards:{sideKey:"blasting_mats"},
+    acceptLog:"接受任务【爆破材料】：从巴尔丹矮人处收集炸药。",
+    readyAnnounce:"炸药已齐 · 回塞恩·石蹄处"},
+  {id:"soul_mesa_rite", title:"灵魂高地的仪式",
+    chapter:"side", zone:"mulgore", sort:148,
+    minLevel:10, prereq:["mulgore_crisis"],
+    giver:"stonetalon", turnIn:"stonetalon",
+    objectives:[{type:"deliver", item:"soul_shard", count:4}],
+    rewards:{sideKey:"soul_mesa_rite"},
+    acceptLog:"接受任务【灵魂高地的仪式】：收集灵魂碎片。",
+    readyAnnounce:"碎片已齐 · 回长者石塔处"},
+  {id:"stonehoof_request", title:"石蹄的请求",
+    chapter:"side", zone:"mulgore", sort:150,
+    minLevel:11, prereq:["baeldun_dwarves"],
+    giver:"seen", turnIn:"seen",
+    objectives:[{type:"kill", mob:"baeldun", countKey:"stonehoof_request"}],
+    rewards:{sideKey:"stonehoof_request"},
+    acceptLog:"接受任务【石蹄的请求】：继续击杀巴尔丹矮人。",
+    readyAnnounce:"矮人已清 · 回塞恩处"},
+  {id:"wind_element", title:"风之元素",
+    chapter:"side", zone:"mulgore", sort:152,
+    minLevel:10, prereq:["mulgore_crisis"],
+    giver:"pala", turnIn:"pala",
+    objectives:[{type:"deliver", item:"wind_essence", count:4}],
+    rewards:{sideKey:"wind_element"},
+    acceptLog:"接受任务【风之元素】：收集风元素精华。",
+    readyAnnounce:"精华已齐 · 回帕拉·逐风处"},
+  {id:"harpy_feathers", title:"鹰身人羽毛",
+    chapter:"side", zone:"mulgore", sort:154,
+    minLevel:11, prereq:["windfury_harpies"],
+    giver:"pala", turnIn:"pala",
+    objectives:[{type:"deliver", item:"harpy_feather", count:5}],
+    rewards:{sideKey:"harpy_feathers"},
+    acceptLog:"接受任务【鹰身人羽毛】：收集乱风岗鹰身人羽毛。",
+    readyAnnounce:"羽毛已齐 · 回帕拉处"},
+  {id:"sun_eye", title:"太阳之眼",
+    chapter:"side", zone:"mulgore", sort:156,
+    minLevel:12, prereq:["mulgore_crisis"],
+    giver:"hamya", turnIn:"hamya",
+    objectives:[{type:"arrive", x:MULGORE.golden.x, z:MULGORE.golden.z, r:22, label:"黄金平原", livePoi:"golden"}],
+    rewards:{sideKey:"sun_eye"},
+    acceptLog:"接受任务【太阳之眼】：前往黄金平原调查。",
+    readyAnnounce:"平原已探 · 回哈米亚处"},
+  {id:"grimtotem_loyalty", title:"野性图腾的忠诚",
+    chapter:"side", zone:"mulgore", sort:158,
+    minLevel:12, prereq:["mulgore_crisis"],
+    giver:"magatha", turnIn:"magatha",
+    objectives:[{type:"enter", zone:"barrens", countKey:"grimtotem_loyalty"}],
+    rewards:{sideKey:"grimtotem_loyalty"},
+    acceptLog:"接受任务【野性图腾的忠诚】：前往贫瘠之地完成野性图腾的试炼。",
+    readyAnnounce:"已入贫瘠之地 · 回玛加萨处"},
+  {id:"runetotem_wisdom", title:"符文图腾的智慧",
+    chapter:"side", zone:"mulgore", sort:160,
+    minLevel:10, prereq:["bloodhoof_journey"],
+    giver:"runetotem", turnIn:"runetotem",
+    objectives:[{type:"deliver", item:"bird_feather", count:5}],
+    rewards:{sideKey:"runetotem_wisdom"},
+    acceptLog:"接受任务【符文图腾的智慧】：收集草药样本（以陆行鸟羽毛代之）。",
+    readyAnnounce:"样本已齐 · 回长者符文图腾处"},
+  {id:"mesa_escort", title:"雷霆崖信使",
+    chapter:"side", zone:"mulgore", sort:162,
+    minLevel:5, prereq:["bloodhoof_journey"],
+    giver:"mara", turnIn:"mara",
+    objectives:[{type:"escort", destX:MULGORE.thunderBluff.x, destZ:MULGORE.thunderBluff.z+16, r:18, label:"雷霆崖山脚", name:"信使 · 石蹄"}],
     rewards:{sideKey:"mesa_escort"},
-    acceptLog:"接受任务【台地护送】：护送学徒前往北部门口附近。",
-    readyAnnounce:"学徒已抵达 · 回长老处"},
+    acceptLog:"接受任务【雷霆崖信使】：护送信使前往雷霆崖山脚。",
+    readyAnnounce:"信使已抵达 · 回玛拉处"},
 
-  /* ===== 贫瘠之地支线 ≥10 ===== */
-  {id:"centaur_threat", title:"再战半人马",
+  /* ===== 贫瘠之地支线（十字路口营地内发放）≥10 ===== */
+  {id:"kil_goods", title:"斯特雷的货物",
     chapter:"side", zone:"barrens", sort:200,
-    minLevel:12, prereq:["crossroads_trouble"],
-    giver:"crossroads", turnIn:"crossroads",
-    objectives:[{type:"kill", mob:"centaur", count:4}],
-    rewards:{sideKey:"centaur_threat"},
-    acceptLog:"接受任务【再战半人马】：继续清剿半人马。",
-    readyAnnounce:"半人马再退 · 回哨兵碎牙处"},
-  {id:"zebra_meat", title:"斑马肉干",
+    minLevel:10, prereq:["darsok_supply"],
+    giver:"kil", turnIn:"kil",
+    grantItems:["quest_kil_crate"],
+    objectives:[{type:"arrive", x:BARRENS.goodsEast.x, z:BARRENS.goodsEast.z, r:18, label:"丢失货物处", livePoi:"goodsEast"}],
+    rewards:{sideKey:"kil_goods"},
+    acceptLog:"接受任务【斯特雷的货物】：前往十字路口东侧找回货物痕迹，再回报基尔。",
+    readyAnnounce:"货物痕迹已查 · 回基尔·斯特雷处"},
+  {id:"kil_ratchet", title:"送货到棘齿城",
     chapter:"side", zone:"barrens", sort:202,
-    minLevel:10, prereq:["crossroads_trouble"],
-    giver:"barrens_cook", turnIn:"barrens_cook",
-    objectives:[{type:"kill", mob:"zebra", countKey:"zebra_meat"}],
-    rewards:{sideKey:"zebra_meat"},
-    acceptLog:"接受任务【斑马肉干】：猎杀斑马，为厨灶备肉。",
-    readyAnnounce:"肉干够了 · 回厨子尘粮处"},
-  {id:"quil_extra", title:"野猪人清剿",
+    minLevel:12, prereq:["kil_goods"],
+    giver:"kil", turnIn:"kil",
+    objectives:[{type:"arrive", x:BARRENS.ratchet.x, z:BARRENS.ratchet.z, r:24, label:"棘齿城方向", livePoi:"ratchet"}],
+    rewards:{sideKey:"kil_ratchet"},
+    acceptLog:"接受任务【送货到棘齿城】：将货物送往棘齿城方向。",
+    readyAnnounce:"已抵棘齿城方向 · 回基尔处"},
+  {id:"thom_cannons", title:"北方城堡的火炮",
     chapter:"side", zone:"barrens", sort:204,
-    minLevel:10, prereq:["crossroads_trouble"],
-    giver:"crossroads", turnIn:"crossroads",
-    objectives:[{type:"kill", mob:"quilboar", countKey:"quil_extra"}],
-    rewards:{sideKey:"quil_extra"},
-    acceptLog:"接受任务【野猪人清剿】：再清一批野猪人。",
-    readyAnnounce:"野猪人已清 · 回哨兵碎牙处"},
-  {id:"bird_dust", title:"尘羽猎手",
+    minLevel:13, prereq:["thom_scout"],
+    giver:"thom", turnIn:"thom",
+    grantItems:["quest_cannon_charge"],
+    objectives:[{type:"use", item:"quest_cannon_charge", nearPoi:"northWatch", nearR:28}],
+    rewards:{sideKey:"thom_cannons"},
+    acceptLog:"接受任务【北方城堡的火炮】：在北方城堡附近使用火炮炸药。",
+    readyAnnounce:"火炮已毁 · 回托姆·鹰眼处"},
+  {id:"kag_kodo", title:"科多兽皮",
     chapter:"side", zone:"barrens", sort:206,
-    minLevel:10, prereq:["crossroads_trouble"],
-    giver:"barrens_cook", turnIn:"barrens_cook",
-    objectives:[{type:"kill", mob:"bird", countKey:"bird_dust"}],
-    rewards:{sideKey:"bird_dust"},
-    acceptLog:"接受任务【尘羽猎手】：猎杀陆行鸟。",
-    readyAnnounce:"尘羽已收 · 回厨子尘粮处"},
-  {id:"dust_watch", title:"尘土瞭望",
+    minLevel:13, prereq:["kag_lions"],
+    giver:"kag", turnIn:"kag",
+    objectives:[{type:"deliver", item:"kodo_hide", count:4}],
+    rewards:{sideKey:"kag_kodo"},
+    acceptLog:"接受任务【科多兽皮】：收集科多兽皮交给卡格·血怒。",
+    readyAnnounce:"兽皮已齐 · 回卡格处"},
+  {id:"lal_grave", title:"勇士之墓的污染",
     chapter:"side", zone:"barrens", sort:208,
-    minLevel:10, prereq:["crossroads_trouble"],
-    giver:"crossroads", turnIn:"crossroads",
-    objectives:[{type:"arrive", x:0, z:-120, r:18, label:"南口瞭望"}],
-    rewards:{sideKey:"dust_watch"},
-    acceptLog:"接受任务【尘土瞭望】：抵达贫瘠南口附近。",
-    readyAnnounce:"瞭望完成 · 回哨兵碎牙处"},
-  {id:"east_ridge", title:"东岭巡视",
+    minLevel:13, prereq:["crossroads_trouble"],
+    giver:"lal", turnIn:"lal",
+    grantItems:["quest_grave_totem"],
+    objectives:[{type:"use", item:"quest_grave_totem", nearPoi:"warriorGrave", nearR:20}],
+    rewards:{sideKey:"lal_grave"},
+    acceptLog:"接受任务【勇士之墓的污染】：在勇士之墓使用大地净化图腾。",
+    readyAnnounce:"墓地已净 · 回拉尔处"},
+  {id:"serra_feathers", title:"鹰身人羽毛",
     chapter:"side", zone:"barrens", sort:210,
-    minLevel:10, prereq:["crossroads_trouble"],
-    giver:"crossroads", turnIn:"crossroads",
-    objectives:[{type:"arrive", x:140, z:20, r:18, label:"东岭"}],
-    rewards:{sideKey:"east_ridge"},
-    acceptLog:"接受任务【东岭巡视】：抵达东侧山岭。",
-    readyAnnounce:"东岭已踏 · 回哨兵碎牙处"},
-  {id:"oasis_visit", title:"绿洲足迹",
+    minLevel:14, prereq:["serra_harpies"],
+    giver:"serra", turnIn:"serra",
+    objectives:[{type:"deliver", item:"harpy_feather", count:5}],
+    rewards:{sideKey:"serra_feathers"},
+    acceptLog:"接受任务【鹰身人羽毛】：收集鹰身人羽毛。",
+    readyAnnounce:"羽毛已齐 · 回塞拉处"},
+  {id:"mankrik_wife", title:"曼科里克的妻子",
     chapter:"side", zone:"barrens", sort:212,
-    minLevel:10, prereq:["crossroads_trouble"],
-    giver:"crossroads", turnIn:"crossroads",
-    objectives:[{type:"arrive", x:-60, z:80, r:16, label:"北绿洲"}],
-    rewards:{sideKey:"oasis_visit"},
-    acceptLog:"接受任务【绿洲足迹】：探访北方绿洲痕迹。",
-    readyAnnounce:"绿洲已访 · 回哨兵碎牙处"},
-  {id:"supply_crate", title:"军需木箱",
+    minLevel:14, prereq:["crossroads_trouble"],
+    giver:"mankrik", turnIn:"mankrik",
+    objectives:[{type:"arrive", x:BARRENS.taurajo.x+20, z:BARRENS.taurajo.z-16, r:20, label:"南贫瘠遗骸"}],
+    rewards:{sideKey:"mankrik_wife"},
+    acceptLog:"接受任务【曼科里克的妻子】：在南贫瘠陶拉祖附近寻找妻子的踪迹。",
+    readyAnnounce:"遗骸已寻 · 回曼科里克处"},
+  {id:"zinge_potion", title:"金格的药剂",
     chapter:"side", zone:"barrens", sort:214,
-    minLevel:10, prereq:["crossroads_trouble"],
-    giver:"barrens_cook", turnIn:"barrens_cook",
+    minLevel:14, prereq:["crossroads_trouble"],
+    giver:"zinge", turnIn:"zinge",
+    objectives:[{type:"deliver", item:"scorp_venom", count:4}],
+    rewards:{sideKey:"zinge_potion"},
+    acceptLog:"接受任务【金格的药剂】：从北贫瘠蝎子身上收集毒液。",
+    readyAnnounce:"毒液已齐 · 回药剂师金格处"},
+  {id:"zinge_venom", title:"毒液样本",
+    chapter:"side", zone:"barrens", sort:216,
+    minLevel:15, prereq:["zinge_potion"],
+    giver:"zinge", turnIn:"zinge",
+    objectives:[{type:"deliver", item:"snake_venom", count:4}],
+    rewards:{sideKey:"zinge_venom"},
+    acceptLog:"接受任务【毒液样本】：从南贫瘠收集蛇毒样本。",
+    readyAnnounce:"样本已齐 · 回金格处"},
+  {id:"lal_leather", title:"变异皮革",
+    chapter:"side", zone:"barrens", sort:218,
+    minLevel:15, prereq:["wailing_call"],
+    giver:"lal", turnIn:"lal",
+    objectives:[{type:"deliver", item:"mutated_hide", count:4}],
+    rewards:{sideKey:"lal_leather", items:["barrens_cuirass"]},
+    acceptLog:"接受任务【变异皮革】：从变异生物身上收集皮革（洞外鳄鱼/元素亦可）。",
+    readyAnnounce:"皮革已齐 · 回拉尔处"},
+  {id:"lal_fang", title:"尖牙德鲁伊",
+    chapter:"side", zone:"barrens", sort:220,
+    minLevel:16, prereq:["lal_leather"],
+    giver:"lal", turnIn:"lal",
+    objectives:[{type:"enter", zone:"wailing_caverns", countKey:"lal_fang"}],
+    rewards:{sideKey:"lal_fang"},
+    acceptLog:"接受任务【尖牙德鲁伊】：踏入哀嚎洞穴挑战尖牙德鲁伊。",
+    readyAnnounce:"已入洞穴 · 回拉尔汇报",
+    autoReadyOnEnter:true},
+  /* 旧 id 兼容（隐藏支线，避免旧档断裂） */
+  {id:"supply_crate_main", title:"失落的木箱",
+    chapter:"side", zone:"barrens", sort:230,
+    minLevel:10, prereq:["darsok_supply"],
+    giver:"darsok", turnIn:"darsok",
     grantItems:["quest_supply_crate"],
     objectives:[{type:"deliver", item:"quest_supply_crate", count:1}],
-    rewards:{sideKey:"supply_crate", items:["barrens_cuirass"]},
-    acceptLog:"接受任务【军需木箱】：将木箱交给厨子尘粮。",
-    readyAnnounce:"木箱在身 · 与尘粮交付"},
-  {id:"hide_bundle", title:"斑马皮捆",
-    chapter:"side", zone:"barrens", sort:216,
-    minLevel:10, prereq:["crossroads_trouble"],
-    giver:"barrens_vendor", turnIn:"barrens_vendor",
-    objectives:[{type:"deliver", item:"zebra_hide", count:3}],
-    rewards:{sideKey:"hide_bundle"},
-    acceptLog:"接受任务【斑马皮捆】：收集斑马皮交给商人旱蹄。",
-    readyAnnounce:"皮捆已齐 · 回商人旱蹄处"},
-  {id:"signal_horn", title:"号角试鸣",
-    chapter:"side", zone:"barrens", sort:218,
-    minLevel:10, prereq:["crossroads_trouble"],
-    giver:"crossroads", turnIn:"crossroads",
-    grantItems:["quest_signal_horn"],
-    objectives:[{type:"use", item:"quest_signal_horn"}],
-    rewards:{sideKey:"signal_horn"},
-    acceptLog:"接受任务【号角试鸣】：在背包使用信号号角。",
-    readyAnnounce:"号角已响 · 回哨兵碎牙处"},
-  {id:"caravan_escort", title:"商队护送",
-    chapter:"side", zone:"barrens", sort:220,
-    minLevel:11, prereq:["crossroads_trouble"],
-    giver:"barrens_vendor", turnIn:"barrens_vendor",
-    objectives:[{type:"escort", destX:0, destZ:-168, r:16, label:"北口", name:"商队 · 尘足"}],
-    rewards:{sideKey:"caravan_escort", items:["barrens_cleaver"]},
-    acceptLog:"接受任务【商队护送】：护送商队前往北口。",
-    readyAnnounce:"商队抵达 · 回商人旱蹄处"},
+    rewards:{sideKey:"supply_crate_main"},
+    acceptLog:"接受任务【失落的木箱】：把补给箱交还给达索克。",
+    readyAnnounce:"木箱在身 · 与达索克交付"},
 
   /* ===== 赭岩谷支线 ≥10 ===== */
   {id:"cliff_harpy", title:"崖风鹰身",
@@ -379,7 +645,7 @@ const QUESTS=[
     chapter:"side", zone:"durotar", sort:306,
     minLevel:12, prereq:["ochre_sting"],
     giver:"ochre_outpost", turnIn:"ochre_outpost",
-    objectives:[{type:"arrive", x:72, z:-56, r:16, label:"南崖"}],
+    objectives:[{type:"arrive", x:54, z:-288, r:26, label:"乱风岗"}],
     rewards:{sideKey:"cliff_beacon"},
     acceptLog:"接受任务【南崖探路】：抵达东南崖顶。",
     readyAnnounce:"南崖已踏 · 回斥候赤牙处"},
@@ -387,7 +653,7 @@ const QUESTS=[
     chapter:"side", zone:"durotar", sort:308,
     minLevel:12, prereq:["ochre_sting"],
     giver:"ochre_outpost", turnIn:"ochre_outpost",
-    objectives:[{type:"arrive", x:-100, z:20, r:18, label:"西峡谷"}],
+    objectives:[{type:"arrive", x:-200, z:40, r:24, label:"西峡谷"}],
     rewards:{sideKey:"west_canyon"},
     acceptLog:"接受任务【西峡谷口】：探查西侧峡谷。",
     readyAnnounce:"峡谷已探 · 回斥候赤牙处"},
@@ -477,7 +743,7 @@ function objectiveCount(obj){
   if(obj.countKey==="boss")return 1;
   if(obj.type==="use"||obj.type==="arrive"||obj.type==="escort"||obj.type==="enter")return 1;
   if(obj.type==="deliver")return(obj.count!=null?obj.count:1)|0;
-  if(obj.countKey&&BAL.quest.side&&BAL.quest.side[obj.countKey])
+  if(obj.countKey&&BAL.quest.side&&BAL.quest.side[obj.countKey]!=null&&BAL.quest.side[obj.countKey].kills!=null)
     return BAL.quest.side[obj.countKey].kills|0;
   return 1;
 }
@@ -509,12 +775,48 @@ function getQuestDef(id){return QUEST_BY_ID[id]||null;}
 
 /* NPC 显示名：任务追踪 / 交任务提示 */
 const QUEST_NPC_NAMES={
-  elder:"长老 · 岩蹄",
-  vendor:"商人 · 火蹄",
-  hunter:"猎手 · 迅羽",
-  crossroads:"哨兵 · 碎牙",
+  hawkwind:"酋长 · 鹰风",
+  grull:"格鲁尔 · 鹰风",
+  grayhorn:"长者 · 灰角",
+  raoul:"拉乌尔 · 猎蹄",
+  vera:"维拉 · 猎蹄",
+  whiterock:"长者 · 白岩",
+  baine:"贝恩 · 血蹄",
+  bloodhoof_elder:"血蹄长者",
+  tark:"塔克 · 风蹄",
+  mull:"穆尔 · 雷角",
+  haru:"哈鲁 · 鹰眼",
+  mara:"玛拉 · 雷蹄",
+  kur:"库尔 · 石蹄",
+  aska:"阿斯卡 · 迷雾行者",
+  cairne:"大酋长 · 凯恩",
+  stonetalon:"长者 · 石塔",
+  seen:"塞恩 · 石蹄",
+  pala:"帕拉 · 逐风",
+  hamya:"哈米亚 · 逐日",
+  magatha:"玛加萨 · 野性图腾",
+  runetotem:"长者 · 符文图腾",
+  thunderhorn_guard:"雷角水井守卫",
+  winterhoof_guard:"冬蹄守卫",
+  windfury_sentinel:"乱风岗哨兵",
+  elder:"贝恩 · 血蹄",
+  vendor:"商人 · 瓦尔格",
+  varg:"商人 · 瓦尔格",
+  hunter:"哈鲁 · 鹰眼",
+  crossroads:"达索克 · 快刀",
+  darsok:"达索克 · 快刀",
+  kag:"卡格 · 血怒",
+  mankrik:"曼科里克",
+  thom:"托姆 · 鹰眼",
+  kil:"基尔 · 斯特雷",
+  serra:"塞拉 · 血羽",
+  lal:"拉尔 · 野性图腾",
+  zinge:"药剂师 · 金格",
   barrens_cook:"厨子 · 尘粮",
-  barrens_vendor:"商人 · 旱蹄",
+  barrens_vendor:"武器商 · 旱蹄",
+  barrens_armor:"护甲商 · 铁鬃",
+  innkeeper:"旅店老板 · 风蹄",
+  flightmaster:"飞行管理员 · 云翼",
   ochre_outpost:"斥候 · 赤牙",
   ochre_guard:"卫士 · 焦刺",
   ochre_vendor:"商人 · 赤蹄",
@@ -592,10 +894,16 @@ function objectiveProgressText(q,prog){
   if(obj.type==="kill"){
     const need=objectiveCount(obj);
     const n=Math.min(prog.kills|0,need);
-    const names={boar:"草原野猪",quilboar:"野猪人斥候",wolf:"草原狼",zebra:"斑马",
-      centaur:"半人马",harpy:"鹰身女妖",boarKing:"老灰鬃",scorp:"赭岩巨蝎",razorback:"刺脊野猪人",
-      cliffHarpy:"崖风鹰身",bird:"陆行鸟"};
-    return `猎杀${names[obj.mob]||obj.mob} ${n}/${need}`;
+    const names={boar:"草原野猪",youngBoar:"小野猪",quilboar:"野猪人斥候",bristleback:"刺背野猪人",wolf:"草原狼",zebra:"斑马",
+      centaur:"半人马",harpy:"鹰身女妖",windfury:"乱风岗鹰身人",boarKing:"老灰鬃",scorp:"赭岩巨蝎",razorback:"刺脊野猪人",
+      cliffHarpy:"崖风鹰身",bird:"草原漫步者",palemane:"苍鬃豺狼人",thunderhawk:"雷鹰",
+      baeldun:"巴尔丹火枪手",venture:"风险投资公司工人",plainslion:"平原狮",
+      raptor:"迅猛龙",crocolisk:"变异鳄鱼",kodo:"科多兽",oasisWater:"污染水元素",
+      oasisHarpy:"绿洲鹰身人",barrensLion:"草原狮",barrensBristle:"刺背野猪人",quilboarElder:"野猪人长老",
+      windElement:"风元素",waterElement:"水元素",earthElement:"土元素"};
+    const list=obj.mobs||(obj.mob?[obj.mob]:[]);
+    const label=list.map(t=>names[t]||t).join("/");
+    return `猎杀${label} ${n}/${need}`;
   }
   if(obj.type==="boss"){
     const names={ragnaros:"炎魔领主拉戈斯",magmadar:"玛格曼达",cobrahn:"考布莱恩",verdan:"吞噬者"};
@@ -810,7 +1118,8 @@ function onQuestMobKill(m){
     if(questStatus(q.id)!=="active")continue;
     const obj=q.objectives&&q.objectives[0];
     if(!obj||obj.type!=="kill")continue;
-    if(obj.mob!==m.type)continue;
+    const list=obj.mobs||(obj.mob?[obj.mob]:[]);
+    if(list.indexOf(m.type)<0)continue;
     completeQuestObjective(q.id,1);
   }
 }
@@ -949,7 +1258,11 @@ function collectQuestSave(){
 function applyQuestSave(rawQuests,legacy){
   resetAllQuests({silent:true});
   const st=ensureQuestState();
+  let oldMainDone=false;
   if(rawQuests&&typeof rawQuests==="object"){
+    for(const oid of ["sacred_pool","plains_wolves","ancestor_tusk_main"]){
+      if(rawQuests[oid]&&rawQuests[oid].status==="done")oldMainDone=true;
+    }
     for(const id in rawQuests){
       if(!QUEST_BY_ID[id])continue;
       const r=rawQuests[id];
@@ -968,18 +1281,16 @@ function applyQuestSave(rawQuests,legacy){
     /* v1：quest.state / barrensQuest.state → 新表 */
     const qs=legacy.quest||{};
     const state=qs.state|0, kills=qs.kills|0;
-    if(state===1)st.elder_boars={status:kills>=BAL.quest.boarKills?"ready":"active",kills,flags:{}};
-    else if(state===2){
-      st.elder_boars={status:"done",kills:BAL.quest.boarKills,flags:{}};
-      st.sacred_pool={status:"done",kills:1,flags:{}};
-      st.ancestor_tusk_main={status:"done",kills:3,flags:{}};
-      st.plains_wolves={status:"done",kills:(BAL.quest.side.plains_wolves&&BAL.quest.side.plains_wolves.kills)|5,flags:{}};
+    const markDone=(id,k)=>{st[id]={status:"done",kills:k|0,flags:{}};}
+    if(state===1){
+      st.elder_boars={status:"active",kills:0,flags:{}};
+    }else if(state===2){
+      ["elder_boars","hawkwind_totem","hunt_continues","raoul_supply","bloodhoof_journey",
+        "clear_palemane","thunderhorn_trouble","well_pollution","cleanse_well","mulgore_crisis"].forEach(id=>markDone(id,1));
       st.ragnaros_whisper={status:"active",kills:0,flags:{}};
     }else if(state>=3){
-      st.elder_boars={status:"done",kills:BAL.quest.boarKills,flags:{}};
-      st.sacred_pool={status:"done",kills:1,flags:{}};
-      st.ancestor_tusk_main={status:"done",kills:3,flags:{}};
-      st.plains_wolves={status:"done",kills:(BAL.quest.side.plains_wolves&&BAL.quest.side.plains_wolves.kills)|5,flags:{}};
+      ["elder_boars","hawkwind_totem","hunt_continues","raoul_supply","bloodhoof_journey",
+        "clear_palemane","thunderhorn_trouble","well_pollution","cleanse_well","mulgore_crisis"].forEach(id=>markDone(id,1));
       st.ragnaros_whisper={status:"done",kills:1,flags:{}};
     }
     const bq=legacy.barrensQuest||{};
@@ -990,11 +1301,51 @@ function applyQuestSave(rawQuests,legacy){
   }
   /* 把进行中任务的交/接人绑定到当前 QUESTS 表（NPC 重分配后旧档也能交） */
   syncQuestNpcBindings();
+  migrateMulgoreQuestChain(st,{oldMainDone});
   /* 已完成任务的永久属性奖励回放（不重复发经验/铜币） */
   if(questStatus("elder_boars")==="done"){
     applyQuestRewards(getQuestDef("elder_boars"),{silent:true,skipXp:true,skipCopper:true,skipItems:true,keepHp:true});
   }
   syncLegacyQuestAliases();
+}
+
+/** 旧档：补全主线前置；将已移除主线 ID 映射到新链进度 */
+function migrateMulgoreQuestChain(st,opts){
+  if(!st)return;
+  opts=opts||{};
+  const chain=["elder_boars","hawkwind_totem","hunt_continues","raoul_supply","bloodhoof_journey",
+    "clear_palemane","thunderhorn_trouble","well_pollution","cleanse_well","mulgore_crisis","ragnaros_whisper"];
+  let furthest=-1;
+  for(let i=0;i<chain.length;i++){
+    const p=st[chain[i]];
+    if(p&&(p.status==="active"||p.status==="ready"||p.status==="done"))furthest=i;
+  }
+  /* 旧主线完成 → 推到血蹄报到之后 */
+  if(opts.oldMainDone||(st.rites_earthmother&&st.rites_earthmother.status==="done")
+    ||(st.first_step&&st.first_step.status==="done"&&st.sharing_the_land&&st.sharing_the_land.status==="done")){
+    const mark=(id,kills)=>{
+      if(!st[id]||st[id].status==="none")
+        st[id]={status:"done",kills:kills|0,flags:{}};
+    };
+    mark("elder_boars",4); mark("hawkwind_totem",1); mark("hunt_continues",5);
+    mark("raoul_supply",1); mark("bloodhoof_journey",1); mark("clear_palemane",5);
+  }
+  for(const id in st){
+    const p=st[id];
+    if(!p)continue;
+    if(p.giver==="elder")p.giver="baine";
+    if(p.turnIn==="elder")p.turnIn="baine";
+    if(p.giver==="vendor")p.giver="varg";
+    if(p.turnIn==="vendor")p.turnIn="varg";
+    if(p.giver==="hunter")p.giver="haru";
+    if(p.turnIn==="hunter")p.turnIn="haru";
+    if(p.giver==="ruul")p.giver="aska";
+    if(p.turnIn==="ruul")p.turnIn="aska";
+    if(p.giver==="harken")p.giver="haru";
+    if(p.turnIn==="harken")p.turnIn="haru";
+    if(p.giver==="morin")p.giver="baine";
+    if(p.turnIn==="morin")p.turnIn="baine";
+  }
 }
 
 function resetAllQuests(opts){
@@ -1020,6 +1371,44 @@ function refreshDeliverObjectives(opts){
   if(changed&&!opts.noSave&&typeof saveGame==="function")saveGame(true);
 }
 
+function resolveArriveTarget(obj){
+  if(!obj)return null;
+  if(obj.liveNpc){
+    try{
+      const mesh=(typeof globalThis!=="undefined"?globalThis[obj.liveNpc]:null)
+        ||(typeof window!=="undefined"?window[obj.liveNpc]:null);
+      if(mesh&&mesh.position)return {x:mesh.position.x,z:mesh.position.z};
+    }catch(e){/* ignore */}
+  }
+  if(obj.livePoi&&typeof MULGORE!=="undefined"&&MULGORE[obj.livePoi])
+    return {x:MULGORE[obj.livePoi].x,z:MULGORE[obj.livePoi].z};
+  if(obj.livePoi&&typeof BARRENS!=="undefined"&&BARRENS[obj.livePoi])
+    return {x:BARRENS[obj.livePoi].x,z:BARRENS[obj.livePoi].z};
+  return {x:+obj.x,z:+obj.z};
+}
+
+function canUseQuestItem(itemId){
+  if(!itemId)return true;
+  for(const q of QUESTS){
+    if(questStatus(q.id)!=="active")continue;
+    const obj=q.objectives&&q.objectives[0];
+    if(!obj||obj.type!=="use"||obj.item!==itemId)continue;
+    if(obj.nearPoi){
+      const poi=(typeof MULGORE!=="undefined"&&MULGORE[obj.nearPoi])||(typeof BARRENS!=="undefined"&&BARRENS[obj.nearPoi]);
+      if(poi){
+        if(typeof player==="undefined"||!player)return false;
+        const r=obj.nearR!=null?+obj.nearR:18;
+        if(Math.hypot(player.position.x-poi.x,player.position.z-poi.z)>r){
+          if(typeof announce==="function")announce("靠近目标地点再使用");
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+  return true;
+}
+
 function onQuestUseItem(itemId){
   if(!itemId)return false;
   let hit=false;
@@ -1028,6 +1417,14 @@ function onQuestUseItem(itemId){
     const obj=q.objectives&&q.objectives[0];
     if(!obj||obj.type!=="use")continue;
     if(obj.item!==itemId)continue;
+    if(obj.nearPoi){
+      const poi=(typeof MULGORE!=="undefined"&&MULGORE[obj.nearPoi])||(typeof BARRENS!=="undefined"&&BARRENS[obj.nearPoi]);
+      if(poi){
+        if(typeof player==="undefined"||!player)continue;
+        const r=obj.nearR!=null?+obj.nearR:18;
+        if(Math.hypot(player.position.x-poi.x,player.position.z-poi.z)>r)continue;
+      }
+    }
     completeQuestObjective(q.id,1);
     hit=true;
   }
@@ -1075,7 +1472,9 @@ function tickQuestWorld(dt){
     if(questStatus(q.id)!=="active")continue;
     const obj=q.objectives&&q.objectives[0];
     if(!obj||obj.type!=="arrive")continue;
-    const dx=player.position.x-(+obj.x), dz=player.position.z-(+obj.z);
+    const t=resolveArriveTarget(obj);
+    if(!t)continue;
+    const dx=player.position.x-t.x, dz=player.position.z-t.z;
     if(Math.hypot(dx,dz)<=(obj.r!=null?+obj.r:12))completeQuestObjective(q.id,1);
   }
   /* deliver poll (loot may arrive asynchronously) */

@@ -72,7 +72,7 @@ function collectSaveData(){
     zoneId,
     pos:inWorld
       ?{x:+player.position.x.toFixed(2),z:+player.position.z.toFixed(2)}
-      :{x:0,z:52},
+      :{x:BLOODHOOF?BLOODHOOF.x:-36,z:BLOODHOOF?BLOODHOOF.z:40},
     companion:typeof getCompanionSave==="function"?getCompanionSave():null,
     mats:typeof collectMatsSave==="function"?collectMatsSave():{},
     deeds:typeof collectDeedsSave==="function"?collectDeedsSave():{},
@@ -116,8 +116,8 @@ function validateSave(raw){
   const bqState=clamp(bq.state|0,0,2);
   const bqKills=Math.max(0,bq.kills|0);
   const pos=raw.pos&&typeof raw.pos==="object"?raw.pos:{};
-  const x=typeof pos.x==="number"&&isFinite(pos.x)?pos.x:0;
-  const z=typeof pos.z==="number"&&isFinite(pos.z)?pos.z:52;
+  const x=typeof pos.x==="number"&&isFinite(pos.x)?pos.x:(typeof CAMP_NARACHE!=="undefined"?CAMP_NARACHE.x:-90);
+  const z=typeof pos.z==="number"&&isFinite(pos.z)?pos.z:(typeof CAMP_NARACHE!=="undefined"?CAMP_NARACHE.z:281);
   const zoneId=normalizeSaveZoneId(raw.zoneId||raw.zone);
   let companion=null;
   if(Array.isArray(raw.companion)){
@@ -419,11 +419,15 @@ function beginNewGame(classKey){
     if(player.parent)player.parent.remove(player);
     sceneWorld.add(player); scene=sceneWorld;
   }
-  player.position.set(0,0,52);
+  player.position.set(
+    typeof CAMP_NARACHE!=="undefined"?CAMP_NARACHE.x:-90,
+    0,
+    typeof CAMP_NARACHE!=="undefined"?CAMP_NARACHE.z:281
+  );
   updateQuest(); setMarker();
   if(typeof updateBarrensMarkers==="function")updateBarrensMarkers();
-  finishStart("莫高雷 · 圣山草原");
-  log("你从牛头人营地出发。沿着土路向北，尽头矗立着通往熔火之心的传送门。","lg-sys");
+  finishStart("莫高雷 · 纳拉其营地");
+  log("你从纳拉其营地醒来。北上红云台地猎杀野兽，再前往血蹄村拜见长老。","lg-sys");
   if(S.god)log(`⚡ 上帝模式已开启：你的每一次攻击都将造成 ${BAL.god.dmg.toLocaleString()} 点伤害。`,"lg-sys");
   setTimeout(()=>log(CLS.tip,"lg-sys"),2200);
 }

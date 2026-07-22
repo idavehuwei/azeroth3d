@@ -17,25 +17,56 @@ const MAP_ZONES={
   mulgore:{
     id:"mulgore",
     name:"莫高雷",
-    radius:()=>typeof WORLD_R==="number"?WORLD_R:176,
-    /* 静态地标：世界 XZ → 标注（运行时优先读 live mesh） */
+    radius:()=>typeof WORLD_R==="number"?WORLD_R:352,
+    /* 静态地标：经典莫高雷 POI（运行时优先读 live mesh） */
     landmarks:[
-      {id:"elder",  label:"长老",   x:8,  z:48, color:"#ffd9a0", kind:"npc"},
-      {id:"vendor", label:"商人",   x:-16,z:48, color:"#8aff9a", kind:"npc"},
-      {id:"hunter", label:"猎手",   x:18, z:54, color:"#d0e8a0", kind:"npc"},
-      {id:"spirit", label:"灵魂医者",x:0,  z:64, color:"#a8d8ff", kind:"npc"},
-      {id:"portal", label:"熔火之心",x:0,  z:-168,color:"#ff8a4a", kind:"portal"},
-      {id:"barrens",label:"贫瘠之地",x:0,  z:168, color:"#e8c898", kind:"portal"},
-      {id:"camp",   label:"营地",   x:0,  z:52, color:"#c9a06a", kind:"camp"},
-      {id:"lake",   label:"红石湖", x:-56,z:8,  color:"#7ab8ff", kind:"poi"},
+      {id:"narache", label:"纳拉其营地", x:-90, z:281, color:"#c9a06a", kind:"camp"},
+      {id:"camp",    label:"血蹄村",     x:-36, z:40,  color:"#e8c080", kind:"camp"},
+      {id:"thunder", label:"雷霆崖",     x:-72, z:-208,color:"#a8c8ff", kind:"camp"},
+      {id:"redcloud",label:"红云台地",   x:-180,z:208, color:"#d08060", kind:"camp"},
+      {id:"palemane",label:"贫瘠石",     x:-234,z:62,  color:"#c4783a", kind:"camp"},
+      {id:"golden",  label:"黄金平原",   x:0,   z:-106,color:"#d8c060", kind:"poi"},
+      {id:"thunderhorn",label:"雷角水井",x:-54, z:-55, color:"#7ab8ff", kind:"poi"},
+      {id:"winterhoof", label:"冬蹄水井",x:108, z:91,  color:"#7ab8ff", kind:"poi"},
+      {id:"windfury",label:"乱风岗",     x:54,  z:-288,color:"#c8a0e0", kind:"camp"},
+      {id:"baeldun", label:"巴尔丹挖掘场",x:-253,z:-47, color:"#90a0b0", kind:"camp"},
+      {id:"venture", label:"风险投资矿洞",x:216, z:-26, color:"#8ab050", kind:"camp"},
+      {id:"lake",    label:"石牛湖",     x:-126,z:33,  color:"#7ab8ff", kind:"poi"},
+      {id:"hawkwind", label:"鹰风酋长", color:"#e8c080", kind:"npc"},
+      {id:"grull", label:"格鲁尔", color:"#d8b090", kind:"npc"},
+      {id:"grayhorn", label:"灰角", color:"#d0c8a8", kind:"npc"},
+      {id:"baine", label:"贝恩", color:"#ffd9a0", kind:"npc"},
+      {id:"elder", label:"贝恩", color:"#ffd9a0", kind:"npc"},
+      {id:"cairne", label:"凯恩", color:"#ffd9a0", kind:"npc"},
+      {id:"mull", label:"穆尔", color:"#a8c8e8", kind:"npc"},
+      {id:"vendor", label:"瓦尔格", color:"#8aff9a", kind:"npc"},
+      {id:"hunter", label:"哈鲁", color:"#d0e8a0", kind:"npc"},
+      {id:"spirit", label:"灵魂医者", color:"#a8d8ff", kind:"npc"},
+      {id:"portal",  label:"熔火之心",   x:0,   z:-344,color:"#ff8a4a", kind:"portal"},
+      {id:"barrens", label:"贫瘠之地",   x:0,   z:344, color:"#e8c898", kind:"portal"},
     ],
-    /* 稀有/精英：运行时由 getRareMapEntries 覆盖；此处为回退 */
     elites:[],
-    /* 手绘风轮廓：相对半径的多边形（程序化，非贴图） */
     outline:[
       [0,-1],[.35,-.92],[.62,-.7],[.88,-.35],[.95,.1],[.82,.45],[.55,.75],
       [.2,.95],[-.15,.98],[-.5,.85],[-.78,.55],[-.95,.15],[-.9,-.3],[-.65,-.7],[-.3,-.92],
     ],
+    terrain:{
+      bg:"#0c1208",
+      fill:"rgba(60,90,35,.35)",
+      stroke:"rgba(200,160,80,.45)",
+      road:[
+        ["narache","camp"],
+        ["camp","thunder"],
+        ["thunder","portal"],
+        ["camp","barrens"],
+        ["camp","lake"],
+        ["camp","winterhoof"],
+        ["camp","palemane"],
+        ["camp","venture"],
+        ["thunder","windfury"],
+        ["golden","baeldun"],
+      ],
+    },
   },
   molten_core:{
     id:"molten_core",
@@ -50,18 +81,35 @@ const MAP_ZONES={
   barrens:{
     id:"barrens",
     name:"贫瘠之地",
-    radius:()=>typeof BARRENS_R==="number"?BARRENS_R:(BAL.barrens&&BAL.barrens.radius)||184,
+    radius:()=>typeof BARRENS_R==="number"?BARRENS_R:(BAL.barrens&&BAL.barrens.radius)||368,
     landmarks:[
       {id:"crossroads",label:"十字路口",x:0,z:0,color:"#e8c080",kind:"camp"},
-      {id:"portal_n",label:"莫高雷",x:0,z:-176,color:"#c9a06a",kind:"portal"},
-      {id:"portal_s",label:"哀嚎洞穴",x:0,z:160,color:"#8a9a6a",kind:"portal"},
-      {id:"portal_e",label:"奥妮克希亚巢穴",x:172,z:8,color:"#e8a080",kind:"portal"},
-      {id:"portal_w",label:"赭岩谷",x:-172,z:-18,color:"#ffb070",kind:"portal"},
-      {id:"spirit",label:"灵魂医者",x:-12,z:10,color:"#a8d8ff",kind:"npc"},
-      {id:"barrens_vendor",label:"商人",x:-8,z:-8,color:"#8aff9a",kind:"npc"},
-      {id:"barrens_cook",label:"厨子",x:10,z:8,color:"#ffcf90",kind:"npc"},
-      {id:"quilboar",label:"野猪人前哨",x:-64,z:-24,color:"#c4783a",kind:"camp"},
-      {id:"centaur",label:"半人马营地",x:80,z:50,color:"#a87840",kind:"camp"},
+      {id:"portal_n",label:"莫高雷",x:0,z:-360,color:"#c9a06a",kind:"portal"},
+      {id:"portal_s",label:"哀嚎洞穴",x:0,z:356,color:"#8a9a6a",kind:"portal"},
+      {id:"portal_e",label:"奥妮克希亚巢穴",x:356,z:8,color:"#e8a080",kind:"portal"},
+      {id:"portal_w",label:"赭岩谷",x:-356,z:-18,color:"#ffb070",kind:"portal"},
+      {id:"spirit",label:"灵魂医者",x:-22,z:18,color:"#a8d8ff",kind:"npc"},
+      {id:"barrens_vendor",label:"武器商",x:-12,z:-10,color:"#8aff9a",kind:"npc"},
+      {id:"barrens_cook",label:"厨子",x:16,z:8,color:"#ffcf90",kind:"npc"},
+      {id:"innkeeper",label:"旅店",x:-16,z:12,color:"#e0c090",kind:"npc"},
+      {id:"flightmaster",label:"飞行点",x:8,z:16,color:"#a8d0e8",kind:"npc"},
+      {id:"darsok",label:"达索克",x:0,z:0,color:"#e8c898",kind:"npc"},
+      {id:"kag",label:"卡格",x:0,z:0,color:"#e89870",kind:"npc"},
+      {id:"mankrik",label:"曼科里克",x:0,z:0,color:"#c89060",kind:"npc"},
+      {id:"thom",label:"托姆",x:0,z:0,color:"#d0c080",kind:"npc"},
+      {id:"kil",label:"基尔",x:0,z:0,color:"#b0d080",kind:"npc"},
+      {id:"serra",label:"塞拉",x:0,z:0,color:"#e890b0",kind:"npc"},
+      {id:"lal",label:"拉尔",x:0,z:0,color:"#90c8a0",kind:"npc"},
+      {id:"zinge",label:"金格",x:0,z:0,color:"#90d0c0",kind:"npc"},
+      {id:"dead_oasis",label:"死水绿洲",x:0,z:0,color:"#7ec8a8",kind:"camp",livePoi:"deadOasis"},
+      {id:"wailing_poi",label:"哀嚎入口",x:0,z:0,color:"#a8d080",kind:"camp",livePoi:"wailing"},
+      {id:"ratchet",label:"棘齿城方向",x:0,z:0,color:"#c8b070",kind:"camp",livePoi:"ratchet"},
+      {id:"gold_road",label:"黄金之路",x:0,z:0,color:"#d8c080",kind:"camp",livePoi:"goldRoad"},
+      {id:"north_watch",label:"北方城堡",x:0,z:0,color:"#e8a090",kind:"camp",livePoi:"northWatch"},
+      {id:"taurajo",label:"陶拉祖",x:0,z:0,color:"#c89860",kind:"camp",livePoi:"taurajo"},
+      {id:"warrior_grave",label:"勇士之墓",x:0,z:0,color:"#a8b0c8",kind:"camp",livePoi:"warriorGrave"},
+      {id:"bristleback",label:"刺背营地",x:0,z:0,color:"#c4783a",kind:"camp",livePoi:"bristleback"},
+      {id:"centaur",label:"半人马营地",x:0,z:0,color:"#a87840",kind:"camp",livePoi:"centaur"},
     ],
     elites:[],
     outline:[
@@ -72,22 +120,22 @@ const MAP_ZONES={
       bg:"#1a1408",
       fill:"rgba(120,90,40,.4)",
       stroke:"rgba(200,160,80,.5)",
-      road:[["crossroads","portal_n"],["crossroads","portal_s"],["crossroads","portal_e"],["crossroads","portal_w"]],
+      road:[["crossroads","portal_n"],["crossroads","portal_s"],["crossroads","portal_e"],["crossroads","portal_w"],["crossroads","dead_oasis"],["crossroads","gold_road"]],
     },
   },
   durotar:{
     id:"durotar",
     name:"赭岩谷",
-    radius:()=>typeof DUROTAR_R==="number"?DUROTAR_R:(BAL.durotar&&BAL.durotar.radius)||176,
+    radius:()=>typeof DUROTAR_R==="number"?DUROTAR_R:(BAL.durotar&&BAL.durotar.radius)||352,
     landmarks:[
       {id:"ochre_outpost",label:"赭岩哨站",x:0,z:0,color:"#ffb070",kind:"camp"},
-      {id:"portal_e",label:"贫瘠之地",x:164,z:0,color:"#e8c898",kind:"portal"},
-      {id:"portal_w",label:"怒焰裂谷",x:-164,z:8,color:"#ff7040",kind:"portal"},
-      {id:"spirit",label:"灵魂医者",x:-4,z:12,color:"#a8d8ff",kind:"npc"},
-      {id:"ochre_vendor",label:"商人",x:-8,z:-6,color:"#8aff9a",kind:"npc"},
-      {id:"ochre_guard",label:"卫士",x:10,z:6,color:"#ff9a70",kind:"npc"},
-      {id:"scorp",label:"巨蝎谷",x:-56,z:-36,color:"#c87828",kind:"camp"},
-      {id:"cliff",label:"崖风巢",x:76,z:-56,color:"#ff9a70",kind:"camp"},
+      {id:"portal_e",label:"贫瘠之地",x:342,z:0,color:"#e8c898",kind:"portal"},
+      {id:"portal_w",label:"怒焰裂谷",x:-342,z:8,color:"#ff7040",kind:"portal"},
+      {id:"spirit",label:"灵魂医者",x:-8,z:22,color:"#a8d8ff",kind:"npc"},
+      {id:"ochre_vendor",label:"商人",x:-14,z:-10,color:"#8aff9a",kind:"npc"},
+      {id:"ochre_guard",label:"卫士",x:18,z:12,color:"#ff9a70",kind:"npc"},
+      {id:"scorp",label:"巨蝎谷",x:-112,z:-72,color:"#c87828",kind:"camp"},
+      {id:"cliff",label:"崖风巢",x:152,z:-112,color:"#ff9a70",kind:"camp"},
     ],
     elites:[],
     outline:[
@@ -169,12 +217,56 @@ function mapWorldToCanvas(x,z,size,pad,R){
 
 function liveLandmarkPos(lm){
   if(lm.id==="elder"&&typeof elder!=="undefined")return {x:elder.position.x,z:elder.position.z};
+  if(lm.id==="baine"&&typeof baine!=="undefined")return {x:baine.position.x,z:baine.position.z};
+  if(lm.id==="hawkwind"&&typeof hawkwind!=="undefined")return {x:hawkwind.position.x,z:hawkwind.position.z};
+  if(lm.id==="grull"&&typeof grull!=="undefined")return {x:grull.position.x,z:grull.position.z};
+  if(lm.id==="grayhorn"&&typeof grayhorn!=="undefined")return {x:grayhorn.position.x,z:grayhorn.position.z};
+  if(lm.id==="cairne"&&typeof cairne!=="undefined")return {x:cairne.position.x,z:cairne.position.z};
+  if(lm.id==="mull"&&typeof mull!=="undefined")return {x:mull.position.x,z:mull.position.z};
+  if(lm.id==="harken"&&typeof harken!=="undefined")return {x:harken.position.x,z:harken.position.z};
+  if(lm.id==="morin"&&typeof morin!=="undefined")return {x:morin.position.x,z:morin.position.z};
   if(lm.id==="vendor"&&typeof vendor!=="undefined")return {x:vendor.position.x,z:vendor.position.z};
   if(lm.id==="hunter"&&typeof hunter!=="undefined")return {x:hunter.position.x,z:hunter.position.z};
   if(lm.id==="barrens_vendor"&&typeof barrensVendor!=="undefined"&&barrensVendor)
     return {x:barrensVendor.position.x,z:barrensVendor.position.z};
   if(lm.id==="barrens_cook"&&typeof barrensCook!=="undefined"&&barrensCook)
     return {x:barrensCook.position.x,z:barrensCook.position.z};
+  if(lm.id==="innkeeper"&&typeof barrensInnkeeper!=="undefined"&&barrensInnkeeper)
+    return {x:barrensInnkeeper.position.x,z:barrensInnkeeper.position.z};
+  if(lm.id==="flightmaster"&&typeof barrensFlight!=="undefined"&&barrensFlight)
+    return {x:barrensFlight.position.x,z:barrensFlight.position.z};
+  if(lm.id==="darsok"&&typeof crossroadsSentinel!=="undefined"&&crossroadsSentinel)
+    return {x:crossroadsSentinel.position.x,z:crossroadsSentinel.position.z};
+  if(lm.id==="kag"&&typeof barrensKag!=="undefined"&&barrensKag)
+    return {x:barrensKag.position.x,z:barrensKag.position.z};
+  if(lm.id==="mankrik"&&typeof barrensMankrik!=="undefined"&&barrensMankrik)
+    return {x:barrensMankrik.position.x,z:barrensMankrik.position.z};
+  if(lm.id==="thom"&&typeof barrensThom!=="undefined"&&barrensThom)
+    return {x:barrensThom.position.x,z:barrensThom.position.z};
+  if(lm.id==="kil"&&typeof barrensKil!=="undefined"&&barrensKil)
+    return {x:barrensKil.position.x,z:barrensKil.position.z};
+  if(lm.id==="serra"&&typeof barrensSerra!=="undefined"&&barrensSerra)
+    return {x:barrensSerra.position.x,z:barrensSerra.position.z};
+  if(lm.id==="lal"&&typeof barrensLal!=="undefined"&&barrensLal)
+    return {x:barrensLal.position.x,z:barrensLal.position.z};
+  if(lm.id==="zinge"&&typeof barrensZinge!=="undefined"&&barrensZinge)
+    return {x:barrensZinge.position.x,z:barrensZinge.position.z};
+  if(lm.id==="seer_sky"&&typeof barrensSeer!=="undefined"&&barrensSeer)
+    return {x:barrensSeer.position.x,z:barrensSeer.position.z};
+  if(lm.livePoi&&typeof BARRENS!=="undefined"&&BARRENS[lm.livePoi])
+    return {x:BARRENS[lm.livePoi].x,z:BARRENS[lm.livePoi].z};
+  if(typeof BARRENS!=="undefined"){
+    if(lm.id==="quilboar"||lm.id==="bristleback")return {x:BARRENS.bristleback.x,z:BARRENS.bristleback.z};
+    if(lm.id==="centaur")return {x:BARRENS.centaur.x,z:BARRENS.centaur.z};
+    if(lm.id==="dead_oasis")return {x:BARRENS.deadOasis.x,z:BARRENS.deadOasis.z};
+    if(lm.id==="wailing_poi")return {x:BARRENS.wailing.x,z:BARRENS.wailing.z};
+    if(lm.id==="ratchet")return {x:BARRENS.ratchet.x,z:BARRENS.ratchet.z};
+    if(lm.id==="gold_road")return {x:BARRENS.goldRoad.x,z:BARRENS.goldRoad.z};
+    if(lm.id==="north_watch")return {x:BARRENS.northWatch.x,z:BARRENS.northWatch.z};
+    if(lm.id==="taurajo")return {x:BARRENS.taurajo.x,z:BARRENS.taurajo.z};
+    if(lm.id==="warrior_grave")return {x:BARRENS.warriorGrave.x,z:BARRENS.warriorGrave.z};
+    if(lm.id==="raptors")return {x:BARRENS.raptors.x,z:BARRENS.raptors.z};
+  }
   if(lm.id==="ochre_vendor"&&typeof ochreVendor!=="undefined"&&ochreVendor)
     return {x:ochreVendor.position.x,z:ochreVendor.position.z};
   if(lm.id==="ochre_guard"&&typeof ochreGuard!=="undefined"&&ochreGuard)
@@ -187,6 +279,21 @@ function liveLandmarkPos(lm){
     if(typeof spiritHealer!=="undefined")return {x:spiritHealer.position.x,z:spiritHealer.position.z};
   }
   if(lm.id==="portal"&&typeof PORTAL_POS!=="undefined")return {x:PORTAL_POS.x,z:PORTAL_POS.z};
+  if(lm.id==="barrens"&&typeof PORTAL_BARRENS!=="undefined")return {x:PORTAL_BARRENS.x,z:PORTAL_BARRENS.z};
+  if(lm.id==="camp"&&typeof BLOODHOOF!=="undefined")return {x:BLOODHOOF.x,z:BLOODHOOF.z};
+  if(lm.id==="narache"&&typeof CAMP_NARACHE!=="undefined")return {x:CAMP_NARACHE.x,z:CAMP_NARACHE.z};
+  if(lm.id==="lake"&&typeof REDROCK_LAKE!=="undefined")return {x:REDROCK_LAKE.x,z:REDROCK_LAKE.z};
+  if(typeof MULGORE!=="undefined"){
+    if(lm.id==="thunder")return {x:MULGORE.thunderBluff.x,z:MULGORE.thunderBluff.z};
+    if(lm.id==="redcloud")return {x:MULGORE.redCloud.x,z:MULGORE.redCloud.z};
+    if(lm.id==="palemane")return {x:MULGORE.palemane.x,z:MULGORE.palemane.z};
+    if(lm.id==="golden")return {x:MULGORE.golden.x,z:MULGORE.golden.z};
+    if(lm.id==="thunderhorn")return {x:MULGORE.thunderhorn.x,z:MULGORE.thunderhorn.z};
+    if(lm.id==="winterhoof")return {x:MULGORE.winterhoof.x,z:MULGORE.winterhoof.z};
+    if(lm.id==="windfury")return {x:MULGORE.windfury.x,z:MULGORE.windfury.z};
+    if(lm.id==="baeldun")return {x:MULGORE.baeldun.x,z:MULGORE.baeldun.z};
+    if(lm.id==="venture")return {x:MULGORE.venture.x,z:MULGORE.venture.z};
+  }
   if(lm.id==="portal_n"&&typeof BARRENS_PORTAL_N!=="undefined")return {x:BARRENS_PORTAL_N.x,z:BARRENS_PORTAL_N.z};
   if(lm.id==="portal_s"&&typeof BARRENS_PORTAL_S!=="undefined")return {x:BARRENS_PORTAL_S.x,z:BARRENS_PORTAL_S.z};
   if(lm.id==="portal_e"){
@@ -243,9 +350,11 @@ function drawTerrain(ctx,size,pad,zone){
       ctx.beginPath(); ctx.moveTo(ca.u,ca.v); ctx.lineTo(cb.u,cb.v); ctx.stroke();
     });
   }else{
-    const camp=mapWorldToCanvas(0,55,size,pad,R);
-    const portal=mapWorldToCanvas(0,-62,size,pad,R);
-    ctx.beginPath(); ctx.moveTo(camp.u,camp.v); ctx.lineTo(portal.u,portal.v); ctx.stroke();
+    const camp=liveLandmarkPos({id:"camp",x:0,z:104});
+    const portal=liveLandmarkPos({id:"portal",x:0,z:-344});
+    const ca=mapWorldToCanvas(camp.x,camp.z,size,pad,R);
+    const cb=mapWorldToCanvas(portal.x,portal.z,size,pad,R);
+    ctx.beginPath(); ctx.moveTo(ca.u,ca.v); ctx.lineTo(cb.u,cb.v); ctx.stroke();
   }
   const c0=mapWorldToCanvas(0,0,size,pad,R);
   const edge=mapWorldToCanvas(R,0,size,pad,R);

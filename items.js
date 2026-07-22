@@ -11,7 +11,7 @@
    [导出] QUALITY ITEMS LOOT EQUIP_SLOTS EQUIP_SLOT_LABEL emptyEquipment
           normalizeItemSlot resolveEquipSlot itemFitsEqSlot isEquippable isItemEquipped
           normalizeEquipment reclaimUnequippedGear
-          rollLoot dropLoot updateDrops nearestDrop
+          rollLoot rollMobLoot questLootNeedsFromTable dropLoot updateDrops nearestDrop
           tryLoot removeDropOf logLoot DROPS
           equipItem unequipItem toggleBag ensureBagOpen renderBag applyEquipStats bagOpen
           itemTitle showItemTip hideItemTip bindItemTip
@@ -124,8 +124,20 @@ const ITEMS={
   wolf_pelt    :{id:"wolf_pelt",    name:"灰狼皮",      icon:"hide",   quality:"common",  slot:"misc",  stats:null, vendorSell:7},
   wolf_fang    :{id:"wolf_fang",    name:"锋利的狼牙",  icon:"tusk",   quality:"common",  slot:"misc",  stats:null, vendorSell:5},
   bird_feather :{id:"bird_feather", name:"陆行鸟羽毛",  icon:"feather",quality:"common",  slot:"misc",  stats:null, vendorSell:5},
-  bird_meat    :{id:"bird_meat",    name:"陆行鸟腿肉",  icon:"meat",   quality:"common",  slot:"misc",  stats:null, vendorSell:6},
+  plainstrider_pelt:{id:"plainstrider_pelt",name:"草原漫步者皮毛",icon:"hide",quality:"common",slot:"misc",stats:null,vendorSell:8},
+  wind_essence :{id:"wind_essence", name:"风之精华",    icon:"feather",quality:"common",  slot:"misc",  stats:null, vendorSell:12},
+  earth_shard  :{id:"earth_shard",  name:"土地元素碎片",icon:"ore",    quality:"common",  slot:"misc",  stats:null, vendorSell:12},
+  soul_shard   :{id:"soul_shard",   name:"灵魂碎片",    icon:"tusk",   quality:"common",  slot:"misc",  stats:null, vendorSell:10},
+  quilboar_gland:{id:"quilboar_gland",name:"野猪人毒腺",icon:"potion", quality:"common",  slot:"misc",  stats:null, vendorSell:9},
+  harpy_feather:{id:"harpy_feather",name:"鹰身人羽毛",  icon:"feather",quality:"uncommon",slot:"misc",  stats:null, vendorSell:15},
+  blasting_powder:{id:"blasting_powder",name:"爆破炸药",icon:"fireball",quality:"common",slot:"misc",stats:null,vendorSell:14},
+  quest_venture_crate:{id:"quest_venture_crate",name:"地精补给箱",icon:"armor",quality:"common",slot:"misc",stats:null,quest:true},
+  bird_meat    :{id:"bird_meat",    name:"草原漫步者肉块",icon:"meat",   quality:"common",  slot:"misc",  stats:null, vendorSell:6},
   zebra_hide   :{id:"zebra_hide",   name:"斑马皮",      icon:"hide",   quality:"common",  slot:"misc",  stats:null, vendorSell:9},
+  kodo_hide    :{id:"kodo_hide",    name:"科多兽皮",    icon:"hide",   quality:"common",  slot:"misc",  stats:null, vendorSell:12},
+  scorp_venom  :{id:"scorp_venom",  name:"蝎子毒液",    icon:"potion", quality:"common",  slot:"misc",  stats:null, vendorSell:10},
+  snake_venom  :{id:"snake_venom",  name:"蛇毒样本",    icon:"potion", quality:"common",  slot:"misc",  stats:null, vendorSell:11},
+  mutated_hide :{id:"mutated_hide", name:"变异皮革",    icon:"hide",   quality:"uncommon",slot:"misc",  stats:null, vendorSell:18},
   scorp_stinger:{id:"scorp_stinger",name:"蝎刺",        icon:"tusk",   quality:"common",  slot:"misc",  stats:null, vendorSell:8},
   /* —— 主手（含原副手武器） —— */
   tusk_blade   :{id:"tusk_blade",   name:"獠牙短刃",    icon:"sword", quality:"uncommon", slot:"mainhand",stats:{dmgMul:1.05},model:"sword",vendorSell:45},
@@ -200,8 +212,21 @@ const ITEMS={
   /* —— 任务物品 —— */
   quest_sacred_oil  :{id:"quest_sacred_oil",  name:"圣油",        icon:"potion", quality:"common", slot:"consumable",use:"quest",
                       stats:null, quest:true},
+  quest_winterhoof_totem:{id:"quest_winterhoof_totem",name:"净化图腾",icon:"tusk",quality:"common",slot:"consumable",use:"quest",
+                      stats:null, quest:true},
+  quest_hawkwind_totem:{id:"quest_hawkwind_totem",name:"鹰风图腾",icon:"tusk",quality:"common",slot:"misc",stats:null,quest:true},
+  quest_raoul_crate:{id:"quest_raoul_crate",name:"猎蹄补给箱",icon:"armor",quality:"common",slot:"misc",stats:null,quest:true},
+  quest_mara_letter:{id:"quest_mara_letter",name:"雷蹄急信",icon:"hide",quality:"common",slot:"misc",stats:null,quest:true},
+  quest_winterhoof_sample:{id:"quest_winterhoof_sample",name:"冬蹄水样",icon:"potion",quality:"common",slot:"misc",stats:null,quest:true},
+  quest_dwarf_plans:{id:"quest_dwarf_plans",name:"矮人计划书",icon:"hide",quality:"common",slot:"misc",stats:null,quest:true},
   quest_signal_horn :{id:"quest_signal_horn", name:"信号号角",    icon:"tusk",   quality:"common", slot:"consumable",use:"quest",
                       stats:null, quest:true},
+  quest_darsok_letter:{id:"quest_darsok_letter",name:"十字路口急信",icon:"hide",quality:"common",slot:"misc",stats:null,quest:true},
+  quest_kil_crate:{id:"quest_kil_crate",name:"斯特雷的货物",icon:"armor",quality:"common",slot:"misc",stats:null,quest:true},
+  quest_grave_totem:{id:"quest_grave_totem",name:"大地净化图腾",icon:"tusk",quality:"common",slot:"consumable",use:"quest",
+    tip:"在勇士之墓附近使用以净化污染。",quest:true},
+  quest_cannon_charge:{id:"quest_cannon_charge",name:"火炮炸药",icon:"fireball",quality:"common",slot:"consumable",use:"quest",
+    tip:"在北方城堡火炮旁使用。",quest:true},
   quest_supply_crate:{id:"quest_supply_crate",name:"军需木箱",    icon:"armor",  quality:"common", slot:"misc",
                       stats:null, quest:true},
   quest_ochre_report:{id:"quest_ochre_report",name:"斥候急报",    icon:"hide",   quality:"common", slot:"misc",
@@ -227,11 +252,91 @@ const LOOT={
     rare    :["plains_blade","mesa_guard","plains_band"],
   },
   bird:{
-    common  :["bird_feather","bird_meat"],
+    common  :["bird_meat","bird_meat","bird_meat","plainstrider_pelt","plainstrider_pelt","bird_feather"],
     uncommon:["hide_vest","plains_cloak","plains_boots"],
     rare    :["plains_blade","plains_cap"],
   },
+  thunderhawk:{
+    common  :["bird_meat","bird_meat","bird_feather","bird_feather","harpy_feather"],
+    uncommon:["hide_vest","plains_cloak","wind_pauldrons"],
+    rare    :["plains_blade","wind_blade"],
+  },
+  youngBoar:{
+    common  :["boar_meat","boar_hide"],
+    uncommon:["hide_vest","boar_belt","plains_boots"],
+    rare    :["tusk_blade","plains_cap"],
+  },
+  bristleback:{
+    common  :["soul_shard","soul_shard","quilboar_gland","quilboar_gland","boar_meat"],
+    uncommon:["hide_vest","boar_belt","tusk_blade"],
+    rare    :["plains_blade","plains_cap"],
+  },
+  plainslion:{
+    common  :["wolf_pelt","wolf_fang"],
+    uncommon:["hide_vest","wolf_gauntlets","plains_boots"],
+    rare    :["plains_blade","mesa_guard"],
+  },
+  windElement:{
+    common  :["wind_essence","wind_essence","wind_essence","bird_feather"],
+    uncommon:["wind_blade","plains_cloak"],
+    rare    :["plains_blade","wind_pauldrons"],
+  },
+  waterElement:{
+    common  :["earth_shard","earth_shard","mutated_hide","mutated_hide","bird_feather"],
+    uncommon:["hide_vest","plains_boots"],
+    rare    :["plains_blade","plains_band"],
+  },
+  earthElement:{
+    common  :["earth_shard","earth_shard","earth_shard","boar_hide"],
+    uncommon:["hide_vest","mesa_guard"],
+    rare    :["plains_blade","mesa_helm"],
+  },
+  kodo:{
+    common  :["kodo_hide","kodo_hide","kodo_hide","boar_hide","wolf_pelt"],
+    uncommon:["hide_vest","plains_boots","mesa_guard"],
+    rare    :["plains_blade","mesa_helm"],
+  },
+  palemane:{
+    common  :["wolf_pelt","wolf_fang"],
+    uncommon:["tusk_blade","hide_vest","wolf_gauntlets"],
+    rare    :["plains_blade","mesa_guard"],
+  },
+  baeldun:{
+    common  :["blasting_powder","blasting_powder","boar_hide"],
+    uncommon:["tusk_blade","hide_vest","plains_boots"],
+    rare    :["plains_blade","mesa_helm"],
+  },
+  baeldunDigger:{
+    common  :["blasting_powder","blasting_powder","boar_hide"],
+    uncommon:["hide_vest","tusk_blade","hide_bracers"],
+    rare    :["plains_blade","mesa_guard"],
+  },
+  venture:{
+    common  :["quest_venture_crate","quest_venture_crate","boar_hide"],
+    uncommon:["hide_vest","tusk_blade","plains_boots"],
+    rare    :["plains_blade","plains_band"],
+  },
+  ventureBoss:{
+    uncommon:["wind_blade","hide_vest","mesa_guard","quest_venture_crate"],
+    rare    :["plains_blade","mesa_helm","plains_band"],
+  },
+  raptor:{
+    common  :["wolf_pelt","bird_feather"],
+    uncommon:["hide_vest","plains_boots","tusk_blade"],
+    rare    :["plains_blade","wind_blade"],
+  },
+  crocolisk:{
+    common  :["snake_venom","snake_venom","snake_venom","mutated_hide","mutated_hide","boar_hide"],
+    uncommon:["hide_vest","hide_bracers","tusk_blade"],
+    rare    :["plains_blade","mesa_guard"],
+  },
+  windfury:{
+    common  :["harpy_feather","harpy_feather","harpy_feather","bird_feather","wolf_fang"],
+    uncommon:["wind_blade","harpy_charm","wind_pauldrons"],
+    rare    :["plains_blade","mesa_guard"],
+  },
   harpy:{
+    common  :["harpy_feather","harpy_feather","bird_feather"],
     uncommon:["wind_blade","harpy_charm","wind_pauldrons"],
     rare    :["plains_blade","mesa_guard","mesa_helm"],
   },
@@ -273,7 +378,7 @@ const LOOT={
     rare    :["plains_blade","mesa_helm"],
   },
   scorp:{
-    common  :["boar_hide","bird_feather","scorp_stinger"],
+    common  :["scorp_venom","scorp_venom","scorp_stinger","scorp_stinger","boar_hide"],
     uncommon:["hide_vest","tusk_blade","hide_bracers","plains_boots"],
     rare    :["ochre_fang","plains_blade","ash_treads"],
   },
@@ -283,6 +388,7 @@ const LOOT={
     rare    :["plains_blade","mesa_guard","mesa_helm"],
   },
   cliffHarpy:{
+    common  :["harpy_feather","harpy_feather","bird_feather"],
     uncommon:["wind_blade","harpy_charm","ochre_fang","wind_pauldrons"],
     rare    :["plains_blade","mesa_guard","war_shoulders"],
   },
@@ -292,7 +398,7 @@ const LOOT={
     rare    :["barrens_cleaver","plains_blade","barrens_greaves"],
   },
   zebra:{
-    common  :["bird_meat","bird_feather","zebra_hide"],
+    common  :["zebra_hide","zebra_hide","bird_meat","bird_feather"],
     uncommon:["hide_vest","barrens_cuirass","plains_cloak","plains_boots"],
     rare    :["barrens_cleaver","plains_blade","plains_band"],
   },
@@ -331,12 +437,46 @@ function rollLoot(table,weights){
   return ITEMS[fallback[0]]||null;
 }
 
+/** 进行中交付任务所需、且出现在该怪掉落表中的物品 id */
+function questLootNeedsFromTable(table){
+  const out=[];
+  if(!table||typeof QUESTS==="undefined"||typeof questStatus!=="function")return out;
+  const inTable=new Set();
+  for(const k of ["common","uncommon","rare","epic"]){
+    const pool=table[k]; if(!pool)continue;
+    for(const id of pool)inTable.add(id);
+  }
+  for(const q of QUESTS){
+    if(questStatus(q.id)!=="active")continue;
+    const obj=q.objectives&&q.objectives[0];
+    if(!obj||obj.type!=="deliver"||!obj.item||!inTable.has(obj.item))continue;
+    const need=(typeof objectiveCount==="function"?objectiveCount(obj):obj.count|0)||1;
+    const have=(typeof countInvItem==="function"?countInvItem(obj.item):0)|0;
+    if(have<need)out.push(obj.item);
+  }
+  return out;
+}
+
+/** 野怪掉落：有进行中交付任务则高概率掉任务物，否则走普通权重 */
+function rollMobLoot(m){
+  if(!m||!m.loot)return null;
+  const need=questLootNeedsFromTable(m.loot);
+  const chance=(BAL.loot&&BAL.loot.questDropChance!=null)?BAL.loot.questDropChance:.9;
+  if(need.length&&Math.random()<chance){
+    const id=need[(Math.random()*need.length)|0];
+    if(ITEMS[id])return ITEMS[id];
+  }
+  return rollLoot(m.loot,m.elite?BAL.loot.eliteWeights:null);
+}
+
 /* ============================================================
    掉落实体：发光小方块 + Canvas 图标悬浮牌 + 品质色悬浮名
    ============================================================ */
 const DROPS=[];
 function dropLoot(pos,items,owner,onLooted){
-  const it=items[0], q=QUALITY[it.quality];
+  const it=items&&items[0];
+  if(!it||!QUALITY[it.quality])return;
+  const q=QUALITY[it.quality];
   const grp=new THREE.Group();
   const gy=(typeof heightAt==="function"&&typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="mulgore")
     ?heightAt(pos.x,pos.z):(pos.y||0);
@@ -351,7 +491,7 @@ function dropLoot(pos,items,owner,onLooted){
   const label=makeLabel(it.name,5.5,q.color,q.color);
   label.position.y=2.9; grp.add(label);
   scene.add(grp);
-  DROPS.push({grp,cube,items,owner,onLooted,scn:scene,t:0});
+  DROPS.push({grp,cube,items:[it],owner,onLooted,scn:scene,t:0});
 }
 /* 每帧动画：方块旋转 + 浮沉 */
 function updateDrops(dt){
@@ -498,6 +638,10 @@ function useItem(id){
     return true;
   }
   if(it.use==="quest"){
+    if(typeof canUseQuestItem==="function"&&!canUseQuestItem(id)){
+      log("此处无法使用该物品。","lg-sys");
+      return false;
+    }
     S.inv.splice(idx,1);
     log(`使用【${it.name}】。`,"lg-sys");
     if(typeof onQuestUseItem==="function")onQuestUseItem(id);

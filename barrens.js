@@ -1,34 +1,62 @@
 /* ============================================================
    熔火之心 · barrens.js
-   贫瘠之地（STEP 18）：干燥荒原 / 十字路口 / 野猪人与半人马 / 入口任务
+   贫瘠之地：十字路口枢纽（仿经典 WoW 布局）/ POI / NPC / 分区刷怪
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ srand worldRng BAL makeLabel setZoneSeed）
           zones.js（registerZone）
           models.js（buildQuadruped buildCentaur buildVendor buildSpiritHealer buildElder tintNpcCloth QUADS
             buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem
             buildMarketStall buildCratePile BUILD_PAL placeProp）
-          world.js（spawnMob MOBS pickNearestNpc appendNpcQuestButtons openVendor closeVendorPanel）
+          world.js（spawnMob MOBS pickNearestNpc appendNpcQuestButtons openVendor closeVendorPanel
+            openNpcQuestDialogue）
           combat.js 运行时（S log announce）
           quests.js 运行时（acceptQuest turnInQuest questsForNpc）
           professions.js 运行时（spawnGatherNodesForZone）
           rares.js 运行时（spawnRaresForZone）
           save.js 运行时（saveGame）· panels.js 运行时（renderQuestLog）
-   [导出] sceneBarrens BARRENS_R BARRENS_QUEST BARRENS_PORTAL_N BARRENS_PORTAL_S BARRENS_PORTAL_E BARRENS_PORTAL_W
+   [导出] sceneBarrens BARRENS_R BARRENS CROSSROADS barrensWow BARRENS_QUEST
+          BARRENS_PORTAL_N BARRENS_PORTAL_S BARRENS_PORTAL_E BARRENS_PORTAL_W
           barrensHeli barrensSun barrensFlames
           buildBarrensZone onBarrensQuestKill tryInteractBarrens
-          updateBarrensMarkers crossroadsDist barrensSpiritDist barrensVendorDist barrensCookDist
+          updateBarrensMarkers nearBarrensNpc nearestBarrensNpcDist
+          crossroadsDist barrensSpiritDist barrensVendorDist barrensCookDist
    ============================================================ */
 "use strict";
 
 const BARRENS_R=BAL.barrens.radius;
 const sceneBarrens=new THREE.Scene();
+
+/** 经典贫瘠坐标 → 世界 XZ；以十字路口 (51,30) 为原点 */
+function barrensWow(wx,wy){
+  const cx=51, cy=30, hx=18, hy=28;
+  const nx=(wx-cx)/hx, nz=(wy-cy)/hy;
+  return{x:nx*BARRENS_R*.78, z:nz*BARRENS_R*.82};
+}
+const BARRENS={
+  crossroads:barrensWow(51,30),
+  deadOasis:barrensWow(52,45),
+  sweetwater:barrensWow(42,15),
+  wailing:barrensWow(42,36),
+  ratchet:barrensWow(62,39),
+  northWatch:barrensWow(62,18),
+  goldRoad:barrensWow(50,50),
+  taurajo:barrensWow(45,58),
+  warriorGrave:barrensWow(48,22),
+  raptors:barrensWow(55,20),
+  quilboar:barrensWow(48,38),
+  bristleback:barrensWow(49,35),
+  centaur:barrensWow(40,28),
+  wolves:barrensWow(51,24),
+  goodsEast:barrensWow(56,30),
+};
+const CROSSROADS=BARRENS.crossroads;
+
 const BARRENS_PORTAL_N=new THREE.Vector3(0,0,-(BARRENS_R-8));
 const BARRENS_SOUTH_MARK=new THREE.Vector3(0,0,BARRENS_R-12);
 const BARRENS_PORTAL_S=BARRENS_SOUTH_MARK;
 const BARRENS_PORTAL_E=new THREE.Vector3(BARRENS_R-12,0,8);
 const BARRENS_PORTAL_W=new THREE.Vector3(-(BARRENS_R-12),0,-18);
 
-/* 入口任务：0 未接 | 1 清野猪人 | 2 已交（完整任务网见 STEP 22） */
 const BARRENS_QUEST={id:"crossroads_trouble",state:0,kills:0};
 
 let barrensHeli=null,barrensSun=null;
@@ -37,8 +65,37 @@ let crossroadsSentinel=null,crossroadsLabel=null;
 let barrensSpirit=null,barrensSpiritLabel=null;
 let barrensVendor=null,barrensVendorLabel=null;
 let barrensCook=null,barrensCookLabel=null;
+let barrensInnkeeper=null,barrensFlight=null,barrensArmor=null;
+let barrensKag=null,barrensMankrik=null,barrensThom=null,barrensKil=null,barrensSerra=null,barrensLal=null,barrensZinge=null;
 let barrensMarkerExcl=null,barrensMarkerQ=null;
 let barrensPortalUni=null;
+
+const _barrensNpcMarkers=[];
+const _barrensInteractNpcs=[];
+function registerBarrensInteract(mesh,open){
+  if(!mesh||typeof open!=="function")return;
+  for(const e of _barrensInteractNpcs){if(e.mesh===mesh){e.open=open;return;}}
+  _barrensInteractNpcs.push({mesh,open});
+}
+function registerBarrensQuestMarker(npcId,x,z,root){
+  const _npcMy=(BAL.npc&&BAL.npc.markerY)||5.15;
+  const excl=makeLabel("❗",2.6); excl.position.set(x,_npcMy,z); excl.visible=false; root.add(excl);
+  const q=makeLabel("❓",2.6); q.position.copy(excl.position); q.visible=false; root.add(q);
+  _barrensNpcMarkers.push({npcId,excl,q});
+  return {excl,q};
+}
+function placeBarrensTalkNpc(root,mesh,x,z,rotY,name,level,color,npcId,openFn){
+  const ly=(BAL.npc&&BAL.npc.labelY)||4.05, lw=(BAL.npc&&BAL.npc.labelW)||6.2;
+  mesh.position.set(x,0,z);
+  if(rotY!=null)mesh.rotation.y=rotY;
+  root.add(mesh);
+  const lab=makeNameplate(name,level,{w:lw+(name.length>8?.4:0),friendly:true,color:color||"#ffd9a0"});
+  lab.position.set(x,ly,z); root.add(lab);
+  updateNameplateHp(lab,1,1);
+  if(npcId)registerBarrensQuestMarker(npcId,x,z,root);
+  if(openFn)registerBarrensInteract(mesh,openFn);
+  return lab;
+}
 
 function buildBarrensZone(scn){
   const root=scn||sceneBarrens;
@@ -90,15 +147,16 @@ function buildBarrensZone(scn){
   }
 
   const P=BUILD_PAL.barrens;
-  /* 野猪人前哨：兽皮帐篷圈 */
-  [[-32,-12],[-28,-18],[-36,-8]].forEach(([cx,cz])=>{
+  /* 刺背野猪人前哨：兽皮帐篷圈（十字路口南） */
+  const Qp=BARRENS.bristleback, Ce=BARRENS.centaur, C0=CROSSROADS;
+  [[Qp.x,Qp.z],[Qp.x+8,Qp.z-10],[Qp.x-10,Qp.z+6]].forEach(([cx,cz])=>{
     placeProp(root,buildTent({hide:P.hide,stake:P.stake,r:3.0,h:4.2,stakes:6,size:1}),cx,cz,0);
   });
-  /* 半人马营地帐篷 */
-  [[38,22],[44,28],[32,30]].forEach(([x,z],i)=>{
+  /* 半人马营地帐篷（西） */
+  [[Ce.x,Ce.z],[Ce.x+10,Ce.z+8],[Ce.x-8,Ce.z+10]].forEach(([x,z],i)=>{
     placeProp(root,buildTent({hide:0xa87840,stake:P.stake,r:3.4,h:5.0,stakes:7,size:1.05}),x,z,i*.4);
   });
-  [[40,25]].forEach(([x,z])=>{
+  [[Ce.x+4,Ce.z+4]].forEach(([x,z])=>{
     for(let k=0;k<5;k++){
       const a=k/5*Math.PI*2;
       const st=new THREE.Mesh(new THREE.DodecahedronGeometry(.35,0),
@@ -113,26 +171,46 @@ function buildBarrensZone(scn){
   });
 
   /* 十字路口：扩大街区 · 市集 · 双塔 · 围栏 */
-  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1.05}),0,0,0);
-  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.75}),-18,-8,.4);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.05}),-14,9,.4);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),16,7,-.55);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:0x9a6840,w:3.8,d:3.4,size:.95}),-12,-14,Math.PI*.65);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:.9}),18,-8,Math.PI*1.1);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,w:3.2,d:2.8,size:.85}),8,14,-.2);
-  placeProp(root,buildTent({hide:P.hide,stake:P.stake,r:2.8,h:3.8,size:1}),12,-12,.3);
-  placeProp(root,buildTent({hide:0xa87840,stake:P.stake,r:2.5,h:3.4,size:.95}),-8,14,.6);
-  placeProp(root,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x8a6030,size:1}),-6,-6,Math.PI*.2);
-  placeProp(root,buildCratePile({wood:P.wood,woodD:P.woodD,size:1.05}),-4,-9,.3);
-  placeProp(root,buildTotem({wood:P.woodD,paintA:0xc04020,paintB:0xa87840,size:.8}),10,4,0);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:14,posts:8}),-20,4,Math.PI/2);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:12,posts:7}),6,-18,0);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:12,posts:7}),20,2,-Math.PI/2);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:10,posts:6}),-4,18,Math.PI);
-  const bcf=placeProp(root,buildCampfire({flame:0xffa040,light:0xff8a30,size:1}),4,4,0);
+  const cx=C0.x, cz=C0.z;
+  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1.05}),cx,cz,0);
+  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.75}),cx-18,cz-8,.4);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.05}),cx-14,cz+9,.4);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),cx+16,cz+7,-.55);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:0x9a6840,w:3.8,d:3.4,size:.95}),cx-12,cz-14,Math.PI*.65);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:.9}),cx+18,cz-8,Math.PI*1.1);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,w:3.2,d:2.8,size:.85}),cx+8,cz+14,-.2);
+  placeProp(root,buildTent({hide:P.hide,stake:P.stake,r:2.8,h:3.8,size:1}),cx+12,cz-12,.3);
+  placeProp(root,buildTent({hide:0xa87840,stake:P.stake,r:2.5,h:3.4,size:.95}),cx-8,cz+14,.6);
+  placeProp(root,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x8a6030,size:1}),cx-6,cz-6,Math.PI*.2);
+  placeProp(root,buildCratePile({wood:P.wood,woodD:P.woodD,size:1.05}),cx-4,cz-9,.3);
+  placeProp(root,buildTotem({wood:P.woodD,paintA:0xc04020,paintB:0xa87840,size:.8}),cx+10,cz+4,0);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:14,posts:8}),cx-20,cz+4,Math.PI/2);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:12,posts:7}),cx+6,cz-18,0);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:12,posts:7}),cx+20,cz+2,-Math.PI/2);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:10,posts:6}),cx-4,cz+18,Math.PI);
+  const bcf=placeProp(root,buildCampfire({flame:0xffa040,light:0xff8a30,size:1}),cx+4,cz+4,0);
   if(bcf&&bcf.userData.flame)barrensFlames.push(bcf.userData.flame);
-  const bcf2=placeProp(root,buildCampfire({flame:0xff9030,light:0xff7020,size:.8}),-10,-4,0);
+  const bcf2=placeProp(root,buildCampfire({flame:0xff9030,light:0xff7020,size:.8}),cx-10,cz-4,0);
   if(bcf2&&bcf2.userData.flame)barrensFlames.push(bcf2.userData.flame);
+
+  /* 死水绿洲水面 + POI 标牌 */
+  const DO=BARRENS.deadOasis;
+  const oasisWater=new THREE.Mesh(new THREE.CircleGeometry(16,28),
+    MAT.get("water.oasis",{color:0x2a5a48,roughness:.35,metalness:.05,transparent:true,opacity:.72}));
+  oasisWater.rotation.x=-Math.PI/2; oasisWater.position.set(DO.x,.06,DO.z); root.add(oasisWater);
+  const poiLab=(t,p,col)=>{
+    const L=makeLabel(t,9,col||"#e8d0a0","rgba(40,28,12,.88)");
+    L.position.set(p.x,6.5,p.z); root.add(L);
+  };
+  poiLab("死水绿洲",BARRENS.deadOasis,"#7ec8a8");
+  poiLab("哀嚎洞穴入口",BARRENS.wailing,"#a8d080");
+  poiLab("棘齿城方向",BARRENS.ratchet,"#c8b070");
+  poiLab("黄金之路",BARRENS.goldRoad,"#d8c080");
+  poiLab("陶拉祖营地",BARRENS.taurajo,"#c89860");
+  poiLab("勇士之墓",BARRENS.warriorGrave,"#a8b0c8");
+  poiLab("迅猛龙巢穴",BARRENS.raptors,"#6ab050");
+  poiLab("北方城堡",BARRENS.northWatch,"#e8a090");
+
 
   const gateMat=MAT.get("_",{color:0x5a4028,roughness:.9,flatShading:true,
     emissive:0x4a6a30,emissiveIntensity:.15});
@@ -252,52 +330,97 @@ function buildBarrensZone(scn){
   const wLab2=makeLabel(`需要 Lv.${BAL.barrens.durotarMinLevel||12}+`,6,"#ff9060","rgba(90,40,15,.9)");
   wLab2.position.set(BARRENS_PORTAL_W.x,10.4,BARRENS_PORTAL_W.z); root.add(wLab2);
 
-  const _npcLy=(BAL.npc&&BAL.npc.labelY)||4.05, _npcMy=(BAL.npc&&BAL.npc.markerY)||5.15, _npcLw=(BAL.npc&&BAL.npc.labelW)||6.2;
-  crossroadsSentinel=tintNpcCloth(buildVendor(),0x6a5030);
-  crossroadsSentinel.position.set(2,0,-2); crossroadsSentinel.rotation.y=Math.PI;
-  root.add(crossroadsSentinel);
-  crossroadsLabel=makeNameplate("哨兵 · 碎牙",BAL.npcLevel.crossroads,{w:_npcLw,friendly:true,color:"#e8c898"});
-  crossroadsLabel.position.set(2,_npcLy,-2); root.add(crossroadsLabel);
-  updateNameplateHp(crossroadsLabel,1,1);
+  /* —— 十字路口任务 NPC（营地内 · 经典清单） —— */
+  _barrensNpcMarkers.length=0; _barrensInteractNpcs.length=0;
+  const _bAt=(wx,wy,dx,dz)=>{const p=barrensWow(wx,wy);return{x:p.x+(dx||0),z:p.z+(dz||0)};};
+
+  barrensInnkeeper=tintNpcCloth(buildElder(),0x8a6840);
+  {const p=_bAt(50,30,-10,8);placeBarrensTalkNpc(root,barrensInnkeeper,p.x,p.z,Math.PI*.3,
+    "旅店老板 · 风蹄",BAL.npcLevel.innkeeper,"#e0c090","innkeeper",
+    ()=>openNpcQuestDialogue("innkeeper","🏨 旅店老板 · 风蹄","欢迎来到十字路口。炉石在此绑定——愿尘土不迷你的眼。"));}
+
+  barrensFlight=tintNpcCloth(buildElder(),0x5a7088);
+  {const p=_bAt(51,29,6,10);placeBarrensTalkNpc(root,barrensFlight,p.x,p.z,Math.PI*1.1,
+    "飞行管理员 · 云翼",BAL.npcLevel.flightmaster,"#a8d0e8","flightmaster",
+    ()=>openNpcQuestDialogue("flightmaster","🦅 飞行管理员 · 云翼","部落的翼兽待命。眼下风沙太大，暂不能起飞——但航线已记入你的地图。"));}
 
   barrensVendor=buildVendor();
-  barrensVendor.position.set(-8,0,-8); barrensVendor.rotation.y=Math.PI*.4;
-  root.add(barrensVendor);
-  barrensVendorLabel=makeNameplate("商人 · 旱蹄",BAL.npcLevel.barrens_vendor,{w:_npcLw,friendly:true,color:"#a8e8c0"});
-  barrensVendorLabel.position.set(-8,_npcLy,-8); root.add(barrensVendorLabel);
-  updateNameplateHp(barrensVendorLabel,1,1);
+  {const p=_bAt(50,31,-8,-6);barrensVendorLabel=placeBarrensTalkNpc(root,barrensVendor,p.x,p.z,Math.PI*.4,
+    "武器商 · 旱蹄",BAL.npcLevel.barrens_vendor,"#a8e8c0","barrens_vendor",
+    ()=>openVendor("barrens_vendor","⚔️ 武器商 · 旱蹄"));}
+
+  barrensArmor=tintNpcCloth(buildVendor(),0x6a7a88);
+  {const p=_bAt(50,30,-12,-2);placeBarrensTalkNpc(root,barrensArmor,p.x,p.z,Math.PI*.7,
+    "护甲商 · 铁鬃",BAL.npcLevel.barrens_armor,"#b0c8d0","barrens_armor",
+    ()=>openVendor("barrens_armor","🛡️ 护甲商 · 铁鬃"));}
 
   barrensCook=tintNpcCloth(buildElder(),0xa86830);
-  barrensCook.position.set(10,0,8); barrensCook.rotation.y=Math.PI*1.2;
-  root.add(barrensCook);
-  barrensCookLabel=makeNameplate("厨子 · 尘粮",BAL.npcLevel.cook,{w:_npcLw,friendly:true,color:"#ffcf90"});
-  barrensCookLabel.position.set(10,_npcLy,8); root.add(barrensCookLabel);
-  updateNameplateHp(barrensCookLabel,1,1);
+  {const p=_bAt(52,30,10,4);barrensCookLabel=placeBarrensTalkNpc(root,barrensCook,p.x,p.z,Math.PI*1.2,
+    "厨子 · 尘粮",BAL.npcLevel.cook,"#ffcf90","barrens_cook",()=>openBarrensCookDialogue());}
 
   barrensSpirit=buildSpiritHealer();
-  barrensSpirit.position.set(-12,0,10); barrensSpirit.rotation.y=Math.PI*.6;
-  root.add(barrensSpirit);
-  barrensSpiritLabel=makeNameplate("灵魂医者 · 尘语",BAL.npcLevel.spirit,{w:_npcLw+.2,friendly:true,color:"#c8e8ff",glow:"rgba(80,160,255,.95)"});
-  barrensSpiritLabel.position.set(-12,_npcLy,10); root.add(barrensSpiritLabel);
-  updateNameplateHp(barrensSpiritLabel,1,1);
+  {const p=_bAt(50,29,-14,12);barrensSpiritLabel=placeBarrensTalkNpc(root,barrensSpirit,p.x,p.z,Math.PI*.6,
+    "灵魂医者 · 尘语",BAL.npcLevel.spirit,"#c8e8ff",null,()=>openBarrensSpiritDialogue());}
 
-  barrensMarkerExcl=makeLabel("❗",2.8,"#ffd76a","rgba(255,160,0,.95)");
-  barrensMarkerExcl.position.set(2,_npcMy,-2); root.add(barrensMarkerExcl);
-  barrensMarkerQ=makeLabel("❓",2.8,"#ffd76a","rgba(255,160,0,.95)");
-  barrensMarkerQ.position.copy(barrensMarkerExcl.position); barrensMarkerQ.visible=false; root.add(barrensMarkerQ);
+  {const p=_bAt(52,30);
+  crossroadsSentinel=tintNpcCloth(buildVendor(),0x6a5030);
+  crossroadsLabel=placeBarrensTalkNpc(root,crossroadsSentinel,p.x,p.z,Math.PI,
+    "达索克 · 快刀",BAL.npcLevel.darsok,"#e8c898","darsok",()=>openBarrensDialogue());
+  const _crMk=_barrensNpcMarkers[_barrensNpcMarkers.length-1];
+  barrensMarkerExcl=_crMk?_crMk.excl:null; barrensMarkerQ=_crMk?_crMk.q:null;}
 
-  [[-64,-24],[-56,-36],[-72,-16],[-60,-44],[-80,-28],[-48,-20]].forEach(([x,z])=>{
-    spawnMob("quilboar",x,z,"quilboar_outpost",{zoneId:"barrens"});
-  });
-  [[76,44],[88,56],[64,60],[96,40],[80,30],[70,50]].forEach(([x,z])=>{
-    spawnMob("centaur",x,z,"centaur_camp",{zoneId:"barrens"});
-  });
-  [[-30,80],[-44,64],[24,-80],[36,70],[-50,90],[40,-60]].forEach(([x,z])=>{
-    spawnMob("zebra",x,z,null,{zoneId:"barrens"});
-  });
-  [[-36,56],[16,-70],[-20,-50],[50,40]].forEach(([x,z])=>{
-    spawnMob("bird",x,z,null,{zoneId:"barrens"});
-  });
+  barrensKag=tintNpcCloth(buildElder(),0x8a4030);
+  {const p=_bAt(51,31);placeBarrensTalkNpc(root,barrensKag,p.x,p.z,Math.PI*.4,
+    "卡格 · 血怒",BAL.npcLevel.kag,"#e89870","kag",
+    ()=>openNpcQuestDialogue("kag","🗡️ 卡格 · 血怒","黄金之路上的狮群与科多兽，正等着猎人的刀锋。"));}
+
+  barrensMankrik=tintNpcCloth(buildElder(),0x5a4030);
+  {const p=_bAt(51,30,-3,2);placeBarrensTalkNpc(root,barrensMankrik,p.x,p.z,Math.PI*1.1,
+    "曼科里克",BAL.npcLevel.mankrik,"#c89060","mankrik",
+    ()=>openNpcQuestDialogue("mankrik","⚔️ 曼科里克","我的妻子……她失踪在南边。我要复仇。"));}
+
+  barrensThom=tintNpcCloth(buildVendor(),0x6a6840);
+  {const p=_bAt(52,31);placeBarrensTalkNpc(root,barrensThom,p.x,p.z,Math.PI*.2,
+    "托姆 · 鹰眼",BAL.npcLevel.thom,"#d0c080","thom",
+    ()=>openNpcQuestDialogue("thom","🔭 托姆 · 鹰眼","北方城堡的人类据点威胁着部落商路。"));}
+
+  barrensKil=tintNpcCloth(buildElder(),0x708050);
+  {const p=_bAt(53,30);placeBarrensTalkNpc(root,barrensKil,p.x,p.z,Math.PI*1.3,
+    "基尔 · 斯特雷",BAL.npcLevel.kil,"#b0d080","kil",
+    ()=>openNpcQuestDialogue("kil","📦 基尔 · 斯特雷","货物丢了，商路断了——帮我找回箱子，再送到棘齿城。"));}
+
+  barrensSerra=tintNpcCloth(buildElder(),0x905060);
+  {const p=_bAt(52,29);placeBarrensTalkNpc(root,barrensSerra,p.x,p.z,Math.PI*.7,
+    "塞拉 · 血羽",BAL.npcLevel.serra,"#e890b0","serra",
+    ()=>openNpcQuestDialogue("serra","🪶 塞拉 · 血羽","死水绿洲的鹰身人偷走了我们的补给线。"));}
+
+  barrensLal=tintNpcCloth(buildElder(),0x4a6850);
+  {const p=_bAt(50,31);placeBarrensTalkNpc(root,barrensLal,p.x,p.z,Math.PI*.9,
+    "拉尔 · 野性图腾",BAL.npcLevel.lal,"#90c8a0","lal",
+    ()=>openNpcQuestDialogue("lal","🌿 拉尔 · 野性图腾","哀嚎洞穴的污染蔓延到了勇士之墓。大地母亲需要勇士。"));}
+
+  barrensZinge=tintNpcCloth(buildElder(),0x608070);
+  {const p=_bAt(52,32);placeBarrensTalkNpc(root,barrensZinge,p.x,p.z,Math.PI*1.5,
+    "药剂师 · 金格",BAL.npcLevel.zinge,"#90d0c0","zinge",
+    ()=>openNpcQuestDialogue("zinge","🧪 药剂师 · 金格","毒液、样本——十字路口的药剂学需要材料。"));}
+
+  /* —— 分区刷怪（任务指向区） —— */
+  const RP=BARRENS.raptors, GR=BARRENS.goldRoad;
+  const Bb=BARRENS.bristleback, Ce2=BARRENS.centaur, NW=BARRENS.northWatch, WG=BARRENS.warriorGrave;
+  const TA=BARRENS.taurajo, GE=BARRENS.goodsEast;
+  [[Bb.x,Bb.z],[Bb.x+14,Bb.z-10],[Bb.x-12,Bb.z+8],[Bb.x+8,Bb.z+14],[Bb.x-16,Bb.z-6],[Bb.x+20,Bb.z+2],[C0.x+28,C0.z+18],[C0.x-24,C0.z+22]].forEach(([x,z])=>spawnMob("barrensBristle",x,z,"bristleback_camps",{zoneId:"barrens"}));
+  [[GR.x+10,GR.z],[GR.x-12,GR.z+8],[GR.x+16,GR.z-10],[GR.x-8,GR.z-14],[GR.x+4,GR.z+16],[GR.x-18,GR.z+4]].forEach(([x,z])=>spawnMob("barrensLion",x,z,"gold_road_lions",{zoneId:"barrens"}));
+  [[GR.x+22,GR.z-6],[GR.x-20,GR.z+12],[C0.x+48,C0.z+8]].forEach(([x,z])=>spawnMob("kodo",x,z,null,{zoneId:"barrens"}));
+  [[DO.x+12,DO.z],[DO.x-10,DO.z+10],[DO.x+8,DO.z-12],[DO.x-14,DO.z-6],[DO.x+4,DO.z+14],[DO.x-6,DO.z+8],[DO.x+16,DO.z-4],[DO.x-16,DO.z+4]].forEach(([x,z])=>spawnMob("oasisHarpy",x,z,"dead_oasis_harpies",{zoneId:"barrens"}));
+  [[DO.x+6,DO.z+6],[DO.x-8,DO.z-8]].forEach(([x,z])=>spawnMob("crocolisk",x,z,"dead_oasis",{zoneId:"barrens"}));
+  [[WG.x+6,WG.z],[WG.x-6,WG.z+4],[WG.x+2,WG.z-6]].forEach(([x,z])=>spawnMob("oasisWater",x,z,"warrior_grave",{zoneId:"barrens"}));
+  [[RP.x,RP.z],[RP.x+12,RP.z-8],[RP.x-10,RP.z+10]].forEach(([x,z])=>spawnMob("raptor",x,z,"raptor_nests",{zoneId:"barrens"}));
+  [[Ce2.x,Ce2.z],[Ce2.x+16,Ce2.z+8],[Ce2.x-12,Ce2.z+12]].forEach(([x,z])=>spawnMob("centaur",x,z,"centaur_camp",{zoneId:"barrens"}));
+  spawnMob("quilboarElder",TA.x+18,TA.z-12,"quilboar_elder",{zoneId:"barrens"});
+  [[NW.x+8,NW.z],[NW.x-6,NW.z+8],[NW.x+4,NW.z-10]].forEach(([x,z])=>spawnMob("baeldun",x,z,"northwatch",{zoneId:"barrens"}));
+  [[C0.x+36,C0.z-8],[C0.x-40,C0.z+16],[GE.x,GE.z]].forEach(([x,z])=>spawnMob("zebra",x,z,null,{zoneId:"barrens"}));
+  [[C0.x+20,C0.z-28],[C0.x-30,C0.z-20],[NW.x-12,NW.z+6]].forEach(([x,z])=>spawnMob("scorp",x,z,"north_venom",{zoneId:"barrens"}));
+  [[TA.x-10,TA.z+8],[TA.x+12,TA.z-6],[TA.x+4,TA.z+14]].forEach(([x,z])=>spawnMob("crocolisk",x,z,"south_venom",{zoneId:"barrens"}));
 
   if(typeof spawnRaresForZone==="function")spawnRaresForZone("barrens");
 
@@ -305,7 +428,7 @@ function buildBarrensZone(scn){
   if(typeof spawnGatherNodesForZone==="function"){
     spawnGatherNodesForZone("barrens",root,{
       radius:BARRENS_R,
-      camp:{x:0,z:-2},
+      camp:{x:CROSSROADS.x,z:CROSSROADS.z-2},
       portals:[{x:BARRENS_PORTAL_N.x,z:BARRENS_PORTAL_N.z},{x:BARRENS_PORTAL_S.x,z:BARRENS_PORTAL_S.z},{x:BARRENS_PORTAL_E.x,z:BARRENS_PORTAL_E.z},{x:BARRENS_PORTAL_W.x,z:BARRENS_PORTAL_W.z}],
     });
   }
@@ -314,19 +437,14 @@ function buildBarrensZone(scn){
 }
 
 function updateBarrensMarkers(){
-  if(!barrensMarkerExcl)return;
-  if(typeof npcHasQuestOffer==="function"){
-    barrensMarkerExcl.visible=npcHasQuestOffer("crossroads");
-    barrensMarkerQ.visible=npcHasQuestTurnIn("crossroads");
-    return;
+  for(const m of _barrensNpcMarkers){
+    if(typeof npcHasQuestOffer==="function"){
+      m.excl.visible=npcHasQuestOffer(m.npcId);
+      m.q.visible=npcHasQuestTurnIn(m.npcId);
+    }else{
+      m.excl.visible=false; m.q.visible=false;
+    }
   }
-  if(typeof questStatus==="function"){
-    barrensMarkerExcl.visible=questStatus("crossroads_trouble")==="none";
-    barrensMarkerQ.visible=questStatus("crossroads_trouble")==="ready";
-    return;
-  }
-  barrensMarkerExcl.visible=(BARRENS_QUEST.state===0);
-  barrensMarkerQ.visible=(BARRENS_QUEST.state===1&&BARRENS_QUEST.kills>=BAL.quest.barrens.quilboarKills);
 }
 
 function crossroadsDist(){
@@ -351,13 +469,22 @@ function onBarrensQuestKill(m){
   updateBarrensMarkers();
 }
 
+function nearestBarrensNpcDist(){
+  if(!_barrensInteractNpcs.length||typeof player==="undefined"||!player)return Infinity;
+  let best=Infinity;
+  for(const e of _barrensInteractNpcs){
+    if(!e||!e.mesh)continue;
+    const d=Math.hypot(player.position.x-e.mesh.position.x,player.position.z-e.mesh.position.z);
+    if(d<best)best=d;
+  }
+  return best;
+}
+function nearBarrensNpc(r){
+  const R=r!=null?r:(BAL.economy.interactR||8);
+  return nearestBarrensNpcDist()<R;
+}
 function tryInteractBarrens(){
-  const near=pickNearestNpc([
-    {mesh:barrensSpirit,open:openBarrensSpiritDialogue},
-    {mesh:crossroadsSentinel,open:openBarrensDialogue},
-    {mesh:barrensVendor,open:()=>openVendor("barrens_vendor","🏕️ 商人 · 旱蹄")},
-    {mesh:barrensCook,open:openBarrensCookDialogue},
-  ]);
+  const near=pickNearestNpc(_barrensInteractNpcs);
   if(near)near.open();
 }
 
@@ -380,7 +507,7 @@ function openBarrensCookDialogue(){
   dlg.style.display="block"; bts.innerHTML="";
   const btn=(t,fn)=>{const b=document.createElement("button");
     b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
-  tx.textContent="锅还空着。斑马肉、尘羽、军需箱——补给线靠你了。";
+  tx.textContent="锅还热着。营地里的猎人与斥候都有活——你去找达索克、卡格他们吧。";
   appendNpcQuestButtons("barrens_cook",btn);
   btn("离开",closeDialogue);
 }
@@ -389,33 +516,33 @@ function openBarrensDialogue(){
   closeVendorPanel();
   const dlg=$("#dlg"),tx=$("#dlgText"),bts=$("#dlgBtns");
   const nameEl=$("#dlg .dname");
-  if(nameEl)nameEl.textContent="🗼 哨兵 · 碎牙";
+  if(nameEl)nameEl.textContent="🗡️ 达索克 · 快刀";
   dlg.style.display="block"; bts.innerHTML="";
   const btn=(t,fn)=>{const b=document.createElement("button");
     b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
   const need=BAL.quest.barrens.quilboarKills;
 
   if(typeof canTurnInQuest==="function"&&canTurnInQuest("crossroads_trouble")){
-    tx.textContent="漂亮！补给线暂时安全了。南方的哀嚎洞穴已经开放——建议等级 15，带上同伴更稳妥。收下这些铜币，继续变强吧。";
-    btn("✦ 领取奖励 · 十字路口的麻烦",()=>{
+    tx.textContent="刺背野猪人暂时退了。陶拉祖还等着补给信——也去问问卡格、托姆和曼科里克，他们手里都有活。";
+    btn("✦ 领取奖励 · 野猪人的威胁",()=>{
       turnInQuest("crossroads_trouble");
       spawnBurst(player.position.clone().setY(1.5),0xe8c898,28,2);
-      log("哨兵提及：南方哀嚎洞穴已开放（建议 Lv15+）。","lg-sys");
       closeDialogue();
     });
   }else if(typeof canAcceptQuest==="function"&&canAcceptQuest("crossroads_trouble")){
-    tx.textContent="欢迎来到十字路口，勇士。西边野猪人前哨偷走了补给，还袭击商队。清剿 4 只野猪人斥候，我再告诉你半人马与南方洞穴的消息。";
-    btn("✦ 接受任务：十字路口的麻烦",()=>{acceptQuest("crossroads_trouble");closeDialogue();});
+    tx.textContent="刺背野猪人在营地南边劫掠商队。清剿他们，十字路口才能喘口气。";
+    btn("✦ 接受任务：野猪人的威胁",()=>{acceptQuest("crossroads_trouble");closeDialogue();});
   }else if(typeof questStatus==="function"&&questStatus("crossroads_trouble")==="active"){
     const k=questProgress("crossroads_trouble").kills|0;
-    tx.textContent=`野猪人仍在西边前哨游荡（${k}/${need}）。干完活再来找我。`;
+    tx.textContent=`刺背野猪人还在南边游荡（${k}/${need}）。`;
   }else{
-    tx.textContent="十字路口永远欢迎英雄。军需找尘粮，买卖找旱蹄；南方绿色旋涡是哀嚎洞穴（Lv15+）。";
+    tx.textContent="十字路口是部落的枢纽。补给、侦察、狩猎——营地里的人都有事要拜托你。";
   }
 
-  appendNpcQuestButtons("crossroads",btn,null,["crossroads_trouble"]);
+  appendNpcQuestButtons("darsok",btn,null,["crossroads_trouble"]);
   btn("离开",closeDialogue);
 }
+
 
 registerZone({
   id:"barrens",
@@ -432,9 +559,9 @@ registerZone({
     from_wailing:{x:0,z:BARRENS_R-22},     /* 远离南口，避免进出乒乓 */
     from_onyxia:{x:BARRENS_R-28,z:8},      /* 远离东口 */
     from_durotar:{x:-(BARRENS_R-26),z:-18}, /* 远离西口 */
-    crossroads:{x:0,z:0},
-    spirit:{x:-8,z:5},
-    default:{x:0,z:0},
+    crossroads:{x:CROSSROADS.x,z:CROSSROADS.z},
+    spirit:{x:CROSSROADS.x-8,z:CROSSROADS.z+5},
+    default:{x:CROSSROADS.x,z:CROSSROADS.z},
   },
   portals:[{
     id:"to_mulgore_from_barrens",

@@ -353,14 +353,14 @@ function tick(){
         const nearR=BAL.economy.interactR;
         const nearCraft=typeof workbenchDist==="function"&&workbenchDist()<(BAL.professions.interactR||nearR);
         const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||nearR);
-        const nearNpc=S.p.alive&&(elderDist()<nearR||vendorDist()<nearR||spiritDist()<nearR
-          ||(typeof hunterDist==="function"&&hunterDist()<nearR)||nearCraft||nearGather);
+        const nearNpc=S.p.alive&&((typeof nearMulgoreNpc==="function"&&nearMulgoreNpc(nearR))
+          ||nearCraft||nearGather);
         const dlgOpen=$("#dlg").style.display==="block";
         const vendOpen=$("#vendorPanel")&&$("#vendorPanel").style.display==="block";
         $("#interactBtn").style.display=(nearNpc&&!dlgOpen&&!vendOpen)?"block":"none";
-        if(elderDist()>8&&vendorDist()>8&&spiritDist()>8
-          &&!(typeof hunterDist==="function"&&hunterDist()<=8)&&!(nearCraft||nearGather))closeDialogue();
-      }else if(zid==="barrens"&&typeof crossroadsDist==="function"){
+        const leaveR=Math.max(nearR+2,10);
+        if(!(typeof nearMulgoreNpc==="function"&&nearMulgoreNpc(leaveR))&&!(nearCraft||nearGather))closeDialogue();
+      }else if(zid==="barrens"&&typeof nearBarrensNpc==="function"){
         if(crossroadsSentinel){
           crossroadsSentinel.rotation.y=Math.PI+Math.sin(S.t*.7)*.08;
           crossroadsSentinel.position.y=Math.sin(S.t*1.5)*.04;
@@ -369,15 +369,12 @@ function tick(){
         if(barrensMarkerQ)barrensMarkerQ.position.y=barrensMarkerExcl?barrensMarkerExcl.position.y:((BAL.npc&&BAL.npc.markerY)||5.15);
         const nearR=BAL.economy.interactR;
         const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||nearR);
-        const nearNpc=S.p.alive&&(crossroadsDist()<nearR||barrensSpiritDist()<nearR
-          ||(typeof barrensVendorDist==="function"&&barrensVendorDist()<nearR)
-          ||(typeof barrensCookDist==="function"&&barrensCookDist()<nearR)||nearGather);
+        const nearNpc=S.p.alive&&(nearBarrensNpc(nearR)||nearGather);
         const dlgOpen=$("#dlg").style.display==="block";
         const vendOpen=$("#vendorPanel")&&$("#vendorPanel").style.display==="block";
         $("#interactBtn").style.display=(nearNpc&&!dlgOpen&&!vendOpen)?"block":"none";
-        if(crossroadsDist()>8&&barrensSpiritDist()>8
-          &&!(typeof barrensVendorDist==="function"&&barrensVendorDist()<=8)
-          &&!(typeof barrensCookDist==="function"&&barrensCookDist()<=8)&&!nearGather)closeDialogue();
+        const leaveR=Math.max(nearR+2,10);
+        if(!nearBarrensNpc(leaveR)&&!nearGather)closeDialogue();
       }else if(zid==="durotar"&&typeof ochreOutpostDist==="function"){
         if(ochreOutpost){
           ochreOutpost.rotation.y=Math.PI+Math.sin(S.t*.7)*.08;
@@ -415,10 +412,9 @@ function tick(){
       const nearV=(zid==="mulgore"&&vendorDist()<R)
         ||(zid==="barrens"&&typeof barrensVendorDist==="function"&&barrensVendorDist()<R)
         ||(zid==="durotar"&&typeof ochreVendorDist==="function"&&ochreVendorDist()<R);
-      const nearC=(zid==="barrens"&&typeof crossroadsDist==="function"&&crossroadsDist()<R)
+      const nearC=(zid==="barrens"&&typeof nearBarrensNpc==="function"&&nearBarrensNpc(R))
         ||(zid==="durotar"&&typeof ochreOutpostDist==="function"&&ochreOutpostDist()<R)
         ||(zid==="mulgore"&&typeof hunterDist==="function"&&hunterDist()<R)
-        ||(zid==="barrens"&&typeof barrensCookDist==="function"&&barrensCookDist()<R)
         ||(zid==="durotar"&&typeof ochreGuardDist==="function"&&ochreGuardDist()<R)
         ||(zid==="mulgore"&&elderDist()<R);
       const nearCraft=zid==="mulgore"&&typeof workbenchDist==="function"&&workbenchDist()<(BAL.professions.interactR||4);

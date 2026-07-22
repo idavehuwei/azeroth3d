@@ -200,7 +200,7 @@ function spawnGatherNodesForZone(zoneId,scene,opts){
   clearGatherNodes(zoneId);
   const P=BAL.professions;
   const R=opts.radius||(zoneId==="barrens"?BAL.barrens.radius:90);
-  const camp=opts.camp||{x:0,z:55};
+  const camp=opts.camp||(typeof BLOODHOOF!=="undefined"?BLOODHOOF:{x:-36,z:40});
   const portals=opts.portals||[];
   const herbN=(P.herbCount&&P.herbCount[zoneId])|0;
   const oreN=(P.oreCount&&P.oreCount[zoneId])|0;

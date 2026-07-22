@@ -78,23 +78,23 @@ function buildDurotarZone(scn){
   const P=BUILD_PAL.durotar;
   /* 赭岩哨站：扩大 · 市集 · 双塔 · 围栏 */
   placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1.05}),0,0,0);
-  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.72}),14,-10,-.4);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.05}),-12,8,.35);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),14,6,-.5);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:0x9a5030,size:.95}),-10,-12,Math.PI*.7);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,w:3.2,d:2.8,size:.85}),8,12,.2);
-  placeProp(root,buildTent({hide:P.hide,stake:P.stake,r:2.9,h:3.9,size:1.05}),12,-10,.2);
-  placeProp(root,buildTent({hide:0xc07040,stake:P.stake,r:2.4,h:3.4,size:.9}),-14,-4,.5);
-  placeProp(root,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x8a4020,size:1}),-6,-6,Math.PI*.25);
-  placeProp(root,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),-4,-8,.2);
-  placeProp(root,buildTotem({wood:P.woodD,paintA:0xd03018,paintB:0xc07040,size:.85}),6,2,0);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:12,posts:7}),-16,2,Math.PI/2);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:11,posts:7}),6,-16,0);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:11,posts:7}),16,0,-Math.PI/2);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:10,posts:6}),-2,16,Math.PI);
+  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.72}),24,-18,-.4);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.05}),-20,14,.35);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),24,12,-.5);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:0x9a5030,size:.95}),-18,-20,Math.PI*.7);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,w:3.2,d:2.8,size:.85}),14,22,.2);
+  placeProp(root,buildTent({hide:P.hide,stake:P.stake,r:2.9,h:3.9,size:1.05}),20,-18,.2);
+  placeProp(root,buildTent({hide:0xc07040,stake:P.stake,r:2.4,h:3.4,size:.9}),-24,-8,.5);
+  placeProp(root,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x8a4020,size:1}),-10,-10,Math.PI*.25);
+  placeProp(root,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),-8,-14,.2);
+  placeProp(root,buildTotem({wood:P.woodD,paintA:0xd03018,paintB:0xc07040,size:.85}),10,4,0);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:16,posts:8}),-28,4,Math.PI/2);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:14,posts:7}),10,-28,0);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:14,posts:7}),28,0,-Math.PI/2);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:14,posts:7}),-4,28,Math.PI);
 
   /* 营火 */
-  [[-4,4],[6,-3],[10,6]].forEach(([x,z],i)=>{
+  [[-8,8],[12,-6],[18,12]].forEach(([x,z],i)=>{
     const cf=placeProp(root,buildCampfire({
       flame:i?0xff9030:0xffa030, light:0xff7a28, size:i===2?.75:1,
     }),x,z,0);
@@ -159,47 +159,47 @@ function buildDurotarZone(scn){
 
   const _npcLy=(BAL.npc&&BAL.npc.labelY)||4.05, _npcMy=(BAL.npc&&BAL.npc.markerY)||5.15, _npcLw=(BAL.npc&&BAL.npc.labelW)||6.2;
   ochreOutpost=tintNpcCloth(buildVendor(),0x8a4020);
-  ochreOutpost.position.set(2,0,-2); ochreOutpost.rotation.y=Math.PI;
+  ochreOutpost.position.set(4,0,-4); ochreOutpost.rotation.y=Math.PI;
   root.add(ochreOutpost);
   ochreOutpostLabel=makeNameplate("斥候 · 赤牙",BAL.npcLevel.ochre,{w:_npcLw,friendly:true,color:"#ffb070"});
-  ochreOutpostLabel.position.set(2,_npcLy,-2); root.add(ochreOutpostLabel);
+  ochreOutpostLabel.position.set(4,_npcLy,-4); root.add(ochreOutpostLabel);
   updateNameplateHp(ochreOutpostLabel,1,1);
 
   ochreVendor=buildVendor();
-  ochreVendor.position.set(-8,0,-6); ochreVendor.rotation.y=Math.PI*.35;
+  ochreVendor.position.set(-14,0,-10); ochreVendor.rotation.y=Math.PI*.35;
   root.add(ochreVendor);
   ochreVendorLabel=makeNameplate("商人 · 赤蹄",BAL.npcLevel.ochre_vendor,{w:_npcLw,friendly:true,color:"#a8e8c0"});
-  ochreVendorLabel.position.set(-8,_npcLy,-6); root.add(ochreVendorLabel);
+  ochreVendorLabel.position.set(-14,_npcLy,-10); root.add(ochreVendorLabel);
   updateNameplateHp(ochreVendorLabel,1,1);
 
   ochreGuard=tintNpcCloth(buildElder(),0x6a3018);
-  ochreGuard.position.set(10,0,6); ochreGuard.rotation.y=Math.PI*1.15;
+  ochreGuard.position.set(18,0,12); ochreGuard.rotation.y=Math.PI*1.15;
   root.add(ochreGuard);
   ochreGuardLabel=makeNameplate("卫士 · 焦刺",BAL.npcLevel.ochre_guard,{w:_npcLw,friendly:true,color:"#ff9a70"});
-  ochreGuardLabel.position.set(10,_npcLy,6); root.add(ochreGuardLabel);
+  ochreGuardLabel.position.set(18,_npcLy,12); root.add(ochreGuardLabel);
   updateNameplateHp(ochreGuardLabel,1,1);
 
   durotarSpirit=buildSpiritHealer();
-  durotarSpirit.position.set(-4,0,12); durotarSpirit.rotation.y=Math.PI;
+  durotarSpirit.position.set(-8,0,22); durotarSpirit.rotation.y=Math.PI;
   root.add(durotarSpirit);
   durotarSpiritLabel=makeNameplate("灵魂医者 · 焦风",BAL.npcLevel.spirit,{w:_npcLw+.2,friendly:true,color:"#a8d8ff",glow:"rgba(40,80,120,.9)"});
-  durotarSpiritLabel.position.set(-4,_npcLy,12); root.add(durotarSpiritLabel);
+  durotarSpiritLabel.position.set(-8,_npcLy,22); root.add(durotarSpiritLabel);
   updateNameplateHp(durotarSpiritLabel,1,1);
 
   durotarMarkerExcl=makeLabel("❗",2.8,"#ffd76a","rgba(0,0,0,.55)");
-  durotarMarkerExcl.position.set(2,_npcMy,-2); root.add(durotarMarkerExcl);
+  durotarMarkerExcl.position.set(4,_npcMy,-4); root.add(durotarMarkerExcl);
   durotarMarkerQ=makeLabel("❓",2.8,"#ffd76a","rgba(0,0,0,.55)");
   durotarMarkerQ.position.copy(durotarMarkerExcl.position); durotarMarkerQ.visible=false; root.add(durotarMarkerQ);
 
-  /* 野怪：巨蝎群、刺脊野猪人、崖风鹰身精英（V1-B2 增驻点） */
-  [[-56,-36],[-68,-16],[-44,-48],[48,40],[60,24],[-36,56],[40,-30],[-70,30],[-50,10]].forEach(([x,z])=>{
+  /* 野怪：巨蝎谷、刺脊、崖风巢（V2 坐标×2） */
+  [[-112,-72],[-136,-32],[-88,-96],[96,80],[120,48],[-72,112],[80,-60],[-140,60],[-100,20]].forEach(([x,z])=>{
     spawnMob("scorp",x,z,null,{zoneId:"durotar"});
   });
-  [[-80,20],[-72,36],[64,-40],[-60,50],[50,-50]].forEach(([x,z])=>{
+  [[-160,40],[-144,72],[128,-80],[-120,100],[100,-100]].forEach(([x,z])=>{
     spawnMob("razorback",x,z,null,{zoneId:"durotar"});
   });
-  spawnMob("cliffHarpy",76,-56,null,{zoneId:"durotar"});
-  spawnMob("cliffHarpy",-90,-40,null,{zoneId:"durotar"});
+  spawnMob("cliffHarpy",152,-112,null,{zoneId:"durotar"});
+  spawnMob("cliffHarpy",-180,-80,null,{zoneId:"durotar"});
 
   if(typeof spawnRaresForZone==="function")spawnRaresForZone("durotar");
   updateDurotarMarkers();

@@ -7,7 +7,8 @@
           zones.js（registerZone enterZone）
           models.js（buildPlayer buildBoss buildElder buildVendor buildSpiritHealer
             tintNpcCloth buildHut buildTent buildFence buildWatchtower buildCampfire
-            buildTotem buildMarketStall buildCratePile BUILD_PAL placeProp）
+            buildTotem buildMarketStall buildCratePile BUILD_PAL placeProp
+            buildMeleeHumanoid MELEE_HUMANOIDS buildElemental）
           anim.js 运行时（beginDeathRoll resetDeathRoll）
           items.js（dropLoot rollLoot LOOT tryLoot buyVendorItem）
           combat.js 运行时（S log announce fct spawnBurst hitEntity closeDialogue
@@ -18,14 +19,16 @@
           rares.js 运行时（spawnRaresForZone onRareKill）
           vfx.js 运行时（VFX spawnBurst）
           save.js 运行时（saveGame；接任务/交任务/离本）
-   [导出] player boss BOSS_MESHES WORLD_R sceneWorld heli sun worldFlames PORTAL_POS portalUni
+   [导出] player boss BOSS_MESHES WORLD_R MULGORE BLOODHOOF CAMP_NARACHE REDROCK_LAKE sceneWorld heli sun worldFlames PORTAL_POS portalUni
           portalLabel enterRaid fadeTo MOBS QUEST moveToward mobDamage mobDie
           mobTargetable addTargetable setCorpse updateQuest setMarker tryInteract openDialogue closeDialogue
           openVendor refreshVendorPanel closeVendorPanel openSpiritDialogue
           leaveRaid resetBoss spawnExitPortal removeExitPortal exitPortal
-          fireflies FIREFLIES ffPhases elder elderDist vendor vendorDist hunter hunterDist
+          fireflies FIREFLIES ffPhases elder baine hawkwind grull mull harken morin ruul varg
+          elderDist vendor vendorDist hunter hunterDist nearestMulgoreNpcDist nearMulgoreNpc
           spiritHealer spiritDist spawnMob MOBS MOB_TYPES PORTAL_BARRENS
           appendNpcQuestButtons pickNearestNpc updateNpcQuestMarkers setMarker
+          openHawkwindDialogue openGrullDialogue openNpcQuestDialogue placeTalkNpc registerNpcInteract
    ============================================================ */
 "use strict";
 /* 莫高雷分区种子：地形 / 野怪摆放全部走此流（STEP 17） */
@@ -39,49 +42,175 @@ const BOSS_MESHES={ragnaros:boss};
 /* ============================================================
    莫高雷 · 外部世界（草原 / 红岩台地 / 牛头人营地 / 副本传送门）
    ============================================================ */
-const WORLD_R=176; /* V1-B2：开放区半径×2 */
+const WORLD_R=352; /* V2：开放区半径再×2（相对 V1-B2=176） */
+/* 经典莫高雷地图 % → 世界 XZ
+   WoW 内容框约 x33–65 / y12–95，单独拉伸铺满圆形地图（避免挤在中间竖条）
+   Y 越大越南 = +Z */
+function mulgoreWow(wx,wy){
+  const x0=33,x1=65,y0=12,y1=95;
+  const cx=(x0+x1)*.5, cy=(y0+y1)*.5;
+  const hx=(x1-x0)*.5, hy=(y1-y0)*.5;
+  const nx=(wx-cx)/hx, nz=(wy-cy)/hy;
+  return{x:nx*WORLD_R*.82, z:nz*WORLD_R*.86};
+}
+const MULGORE={
+  narache:mulgoreWow(44,92),       /* 纳拉其营地 1-5 · 出生点 */
+  bloodhoof:mulgoreWow(47,59),     /* 血蹄村 5-10 · 主城 */
+  thunderBluff:mulgoreWow(45,25),  /* 雷霆崖 10+ */
+  redCloud:mulgoreWow(39,82),      /* 红云台地 1-5 */
+  palemane:mulgoreWow(36,62),      /* 贫瘠石 / 苍鬃 6-8 */
+  golden:mulgoreWow(49,39),        /* 黄金平原 5-8 */
+  thunderhorn:mulgoreWow(46,46),   /* 雷角水井 */
+  winterhoof:mulgoreWow(55,66),    /* 冬蹄水井 */
+  windfury:mulgoreWow(52,14),      /* 乱风岗 9-12 */
+  baeldun:mulgoreWow(35,47),       /* 巴尔丹挖掘场 8-10 */
+  venture:mulgoreWow(61,50),       /* 风险投资公司矿洞 7-10 */
+  stonebull:mulgoreWow(42,58),     /* 石牛湖 */
+};
+const BLOODHOOF=MULGORE.bloodhoof;
+const REDROCK_LAKE=MULGORE.stonebull;
+const CAMP_NARACHE=MULGORE.narache;
 const sceneWorld=new THREE.Scene();
 sceneWorld.background=new THREE.Color(0x8fc0e8);
-sceneWorld.fog=new THREE.FogExp2(0xa8c8e0,0.0062);
+sceneWorld.fog=new THREE.FogExp2(0xa8c8e0,0.0042);
 sceneWorld.add(new THREE.HemisphereLight(0xcfe8ff,0x5a7a3a,0.95));
 const heli=sceneWorld.children.find(c=>c.isHemisphereLight);  /* 昼夜循环需要调节 */
 const sun=new THREE.DirectionalLight(0xfff2d8,1.05);
 sun.position.set(40,70,30); sun.castShadow=true;
 sun.shadow.mapSize.set(2048,2048);
-sun.shadow.camera.left=-110;sun.shadow.camera.right=110;
-sun.shadow.camera.top=110;sun.shadow.camera.bottom=-110;
+sun.shadow.camera.left=-220;sun.shadow.camera.right=220;
+sun.shadow.camera.top=220;sun.shadow.camera.bottom=-220;
 sceneWorld.add(sun);
 
-/* 高度场地形 + 顶点着色道路（plan-V2 · R2）；取代纯色圆盘与分段土路 Mesh */
+/* 高度场：经典莫高雷 · 台地/矿洞/湖泊 + 多段土路网 */
+const _portalMC={x:0,z:-(WORLD_R-8)};
+const _portalBarrens={x:0,z:WORLD_R-8};
 const _terrainBuilt=buildMulgoreTerrain({
   worldR:WORLD_R,
-  camp:{x:0,z:52},
-  portalMC:{x:0,z:-(WORLD_R-8)},
-  portalBarrens:{x:0,z:WORLD_R-8},
-  lake:{x:-38,z:14},
-  roadP1:{x:10,z:-40},
+  camp:BLOODHOOF,
+  portalMC:_portalMC,
+  portalBarrens:_portalBarrens,
+  flats:[
+    {x:BLOODHOOF.x,z:BLOODHOOF.z,inner:34,outer:58},
+    {x:CAMP_NARACHE.x,z:CAMP_NARACHE.z,inner:22,outer:40},
+    {x:MULGORE.thunderBluff.x,z:MULGORE.thunderBluff.z,inner:28,outer:50},
+  ],
+  mesas:[
+    {x:MULGORE.redCloud.x,z:MULGORE.redCloud.z,rInner:48,rOuter:78,h:11,cliff:1.5},
+    {x:MULGORE.thunderBluff.x,z:MULGORE.thunderBluff.z,rInner:42,rOuter:72,h:14,cliff:1.65},
+    {x:MULGORE.windfury.x,z:MULGORE.windfury.z,rInner:36,rOuter:64,h:10,cliff:1.8},
+    {x:MULGORE.palemane.x,z:MULGORE.palemane.z,rInner:22,rOuter:40,h:5.5,cliff:1.25},
+  ],
+  pits:[
+    {x:MULGORE.venture.x,z:MULGORE.venture.z,rInner:10,rOuter:22,depth:5.2},
+    {x:MULGORE.baeldun.x,z:MULGORE.baeldun.z,rInner:12,rOuter:26,depth:3.6},
+  ],
+  lakes:[
+    {x:REDROCK_LAKE.x,z:REDROCK_LAKE.z,inner:16,outer:34,depth:.7},
+    {x:MULGORE.thunderhorn.x-6,z:MULGORE.thunderhorn.z+4,inner:5,outer:11,depth:.35},
+    {x:MULGORE.winterhoof.x+4,z:MULGORE.winterhoof.z-3,inner:4.5,outer:10,depth:.3},
+  ],
+  roads:[
+    {halfW:5.0, pts:[
+      CAMP_NARACHE,
+      {x:(CAMP_NARACHE.x+MULGORE.redCloud.x)*.5+8,z:(CAMP_NARACHE.z+MULGORE.redCloud.z)*.55},
+      {x:BLOODHOOF.x+6,z:BLOODHOOF.z+40},
+      BLOODHOOF,
+    ]},
+    {halfW:5.5, pts:[
+      BLOODHOOF,
+      {x:MULGORE.thunderhorn.x+10,z:MULGORE.thunderhorn.z+8},
+      MULGORE.thunderBluff,
+      {x:MULGORE.thunderBluff.x+6,z:MULGORE.thunderBluff.z-50},
+      _portalMC,
+    ]},
+    {halfW:5.2, pts:[
+      BLOODHOOF,
+      {x:MULGORE.golden.x+60,z:MULGORE.golden.z+80},
+      {x:MULGORE.winterhoof.x*.35,z:(BLOODHOOF.z+_portalBarrens.z)*.55},
+      {x:_portalBarrens.x+12,z:_portalBarrens.z-40},
+      _portalBarrens,
+    ]},
+    {halfW:4.2, pts:[
+      BLOODHOOF,
+      {x:(BLOODHOOF.x+MULGORE.winterhoof.x)*.5,z:(BLOODHOOF.z+MULGORE.winterhoof.z)*.5},
+      MULGORE.winterhoof,
+    ]},
+    {halfW:4.0, pts:[
+      BLOODHOOF,
+      {x:(BLOODHOOF.x+MULGORE.palemane.x)*.5,z:(BLOODHOOF.z+MULGORE.palemane.z)*.5+6},
+      MULGORE.palemane,
+    ]},
+    {halfW:4.0, pts:[
+      BLOODHOOF,
+      {x:MULGORE.venture.x-20,z:MULGORE.venture.z+20},
+      MULGORE.venture,
+    ]},
+    {halfW:3.8, pts:[
+      MULGORE.thunderBluff,
+      {x:(MULGORE.thunderBluff.x+MULGORE.windfury.x)*.5+12,z:(MULGORE.thunderBluff.z+MULGORE.windfury.z)*.5},
+      {x:MULGORE.windfury.x-8,z:MULGORE.windfury.z+28},
+    ]},
+    {halfW:3.6, pts:[
+      {x:MULGORE.golden.x-10,z:MULGORE.golden.z},
+      {x:(MULGORE.golden.x+MULGORE.baeldun.x)*.5,z:(MULGORE.golden.z+MULGORE.baeldun.z)*.5},
+      MULGORE.baeldun,
+    ]},
+  ],
 });
 sceneWorld.add(_terrainBuilt.mesh);
 function _gy(x,z){return heightAt(x,z);}
 
-/* 湖泊（贴地；盆底由 heightAt 压低） */
-const pond=new THREE.Mesh(new THREE.CircleGeometry(13,32),
+/* 石牛湖 + 水井旁水洼 */
+const pond=new THREE.Mesh(new THREE.CircleGeometry(24,48),
   MAT.get("water.pond"));
 pond.rotation.x=-Math.PI/2;
-pond.position.set(-38,_gy(-38,14)+.06,14); sceneWorld.add(pond);
+pond.position.set(REDROCK_LAKE.x,_gy(REDROCK_LAKE.x,REDROCK_LAKE.z)+.08,REDROCK_LAKE.z); sceneWorld.add(pond);
+[[MULGORE.thunderhorn.x-6,MULGORE.thunderhorn.z+4,7],[MULGORE.winterhoof.x+4,MULGORE.winterhoof.z-3,6]].forEach(([x,z,r])=>{
+  const p=new THREE.Mesh(new THREE.CircleGeometry(r,24),MAT.get("water.pond"));
+  p.rotation.x=-Math.PI/2;
+  p.position.set(x,_gy(x,z)+.06,z); sceneWorld.add(p);
+});
 
-/* 环绕的红岩台地（莫高雷标志性平顶山） */
+/* 风投矿洞洞口 */
+(function placeVentureCaveMouth(){
+  const V=MULGORE.venture;
+  const gy=_gy(V.x,V.z);
+  const rock=MAT.get("rock.mesa",{color:0x3a4840});
+  [-1,1].forEach(s=>{
+    const pil=new THREE.Mesh(new THREE.BoxGeometry(2.2,5.5,2.2),rock);
+    pil.position.set(V.x+s*4.2,gy+1.2,V.z-6); pil.castShadow=true; sceneWorld.add(pil);
+  });
+  const lintel=new THREE.Mesh(new THREE.BoxGeometry(11,1.6,2.4),rock);
+  lintel.position.set(V.x,gy+4.2,V.z-6); sceneWorld.add(lintel);
+  const mouth=new THREE.Mesh(new THREE.CircleGeometry(3.2,20),
+    MAT.get("_",{color:0x080c08,roughness:1}));
+  mouth.position.set(V.x,gy+1.6,V.z-5.2); sceneWorld.add(mouth);
+})();
+
+/* 环绕天际的红岩台地（远景 rim） */
 const mesaMat=MAT.get("rock.mesa");
 const mesaTop=MAT.get("grass.mesaTop");
-for(let i=0;i<9;i++){
-  const a=i/9*Math.PI*2+srand(-.2,.2), r=WORLD_R+srand(4,22);
-  const h=srand(22,42), rad=srand(9,16);
+for(let i=0;i<10;i++){
+  const a=i/10*Math.PI*2+srand(-.15,.15), r=WORLD_R+srand(6,24);
+  const h=srand(24,44), rad=srand(10,17);
   const mesa=new THREE.Mesh(new THREE.CylinderGeometry(rad*.85,rad,h,9),mesaMat);
   mesa.position.set(Math.cos(a)*r,h/2-1,Math.sin(a)*r);
   mesa.castShadow=true; sceneWorld.add(mesa);
   const cap=new THREE.Mesh(new THREE.CylinderGeometry(rad*.86,rad*.86,1.2,9),mesaTop);
   cap.position.set(mesa.position.x,h-.4,mesa.position.z); sceneWorld.add(cap);
 }
+/* 红云 / 雷霆崖 / 乱风岗崖壁装饰 */
+[[MULGORE.redCloud,56],[MULGORE.thunderBluff,48],[MULGORE.windfury,40]].forEach(([c,rad])=>{
+  for(let k=0;k<6;k++){
+    const a=k/6*Math.PI*2+srand(-.2,.2);
+    const x=c.x+Math.cos(a)*(rad*.72+srand(-4,4));
+    const z=c.z+Math.sin(a)*(rad*.72+srand(-4,4));
+    const h=srand(4,9);
+    const cliff=new THREE.Mesh(new THREE.CylinderGeometry(srand(2.5,4.5),srand(3,5.5),h,7),mesaMat);
+    cliff.position.set(x,_gy(x,z)+h*.35,z); cliff.castShadow=true; sceneWorld.add(cliff);
+  }
+});
 /* 散布的树木与巨石 */
 const trunkMat=MAT.get("wood.trunk");
 const leafMat=MAT.get("grass.canopy");
@@ -89,7 +218,34 @@ const boulderMat=MAT.get("rock.boulder");
 for(let i=0;i<14;i++){
   const a=srand(0,6.28),r=srand(20,WORLD_R-10);
   const x=Math.cos(a)*r,z=Math.sin(a)*r;
-  if(Math.abs(x)<8&&z<50&&z>-70)continue; /* 避开土路 */
+  if(Math.hypot(x-BLOODHOOF.x,z-BLOODHOOF.z)<55)continue;
+  if(Math.hypot(x-CAMP_NARACHE.x,z-CAMP_NARACHE.z)<40)continue;
+  if(Math.hypot(x-MULGORE.thunderBluff.x,z-MULGORE.thunderBluff.z)<55)continue;
+  if(Math.hypot(x-MULGORE.redCloud.x,z-MULGORE.redCloud.z)<50)continue;
+  if(Math.hypot(x-MULGORE.windfury.x,z-MULGORE.windfury.z)<45)continue;
+  if(Math.hypot(x-REDROCK_LAKE.x,z-REDROCK_LAKE.z)<40)continue;
+  if(typeof TERRAIN!=="undefined"&&TERRAIN.cfg&&TERRAIN.cfg.ready){
+    /* 避开土路带 */
+    try{
+      const rw=(function(){
+        const roads=TERRAIN.cfg.roads||[];
+        let best=1e9;
+        for(let r=0;r<roads.length;r++){
+          const pts=roads[r].pts; if(!pts)continue;
+          for(let i=0;i<pts.length-1;i++){
+            const a=pts[i],b=pts[i+1];
+            const abx=b.x-a.x,abz=b.z-a.z,len2=abx*abx+abz*abz;
+            let t=len2<1e-6?0:((x-a.x)*abx+(z-a.z)*abz)/len2;
+            t=Math.max(0,Math.min(1,t));
+            const d=Math.hypot(x-(a.x+abx*t),z-(a.z+abz*t));
+            if(d<best)best=d;
+          }
+        }
+        return best;
+      })();
+      if(rw<8)continue;
+    }catch(e){}
+  }
   if(worldRng()<.65){
     const th=srand(3,5);
     const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.35,.5,th,6),trunkMat);
@@ -103,10 +259,11 @@ for(let i=0;i<14;i++){
   }
 }
 
-/* 牛头人风格营地：兽皮帐篷 + 图腾柱 + 篝火 */
+/* 血蹄村：兽皮帐篷 + 图腾柱 + 篝火 */
 const hideMat=MAT.get("fur.hide");
 const hideMat2=MAT.get("fur.hideDark");
-[[16,50],[-18,46],[10,66]].forEach(([x,z],i)=>{
+const _bh=BLOODHOOF;
+[[_bh.x+28,_bh.z-4],[_bh.x-30,_bh.z-8],[_bh.x+14,_bh.z+22]].forEach(([x,z],i)=>{
   const gy=_gy(x,z);
   const tent=new THREE.Mesh(new THREE.ConeGeometry(4.2,6.8,8),i%2?hideMat:hideMat2);
   tent.position.set(x,gy+3.4,z); tent.castShadow=true; sceneWorld.add(tent);
@@ -116,10 +273,16 @@ const hideMat2=MAT.get("fur.hideDark");
     pole.rotation.set(srand(-.3,.3),0,srand(-.3,.3)); sceneWorld.add(pole);
   }
 });
+/* 纳拉其营地小帐篷 */
+[[CAMP_NARACHE.x+10,CAMP_NARACHE.z-6],[CAMP_NARACHE.x-12,CAMP_NARACHE.z+4]].forEach(([x,z],i)=>{
+  const gy=_gy(x,z);
+  const tent=new THREE.Mesh(new THREE.ConeGeometry(3.4,5.4,8),i%2?hideMat2:hideMat);
+  tent.position.set(x,gy+2.7,z); tent.castShadow=true; sceneWorld.add(tent);
+});
 /* 图腾柱 */
 const paintA=MAT.get("paint.red",{color:PALETTE.paintRed.base,roughness:.8});
 const paintB=MAT.get("paint.blue",{color:PALETTE.paintBlue.base,roughness:.8});
-[[-6,58],[22,60]].forEach(([x,z])=>{
+[[_bh.x-14,_bh.z+12],[_bh.x+22,_bh.z+16],[MULGORE.thunderBluff.x-8,MULGORE.thunderBluff.z+6]].forEach(([x,z])=>{
   const gy=_gy(x,z);
   const pole=new THREE.Mesh(new THREE.CylinderGeometry(.55,.7,7.5,7),trunkMat);
   pole.position.set(x,gy+3.75,z); pole.castShadow=true; sceneWorld.add(pole);
@@ -132,7 +295,7 @@ const paintB=MAT.get("paint.blue",{color:PALETTE.paintBlue.base,roughness:.8});
 });
 /* 篝火（存引用做火光闪烁） */
 const worldFlames=[];
-[[0,55]].forEach(([x,z])=>{
+[[_bh.x,_bh.z+4],[CAMP_NARACHE.x,CAMP_NARACHE.z]].forEach(([x,z])=>{
   const gy=_gy(x,z);
   for(let k=0;k<6;k++){
     const a=k/6*Math.PI*2;
@@ -145,6 +308,30 @@ const worldFlames=[];
   const li=new THREE.PointLight(0xff8a30,1.4,22,1.8); li.position.set(x,gy+2.2,z); sceneWorld.add(li);
   worldFlames.push({fl,li});
 });
+/* 水井标记（雷角 / 冬蹄） */
+[[MULGORE.thunderhorn.x,MULGORE.thunderhorn.z,"雷角水井"],[MULGORE.winterhoof.x,MULGORE.winterhoof.z,"冬蹄水井"]].forEach(([x,z,lab])=>{
+  const gy=_gy(x,z);
+  const well=new THREE.Mesh(new THREE.CylinderGeometry(1.6,1.8,1.2,10),
+    MAT.get("rock.boulder",{color:0x6a7a88}));
+  well.position.set(x,gy+.6,z); well.castShadow=true; sceneWorld.add(well);
+  const wl=makeLabel(lab,7,"#a8d0ff","rgba(40,60,90,.85)");
+  wl.position.set(x,gy+3.2,z); sceneWorld.add(wl);
+});
+/* 巴尔丹挖掘场脚手架 + 风险投资矿洞标记 */
+(function placeMulgoreSites(){
+  const B=MULGORE.baeldun, V=MULGORE.venture;
+  placeProp(sceneWorld,buildCratePile({wood:0x6a5a40,woodD:0x3a3020,size:1.1}),B.x+4,B.z-2,.3);
+  placeProp(sceneWorld,buildWatchtower({wood:0x5a6a78,woodD:0x3a4858,flag:0x3a5a8a,size:.85}),B.x-6,B.z+4,.2);
+  placeProp(sceneWorld,buildCratePile({wood:0x5a7040,woodD:0x2a3820,size:1}),V.x-3,V.z+2,.5);
+  const mine=new THREE.Mesh(new THREE.CylinderGeometry(3.2,3.8,1.2,10),
+    MAT.get("rock.mesa",{color:0x4a5840}));
+  const gy=_gy(V.x,V.z);
+  mine.position.set(V.x,gy+.4,V.z); sceneWorld.add(mine);
+  const ml=makeLabel("风险投资公司矿洞",9,"#b8d080","rgba(40,60,20,.9)");
+  ml.position.set(V.x,gy+4.5,V.z); sceneWorld.add(ml);
+  const bl=makeLabel("巴尔丹挖掘场",9,"#a0b0c8","rgba(30,40,60,.9)");
+  bl.position.set(B.x,_gy(B.x,B.z)+5,B.z); sceneWorld.add(bl);
+})();
 
 /* ---------------- 副本传送门：熔火之心入口 ---------------- */
 const PORTAL_POS=new THREE.Vector3(0,0,-(WORLD_R-8));
@@ -230,7 +417,7 @@ if(typeof buildWorkbench==="function")buildWorkbench(sceneWorld);
 if(typeof spawnGatherNodesForZone==="function"){
   spawnGatherNodesForZone("mulgore",sceneWorld,{
     radius:WORLD_R,
-    camp:{x:0,z:55},
+    camp:BLOODHOOF,
     portals:[{x:PORTAL_POS.x,z:PORTAL_POS.z},{x:PORTAL_BARRENS.x,z:PORTAL_BARRENS.z}],
   });
 }
@@ -252,9 +439,9 @@ sceneWorld.add(fireflies);
 
 /* 玩家移入莫高雷出生点（营地旁），当前场景切换为外部世界 */
 sceneRaid.remove(player); sceneWorld.add(player);
-player.position.set(0,_gy(0,52),52);
+player.position.set(CAMP_NARACHE.x,_gy(CAMP_NARACHE.x,CAMP_NARACHE.z),CAMP_NARACHE.z);
 scene=sceneWorld;
-camera.position.set(0,14+_gy(0,52),72);
+camera.position.set(CAMP_NARACHE.x,14+_gy(CAMP_NARACHE.x,CAMP_NARACHE.z),CAMP_NARACHE.z+22);
 
 /* ---------------- 进入 / 离开副本（薄包装 → enterZone，STEP 17） ---------------- */
 function fadeTo(op,cb){
@@ -289,11 +476,13 @@ registerZone({
   boundsR:()=>WORLD_R,
   dayNight:true,
   gates:{
-    camp:{x:0,z:52},
-    from_raid:{x:0,z:52},
+    camp:CAMP_NARACHE,
+    from_raid:BLOODHOOF,
     from_barrens:{x:0,z:WORLD_R-22},   /* 远离南口传送门，避免进出乒乓 */
-    spirit:{x:0,z:58},
-    default:{x:0,z:52},
+    spirit:{x:BLOODHOOF.x,z:BLOODHOOF.z+22},
+    bloodhoof:BLOODHOOF,
+    thunder_bluff:MULGORE.thunderBluff,
+    default:CAMP_NARACHE,
   },
   portals:[{
     id:"to_molten_core",
@@ -396,81 +585,246 @@ function removeExitPortal(){
 const MOBS=[];
 const QUEST={state:0,kills:0};   /* 0未接 1猎杀野猪 2讨伐拉戈斯 3完成 */
 
-/* 长老 NPC + 头顶名字与任务标记 */
+/* NPC 头顶标记 / F 键对话注册表 */
 const _npcLy=(BAL.npc&&BAL.npc.labelY)||4.05, _npcMy=(BAL.npc&&BAL.npc.markerY)||5.15, _npcLw=(BAL.npc&&BAL.npc.labelW)||6.2;
-const elder=buildElder();
-elder.position.set(8,_gy(8,48),48); elder.rotation.y=Math.PI*.85; sceneWorld.add(elder);
-const elderLabel=makeNameplate("长老 · 岩蹄",BAL.npcLevel.elder,{w:_npcLw,friendly:true});
-elderLabel.position.set(8,_gy(8,48)+_npcLy,48); sceneWorld.add(elderLabel);
-const markerExcl=makeLabel("❗",2.6);
-markerExcl.position.set(8,_gy(8,48)+_npcMy,48); sceneWorld.add(markerExcl);
-const markerQ=makeLabel("❓",2.6);
-markerQ.position.copy(markerExcl.position); markerQ.visible=false; sceneWorld.add(markerQ);
+const _mulgoreNpcMarkers=[];
+const _mulgoreInteractNpcs=[];
+function registerNpcInteract(mesh,open){
+  if(!mesh||typeof open!=="function")return;
+  /* 避免同 mesh 重复注册 */
+  for(const e of _mulgoreInteractNpcs){if(e.mesh===mesh){e.open=open;return;}}
+  _mulgoreInteractNpcs.push({mesh,open});
+}
+function _placeFriendlyNpc(mesh,x,z,rotY,name,level,color){
+  const gy=_gy(x,z);
+  mesh.position.set(x,gy,z);
+  if(rotY!=null)mesh.rotation.y=rotY;
+  sceneWorld.add(mesh);
+  const lab=makeNameplate(name,level,{w:_npcLw+(name.length>8?.4:0),friendly:true,color:color||"#ffd9a0"});
+  lab.position.set(x,gy+_npcLy,z); sceneWorld.add(lab);
+  updateNameplateHp(lab,1,1);
+  return lab;
+}
+function registerNpcQuestMarker(npcId,x,z){
+  const gy=_gy(x,z);
+  const excl=makeLabel("❗",2.6);
+  excl.position.set(x,gy+_npcMy,z); excl.visible=false; sceneWorld.add(excl);
+  const q=makeLabel("❓",2.6);
+  q.position.copy(excl.position); q.visible=false; sceneWorld.add(q);
+  _mulgoreNpcMarkers.push({npcId,excl,q,x,z});
+  return {excl,q};
+}
+/** 放置友好 NPC：姓名板 + 任务感叹号 + F 对话（缺一不可） */
+function placeTalkNpc(mesh,x,z,rotY,name,level,color,npcId,openFn){
+  _placeFriendlyNpc(mesh,x,z,rotY,name,level,color);
+  if(npcId)registerNpcQuestMarker(npcId,x,z);
+  if(openFn)registerNpcInteract(mesh,openFn);
+  return mesh;
+}
+function _npcAt(wx,wy,dx,dz){
+  const p=mulgoreWow(wx,wy);
+  return {x:p.x+(dx||0), z:p.z+(dz||0)};
+}
+
+/* —— 纳拉其营地 44,92 —— */
+const _pHawk=_npcAt(44,92);
+const hawkwind=tintNpcCloth(buildElder(),0x8a6040);
+placeTalkNpc(hawkwind,_pHawk.x,_pHawk.z,Math.PI*.2,"酋长 · 鹰风",BAL.npcLevel.hawkwind,"#e8c080","hawkwind",
+  ()=>openHawkwindDialogue());
+
+const _pGrull=_npcAt(44,90);
+const grull=tintNpcCloth(buildElder(),0x6a5040);
+placeTalkNpc(grull,_pGrull.x,_pGrull.z,Math.PI*1.1,"格鲁尔 · 鹰风",BAL.npcLevel.grull,"#d8b090","grull",
+  ()=>openGrullDialogue());
+
+const _pGray=_npcAt(45,91);
+const grayhorn=tintNpcCloth(buildElder(),0x7a7060);
+placeTalkNpc(grayhorn,_pGray.x,_pGray.z,Math.PI*.6,"长者 · 灰角",BAL.npcLevel.grayhorn,"#d0c8a8","grayhorn",
+  ()=>openNpcQuestDialogue("grayhorn","🌿 长者 · 灰角","大地母亲护佑着纳拉其。"));
+
+const _pRaoul=_npcAt(43,93);
+const raoul=tintNpcCloth(buildElder(),0x6a5838);
+placeTalkNpc(raoul,_pRaoul.x,_pRaoul.z,Math.PI*1.4,"拉乌尔 · 猎蹄",BAL.npcLevel.raoul,"#c8b080","raoul",
+  ()=>openNpcQuestDialogue("raoul","📦 拉乌尔 · 猎蹄","血蹄村需要补给。"));
+
+/* —— 红云台地 39,82 —— */
+const _pVera=_npcAt(38,83);
+const vera=tintNpcCloth(buildElder(),0x8a6850);
+placeTalkNpc(vera,_pVera.x,_pVera.z,Math.PI*.3,"维拉 · 猎蹄",BAL.npcLevel.vera,"#e0b898","vera",
+  ()=>openNpcQuestDialogue("vera","💎 维拉 · 猎蹄","我的项链丢在台地边缘了……"));
+
+const _pWhite=_npcAt(40,81);
+const whiterock=tintNpcCloth(buildElder(),0x9a9888);
+placeTalkNpc(whiterock,_pWhite.x,_pWhite.z,Math.PI*.9,"长者 · 白岩",BAL.npcLevel.whiterock,"#e8e0d0","whiterock",
+  ()=>openNpcQuestDialogue("whiterock","🪨 长者 · 白岩","灵魂碎片能安抚先祖。"));
+
+/* —— 血蹄村 47,59 —— */
+const _pBaine=_npcAt(47,59);
+const baine=buildElder();
+placeTalkNpc(baine,_pBaine.x,_pBaine.z,Math.PI*.85,"贝恩 · 血蹄",BAL.npcLevel.baine,null,"baine",
+  ()=>openDialogue());
+const _baineMk=_mulgoreNpcMarkers[_mulgoreNpcMarkers.length-1];
+const elder=baine;
+const markerExcl=_baineMk?_baineMk.excl:null, markerQ=_baineMk?_baineMk.q:null;
+
+const _pElder=_npcAt(47,58);
+const bloodhoofElder=tintNpcCloth(buildElder(),0x5a4a38);
+placeTalkNpc(bloodhoofElder,_pElder.x,_pElder.z,Math.PI*.5,"血蹄长者",BAL.npcLevel.bloodhoof_elder,"#c8b090","bloodhoof_elder",
+  ()=>openNpcQuestDialogue("bloodhoof_elder","🐂 血蹄长者","土地之灵在呼唤。"));
+
+const _pTark=_npcAt(48,60);
+const tark=tintNpcCloth(buildElder(),0x5a6a38);
+placeTalkNpc(tark,_pTark.x,_pTark.z,Math.PI*1.05,"塔克 · 风蹄",BAL.npcLevel.tark,"#d0e8a0","tark",
+  ()=>openNpcQuestDialogue("tark","🦁 塔克 · 风蹄","平原上的猎物很凶猛。"));
+
+const _pMull=_npcAt(46,60);
+const mull=tintNpcCloth(buildElder(),0x4a6a88);
+placeTalkNpc(mull,_pMull.x,_pMull.z,Math.PI*.4,"穆尔 · 雷角",BAL.npcLevel.mull,"#a8c8e8","mull",
+  ()=>openNpcQuestDialogue("mull","💧 穆尔 · 雷角","水井被污染了。"));
+
+const _pHaru=_npcAt(47,61);
+const haru=tintNpcCloth(buildElder(),0x6a7048);
+placeTalkNpc(haru,_pHaru.x,_pHaru.z,Math.PI*1.2,"哈鲁 · 鹰眼",BAL.npcLevel.haru,"#d0e8a0","haru",
+  ()=>openNpcQuestDialogue("haru","🦅 哈鲁 · 鹰眼","狼与雷鹰都是好猎物。"));
+const hunter=haru;
+
+const _pMara=_npcAt(48,59);
+const mara=tintNpcCloth(buildElder(),0x7a5a48);
+placeTalkNpc(mara,_pMara.x,_pMara.z,Math.PI*.7,"玛拉 · 雷蹄",BAL.npcLevel.mara,"#e0c0a0","mara",
+  ()=>openNpcQuestDialogue("mara","✉️ 玛拉 · 雷蹄","雷霆崖需要这封信。"));
+
+const _pKur=_npcAt(46,58);
+const kur=tintNpcCloth(buildElder(),0x6a6050);
+placeTalkNpc(kur,_pKur.x,_pKur.z,Math.PI*1.5,"库尔 · 石蹄",BAL.npcLevel.kur,"#c0b8a0","kur",
+  ()=>openNpcQuestDialogue("kur","🧪 库尔 · 石蹄","野猪人的毒腺有大用。"));
+
+const _pAska=_npcAt(47,60,10,8);
+const aska=tintNpcCloth(buildElder(),0x4a5868);
+placeTalkNpc(aska,_pAska.x,_pAska.z,Math.PI*.2,"阿斯卡 · 迷雾行者",BAL.npcLevel.aska,"#b0c8d8","aska",
+  ()=>openNpcQuestDialogue("aska","🌫️ 阿斯卡 · 迷雾行者","乱风岗笼罩着迷雾。"));
+
+const vendor=buildVendor();
+placeTalkNpc(vendor,_pBaine.x-22,_pBaine.z-6,Math.PI*1.15,"商人 · 瓦尔格",BAL.npcLevel.varg,"#a8e8c0","varg",
+  ()=>openVendor("varg","🏕️ 商人 · 瓦尔格"));
+const varg=vendor;
+
+/* —— 雷霆崖 45,25 —— */
+const _pCairne=_npcAt(45,25);
+const cairne=tintNpcCloth(buildElder(),0x9a7040);
+placeTalkNpc(cairne,_pCairne.x,_pCairne.z,Math.PI,"大酋长 · 凯恩",BAL.npcLevel.cairne,"#ffd9a0","cairne",
+  ()=>openNpcQuestDialogue("cairne","👑 大酋长 · 凯恩","莫高雷的危机尚未平息。"));
+
+const _pStone=_npcAt(44,26);
+const stonetalon=tintNpcCloth(buildElder(),0x7a7870);
+placeTalkNpc(stonetalon,_pStone.x,_pStone.z,Math.PI*.4,"长者 · 石塔",BAL.npcLevel.stonetalon,"#d8d0c0","stonetalon",
+  ()=>openNpcQuestDialogue("stonetalon","🗻 长者 · 石塔","灵魂高地需要仪式。"));
+
+const _pSeen=_npcAt(46,26);
+const seen=tintNpcCloth(buildElder(),0x5a5848);
+placeTalkNpc(seen,_pSeen.x,_pSeen.z,Math.PI*1.1,"塞恩 · 石蹄",BAL.npcLevel.seen,"#c8c0a0","seen",
+  ()=>openNpcQuestDialogue("seen","⛏️ 塞恩 · 石蹄","巴尔丹矮人必须滚出圣山。"));
+
+const _pPala=_npcAt(45,27);
+const pala=tintNpcCloth(buildElder(),0x4a7088);
+placeTalkNpc(pala,_pPala.x,_pPala.z,Math.PI*.8,"帕拉 · 逐风",BAL.npcLevel.pala,"#a8d0e8","pala",
+  ()=>openNpcQuestDialogue("pala","💨 帕拉 · 逐风","风之元素与鹰身人羽毛……"));
+
+const _pHamya=_npcAt(44,25);
+const hamya=tintNpcCloth(buildElder(),0x8a6030);
+placeTalkNpc(hamya,_pHamya.x,_pHamya.z,Math.PI*1.3,"哈米亚 · 逐日",BAL.npcLevel.hamya,"#e8c080","hamya",
+  ()=>openNpcQuestDialogue("hamya","☀️ 哈米亚 · 逐日","黄金平原藏着太阳之眼。"));
+
+const _pMag=_npcAt(45,25,-14,10);
+const magatha=tintNpcCloth(buildElder(),0x3a5040);
+placeTalkNpc(magatha,_pMag.x,_pMag.z,Math.PI*.6,"玛加萨 · 野性图腾",BAL.npcLevel.magatha,"#90c090","magatha",
+  ()=>openNpcQuestDialogue("magatha","🐍 玛加萨 · 野性图腾","野性图腾注视着贫瘠之地。"));
+
+const _pRune=_npcAt(45,25,12,-8);
+const runetotem=tintNpcCloth(buildElder(),0x5a4860);
+placeTalkNpc(runetotem,_pRune.x,_pRune.z,Math.PI*1.6,"长者 · 符文图腾",BAL.npcLevel.runetotem,"#c0a0d0","runetotem",
+  ()=>openNpcQuestDialogue("runetotem","📜 长者 · 符文图腾","草药样本能揭示智慧。"));
+
+/* —— 水井 / 乱风岗守卫 —— */
+const _pThG=_npcAt(46,46);
+const thunderhornGuard=tintNpcCloth(buildElder(),0x4a6888);
+placeTalkNpc(thunderhornGuard,_pThG.x,_pThG.z,Math.PI,"雷角水井守卫",BAL.npcLevel.thunderhorn_guard,"#a8c8ff","thunderhorn_guard",
+  ()=>openNpcQuestDialogue("thunderhorn_guard","🛡️ 雷角水井守卫","水井被元素污染了。"));
+
+const _pWiG=_npcAt(55,66);
+const winterhoofGuard=tintNpcCloth(buildElder(),0x5a7080);
+placeTalkNpc(winterhoofGuard,_pWiG.x,_pWiG.z,Math.PI,"冬蹄守卫",BAL.npcLevel.winterhoof_guard,"#a0c0d8","winterhoof_guard",
+  ()=>openNpcQuestDialogue("winterhoof_guard","🛡️ 冬蹄守卫","野猪人侵扰了冬蹄水井。"));
+
+const _pWfS=_npcAt(52,14);
+const windfurySentinel=tintNpcCloth(buildElder(),0x6a5080);
+placeTalkNpc(windfurySentinel,_pWfS.x,_pWfS.z,Math.PI*.5,"乱风岗哨兵",BAL.npcLevel.windfury_sentinel,"#d0b0e8","windfury_sentinel",
+  ()=>openNpcQuestDialogue("windfury_sentinel","🗡️ 乱风岗哨兵","鹰身人盘踞山脊。"));
+
 function setMarker(){
-  if(typeof npcHasQuestOffer==="function"){
-    markerExcl.visible=npcHasQuestOffer("elder");
-    markerQ.visible=npcHasQuestTurnIn("elder");
-    return;
+  for(const m of _mulgoreNpcMarkers){
+    if(typeof npcHasQuestOffer==="function"){
+      m.excl.visible=npcHasQuestOffer(m.npcId);
+      m.q.visible=npcHasQuestTurnIn(m.npcId);
+    }else{
+      m.excl.visible=false; m.q.visible=false;
+    }
   }
-  const none=typeof questStatus==="function"?questStatus("elder_boars")==="none":QUEST.state===0;
-  const ready=typeof questStatus==="function"?questStatus("elder_boars")==="ready"
-    :(QUEST.state===1&&QUEST.kills>=BAL.quest.boarKills);
-  markerExcl.visible=none;
-  markerQ.visible=ready;
 }
 function updateNpcQuestMarkers(){
   setMarker();
   if(typeof updateBarrensMarkers==="function")updateBarrensMarkers();
   if(typeof updateDurotarMarkers==="function")updateDurotarMarkers();
-  /* 猎手 / 商人头顶感叹号：复用 nameplate 旁小标记或依赖对话列表 */
 }
-/* 营地商人（STEP 13） */
-const vendor=buildVendor();
-vendor.position.set(-16,_gy(-16,48),48); vendor.rotation.y=Math.PI*1.15; sceneWorld.add(vendor);
-const vendorLabel=makeNameplate("商人 · 火蹄",BAL.npcLevel.vendor,{w:_npcLw,friendly:true,color:"#a8e8c0"});
-vendorLabel.position.set(-16,_gy(-16,48)+_npcLy,48); sceneWorld.add(vendorLabel);
-updateNameplateHp(vendorLabel,1,1);
-/* 猎手：狩猎类支线 */
-const hunter=tintNpcCloth(buildElder(),0x5a6a38);
-hunter.position.set(18,_gy(18,54),54); hunter.rotation.y=Math.PI*1.05; sceneWorld.add(hunter);
-const hunterLabel=makeNameplate("猎手 · 迅羽",BAL.npcLevel.hunter,{w:_npcLw,friendly:true,color:"#d0e8a0"});
-hunterLabel.position.set(18,_gy(18,54)+_npcLy,54); sceneWorld.add(hunterLabel);
-updateNameplateHp(hunterLabel,1,1);
 /* 灵魂医者（STEP 15） */
 const spiritHealer=buildSpiritHealer();
-spiritHealer.position.set(0,_gy(0,64),64); spiritHealer.rotation.y=Math.PI; sceneWorld.add(spiritHealer);
+spiritHealer.position.set(_pBaine.x,_gy(_pBaine.x,_pBaine.z+24),_pBaine.z+24); spiritHealer.rotation.y=Math.PI; sceneWorld.add(spiritHealer);
 const spiritLabel=makeNameplate("灵魂医者 · 风语",BAL.npcLevel.spirit,{w:_npcLw+.2,friendly:true,color:"#c8e8ff",glow:"rgba(80,160,255,.95)"});
-spiritLabel.position.set(0,_gy(0,64)+_npcLy,64); sceneWorld.add(spiritLabel);
+spiritLabel.position.set(_pBaine.x,_gy(_pBaine.x,_pBaine.z+24)+_npcLy,_pBaine.z+24); sceneWorld.add(spiritLabel);
 updateNameplateHp(spiritLabel,1,1);
-updateNameplateHp(elderLabel,1,1);
+registerNpcInteract(spiritHealer,()=>openSpiritDialogue());
 function spiritDist(){return Math.hypot(player.position.x-spiritHealer.position.x,player.position.z-spiritHealer.position.z);}
 
-/* ---------------- 营地建筑（扩大：木屋街区 + 市集 + 图腾 + 围栏） ---------------- */
+/* ---------------- 血蹄村 + 纳拉其 + 雷霆崖建筑 ---------------- */
 (function placeMulgoreCampBuildings(){
   const P=BUILD_PAL.mulgore;
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.1}),14,42,.35);
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.0}),-18,42,-.55);
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x7a4a28,w:3.8,d:3.4,h:2.4,size:.95}),10,60,Math.PI*.95);
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,w:3.4,d:3.0,size:.88}),-8,62,-.4);
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x8a5a30,size:.9}),22,50,Math.PI*1.2);
-  placeProp(sceneWorld,buildTent({hide:P.hide,stake:P.stake,r:2.9,h:3.9,size:1.05}),-4,40,.2);
-  placeProp(sceneWorld,buildTent({hide:0xb89060,stake:P.stake,r:2.5,h:3.5,size:.95}),16,56,-.7);
-  placeProp(sceneWorld,buildTent({hide:0xc9a06a,stake:P.stake,r:2.6,h:3.6,size:1}),-20,54,.5);
-  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.9}),-22,60,.25);
-  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.72}),20,40,-.3);
-  placeProp(sceneWorld,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x2a6a4a,size:1}),-14,45,Math.PI*.15);
-  placeProp(sceneWorld,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),-12,51,.4);
-  placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0xd94f2a,paintB:0x3a7ac9,size:.95}),-6,60,0);
-  placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0x3a7ac9,paintB:0xd94f2a,size:.85}),12,64,.2);
-  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:12,posts:7}),-2,38,0);
-  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:10,posts:6}),10,38.2,.1);
-  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:14,posts:8}),-24,50,Math.PI/2);
-  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:10,posts:6}),24,48,-Math.PI/2);
-  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:11,posts:7}),4,66,Math.PI);
-  const cf=placeProp(sceneWorld,buildCampfire({flame:0xffa030,light:0xff8a30,size:1.05}),2,52,0);
+  const B=BLOODHOOF, N=CAMP_NARACHE, T=MULGORE.thunderBluff;
+  /* 血蹄村 */
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.1}),B.x+22,B.z-16,.35);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.0}),B.x-28,B.z-14,-.55);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x7a4a28,w:3.8,d:3.4,h:2.4,size:.95}),B.x+16,B.z+14,Math.PI*.95);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,w:3.4,d:3.0,size:.88}),B.x-12,B.z+18,-.4);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x8a5a30,size:.9}),B.x+32,B.z,-Math.PI*.4);
+  placeProp(sceneWorld,buildTent({hide:P.hide,stake:P.stake,r:2.9,h:3.9,size:1.05}),B.x-6,B.z-20,.2);
+  placeProp(sceneWorld,buildTent({hide:0xb89060,stake:P.stake,r:2.5,h:3.5,size:.95}),B.x+24,B.z+8,-.7);
+  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.9}),B.x-34,B.z+10,.25);
+  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.72}),B.x+30,B.z-18,-.3);
+  placeProp(sceneWorld,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x2a6a4a,size:1}),B.x-20,B.z-8,Math.PI*.15);
+  placeProp(sceneWorld,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),B.x-16,B.z+2,.4);
+  placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0xd94f2a,paintB:0x3a7ac9,size:.95}),B.x-8,B.z+14,0);
+  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:18,posts:9}),B.x-4,B.z-24,0);
+  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:16,posts:8}),B.x+36,B.z,Math.PI/2);
+  const cf=placeProp(sceneWorld,buildCampfire({flame:0xffa030,light:0xff8a30,size:1.05}),B.x+4,B.z,0);
   if(cf&&cf.userData.flame)worldFlames.push(cf.userData.flame);
-  const cf2=placeProp(sceneWorld,buildCampfire({flame:0xff9030,light:0xff7a20,size:.85}),-10,56,0);
-  if(cf2&&cf2.userData.flame)worldFlames.push(cf2.userData.flame);
+  /* 纳拉其营地 */
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:.95}),N.x+8,N.z-10,.2);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:.88}),N.x-10,N.z+6,-.5);
+  placeProp(sceneWorld,buildTent({hide:P.hide,stake:P.stake,r:2.6,h:3.5,size:1}),N.x+2,N.z+12,.3);
+  placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0xd94f2a,paintB:0x3a7ac9,size:.8}),N.x-4,N.z-4,0);
+  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.7}),N.x-16,N.z,-.2);
+  const ncf=placeProp(sceneWorld,buildCampfire({flame:0xff9030,light:0xff7a20,size:.9}),N.x+2,N.z-2,0);
+  if(ncf&&ncf.userData.flame)worldFlames.push(ncf.userData.flame);
+  /* 雷霆崖（台地大城意象） */
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x8a4a28,w:4.2,d:3.8,h:2.8,size:1.15}),T.x+10,T.z-8,.2);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,w:4.0,d:3.6,size:1.1}),T.x-14,T.z-6,-.4);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x7a4a28,size:1.05}),T.x+6,T.z+12,Math.PI*.8);
+  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1.15}),T.x,T.z,.1);
+  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.85}),T.x-20,T.z+8,.5);
+  placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0x3a7ac9,paintB:0xd94f2a,size:1.2}),T.x+4,T.z-14,0);
+  placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0xd94f2a,paintB:0x3a7ac9,size:1.1}),T.x-8,T.z+10,.3);
+  placeProp(sceneWorld,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x3a6a9a,size:1.05}),T.x-6,T.z,.4);
+  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:20,posts:10}),T.x-24,T.z,Math.PI/2);
+  const tcf=placeProp(sceneWorld,buildCampfire({flame:0xffa030,light:0xff8a30,size:1.15}),T.x+2,T.z+4,0);
+  if(tcf&&tcf.userData.flame)worldFlames.push(tcf.userData.flame);
 })();
 
 /* ============================================================
@@ -478,15 +832,36 @@ function spiritDist(){return Math.hypot(player.position.x-spiritHealer.position.
    加新怪 = 这里加一条 + BALANCE.mobs 加一条 + 一行 spawnMob
    ============================================================ */
 const MOB_TYPES={
-  boar    :{name:"草原野猪",    build:()=>buildQuadruped(QUADS.boar),    stats:"boar",    loot:"boar",    labelW:4.6,labelY:2.7},
-  wolf    :{name:"草原狼",      build:()=>buildQuadruped(QUADS.wolf),    stats:"wolf",    loot:"wolf",    labelW:4.2,labelY:2.7},
-  bird    :{name:"陆行鸟",      build:()=>buildQuadruped(QUADS.bird),    stats:"bird",    loot:"bird",    labelW:4.2,labelY:3.4},
+  bird       :{name:"草原漫步者",  build:()=>buildQuadruped(QUADS.bird),         stats:"bird",        loot:"bird",        labelW:4.2,labelY:3.4},
+  youngBoar  :{name:"小野猪",      build:()=>buildQuadruped(QUADS.youngBoar),     stats:"youngBoar",    loot:"youngBoar",    labelW:4.0,labelY:2.4},
+  bristleback:{name:"刺背野猪人",  build:()=>buildQuadruped(QUADS.bristleback),  stats:"bristleback", loot:"bristleback", labelW:5.0,labelY:2.8},
+  wolf       :{name:"草原狼",      build:()=>buildQuadruped(QUADS.wolf),         stats:"wolf",        loot:"wolf",        labelW:4.2,labelY:2.7},
+  plainslion :{name:"平原狮",      build:()=>buildQuadruped(QUADS.plainslion),   stats:"plainslion",  loot:"plainslion",  labelW:4.8,labelY:2.9},
+  boar       :{name:"草原野猪",    build:()=>buildQuadruped(QUADS.boar),         stats:"boar",        loot:"boar",        labelW:4.6,labelY:2.7},
+  thunderhawk:{name:"雷鹰",        build:()=>buildQuadruped(QUADS.thunderhawk),  stats:"thunderhawk", loot:"thunderhawk", labelW:4.6,labelY:3.6},
+  kodo       :{name:"科多兽",      build:()=>buildQuadruped(QUADS.kodo),         stats:"kodo",        loot:"kodo",        labelW:6.5,labelY:4.2},
+  palemane   :{name:"苍鬃豺狼人",  build:()=>buildQuadruped(QUADS.palemane),     stats:"palemane",    loot:"palemane",    labelW:5.0,labelY:2.9},
+  windElement:{name:"风元素",      build:()=>buildElemental({color:0xa8e0ff,emissive:0x66b0e0,size:.95}), stats:"windElement", loot:"windElement", labelW:4.2,labelY:3.0},
+  waterElement:{name:"水元素",     build:()=>buildElemental({color:0x5090e0,emissive:0x2870c0,size:1.05}), stats:"waterElement", loot:"waterElement", labelW:4.4,labelY:3.1},
+  oasisWater :{name:"污染水元素", build:()=>buildElemental({color:0x3a7a58,emissive:0x1a5030,size:1.15}), stats:"oasisWater", loot:"waterElement", labelW:5.0,labelY:3.3},
+  earthElement:{name:"土元素",     build:()=>buildElemental({color:0xa08050,emissive:0x705828,size:1.1}), stats:"earthElement", loot:"earthElement", labelW:4.4,labelY:3.1},
+  baeldun    :{name:"巴尔丹火枪手",build:()=>buildMeleeHumanoid(MELEE_HUMANOIDS.baeldun), stats:"baeldun", loot:"baeldun", labelW:5.8,labelY:3.2},
+  baeldunDigger:{name:"巴尔丹挖掘工",build:()=>buildMeleeHumanoid(MELEE_HUMANOIDS.baeldunDigger),stats:"baeldunDigger",loot:"baeldunDigger",labelW:5.6,labelY:3.1},
+  venture    :{name:"风险投资公司工人",build:()=>buildMeleeHumanoid(MELEE_HUMANOIDS.venture),stats:"venture",loot:"venture",labelW:6.2,labelY:3.0},
+  ventureBoss:{name:"风险投资公司监工",build:()=>buildMeleeHumanoid(MELEE_HUMANOIDS.ventureBoss),stats:"ventureBoss",loot:"ventureBoss",labelW:6.8,labelY:3.3},
+  windfury   :{name:"乱风岗鹰身人",build:()=>buildHumanoidMob(MOB_HUMANOIDS.windfury),stats:"windfury",loot:"windfury",labelW:5.8,labelY:4.2},
+  oasisHarpy:{name:"绿洲鹰身人",build:()=>buildHumanoidMob(MOB_HUMANOIDS.windfury),stats:"oasisHarpy",loot:"windfury",labelW:5.6,labelY:4.0},
+  barrensLion:{name:"草原狮",build:()=>buildQuadruped(QUADS.plainslion),stats:"barrensLion",loot:"plainslion",labelW:4.8,labelY:2.9},
+  barrensBristle:{name:"刺背野猪人",build:()=>buildQuadruped(QUADS.bristleback),stats:"barrensBristle",loot:"bristleback",labelW:5.0,labelY:2.8},
+  quilboarElder:{name:"野猪人长老",build:()=>buildQuadruped(QUADS.quilboar),stats:"quilboarElder",loot:"quilboar",labelW:6.2,labelY:3.4,elite:true,color:"#ffb070",auraColor:0xff9030},
   harpy   :{name:"鹰身女妖首领",build:()=>buildHumanoidMob(MOB_HUMANOIDS.harpy),stats:"harpy",loot:"harpy",labelW:8.5,labelY:5.6,elite:true,color:"#ff9ad0",auraColor:0xff66bb},
   boarKing:{name:"老灰鬃野猪王",build:()=>buildQuadruped(QUADS.boarKing),stats:"boarKing",loot:"boarKing",labelW:9,labelY:5.8,elite:true,rare:true,color:"#ffd700",auraColor:0xffd76a},
   ashmane :{name:"灰蹄野猪王",  build:()=>buildQuadruped(QUADS.boarKing),stats:"boarKing",loot:"boarKing",labelW:9,labelY:5.8,elite:true,rare:true,color:"#ffd700",auraColor:0xffd76a},
   quilboar:{name:"野猪人斥候",  build:()=>buildQuadruped(QUADS.quilboar),stats:"quilboar",loot:"quilboar",labelW:5.2,labelY:2.9},
   centaur :{name:"半人马战士",  build:()=>buildCentaur(MOB_HUMANOIDS.centaur),stats:"centaur",loot:"centaur",labelW:6.5,labelY:4.8},
   zebra   :{name:"平原斑马",    build:()=>buildQuadruped(QUADS.zebra),   stats:"zebra",   loot:"zebra",   labelW:4.6,labelY:2.8},
+  raptor     :{name:"迅猛龙",      build:()=>buildQuadruped(QUADS.raptor),  stats:"raptor",  loot:"raptor",  labelW:5.2,labelY:3.4},
+  crocolisk  :{name:"变异鳄鱼",    build:()=>buildQuadruped(QUADS.crocolisk),stats:"crocolisk",loot:"crocolisk",labelW:5.6,labelY:2.8},
   /* V1-B1 赭岩谷 */
   scorp     :{name:"赭岩巨蝎",    build:()=>buildQuadruped(QUADS.scorp),    stats:"scorp",    loot:"scorp",    labelW:5.0,labelY:2.6},
   razorback :{name:"刺脊野猪人",  build:()=>buildQuadruped(QUADS.razorback),stats:"razorback",loot:"razorback",labelW:5.8,labelY:3.2},
@@ -617,14 +992,39 @@ function aggroMob(m){
   }
 }
 
-/* ---------------- 野怪放置（V1-B2：坐标×2 + 增驻点，世界确定性） ---------------- */
-/* 野猪群（营地周围，任务目标） */
-[[40,44],[-48,52],[54,-8],[-36,-20],[20,64],[32,28],[-20,40],[48,16],[-56,36],[12,72]].forEach(([x,z])=>spawnMob("boar",x,z));
-/* 草原狼：两群 */
-[[-84,-52],[-76,-62],[-90,-66],[-70,-48]].forEach(([x,z])=>spawnMob("wolf",x,z,"wolfpack"));
-[[60,70],[68,78],[54,82]].forEach(([x,z])=>spawnMob("wolf",x,z,"wolfpack2"));
-/* 陆行鸟：湖边中立被动 */
-[[-56,4],[-92,52],[-48,28],[-70,16],[-40,40]].forEach(([x,z])=>spawnMob("bird",x,z));
+/* ---------------- 野怪放置（经典莫高雷分区 · 确定性坐标） ---------------- */
+(function spawnMulgorePacks(){
+  const R=MULGORE.redCloud, B=BLOODHOOF, P=MULGORE.palemane, G=MULGORE.golden;
+  const TH=MULGORE.thunderhorn, W=MULGORE.winterhoof, WF=MULGORE.windfury;
+  const BD=MULGORE.baeldun, V=MULGORE.venture, L=REDROCK_LAKE, N=CAMP_NARACHE;
+  /* 纳拉其 / 红云：漫步者 · 刺背 · 狼 · 风元素 */
+  [[N.x+16,N.z-10],[N.x-14,N.z+12],[N.x+22,N.z+8],[R.x-14,R.z+8],[R.x+10,R.z-12],[R.x+18,R.z+16],[R.x-22,R.z-6]].forEach(([x,z])=>spawnMob("bird",x,z));
+  [[N.x+28,N.z-18],[N.x-24,N.z-8],[R.x+20,R.z+4],[R.x-16,R.z-14],[R.x+8,R.z+22],[W.x-8,W.z+10]].forEach(([x,z])=>spawnMob("bristleback",x,z));
+  [[R.x-30,R.z+20],[R.x+26,R.z-20],[R.x-8,R.z-28],[N.x-20,N.z+20]].forEach(([x,z])=>spawnMob("wolf",x,z,"redcloud_wolves"));
+  [[R.x+12,R.z-8],[R.x-20,R.z+6],[N.x+18,N.z+16]].forEach(([x,z])=>spawnMob("windElement",x,z));
+  [[R.x+16,R.z+4],[R.x-18,R.z+14],[R.x+8,R.z-18]].forEach(([x,z])=>spawnMob("youngBoar",x,z));
+  /* 血蹄外围：科多 · 狼 · 雷鹰 · 平原狮 · 野猪 · 土元素 */
+  [[B.x+36,B.z+10],[B.x-40,B.z+16],[B.x+20,B.z-32],[G.x-24,G.z-10],[G.x+28,G.z+8]].forEach(([x,z])=>spawnMob("kodo",x,z));
+  [[TH.x+12,TH.z-10],[TH.x-14,TH.z+8],[TH.x+8,TH.z+14]].forEach(([x,z])=>spawnMob("wolf",x,z,"thunderhorn_wolves"));
+  [[B.x+28,B.z+28],[B.x-22,B.z-26],[W.x-10,W.z+8],[W.x+12,W.z-6]].forEach(([x,z])=>spawnMob("thunderhawk",x,z));
+  [[G.x+14,G.z+8],[G.x-12,G.z-10],[B.x+48,B.z-20],[B.x-42,B.z+24]].forEach(([x,z])=>spawnMob("plainslion",x,z));
+  [[B.x+44,B.z-8],[B.x-48,B.z+4],[B.x+16,B.z+36],[B.x-12,B.z-40]].forEach(([x,z])=>spawnMob("boar",x,z));
+  [[B.x-30,B.z-28],[G.x+6,G.z-14]].forEach(([x,z])=>spawnMob("earthElement",x,z));
+  /* 贫瘠石 */
+  [[P.x,P.z],[P.x+14,P.z-10],[P.x-12,P.z+12],[P.x+18,P.z+8],[P.x-16,P.z-8],[P.x+6,P.z+18]].forEach(([x,z])=>spawnMob("palemane",x,z,"palemane_pack"));
+  /* 黄金平原 / 石牛湖 */
+  [[G.x+20,G.z],[G.x-16,G.z+14],[G.x+8,G.z-18],[L.x-20,L.z+10],[L.x+16,L.z-12]].forEach(([x,z])=>spawnMob("bird",x,z));
+  /* 雷角水井：水元素 */
+  [[TH.x+10,TH.z],[TH.x-8,TH.z+8],[TH.x+4,TH.z-10],[TH.x-12,TH.z-6]].forEach(([x,z])=>spawnMob("waterElement",x,z));
+  /* 巴尔丹 */
+  [[BD.x+8,BD.z],[BD.x-10,BD.z+8],[BD.x+14,BD.z-12],[BD.x-6,BD.z-10]].forEach(([x,z])=>spawnMob("baeldun",x,z,"baeldun_camp"));
+  [[BD.x+4,BD.z+14],[BD.x-14,BD.z-4],[BD.x+16,BD.z+6]].forEach(([x,z])=>spawnMob("baeldunDigger",x,z,"baeldun_camp"));
+  /* 乱风岗 */
+  [[WF.x,WF.z],[WF.x+18,WF.z-12],[WF.x-16,WF.z+10],[WF.x+10,WF.z+16],[WF.x-20,WF.z-8],[WF.x+22,WF.z+6]].forEach(([x,z])=>spawnMob("windfury",x,z,"windfury_ridge"));
+  /* 风投矿洞 */
+  [[V.x+10,V.z+6],[V.x-12,V.z-8],[V.x+8,V.z-14],[V.x-16,V.z+10],[V.x+18,V.z+4]].forEach(([x,z])=>spawnMob("venture",x,z,"venture_mine"));
+  spawnMob("ventureBoss",V.x-4,V.z+2,"venture_mine");
+})();
 /* 稀有/精英：rares.js 加载后 spawnRaresForZone("mulgore") */
 function moveToward(m,dest,spd,dt){
   const dx=dest.x-m.mesh.position.x,dz=dest.z-m.mesh.position.z;
@@ -671,14 +1071,14 @@ function mobDie(m){
   if(typeof onRareKill==="function")onRareKill(m);
   else if(m.elite)announce(`${m.name} 被击败！`);
   dropLoot(m.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),
-    [rollLoot(m.loot,m.elite?BAL.loot.eliteWeights:null)],m);
+    [typeof rollMobLoot==="function"?rollMobLoot(m):rollLoot(m.loot,m.elite?BAL.loot.eliteWeights:null)],m);
   gainXP(m.stats.xp);
   const cu=rollCopperRange(m.stats.copper);
   if(cu)gainCopper(cu);
   if(typeof onQuestMobKill==="function")onQuestMobKill(m);
   else if(m.type==="boar"&&QUEST.state===1&&QUEST.kills<BAL.quest.boarKills){
     QUEST.kills++; updateQuest();
-    if(QUEST.kills>=BAL.quest.boarKills){announce("任务目标完成 · 回去找长老"); setMarker();}
+    if(QUEST.kills>=BAL.quest.boarKills){announce("任务目标完成 · 回格鲁尔处"); setMarker();}
     if(typeof saveGame==="function")saveGame(true);
   }
   if(typeof onDeedMobKill==="function")onDeedMobKill(m);
@@ -694,7 +1094,7 @@ function updateQuest(){
 }
 
 /* ---------------- NPC 对话 ---------------- */
-function elderDist(){return Math.hypot(player.position.x-elder.position.x,player.position.z-elder.position.z);}
+function elderDist(){return Math.hypot(player.position.x-baine.position.x,player.position.z-baine.position.z);}
 function vendorDist(){return Math.hypot(player.position.x-vendor.position.x,player.position.z-vendor.position.z);}
 function hunterDist(){return Math.hypot(player.position.x-hunter.position.x,player.position.z-hunter.position.z);}
 
@@ -707,6 +1107,21 @@ function pickNearestNpc(entries){
     if(d<bestD){bestD=d;best=e;}
   }
   return best;
+}
+/** 距最近可对话莫高雷 NPC 的水平距离；无则 Infinity */
+function nearestMulgoreNpcDist(){
+  if(!_mulgoreInteractNpcs||!_mulgoreInteractNpcs.length||typeof player==="undefined"||!player)return Infinity;
+  let best=Infinity;
+  for(const e of _mulgoreInteractNpcs){
+    if(!e||!e.mesh)continue;
+    const d=Math.hypot(player.position.x-e.mesh.position.x,player.position.z-e.mesh.position.z);
+    if(d<best)best=d;
+  }
+  return best;
+}
+function nearMulgoreNpc(r){
+  const R=r!=null?r:(BAL.economy.interactR||8);
+  return nearestMulgoreNpcDist()<R;
 }
 function appendNpcQuestButtons(npcId,btn,refreshFn,skipIds){
   if(typeof questsForNpc!=="function")return;
@@ -722,6 +1137,21 @@ function appendNpcQuestButtons(npcId,btn,refreshFn,skipIds){
   }
 }
 
+function openNpcQuestDialogue(npcId,title,idleText){
+  closeVendorPanel();
+  const dlg=$("#dlg"),tx=$("#dlgText"),bts=$("#dlgBtns");
+  const nameEl=$("#dlg .dname");
+  if(nameEl)nameEl.textContent=title;
+  dlg.style.display="block"; bts.innerHTML="";
+  const btn=(t,fn)=>{const b=document.createElement("button");
+    b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
+  const offers=typeof questsForNpc==="function"?questsForNpc(npcId):[];
+  if(offers.length)tx.textContent=idleText||"大地母亲指引着我们。看看我能为你做什么。";
+  else tx.textContent=(idleText||"大地母亲指引着我们。")+" 暂时没有新的委托。";
+  appendNpcQuestButtons(npcId,btn);
+  btn("离开",closeDialogue);
+}
+
 function tryInteract(){
   if(!S.started||!S.p.alive)return;
   if(tryLoot())return;
@@ -734,12 +1164,7 @@ function tryInteract(){
     &&typeof tryInteractBarrens==="function"){tryInteractBarrens();return;}
   if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="durotar"
     &&typeof tryInteractDurotar==="function"){tryInteractDurotar();return;}
-  const near=pickNearestNpc([
-    {mesh:spiritHealer,open:openSpiritDialogue},
-    {mesh:vendor,open:()=>openVendor("vendor","🏕️ 商人 · 火蹄")},
-    {mesh:elder,open:openDialogue},
-    {mesh:hunter,open:openHunterDialogue},
-  ]);
+  const near=pickNearestNpc(_mulgoreInteractNpcs);
   if(near)near.open();
 }
 function openSpiritDialogue(){
@@ -821,53 +1246,64 @@ function openVendor(npcId,title){
   refreshVendorPanel();
 }
 function openHunterDialogue(){
+  openNpcQuestDialogue("haru","🦅 哈鲁 · 鹰眼","狼与雷鹰都是好猎物。");
+}
+function openHawkwindDialogue(){
   closeVendorPanel();
   const dlg=$("#dlg"),tx=$("#dlgText"),bts=$("#dlgBtns");
   const nameEl=$("#dlg .dname");
-  if(nameEl)nameEl.textContent="🏹 猎手 · 迅羽";
+  if(nameEl)nameEl.textContent="🐂 酋长 · 鹰风";
   dlg.style.display="block"; bts.innerHTML="";
   const btn=(t,fn)=>{const b=document.createElement("button");
     b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
-  const offers=typeof questsForNpc==="function"?questsForNpc("hunter"):[];
-  if(offers.length)tx.textContent="草原上的猎物很机警。我这里有活计——看看吧。";
-  else tx.textContent="草原上的猎物很机警。暂时没有新的委托，有需要再来。";
-  appendNpcQuestButtons("hunter",btn);
+  if(typeof canAcceptQuest==="function"&&canAcceptQuest("elder_boars")){
+    tx.textContent="年轻的勇士，草原漫步者能为营地提供肉食。去猎杀它们，带回肉块，证明你的蹄印属于这片土地。";
+  }else if(typeof canAcceptQuest==="function"&&canAcceptQuest("hunt_continues")){
+    tx.textContent="刺背野猪人侵扰红云台地。继续狩猎，把他们赶回去！";
+  }else{
+    tx.textContent="纳拉其是我们的摇篮。北上血蹄村，西望红云台地——愿风指引你的蹄印。";
+  }
+  appendNpcQuestButtons("hawkwind",btn);
+  btn("离开",closeDialogue);
+}
+function openGrullDialogue(){
+  closeVendorPanel();
+  const dlg=$("#dlg"),tx=$("#dlgText"),bts=$("#dlgBtns");
+  const nameEl=$("#dlg .dname");
+  if(nameEl)nameEl.textContent="🐗 格鲁尔 · 鹰风";
+  dlg.style.display="block"; bts.innerHTML="";
+  const btn=(t,fn)=>{const b=document.createElement("button");
+    b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
+  if(typeof canAcceptQuest==="function"&&canAcceptQuest("hawkwind_totem")){
+    tx.textContent="把这支鹰风图腾交给营地的长者灰角。他会指引你下一步。";
+  }else{
+    tx.textContent="力量与智慧并重，勇士。台地上的猎物不会自己送上门。";
+  }
+  appendNpcQuestButtons("grull",btn);
   btn("离开",closeDialogue);
 }
 function openDialogue(){
   closeVendorPanel();
   const dlg=$("#dlg"),tx=$("#dlgText"),bts=$("#dlgBtns");
   const nameEl=$("#dlg .dname");
-  if(nameEl)nameEl.textContent="🐂 长老 · 岩蹄";
+  if(nameEl)nameEl.textContent="🐂 贝恩 · 血蹄";
   dlg.style.display="block"; bts.innerHTML="";
   const btn=(t,fn)=>{const b=document.createElement("button");
     b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
 
-  if(typeof canTurnInQuest==="function"&&canTurnInQuest("elder_boars")){
-    tx.textContent="干得漂亮，勇士！听着——传送门深处沉睡着炎魔领主拉戈斯，他的烈焰迟早会烧到这片草原。收下大地母亲的祝福，北行吧，终结他！";
-    btn("✦ 领取奖励 · 长老的试炼",()=>{
-      turnInQuest("elder_boars");
-      spawnBurst(player.position.clone().setY(1.5),0x8aff9a,30,2);
-      closeDialogue();
-    });
-  }else if(typeof canAcceptQuest==="function"&&canAcceptQuest("elder_boars")){
-    tx.textContent="远行的旅人啊，草原并不平静。北方的传送门日夜喷吐着灼热的怨气……但在此之前，先证明你的实力：营地周围的草原野猪近来狂躁伤人，猎杀 3 只，我便告诉你炎魔的秘密。";
-    btn("✦ 接受任务：长老的试炼",()=>{
-      acceptQuest("elder_boars"); closeDialogue();
-    });
-  }else if(typeof questStatus==="function"&&questStatus("elder_boars")==="active"){
-    const k=questProgress("elder_boars").kills|0;
-    tx.textContent=`野猪仍在草原上游荡（${k}/${BAL.quest.boarKills}）。靠近它们，用你的武器说话吧，勇士。`;
+  if(typeof canTurnInQuest==="function"&&canTurnInQuest("raoul_supply")){
+    tx.textContent="纳拉其的补给？很好。欢迎来到血蹄村，勇士。";
+  }else if(typeof canAcceptQuest==="function"&&canAcceptQuest("clear_palemane")){
+    tx.textContent="苍鬃豺狼人毁坏了贫瘠石。去清除他们，让土地重归平静。";
+  }else if(typeof canAcceptQuest==="function"&&canAcceptQuest("bloodhoof_journey")){
+    tx.textContent="你从纳拉其来？很好。在血蹄村报到吧——我们有许多事务。";
   }else{
-    let tip="北行吧，勇士。踏入旋涡，愿圣山的风与你同在。";
-    if(S.p.level>=BAL.barrens.minLevel){
-      tip+=" 营地南边的土路已通向贫瘠之地的十字路口——那里需要新的帮手。";
-    }
-    tip+=" 市集找火蹄买补给，狩猎事务找迅羽。";
+    let tip="血蹄村守护着莫高雷的心。找穆尔净化水井，找塔克与哈鲁处理猎物，北上可至雷霆崖见父亲凯恩。";
+    if(S.p.level>=BAL.barrens.minLevel)tip+=" 南边的土路通向贫瘠之地。";
     tx.textContent=tip;
   }
 
-  appendNpcQuestButtons("elder",btn,null,["elder_boars"]);
+  appendNpcQuestButtons("baine",btn);
 
   if(typeof openRecruitDialogue==="function"){
     if(typeof companionAlive==="function"&&companionAlive())
