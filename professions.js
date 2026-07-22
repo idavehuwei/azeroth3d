@@ -122,7 +122,7 @@ function tryCraft(recipeId){
 function buildHerbMesh(matId){
   const g=new THREE.Group();
   const col=MATS[matId]?parseInt(String(MATS[matId].color).replace("#","0x"),16)||0x6a9a40:0x6a9a40;
-  const leaf=new THREE.MeshStandardMaterial({color:col,roughness:.85,flatShading:true});
+  const leaf=MAT.get("grass.herb",{color:col,roughness:.85,flatShading:true});
   for(let i=0;i<3;i++){
     const m=new THREE.Mesh(new THREE.ConeGeometry(.35+i*.08,.9+i*.15,5),leaf);
     m.position.set((i-1)*.25,.45+i*.05,(i%2)*.2-i*.1);
@@ -132,8 +132,8 @@ function buildHerbMesh(matId){
 }
 function buildOreMesh(matId){
   const g=new THREE.Group();
-  const rock=new THREE.MeshStandardMaterial({color:0x6a6058,roughness:.95,flatShading:true});
-  const vein=new THREE.MeshStandardMaterial({
+  const rock=MAT.get("rock.ore");
+  const vein=MAT.get("metal.vein",{
     color:matId==="tin_ore"?0xa8b0b8:0xb89050,roughness:.7,flatShading:true,
     emissive:matId==="tin_ore"?0x334044:0x553310,emissiveIntensity:.15});
   const base=new THREE.Mesh(new THREE.DodecahedronGeometry(.85,0),rock);
@@ -144,9 +144,8 @@ function buildOreMesh(matId){
 }
 function buildWorkbenchMesh(){
   const g=new THREE.Group();
-  const wood=new THREE.MeshStandardMaterial({color:0x6a4a28,roughness:.9,flatShading:true});
-  const iron=new THREE.MeshStandardMaterial({color:0x5a5a60,roughness:.55,flatShading:true,
-    emissive:0x222228,emissiveIntensity:.1});
+  const wood=MAT.get("wood.build",{color:PALETTE.dirt.dark,roughness:.9,flatShading:true});
+  const iron=MAT.get("metal.iron",{flatShading:true});
   const top=new THREE.Mesh(new THREE.BoxGeometry(2.4,.25,1.4),wood);
   top.position.y=1.05; top.castShadow=true; g.add(top);
   [[-.9,-.5],[.9,-.5],[-.9,.5],[.9,.5]].forEach(([x,z])=>{
@@ -165,8 +164,8 @@ function disposeGatherNode(n){
   if(n.mesh)n.mesh.traverse(o=>{
     if(o.geometry)o.geometry.dispose();
     if(o.material){
-      if(Array.isArray(o.material))o.material.forEach(m=>m.dispose&&m.dispose());
-      else if(o.material.dispose)o.material.dispose();
+      if(Array.isArray(o.material))o.material.forEach(disposeMaterial);
+      else disposeMaterial(o.material);
     }
   });
 }
@@ -255,8 +254,8 @@ function disposeWorkbench(){
   WORKBENCH.traverse(o=>{
     if(o.geometry)o.geometry.dispose();
     if(o.material){
-      if(Array.isArray(o.material))o.material.forEach(m=>m.dispose&&m.dispose());
-      else if(o.material.dispose)o.material.dispose();
+      if(Array.isArray(o.material))o.material.forEach(disposeMaterial);
+      else disposeMaterial(o.material);
     }
   });
   WORKBENCH=null;

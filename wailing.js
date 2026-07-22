@@ -25,7 +25,7 @@ function buildWailingZone(root){
   /* 洞底 */
   const floor=new THREE.Mesh(
     new THREE.CylinderGeometry(R+4,R+6,.6,24),
-    new THREE.MeshStandardMaterial({color:W.ground,roughness:1,flatShading:true})
+    MAT.get("dungeon.ground",{color:W.ground,roughness:1,flatShading:true})
   );
   floor.position.y=-.3; floor.receiveShadow=true; root.add(floor);
 
@@ -36,7 +36,7 @@ function buildWailingZone(root){
     const h=6+srand(2,8);
     const wall=new THREE.Mesh(
       new THREE.BoxGeometry(3.5+srand(0,2),h,2.2+srand(0,1.5)),
-      new THREE.MeshStandardMaterial({color:W.wall,roughness:.95,flatShading:true})
+      MAT.get("dungeon.wall",{color:W.wall,roughness:.95,flatShading:true})
     );
     wall.position.set(Math.cos(a)*rr,h/2-0.2,Math.sin(a)*rr);
     wall.rotation.y=a; wall.castShadow=true; root.add(wall);
@@ -48,7 +48,7 @@ function buildWailingZone(root){
     const h=2+srand(1,4);
     const stal=new THREE.Mesh(
       new THREE.ConeGeometry(.35+srand(0,.4),h,6),
-      new THREE.MeshStandardMaterial({color:W.moss,roughness:1,flatShading:true})
+      MAT.get("dungeon.moss",{color:W.moss,roughness:1,flatShading:true})
     );
     stal.position.set(Math.cos(a)*rr,h/2,Math.sin(a)*rr);
     root.add(stal);
@@ -57,8 +57,7 @@ function buildWailingZone(root){
   /* 中央浅池（毒绿） */
   const pool=new THREE.Mesh(
     new THREE.CylinderGeometry(5.5,6,.15,16),
-    new THREE.MeshStandardMaterial({color:0x1a4a20,roughness:.3,metalness:.1,
-      emissive:0x0a2810,emissiveIntensity:.35})
+    MAT.get("water.poison")
   );
   pool.position.set(0,.05,-8); root.add(pool);
 

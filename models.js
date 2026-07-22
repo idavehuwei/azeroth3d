@@ -1,7 +1,7 @@
 /* ============================================================
    熔火之心 · models.js
    ------------------------------------------------------------
-   [依赖] THREE · core.js（rand）
+   [依赖] THREE · core.js（rand）· palette.js（PALETTE · MAT）
    [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS
           buildQuadruped buildScorpion buildHumanoidMob buildCentaur QUADS MOB_HUMANOIDS（STEP 5/18 族群工厂）
           buildPlayer buildMage buildArcher buildPriest buildShaman buildRogue buildBoss buildOnyxia buildElder buildVendor buildSpiritHealer
@@ -41,7 +41,7 @@ function makeMats(defs){
     const d=defs[k];
     out[k]=d.basic
       ?new THREE.MeshBasicMaterial({color:d.c,transparent:d.o!==undefined,opacity:d.o??1})
-      :new THREE.MeshStandardMaterial({color:d.c,roughness:d.r??.9,metalness:d.mt??0,
+      :MAT.get("spec."+k,{color:d.c,roughness:d.r??.9,metalness:d.mt??0,
         emissive:d.e??0x000000,emissiveIntensity:d.ei??1,flatShading:!!d.flat,
         side:d.ds?THREE.DoubleSide:THREE.FrontSide});
   }
@@ -201,8 +201,8 @@ const HUMANOIDS={
   /* 🏹 精灵弓箭手：皮甲 + 兜帽 + 长弓箭袋 */
   archer:{
     mats:{
-      leather:{c:0x4a6a2a,r:.85}, leatherD:{c:0x3a2a14,r:.9},
-      skin:{c:0xe0b088,r:.8}, wood:{c:0x6a4520,r:.85},
+      leather:{c:PALETTE.grass.dark,r:.85}, leatherD:{c:0x3a2a14,r:.9},
+      skin:{c:0xe0b088,r:.8}, wood:{c:PALETTE.wood.base,r:.85},
       feather:{c:0xd8d0b0,r:.9}, capeM:{c:0x2d4a1a,r:.9,ds:true},
     },
     parts:[
@@ -350,10 +350,8 @@ function buildRogue(){return buildHumanoid(HUMANOIDS.rogue);}
    ============================================================ */
 function buildBoss(){
   const g=new THREE.Group();
-  const magma=new THREE.MeshStandardMaterial({color:0x33130a,roughness:.85,flatShading:true,
-    emissive:0xff3b00,emissiveIntensity:.55});
-  const rock=new THREE.MeshStandardMaterial({color:0x241009,roughness:1,flatShading:true,
-    emissive:0x992200,emissiveIntensity:.18});
+  const magma=MAT.get("lava.magma");
+  const rock=MAT.get("lava.rock");
   const fireMat=new THREE.MeshBasicMaterial({color:0xffa030,transparent:true,opacity:.92});
   const coreMat=new THREE.MeshBasicMaterial({color:0xffd060});
 
@@ -441,12 +439,12 @@ function buildBoss(){
    ============================================================ */
 function buildOnyxia(){
   const g=new THREE.Group();
-  const scale=new THREE.MeshStandardMaterial({color:0x1a1a22,roughness:.75,flatShading:true,
+  const scale=MAT.get("_",{color:0x1a1a22,roughness:.75,flatShading:true,
     emissive:0x220808,emissiveIntensity:.25});
-  const scaleD=new THREE.MeshStandardMaterial({color:0x0c0c12,roughness:.9,flatShading:true});
-  const belly=new THREE.MeshStandardMaterial({color:0x3a2820,roughness:.85,flatShading:true,
+  const scaleD=MAT.get("_",{color:0x0c0c12,roughness:.9,flatShading:true});
+  const belly=MAT.get("_",{color:0x3a2820,roughness:.85,flatShading:true,
     emissive:0x661a00,emissiveIntensity:.2});
-  const horn=new THREE.MeshStandardMaterial({color:0xc8b090,roughness:.55,metalness:.2});
+  const horn=MAT.get("bone.horn");
   const eye=new THREE.MeshBasicMaterial({color:0xff4400});
 
   const body=new THREE.Mesh(new THREE.BoxGeometry(2.8,2.2,5.2),scale);
@@ -471,7 +469,7 @@ function buildOnyxia(){
     const wingG=new THREE.Group();
     wingG.position.set(s*2.8,3.6,.2);
     const wing=new THREE.Mesh(new THREE.PlaneGeometry(5.5,2.8),
-      new THREE.MeshStandardMaterial({color:0x14141c,roughness:.95,side:THREE.DoubleSide,
+      MAT.get("_",{color:0x14141c,roughness:.95,side:THREE.DoubleSide,
         emissive:0x180404,emissiveIntensity:.15}));
     wing.rotation.y=s*.55; wing.rotation.z=s*.35; wingG.add(wing);
     const bone=new THREE.Mesh(new THREE.CylinderGeometry(.08,.05,4.8,5),horn);
@@ -505,7 +503,7 @@ function buildOnyxia(){
 function buildFlameSpawn(){
   const g=new THREE.Group();
   const body=new THREE.Mesh(new THREE.DodecahedronGeometry(.85,0),
-    new THREE.MeshStandardMaterial({color:0x3a1408,flatShading:true,emissive:0xff4400,emissiveIntensity:.7}));
+    MAT.get("lava.ember"));
   body.position.y=1; g.add(body);
   const flame=new THREE.Mesh(new THREE.ConeGeometry(.6,1.6,6),
     new THREE.MeshBasicMaterial({color:0xffa030,transparent:true,opacity:.9}));
@@ -549,7 +547,7 @@ const QUADS={
 
 function _quadMat(hex,opts){
   opts=opts||{};
-  return new THREE.MeshStandardMaterial({
+  return MAT.get("fur.quad",{
     color:hex,roughness:opts.r!=null?opts.r:1,metalness:opts.mt||0,
     flatShading:true,
     emissive:opts.e||0x000000,emissiveIntensity:opts.ei||0,
@@ -822,31 +820,31 @@ function buildCentaur(cfg){
   const g=new THREE.Group();
   const horse=buildQuadruped({fur:c.fur,furD:c.furD,ears:true,mane:true,tail:'bushy',size:1});
   g.add(horse);
-  const skin=new THREE.MeshStandardMaterial({color:c.skin,roughness:.85});
-  const cloth=new THREE.MeshStandardMaterial({color:c.cloth,roughness:.9});
+  const skin=MAT.get("_",{color:c.skin,roughness:.85});
+  const cloth=MAT.get("_",{color:c.cloth,roughness:.9});
   const torso=new THREE.Mesh(new THREE.BoxGeometry(.55,.9,.4),cloth);
   torso.position.set(0,2.55,.3); g.add(torso);
   const head=new THREE.Mesh(new THREE.BoxGeometry(.38,.38,.36),skin);
   head.position.set(0,3.3,.35); g.add(head);
   const hair=new THREE.Mesh(new THREE.ConeGeometry(.28,.5,6),
-    new THREE.MeshStandardMaterial({color:c.furD,roughness:1}));
+    MAT.get("_",{color:c.furD,roughness:1}));
   hair.position.set(0,3.65,.28); g.add(hair);
   [-1,1].forEach(s=>{
     const arm=new THREE.Mesh(new THREE.BoxGeometry(.16,.7,.16),skin);
     arm.position.set(s*.42,2.7,.35); arm.rotation.z=s*.35; g.add(arm);
   });
   const spear=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,2.2,5),
-    new THREE.MeshStandardMaterial({color:0x6a5030,roughness:.8}));
+    MAT.get("_",{color:0x6a5030,roughness:.8}));
   spear.position.set(.55,3.1,.6); spear.rotation.z=-.4; g.add(spear);
   const tip=new THREE.Mesh(new THREE.ConeGeometry(.08,.28,5),
-    new THREE.MeshStandardMaterial({color:0xc0c0c0,roughness:.4,metalness:.6}));
+    MAT.get("_",{color:0xc0c0c0,roughness:.4,metalness:.6}));
   tip.position.set(.85,3.85,.85); tip.rotation.z=-.4; g.add(tip);
   if(c.banner){
     const pole=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,2.6,5),
-      new THREE.MeshStandardMaterial({color:0x4a4030,roughness:.8}));
+      MAT.get("_",{color:0x4a4030,roughness:.8}));
     pole.position.set(-.55,3.4,.2); g.add(pole);
     const flag=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.7),
-      new THREE.MeshStandardMaterial({color:0xc04020,roughness:.9,side:THREE.DoubleSide}));
+      MAT.get("_",{color:0xc04020,roughness:.9,side:THREE.DoubleSide}));
     flag.position.set(-1.05,4.3,.2); g.add(flag);
   }
   g.scale.setScalar(c.size);
@@ -868,7 +866,7 @@ const MOB_HUMANOIDS={
 function buildHumanoidMob(cfg){
   const c=Object.assign({size:1,wings:true},cfg);
   const g=new THREE.Group();
-  const mk=(col,r)=>new THREE.MeshStandardMaterial({color:col,roughness:r??.9});
+  const mk=(col,r)=>MAT.get("_",{color:col,roughness:r??.9});
   const skin=mk(c.skin,.85),fe=mk(c.feather),feD=mk(c.featherD),hair=mk(c.hair),claw=mk(c.claw,.6);
   /* 羽裙 + 躯干 + 头 */
   const skirt=new THREE.Mesh(new THREE.ConeGeometry(.55,1,7),fe); skirt.position.y=1; g.add(skirt);
@@ -885,7 +883,7 @@ function buildHumanoidMob(cfg){
     /* 羽翼（双面） */
     if(c.wings){
       const wing=new THREE.Mesh(new THREE.PlaneGeometry(1.5,.9),
-        new THREE.MeshStandardMaterial({color:c.feather,roughness:.9,side:THREE.DoubleSide}));
+        MAT.get("_",{color:c.feather,roughness:.9,side:THREE.DoubleSide}));
       wing.position.set(s*.95,2.3,-.3); wing.rotation.set(.15,s*-.6,s*.3); g.add(wing);
     }
     /* 鸟腿 + 爪 */
@@ -905,15 +903,15 @@ function buildBoar(){return buildQuadruped(QUADS.boar);}
 /* ---------------- 牛头人营地 NPC（缩小精致版；vendor/spirit/tint 共用） ---------------- */
 function buildElder(){
   const g=new THREE.Group();
-  const fur=new THREE.MeshStandardMaterial({color:0x6a4a30,roughness:.95,flatShading:true});
-  const furD=new THREE.MeshStandardMaterial({color:0x4a3220,roughness:.95,flatShading:true});
-  const cloth=new THREE.MeshStandardMaterial({color:0x8a4a2a,roughness:.88,flatShading:true});
-  const clothTrim=new THREE.MeshStandardMaterial({color:0xc9a06a,roughness:.55,metalness:.35,flatShading:true});
-  const hornM=new THREE.MeshStandardMaterial({color:0xe8e0c8,roughness:.45,metalness:.15});
-  const wood=new THREE.MeshStandardMaterial({color:0x6a4520,roughness:.9,flatShading:true});
-  const featherM=new THREE.MeshStandardMaterial({color:0xe8e4d0,roughness:.9,flatShading:true});
-  const eyeM=new THREE.MeshStandardMaterial({color:0x1a1208,roughness:.4,emissive:0xffaa40,emissiveIntensity:.15});
-  const noseM=new THREE.MeshStandardMaterial({color:0x3a2818,roughness:.85});
+  const fur=MAT.get("fur.centaur");
+  const furD=MAT.get("fur.centaurD");
+  const cloth=MAT.get("cloth.centaur",{color:0x8a4a2a,roughness:.88,flatShading:true});
+  const clothTrim=MAT.get("fur.hide",{roughness:.55,metalness:.35,flatShading:true});
+  const hornM=MAT.get("bone.ivory");
+  const wood=MAT.get("wood.prop");
+  const featherM=MAT.get("bone.feather",{color:0xe8e4d0,roughness:.9,flatShading:true});
+  const eyeM=MAT.get("eye.centaur",{color:0x1a1208,roughness:.4,emissive:0xffaa40,emissiveIntensity:.15});
+  const noseM=MAT.get("fur.nose",{color:0x3a2818,roughness:.85});
 
   /* 躯干分段 */
   const hips=new THREE.Mesh(new THREE.BoxGeometry(.95,.55,.7),furD);
@@ -1059,9 +1057,9 @@ function buildHut(cfg){
     roof:BUILD_PAL.mulgore.roof, w:4.2, d:3.6, h:2.6, size:1, door:true,
   },cfg||{});
   const g=new THREE.Group();
-  const wood=new THREE.MeshStandardMaterial({color:c.wood,roughness:.92,flatShading:true});
-  const woodD=new THREE.MeshStandardMaterial({color:c.woodD,roughness:.95,flatShading:true});
-  const roofM=new THREE.MeshStandardMaterial({color:c.roof,roughness:1,flatShading:true});
+  const wood=MAT.get("wood.build",{color:c.wood,roughness:.92,flatShading:true});
+  const woodD=MAT.get("wood.buildD",{color:c.woodD,roughness:.95,flatShading:true});
+  const roofM=MAT.get("wood.roof",{color:c.roof,roughness:1,flatShading:true});
   const body=new THREE.Mesh(new THREE.BoxGeometry(c.w,c.h,c.d),wood);
   body.position.y=c.h/2; g.add(body);
   /* 四角立柱 */
@@ -1093,8 +1091,8 @@ function buildTent(cfg){
     r:3.0, h:4.2, stakes:6, size:1,
   },cfg||{});
   const g=new THREE.Group();
-  const hide=new THREE.MeshStandardMaterial({color:c.hide,roughness:.95,flatShading:true});
-  const stakeM=new THREE.MeshStandardMaterial({color:c.stake,roughness:1,flatShading:true});
+  const hide=MAT.get("fur.tent",{color:c.hide,roughness:.95,flatShading:true});
+  const stakeM=MAT.get("wood.stake",{color:c.stake,roughness:1,flatShading:true});
   const cone=new THREE.Mesh(new THREE.ConeGeometry(c.r,c.h,7),hide);
   cone.position.y=c.h/2; g.add(cone);
   const n=Math.max(3,c.stakes|0);
@@ -1117,8 +1115,8 @@ function buildFence(cfg){
     length:8, posts:5, h:1.6, size:1,
   },cfg||{});
   const g=new THREE.Group();
-  const wood=new THREE.MeshStandardMaterial({color:c.wood,roughness:.92,flatShading:true});
-  const woodD=new THREE.MeshStandardMaterial({color:c.woodD,roughness:.95,flatShading:true});
+  const wood=MAT.get("wood.build",{color:c.wood,roughness:.92,flatShading:true});
+  const woodD=MAT.get("wood.buildD",{color:c.woodD,roughness:.95,flatShading:true});
   const n=Math.max(2,c.posts|0);
   const step=c.length/(n-1);
   for(let i=0;i<n;i++){
@@ -1142,9 +1140,9 @@ function buildWatchtower(cfg){
     flag:BUILD_PAL.barrens.flag, size:1,
   },cfg||{});
   const g=new THREE.Group();
-  const wood=new THREE.MeshStandardMaterial({color:c.wood,roughness:.9,flatShading:true});
-  const woodD=new THREE.MeshStandardMaterial({color:c.woodD,roughness:.92,flatShading:true});
-  const flagM=new THREE.MeshStandardMaterial({color:c.flag,roughness:.8});
+  const wood=MAT.get("wood.build",{color:c.wood,roughness:.9,flatShading:true});
+  const woodD=MAT.get("wood.buildD",{color:c.woodD,roughness:.92,flatShading:true});
+  const flagM=MAT.get("cloth.flag",{color:c.flag,roughness:.8,side:THREE.FrontSide});
   const base=new THREE.Mesh(new THREE.BoxGeometry(4.2,1.2,4.2),wood); base.position.y=.6; g.add(base);
   const mid=new THREE.Mesh(new THREE.BoxGeometry(3.2,4.5,3.2),woodD); mid.position.y=3.5; g.add(mid);
   const top=new THREE.Mesh(new THREE.BoxGeometry(4.5,.5,4.5),wood); top.position.y=5.9; g.add(top);
@@ -1170,7 +1168,7 @@ function buildCampfire(cfg){
     r:1.1, intensity:1.4, dist:20, size:1,
   },cfg||{});
   const g=new THREE.Group();
-  const stoneM=new THREE.MeshStandardMaterial({color:c.stone,roughness:1,flatShading:true});
+  const stoneM=MAT.get("rock.camp",{color:c.stone,roughness:1,flatShading:true});
   for(let k=0;k<6;k++){
     const a=k/6*Math.PI*2;
     const st=new THREE.Mesh(new THREE.DodecahedronGeometry(.38,0),stoneM);
@@ -1194,9 +1192,9 @@ function buildTotem(cfg){
     wood:0x5a3820, paintA:0xd94f2a, paintB:0x3a7ac9, h:7.2, size:1,
   },cfg||{});
   const g=new THREE.Group();
-  const wood=new THREE.MeshStandardMaterial({color:c.wood,roughness:.9,flatShading:true});
-  const aM=new THREE.MeshStandardMaterial({color:c.paintA,roughness:.8});
-  const bM=new THREE.MeshStandardMaterial({color:c.paintB,roughness:.8});
+  const wood=MAT.get("wood.build",{color:c.wood,roughness:.9,flatShading:true});
+  const aM=MAT.get("paint.a",{color:c.paintA,roughness:.8});
+  const bM=MAT.get("paint.b",{color:c.paintB,roughness:.8});
   const pole=new THREE.Mesh(new THREE.CylinderGeometry(.48,.6,c.h,7),wood);
   pole.position.y=c.h/2; g.add(pole);
   [[c.h*.28,aM],[c.h*.5,bM],[c.h*.72,aM]].forEach(([y,m])=>{
@@ -1218,9 +1216,9 @@ function buildMarketStall(cfg){
     cloth:0x2a6a4a, w:3.6, d:2.2, size:1,
   },cfg||{});
   const g=new THREE.Group();
-  const wood=new THREE.MeshStandardMaterial({color:c.wood,roughness:.92,flatShading:true});
-  const woodD=new THREE.MeshStandardMaterial({color:c.woodD,roughness:.95,flatShading:true});
-  const cloth=new THREE.MeshStandardMaterial({color:c.cloth,roughness:.9,flatShading:true});
+  const wood=MAT.get("wood.build",{color:c.wood,roughness:.92,flatShading:true});
+  const woodD=MAT.get("wood.buildD",{color:c.woodD,roughness:.95,flatShading:true});
+  const cloth=MAT.get("cloth.stall",{color:c.cloth,roughness:.9,flatShading:true});
   const table=new THREE.Mesh(new THREE.BoxGeometry(c.w,.25,c.d),wood);
   table.position.y=1.05; g.add(table);
   [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{
@@ -1245,8 +1243,8 @@ function buildCratePile(cfg){
     wood:0x7a5a30, woodD:0x4a3020, size:1,
   },cfg||{});
   const g=new THREE.Group();
-  const wood=new THREE.MeshStandardMaterial({color:c.wood,roughness:.9,flatShading:true});
-  const woodD=new THREE.MeshStandardMaterial({color:c.woodD,roughness:.95,flatShading:true});
+  const wood=MAT.get("wood.build",{color:c.wood,roughness:.9,flatShading:true});
+  const woodD=MAT.get("wood.buildD",{color:c.woodD,roughness:.95,flatShading:true});
   const boxes=[[0,.45,0,1.1],[.9,.45,.2,1],[ -.7,.45,.35,.95],[.2,1.25,.1,.9]];
   boxes.forEach(([x,y,z,s])=>{
     const b=new THREE.Mesh(new THREE.BoxGeometry(s,s*.85,s*.9),wood);

@@ -3,6 +3,7 @@
    莫高雷世界：实体放置 / 草原与营地 / 传送门与进本 / 野怪与 NPC 任务系统
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ rand srand worldRng BAL makeLabel scene camera setZoneSeed）
+          palette.js（PALETTE · MAT）
           zones.js（registerZone enterZone）
           models.js（buildPlayer buildBoss buildElder buildVendor buildSpiritHealer
             tintNpcCloth buildHut buildTent buildFence buildWatchtower buildCampfire
@@ -53,9 +54,9 @@ sceneWorld.add(sun);
 
 /* 草原地面 + 通往传送门的土路 */
 const grass=new THREE.Mesh(new THREE.CircleGeometry(WORLD_R+50,64),
-  new THREE.MeshStandardMaterial({color:0x6f9e46,roughness:1}));
+  MAT.get("grass.ground"));
 grass.rotation.x=-Math.PI/2; grass.receiveShadow=true; sceneWorld.add(grass);
-const dirtMat=new THREE.MeshStandardMaterial({color:0x9a7a4a,roughness:1});
+const dirtMat=MAT.get("dirt.path");
 for(let i=0;i<15;i++){
   const seg=new THREE.Mesh(new THREE.CircleGeometry(srand(2.6,3.4),10),dirtMat);
   seg.rotation.x=-Math.PI/2;
@@ -64,12 +65,12 @@ for(let i=0;i<15;i++){
 }
 /* 湖泊 */
 const pond=new THREE.Mesh(new THREE.CircleGeometry(13,32),
-  new THREE.MeshStandardMaterial({color:0x4a90c8,roughness:.25,metalness:.3}));
+  MAT.get("water.pond"));
 pond.rotation.x=-Math.PI/2; pond.position.set(-38,.05,14); sceneWorld.add(pond);
 
 /* 环绕的红岩台地（莫高雷标志性平顶山） */
-const mesaMat=new THREE.MeshStandardMaterial({color:0xa8613a,roughness:1,flatShading:true});
-const mesaTop=new THREE.MeshStandardMaterial({color:0x7a9e46,roughness:1});
+const mesaMat=MAT.get("rock.mesa");
+const mesaTop=MAT.get("grass.mesaTop");
 for(let i=0;i<9;i++){
   const a=i/9*Math.PI*2+srand(-.2,.2), r=WORLD_R+srand(4,22);
   const h=srand(22,42), rad=srand(9,16);
@@ -80,9 +81,9 @@ for(let i=0;i<9;i++){
   cap.position.set(mesa.position.x,h-.4,mesa.position.z); sceneWorld.add(cap);
 }
 /* 散布的树木与巨石 */
-const trunkMat=new THREE.MeshStandardMaterial({color:0x6a4520,roughness:.9});
-const leafMat=new THREE.MeshStandardMaterial({color:0x4a7a2e,roughness:.95});
-const boulderMat=new THREE.MeshStandardMaterial({color:0x8a6a4a,roughness:1,flatShading:true});
+const trunkMat=MAT.get("wood.trunk");
+const leafMat=MAT.get("grass.canopy");
+const boulderMat=MAT.get("rock.boulder");
 for(let i=0;i<14;i++){
   const a=srand(0,6.28),r=srand(20,WORLD_R-10);
   const x=Math.cos(a)*r,z=Math.sin(a)*r;
@@ -100,8 +101,8 @@ for(let i=0;i<14;i++){
 }
 
 /* 牛头人风格营地：兽皮帐篷 + 图腾柱 + 篝火 */
-const hideMat=new THREE.MeshStandardMaterial({color:0xc9a06a,roughness:.95});
-const hideMat2=new THREE.MeshStandardMaterial({color:0xb5854e,roughness:.95});
+const hideMat=MAT.get("fur.hide");
+const hideMat2=MAT.get("fur.hideDark");
 [[16,50],[-18,46],[10,66]].forEach(([x,z],i)=>{
   const tent=new THREE.Mesh(new THREE.ConeGeometry(4.2,6.8,8),i%2?hideMat:hideMat2);
   tent.position.set(x,3.4,z); tent.castShadow=true; sceneWorld.add(tent);
@@ -112,8 +113,8 @@ const hideMat2=new THREE.MeshStandardMaterial({color:0xb5854e,roughness:.95});
   }
 });
 /* 图腾柱 */
-const paintA=new THREE.MeshStandardMaterial({color:0xd94f2a,roughness:.8});
-const paintB=new THREE.MeshStandardMaterial({color:0x3a7ac9,roughness:.8});
+const paintA=MAT.get("paint.red",{color:PALETTE.paintRed.base,roughness:.8});
+const paintB=MAT.get("paint.blue",{color:PALETTE.paintBlue.base,roughness:.8});
 [[-6,58],[22,60]].forEach(([x,z])=>{
   const pole=new THREE.Mesh(new THREE.CylinderGeometry(.55,.7,7.5,7),trunkMat);
   pole.position.set(x,3.75,z); pole.castShadow=true; sceneWorld.add(pole);
@@ -141,8 +142,7 @@ const worldFlames=[];
 
 /* ---------------- 副本传送门：熔火之心入口 ---------------- */
 const PORTAL_POS=new THREE.Vector3(0,0,-(WORLD_R-8));
-const obsidian=new THREE.MeshStandardMaterial({color:0x241812,roughness:.85,flatShading:true,
-  emissive:0x661a00,emissiveIntensity:.2});
+const obsidian=MAT.get("obsidian.gate");
 const pPlat=new THREE.Mesh(new THREE.CylinderGeometry(8,9.5,1,12),obsidian);
 pPlat.position.set(PORTAL_POS.x,.5,PORTAL_POS.z); pPlat.receiveShadow=true; sceneWorld.add(pPlat);
 [[-3.8],[3.8]].forEach(([sx])=>{
@@ -188,7 +188,7 @@ portalLabel2.position.set(PORTAL_POS.x,12,PORTAL_POS.z); sceneWorld.add(portalLa
 
 /* ---------------- 贫瘠之地传送门（营地南，STEP 18）：Lv10+ 可见可进 ---------------- */
 const PORTAL_BARRENS=new THREE.Vector3(0,0,WORLD_R-8);
-const barrensGateMat=new THREE.MeshStandardMaterial({color:0x5a4028,roughness:.9,flatShading:true,
+const barrensGateMat=MAT.get("wood.gate",{color:0x5a4028,roughness:.9,flatShading:true,
   emissive:0x6a4a20,emissiveIntensity:.18});
 const bPlat=new THREE.Mesh(new THREE.CylinderGeometry(7,8.5,1,12),barrensGateMat);
 bPlat.position.set(PORTAL_BARRENS.x,.5,PORTAL_BARRENS.z); bPlat.receiveShadow=true; sceneWorld.add(bPlat);
@@ -334,11 +334,10 @@ function spawnExitPortal(){
   const grp=new THREE.Group();
   /* 底座 */
   const base=new THREE.Mesh(new THREE.CylinderGeometry(3.5,4.5,.8,12),
-    new THREE.MeshStandardMaterial({color:0x241812,roughness:.85,flatShading:true,
-      emissive:0x4a1a00,emissiveIntensity:.3}));
+    MAT.get("obsidian.gate",{emissive:0x4a1a00,emissiveIntensity:.3}));
   base.position.y=.4; grp.add(base);
   /* 门柱 */
-  const pillarMat=new THREE.MeshStandardMaterial({color:0x1a120e,roughness:.9,emissive:0x6a2200,emissiveIntensity:.15});
+  const pillarMat=MAT.get("obsidian.pillar");
   [[-1.8],[1.8]].forEach(([sx])=>{
     const p=new THREE.Mesh(new THREE.BoxGeometry(.6,4.2,.6),pillarMat);
     p.position.set(sx,2.5,0); grp.add(p);
@@ -629,7 +628,7 @@ function moveToward(m,dest,spd,dt){
 function mobDamage(m,amount,label,opts){hitEntity(m,amount,label,opts);}
 /* ---------------- 尸体灰化 / 复原（STEP 2）----------------
    死亡：倒地 + 全部材质换灰（原材质暂存 userData.liveMat）；重生时还原 */
-const corpseMat=new THREE.MeshStandardMaterial({color:0x8a8a8a,roughness:1,flatShading:true});
+const corpseMat=MAT.get("ash.corpse");
 function setCorpse(m,on){
   if(on){
     if(typeof beginDeathRoll==="function")beginDeathRoll(m);

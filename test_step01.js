@@ -429,8 +429,47 @@ function DEEDS_COUNT_OK(src){
   return m.filter(s=>/id:"(kill_|rare_|world_|quest_|enter_|dungeon_|boss_|level_|talents_)/.test(s)).length>=15;
 }
 
+/* plan-V2 · R0 色板与共享材质工厂 */
+assert(html.includes('src="palette.js"'),"game.html 加载 palette.js");
+const paletteSrc=fs.readFileSync(path.join(__dirname,"palette.js"),"utf8");
+assert(paletteSrc.includes("const PALETTE=")&&paletteSrc.includes("grass"),"palette.js 导出 PALETTE");
+assert(paletteSrc.includes("const MAT=")&&paletteSrc.includes("get(key"),"palette.js 导出 MAT.get");
+assert(paletteSrc.includes("new THREE.MeshStandardMaterial"),"MeshStandardMaterial 仅应出现在 palette.js 工厂内");
+assert(paletteSrc.includes("function disposeMaterial"),"palette.js 导出 disposeMaterial");
+const jsFiles=fs.readdirSync(__dirname).filter(f=>f.endsWith(".js")&&f!=="palette.js"&&!f.startsWith("test_"));
+let strayMat=0;
+for(const f of jsFiles){
+  const src=fs.readFileSync(path.join(__dirname,f),"utf8");
+  if(src.includes("new THREE.MeshStandardMaterial")){console.error("FAIL: 残留 MeshStandardMaterial →",f);strayMat++;}
+}
+assert(strayMat===0,"全局无 palette.js 外的 new THREE.MeshStandardMaterial");
+assert(modelsSrc.includes("MAT.get")&&worldSrc.includes('MAT.get("grass.ground")'),"models/world 走 MAT.get");
+assert(modelsSrc.includes("PALETTE.grass.dark"),"弓箭手皮甲绿绑定 PALETTE.grass");
+
+/* R0 运行时：MAT 去重（stub THREE） */
+(function testMatCache(){
+  const THREE={
+    FrontSide:0, DoubleSide:2,
+    MeshStandardMaterial:function(p){this.userData={};Object.assign(this,p);this.dispose=function(){};},
+  };
+  const api=new Function("THREE", paletteSrc+"\nreturn {MAT,PALETTE,disposeMaterial};")(THREE);
+  const a=api.MAT.get("grass.ground");
+  const b=api.MAT.get("grass.ground");
+  const c=api.MAT.get("grass.canopy");
+  assert(a===b,"MAT.get 同 key 返回同一实例");
+  assert(a!==c,"MAT.get 不同 key 不同实例");
+  assert(a.userData.sharedMat===true,"MAT 材质标记 sharedMat");
+  const before=api.MAT.size();
+  api.MAT.get("grass.ground");
+  assert(api.MAT.size()===before,"重复 get 不增加缓存");
+  const d=api.MAT.get("fur.hide",{roughness:.5});
+  assert(d!==api.MAT.get("fur.hide"),"覆写参数产生独立缓存条目");
+  api.disposeMaterial(a);
+  assert(api.MAT.get("grass.ground")===a,"disposeMaterial 不销毁共享材质");
+})();
+
 if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–29 … / V1-A1–A5 · V1-B1–B4 冒烟");
+console.log("\n全部通过 · STEP 17–29 … / V1-A1–A5 · V1-B1–B4 · plan-V2 R0 冒烟");

@@ -53,8 +53,8 @@ function disposeCompanionMesh(c){
     c.mesh.traverse(o=>{
       if(o.geometry)o.geometry.dispose();
       if(o.material){
-        if(Array.isArray(o.material))o.material.forEach(m=>m&&m.dispose&&m.dispose());
-        else if(o.material.dispose)o.material.dispose();
+        if(Array.isArray(o.material))o.material.forEach(disposeMaterial);
+        else disposeMaterial(o.material);
       }
     });
   }

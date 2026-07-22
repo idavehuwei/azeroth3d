@@ -339,7 +339,7 @@ function dropLoot(pos,items,owner,onLooted){
   const it=items[0], q=QUALITY[it.quality];
   const grp=new THREE.Group(); grp.position.copy(pos).setY(0);
   const cube=new THREE.Mesh(new THREE.BoxGeometry(.55,.55,.55),
-    new THREE.MeshStandardMaterial({color:q.hex,emissive:q.hex,emissiveIntensity:.65,roughness:.4}));
+    MAT.get("emissive.loot",{color:q.hex,emissive:q.hex,emissiveIntensity:.65,roughness:.4}));
   cube.position.y=.6; cube.castShadow=true; grp.add(cube);
   const icSp=new THREE.Sprite(new THREE.SpriteMaterial({
     map:new THREE.CanvasTexture(Icons.canvas(it.icon,q.color)),

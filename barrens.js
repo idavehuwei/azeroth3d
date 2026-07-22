@@ -56,10 +56,10 @@ function buildBarrensZone(scn){
   root.add(barrensSun);
 
   const ground=new THREE.Mesh(new THREE.CircleGeometry(BARRENS_R+40,64),
-    new THREE.MeshStandardMaterial({color:B.ground,roughness:1}));
+    MAT.get("dirt.zone",{color:B.ground,roughness:1}));
   ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; root.add(ground);
 
-  const dirtMat=new THREE.MeshStandardMaterial({color:B.dirt,roughness:1});
+  const dirtMat=MAT.get("dirt.path",{color:B.dirt,roughness:1});
   for(let i=0;i<18;i++){
     const t=i/17;
     const z=BARRENS_PORTAL_N.z+(BARRENS_SOUTH_MARK.z-BARRENS_PORTAL_N.z)*t;
@@ -69,8 +69,8 @@ function buildBarrensZone(scn){
     seg.receiveShadow=true; root.add(seg);
   }
 
-  const trunkMat=new THREE.MeshStandardMaterial({color:0x5a4028,roughness:.95});
-  const deadLeaf=new THREE.MeshStandardMaterial({color:0x8a6a3a,roughness:1});
+  const trunkMat=MAT.get("wood.dead");
+  const deadLeaf=MAT.get("leaf.dead",{color:0x8a6a3a,roughness:1});
   for(let i=0;i<12;i++){
     const a=srand(0,6.28),r=srand(18,BARRENS_R-12);
     const x=Math.cos(a)*r,z=Math.sin(a)*r;
@@ -102,7 +102,7 @@ function buildBarrensZone(scn){
     for(let k=0;k<5;k++){
       const a=k/5*Math.PI*2;
       const st=new THREE.Mesh(new THREE.DodecahedronGeometry(.35,0),
-        new THREE.MeshStandardMaterial({color:0x6a5040,roughness:1,flatShading:true}));
+        MAT.get("_",{color:0x6a5040,roughness:1,flatShading:true}));
       st.position.set(x+Math.cos(a)*1.0,.25,z+Math.sin(a)*1.0); root.add(st);
     }
     const fl=new THREE.Mesh(new THREE.ConeGeometry(.65,1.6,7),
@@ -134,7 +134,7 @@ function buildBarrensZone(scn){
   const bcf2=placeProp(root,buildCampfire({flame:0xff9030,light:0xff7020,size:.8}),-10,-4,0);
   if(bcf2&&bcf2.userData.flame)barrensFlames.push(bcf2.userData.flame);
 
-  const gateMat=new THREE.MeshStandardMaterial({color:0x5a4028,roughness:.9,flatShading:true,
+  const gateMat=MAT.get("_",{color:0x5a4028,roughness:.9,flatShading:true,
     emissive:0x4a6a30,emissiveIntensity:.15});
   const nPlat=new THREE.Mesh(new THREE.CylinderGeometry(7,8.5,1,12),gateMat);
   nPlat.position.set(BARRENS_PORTAL_N.x,.5,BARRENS_PORTAL_N.z); nPlat.receiveShadow=true; root.add(nPlat);
@@ -162,17 +162,17 @@ function buildBarrensZone(scn){
   nLab.position.set(BARRENS_PORTAL_N.x,12.2,BARRENS_PORTAL_N.z); root.add(nLab);
 
   const sPlat=new THREE.Mesh(new THREE.CylinderGeometry(7,8.5,1,12),
-    new THREE.MeshStandardMaterial({color:0x3a4a30,roughness:.9,flatShading:true,
+    MAT.get("_",{color:0x3a4a30,roughness:.9,flatShading:true,
       emissive:0x2a4a20,emissiveIntensity:.2}));
   sPlat.position.set(BARRENS_PORTAL_S.x,.5,BARRENS_PORTAL_S.z); sPlat.receiveShadow=true; root.add(sPlat);
   [[-3.4],[3.4]].forEach(([sx])=>{
     const pil=new THREE.Mesh(new THREE.BoxGeometry(1.5,8.5,1.5),
-      new THREE.MeshStandardMaterial({color:0x3a4a30,roughness:.9,flatShading:true,
+      MAT.get("_",{color:0x3a4a30,roughness:.9,flatShading:true,
         emissive:0x2a4a20,emissiveIntensity:.15}));
     pil.position.set(BARRENS_PORTAL_S.x+sx,4.8,BARRENS_PORTAL_S.z); pil.castShadow=true; root.add(pil);
   });
   const sLintel=new THREE.Mesh(new THREE.BoxGeometry(9.2,1.4,1.6),
-    new THREE.MeshStandardMaterial({color:0x3a4a30,roughness:.9,flatShading:true}));
+    MAT.get("_",{color:0x3a4a30,roughness:.9,flatShading:true}));
   sLintel.position.set(BARRENS_PORTAL_S.x,9.2,BARRENS_PORTAL_S.z); root.add(sLintel);
   const sDisc=new THREE.Mesh(new THREE.CircleGeometry(2.8,36),new THREE.ShaderMaterial({
     uniforms:barrensPortalUni,transparent:true,side:THREE.DoubleSide,depthWrite:false,
@@ -194,15 +194,15 @@ function buildBarrensZone(scn){
 
   /* —— 东口：奥妮克希亚巢穴（STEP 28） —— */
   const ePlat=new THREE.Mesh(new THREE.CylinderGeometry(5.5,6,.5,10),
-    new THREE.MeshStandardMaterial({color:0x4a2820,roughness:1,flatShading:true}));
+    MAT.get("_",{color:0x4a2820,roughness:1,flatShading:true}));
   ePlat.position.set(BARRENS_PORTAL_E.x,.5,BARRENS_PORTAL_E.z); ePlat.receiveShadow=true; root.add(ePlat);
   [-1,1].forEach(sx=>{
     const pil=new THREE.Mesh(new THREE.BoxGeometry(1.1,9.2,1.1),
-      new THREE.MeshStandardMaterial({color:0x2a1510,roughness:.95,flatShading:true}));
+      MAT.get("_",{color:0x2a1510,roughness:.95,flatShading:true}));
     pil.position.set(BARRENS_PORTAL_E.x,4.8,BARRENS_PORTAL_E.z+sx*3.2); pil.castShadow=true; root.add(pil);
   });
   const eLintel=new THREE.Mesh(new THREE.BoxGeometry(1.4,1.2,8),
-    new THREE.MeshStandardMaterial({color:0x3a1a12,roughness:.9,flatShading:true}));
+    MAT.get("_",{color:0x3a1a12,roughness:.9,flatShading:true}));
   eLintel.position.set(BARRENS_PORTAL_E.x,9.2,BARRENS_PORTAL_E.z); root.add(eLintel);
   const eDisc=new THREE.Mesh(new THREE.CircleGeometry(2.8,36),new THREE.ShaderMaterial({
     uniforms:barrensPortalUni,transparent:true,side:THREE.DoubleSide,depthWrite:false,
@@ -224,15 +224,15 @@ function buildBarrensZone(scn){
 
   /* —— 西口：赭岩谷（V1-B1） —— */
   const wPlat=new THREE.Mesh(new THREE.CylinderGeometry(5.5,6.5,.5,10),
-    new THREE.MeshStandardMaterial({color:0x8a4820,roughness:1,flatShading:true}));
+    MAT.get("_",{color:0x8a4820,roughness:1,flatShading:true}));
   wPlat.position.set(BARRENS_PORTAL_W.x,.5,BARRENS_PORTAL_W.z); wPlat.receiveShadow=true; root.add(wPlat);
   [-1,1].forEach(sz=>{
     const pil=new THREE.Mesh(new THREE.BoxGeometry(1.1,8.8,1.1),
-      new THREE.MeshStandardMaterial({color:0x5a2810,roughness:.95,flatShading:true}));
+      MAT.get("_",{color:0x5a2810,roughness:.95,flatShading:true}));
     pil.position.set(BARRENS_PORTAL_W.x,4.6,BARRENS_PORTAL_W.z+sz*3.0); pil.castShadow=true; root.add(pil);
   });
   const wLintel=new THREE.Mesh(new THREE.BoxGeometry(1.3,1.2,7.5),
-    new THREE.MeshStandardMaterial({color:0x6a3018,roughness:.9,flatShading:true}));
+    MAT.get("_",{color:0x6a3018,roughness:.9,flatShading:true}));
   wLintel.position.set(BARRENS_PORTAL_W.x,9.0,BARRENS_PORTAL_W.z); root.add(wLintel);
   const wDisc=new THREE.Mesh(new THREE.CircleGeometry(2.6,36),new THREE.ShaderMaterial({
     uniforms:barrensPortalUni,transparent:true,side:THREE.DoubleSide,depthWrite:false,

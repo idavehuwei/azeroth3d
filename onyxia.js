@@ -23,7 +23,7 @@ function buildOnyxiaZone(root){
   const R=W.arenaR||26;
   const floor=new THREE.Mesh(
     new THREE.CylinderGeometry(R+3,R+5,.55,22),
-    new THREE.MeshStandardMaterial({color:W.ground,roughness:1,flatShading:true})
+    MAT.get("dungeon.ground",{color:W.ground,roughness:1,flatShading:true})
   );
   floor.position.y=-.28; floor.receiveShadow=true; root.add(floor);
 
@@ -34,7 +34,7 @@ function buildOnyxiaZone(root){
     const h=7+srand(2,9);
     const wall=new THREE.Mesh(
       new THREE.BoxGeometry(3.2+srand(0,2),h,2.4+srand(0,1.2)),
-      new THREE.MeshStandardMaterial({color:W.wall,roughness:.95,flatShading:true})
+      MAT.get("dungeon.wall",{color:W.wall,roughness:.95,flatShading:true})
     );
     wall.position.set(Math.cos(a)*rr,h/2-.2,Math.sin(a)*rr);
     wall.rotation.y=a; wall.castShadow=true; root.add(wall);
@@ -45,7 +45,7 @@ function buildOnyxiaZone(root){
     const a=srand(0,6.28), rr=srand(7,R-5);
     const bone=new THREE.Mesh(
       new THREE.CylinderGeometry(.12,.08,2.2+srand(0,1.5),5),
-      new THREE.MeshStandardMaterial({color:W.bone,roughness:.7})
+      MAT.get("bone.dungeon",{color:W.bone,roughness:.7})
     );
     bone.position.set(Math.cos(a)*rr,.6,Math.sin(a)*rr);
     bone.rotation.set(srand(-.4,.4),a,srand(-.5,.5));
@@ -55,8 +55,7 @@ function buildOnyxiaZone(root){
   /* 中央熔岩浅池 */
   const pool=new THREE.Mesh(
     new THREE.CylinderGeometry(4.5,5,.12,14),
-    new THREE.MeshStandardMaterial({color:0x4a1808,roughness:.25,metalness:.15,
-      emissive:0xff3a00,emissiveIntensity:.45})
+    MAT.get("lava.pool")
   );
   pool.position.set(0,.04,-10); root.add(pool);
 

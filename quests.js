@@ -1041,8 +1041,8 @@ function clearQuestEscort(){
     _questEscortMesh.traverse(o=>{
       if(o.geometry)o.geometry.dispose();
       if(o.material){
-        if(Array.isArray(o.material))o.material.forEach(m=>m&&m.dispose&&m.dispose());
-        else if(o.material.dispose)o.material.dispose();
+        if(Array.isArray(o.material))o.material.forEach(disposeMaterial);
+        else disposeMaterial(o.material);
         if(o.material.map)o.material.map.dispose();
       }
     });
@@ -1057,7 +1057,7 @@ function startQuestEscort(questId,obj,opts){
   const scn=(typeof getCurrentZone==="function"&&getCurrentZone()&&getCurrentZone().scene)||scene;
   const g=new THREE.Group();
   const body=new THREE.Mesh(new THREE.CylinderGeometry(.4,.45,1.8,8),
-    new THREE.MeshStandardMaterial({color:0xc4a060,flatShading:true}));
+    MAT.get("quest.marker"));
   body.position.y=1.1; g.add(body);
   const lab=makeLabel(obj.name||"护送目标",6,"#ffd9a0","rgba(80,40,10,.9)");
   lab.position.y=3.2; g.add(lab);

@@ -652,7 +652,7 @@ function iceBlock(){
   S.p.invuln=getSkillBal("iceBlock").invuln;
   const p=player;
   const ice=new THREE.Mesh(new THREE.IcosahedronGeometry(1.9,0),
-    new THREE.MeshStandardMaterial({color:0x9ad8ff,transparent:true,opacity:.5,roughness:.15,metalness:.2}));
+    MAT.get("emissive.ice"));
   ice.position.y=1.8; p.add(ice);
   setTimeout(()=>p.remove(ice),3000);
   log("寒冰屏障！3 秒内免疫所有伤害。","lg-me");
@@ -706,7 +706,7 @@ function clearShieldVisual(){
   if(!m)return;
   if(m.parent)m.parent.remove(m);
   if(m.geometry)m.geometry.dispose();
-  if(m.material)m.material.dispose();
+  if(m.material)disposeMaterial(m.material);
   S.p.shieldMesh=null;
 }
 function applyHeal(amount,label){
@@ -743,8 +743,7 @@ function powerWordShield(){
   if(typeof applyBuff==="function")applyBuff("power_word_shield",{duration:bal.duration,absorb});
   else{S.p.absorb=absorb;S.p.absorbT=bal.duration;}
   const ice=new THREE.Mesh(new THREE.IcosahedronGeometry(1.85,0),
-    new THREE.MeshStandardMaterial({color:0xffe080,transparent:true,opacity:.42,roughness:.2,metalness:.15,
-      emissive:0xffd060,emissiveIntensity:.25}));
+    MAT.get("emissive.holy"));
   ice.position.y=1.75; player.add(ice);
   S.p.shieldMesh=ice;
   fct(player.position.clone().setY(3.2),`盾 ${absorb}`,"#ffe9a0",16);
@@ -782,8 +781,8 @@ function disposeTotemMesh(mesh){
   mesh.traverse(o=>{
     if(o.geometry)o.geometry.dispose();
     if(o.material){
-      if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());
-      else o.material.dispose();
+      if(Array.isArray(o.material))o.material.forEach(disposeMaterial);
+      else disposeMaterial(o.material);
     }
   });
 }
@@ -794,8 +793,8 @@ function clearAllTotems(){
 }
 function buildHealingTotemMesh(){
   const g=new THREE.Group();
-  const wood=new THREE.MeshStandardMaterial({color:0x5a3820,roughness:.9,flatShading:true});
-  const teal=new THREE.MeshStandardMaterial({color:0x2a9a78,roughness:.55,emissive:0x1a6048,emissiveIntensity:.35});
+  const wood=MAT.get("wood.totem");
+  const teal=MAT.get("emissive.teal");
   const pole=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,1.8,6),wood);
   pole.position.y=.9; g.add(pole);
   const head=new THREE.Mesh(new THREE.ConeGeometry(.28,.55,6),teal);

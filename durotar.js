@@ -51,10 +51,10 @@ function buildDurotarZone(scn){
   root.add(durotarSun);
 
   const ground=new THREE.Mesh(new THREE.CircleGeometry(DUROTAR_R+36,64),
-    new THREE.MeshStandardMaterial({color:D.ground,roughness:1}));
+    MAT.get("dirt.zone",{color:D.ground,roughness:1}));
   ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; root.add(ground);
 
-  const dirtMat=new THREE.MeshStandardMaterial({color:D.dirt,roughness:1});
+  const dirtMat=MAT.get("dirt.path",{color:D.dirt,roughness:1});
   for(let i=0;i<14;i++){
     const t=i/13;
     const x=DUROTAR_PORTAL_E.x*(1-t)*.85;
@@ -65,7 +65,7 @@ function buildDurotarZone(scn){
   }
 
   /* 橙岩碎块 */
-  const rockMat=new THREE.MeshStandardMaterial({color:0xa85830,roughness:1,flatShading:true});
+  const rockMat=MAT.get("rock.mesa",{color:0xa85830});
   for(let i=0;i<16;i++){
     const a=srand(0,6.28),r=srand(16,DUROTAR_R-14);
     const x=Math.cos(a)*r,z=Math.sin(a)*r;
@@ -102,8 +102,7 @@ function buildDurotarZone(scn){
   });
 
   /* 东口 → 贫瘠之地 */
-  const gateMat=new THREE.MeshStandardMaterial({color:0x6a3a18,roughness:.9,flatShading:true,
-    emissive:0x8a4020,emissiveIntensity:.18});
+  const gateMat=MAT.get("wood.gate",{color:0x6a3a18,roughness:.9,flatShading:true,emissive:0x8a4020,emissiveIntensity:.18});
   const ePlat=new THREE.Mesh(new THREE.CylinderGeometry(6.5,7.5,1,12),gateMat);
   ePlat.position.set(DUROTAR_PORTAL_E.x,.5,DUROTAR_PORTAL_E.z); ePlat.receiveShadow=true; root.add(ePlat);
   [[-3.2],[3.2]].forEach(([sz])=>{
@@ -130,8 +129,7 @@ function buildDurotarZone(scn){
   eLab.position.set(DUROTAR_PORTAL_E.x,11.8,DUROTAR_PORTAL_E.z); root.add(eLab);
 
   /* 西口 → 怒焰裂谷 */
-  const rfMat=new THREE.MeshStandardMaterial({color:0x5a2010,roughness:.9,flatShading:true,
-    emissive:0xff4000,emissiveIntensity:.28});
+  const rfMat=MAT.get("lava.gate",{color:0x5a2010,roughness:.9,flatShading:true,emissive:0xff4000,emissiveIntensity:.28});
   const wPlat=new THREE.Mesh(new THREE.CylinderGeometry(6.5,7.5,1,12),rfMat);
   wPlat.position.set(DUROTAR_PORTAL_W.x,.5,DUROTAR_PORTAL_W.z); wPlat.receiveShadow=true; root.add(wPlat);
   [[-3.2],[3.2]].forEach(([sz])=>{

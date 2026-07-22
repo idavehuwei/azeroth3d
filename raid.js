@@ -63,7 +63,7 @@ function buildMoltenCoreZone(scn){
   lava.rotation.x=-Math.PI/2; lava.position.y=-0.9; root.add(lava);
 
   /* 黑曜石战斗平台 */
-  const platMat=new THREE.MeshStandardMaterial({color:0x1c1412,roughness:.92,metalness:.15});
+  const platMat=MAT.get("obsidian.plat");
   const platform=new THREE.Mesh(new THREE.CylinderGeometry(ARENA_R,ARENA_R+2.5,2.2,48),platMat);
   platform.position.y=-1.1; platform.receiveShadow=true; root.add(platform);
   /* 平台边缘符文环 */
@@ -72,8 +72,8 @@ function buildMoltenCoreZone(scn){
   runeRing.rotation.x=-Math.PI/2; runeRing.position.y=0.03; root.add(runeRing);
 
   /* 环形岩柱群 */
-  const rockMat=new THREE.MeshStandardMaterial({color:0x2b1a12,roughness:1,flatShading:true});
-  const glowRockMat=new THREE.MeshStandardMaterial({color:0x3a1408,roughness:.9,flatShading:true,
+  const rockMat=MAT.get("lava.pillar",{color:0x2b1a12,roughness:1,flatShading:true});
+  const glowRockMat=MAT.get("lava.glowRock",{color:0x3a1408,roughness:.9,flatShading:true,
     emissive:0xff3b00,emissiveIntensity:.25});
   for(let i=0;i<14;i++){
     const a=i/14*Math.PI*2+srand(-.1,.1), r=ARENA_R+srand(6,14);
@@ -104,7 +104,7 @@ const bridgeSegs=[];
 const BRIDGE_SINK_Y=-2.5;
 function buildBridge(root){
   root=root||sceneRaid;
-  const bridgeMat=new THREE.MeshStandardMaterial({color:0x2a1a10,roughness:1,flatShading:true,
+  const bridgeMat=MAT.get("lava.bridge",{color:0x2a1a10,roughness:1,flatShading:true,
     emissive:0x551100,emissiveIntensity:.15});
   for(let i=0;i<7;i++){
     const a=i/7*Math.PI*2+(-.15+i*.05);
@@ -115,7 +115,7 @@ function buildBridge(root){
     bridgeSegs.push(seg);
   }
   /* 桥面石板（装饰性） */
-  const slabMat=new THREE.MeshStandardMaterial({color:0x3a2818,roughness:.95,flatShading:true});
+  const slabMat=MAT.get("obsidian.slab",{color:PALETTE.obsidian.light,roughness:.95,flatShading:true});
   for(let i=0;i<4;i++){
     const a=i/4*Math.PI*2;
     const slab=new THREE.Mesh(new THREE.BoxGeometry(1.8,.25,1.8),slabMat);

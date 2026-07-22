@@ -24,7 +24,7 @@ function buildRagefireZone(root){
   const R=W.arenaR||22;
   const floor=new THREE.Mesh(
     new THREE.CylinderGeometry(R+4,R+6,.6,24),
-    new THREE.MeshStandardMaterial({color:W.ground,roughness:1,flatShading:true})
+    MAT.get("dungeon.ground",{color:W.ground,roughness:1,flatShading:true})
   );
   floor.position.y=-.3; floor.receiveShadow=true; root.add(floor);
 
@@ -34,8 +34,7 @@ function buildRagefireZone(root){
     const h=5+srand(2,7);
     const wall=new THREE.Mesh(
       new THREE.BoxGeometry(3.2+srand(0,2),h,2.0+srand(0,1.4)),
-      new THREE.MeshStandardMaterial({color:W.wall,roughness:.95,flatShading:true,
-        emissive:0x401008,emissiveIntensity:.12})
+      MAT.get("dungeon.wall",{color:W.wall,roughness:.95,flatShading:true,emissive:0x401008,emissiveIntensity:.12})
     );
     wall.position.set(Math.cos(a)*rr,h/2-0.2,Math.sin(a)*rr);
     wall.rotation.y=a; wall.castShadow=true; root.add(wall);
@@ -44,8 +43,7 @@ function buildRagefireZone(root){
   /* 熔岩池 */
   const pool=new THREE.Mesh(
     new THREE.CylinderGeometry(4.8,5.2,.2,16),
-    new THREE.MeshStandardMaterial({color:W.lava,roughness:.25,metalness:.15,
-      emissive:0xff3000,emissiveIntensity:.55})
+    MAT.get("lava.dungeon",{color:W.lava,roughness:.25,metalness:.15,emissive:0xff3000,emissiveIntensity:.55})
   );
   pool.position.set(0,.08,-8); root.add(pool);
 
@@ -54,8 +52,7 @@ function buildRagefireZone(root){
     const h=1.2+srand(.8,2.5);
     const spike=new THREE.Mesh(
       new THREE.ConeGeometry(.3+srand(0,.35),h,6),
-      new THREE.MeshStandardMaterial({color:0x5a2010,roughness:1,flatShading:true,
-        emissive:0xff4000,emissiveIntensity:.2})
+      MAT.get("lava.rock",{color:0x5a2010,emissive:0xff4000,emissiveIntensity:.2})
     );
     spike.position.set(Math.cos(a)*rr,h/2,Math.sin(a)*rr);
     root.add(spike);
