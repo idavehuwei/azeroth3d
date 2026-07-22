@@ -25,34 +25,120 @@ const R=a=>rand(a[0],a[1]);                    /* 从 [min,max] 区间取随机�
 const BALANCE={
   /* 受击伤害浮动乘数区间 [min,max] */
   variance:{boss:[.9,1.12], mob:[.92,1.08], player:[.92,1.08]},
-  /* 玩家技能（伤害/治疗为 [min,max]，距离/半径单位：米） */
+  /* 玩家技能（V1-C4：ranks R1/R2/R3；取值一律 getSkillBal） */
+  skillRank:{unlock:[1,8,14]}, /* 默认解锁等级（各 rank.minLevel 可覆盖） */
   skills:{
-    heroicStrike:{dmg:[520,680], addDmg:[500,650], reach:4.8, addReach:4.5, bossReach:10},
-    whirlwind   :{dmg:[700,900], bossDmg:[760,940], radius:9, bossRadius:11},
-    charge      :{rageGain:25, minDist:5, stopDist:6},
-    potion      :{heal:[1600,2000]},
-    pyroblast   :{dmg:[880,1080]},
-    frostNova   :{dmg:[400,520], bossDmg:[420,540], radius:10, bossRadius:12, rootT:3},
-    blink       :{dist:12},
-    iceBlock    :{invuln:3},
-    aimedShot   :{dmg:[820,1000]},
-    multiShot   :{dmg:[430,540]},
-    roll        :{dist:9, invuln:.7},
-    /* —— STEP 19 牧师 —— */
-    heal            :{heal:[1200,1500]},
-    flashHeal       :{heal:[650,850]},
-    smite           :{dmg:[720,920]},
-    powerWordShield :{absorb:[1800,2200], duration:15},
-    /* —— V1-C1 萨满 —— */
-    lightningBolt   :{dmg:[740,940]},
-    earthShock      :{dmg:[520,680]},
-    healingWave     :{heal:[1100,1400]},
-    healingTotem    :{healPerTick:[90,130], radius:9, duration:14, tick:1.0, max:1},
-    /* —— V1-C2 盗贼 —— */
-    sinisterStrike  :{dmg:[500,660], addDmg:[480,620], reach:4.6, addReach:4.5, bossReach:10},
-    backstab        :{dmg:[920,1180], addDmg:[880,1120], reach:4.4, addReach:4.3, bossReach:9.5, behindArc:1.35, stealthMul:1.25},
-    stealth         :{},
-    sprint          :{speedMul:1.55, duration:6},
+    heroicStrike:{ranks:[
+      {minLevel:1, dmg:[520,680], addDmg:[500,650], reach:4.8, addReach:4.5, bossReach:10},
+      {minLevel:8, dmg:[614,802], addDmg:[590,767], reach:5.0, addReach:4.7, bossReach:10},
+      {minLevel:14, dmg:[707,925], addDmg:[680,884], reach:5.2, addReach:4.9, bossReach:10}
+    ]},
+    whirlwind:{ranks:[
+      {minLevel:1, dmg:[700,900], bossDmg:[760,940], radius:9, bossRadius:11},
+      {minLevel:8, dmg:[826,1062], bossDmg:[897,1109], radius:9.2, bossRadius:11.2},
+      {minLevel:14, dmg:[952,1224], bossDmg:[1034,1278], radius:9.4, bossRadius:11.4}
+    ]},
+    charge:{ranks:[
+      {minLevel:1, rageGain:25, minDist:5, stopDist:6},
+      {minLevel:8, rageGain:30, minDist:5, stopDist:6},
+      {minLevel:14, rageGain:34, minDist:5, stopDist:6}
+    ]},
+    potion:{ranks:[
+      {minLevel:1, heal:[1600,2000]},
+      {minLevel:8, heal:[1888,2360]},
+      {minLevel:14, heal:[2176,2720]}
+    ]},
+    pyroblast:{ranks:[
+      {minLevel:1, dmg:[880,1080]},
+      {minLevel:8, dmg:[1038,1274]},
+      {minLevel:14, dmg:[1197,1469]}
+    ]},
+    frostNova:{ranks:[
+      {minLevel:1, dmg:[400,520], bossDmg:[420,540], radius:10, bossRadius:12, rootT:3},
+      {minLevel:8, dmg:[472,614], bossDmg:[496,637], radius:10.2, bossRadius:12.2, rootT:3},
+      {minLevel:14, dmg:[544,707], bossDmg:[571,734], radius:10.4, bossRadius:12.4, rootT:3}
+    ]},
+    blink:{ranks:[
+      {minLevel:1, dist:12},
+      {minLevel:8, dist:13},
+      {minLevel:14, dist:14}
+    ]},
+    iceBlock:{ranks:[
+      {minLevel:1, invuln:3},
+      {minLevel:8, invuln:3.5},
+      {minLevel:14, invuln:4}
+    ]},
+    aimedShot:{ranks:[
+      {minLevel:1, dmg:[820,1000]},
+      {minLevel:8, dmg:[968,1180]},
+      {minLevel:14, dmg:[1115,1360]}
+    ]},
+    multiShot:{ranks:[
+      {minLevel:1, dmg:[430,540]},
+      {minLevel:8, dmg:[507,637]},
+      {minLevel:14, dmg:[585,734]}
+    ]},
+    roll:{ranks:[
+      {minLevel:1, dist:9, invuln:.7},
+      {minLevel:8, dist:10, invuln:.75},
+      {minLevel:14, dist:11, invuln:.8}
+    ]},
+    heal:{ranks:[
+      {minLevel:1, heal:[1200,1500]},
+      {minLevel:8, heal:[1416,1770]},
+      {minLevel:14, heal:[1632,2040]}
+    ]},
+    flashHeal:{ranks:[
+      {minLevel:1, heal:[650,850]},
+      {minLevel:8, heal:[767,1003]},
+      {minLevel:14, heal:[884,1156]}
+    ]},
+    smite:{ranks:[
+      {minLevel:1, dmg:[720,920]},
+      {minLevel:8, dmg:[850,1086]},
+      {minLevel:14, dmg:[979,1251]}
+    ]},
+    powerWordShield:{ranks:[
+      {minLevel:1, absorb:[1800,2200], duration:15},
+      {minLevel:8, absorb:[2124,2596], duration:15},
+      {minLevel:14, absorb:[2448,2992], duration:16}
+    ]},
+    lightningBolt:{ranks:[
+      {minLevel:1, dmg:[740,940]},
+      {minLevel:8, dmg:[873,1109]},
+      {minLevel:14, dmg:[1006,1278]}
+    ]},
+    earthShock:{ranks:[
+      {minLevel:1, dmg:[520,680]},
+      {minLevel:8, dmg:[614,802]},
+      {minLevel:14, dmg:[707,925]}
+    ]},
+    healingWave:{ranks:[
+      {minLevel:1, heal:[1100,1400]},
+      {minLevel:8, heal:[1298,1652]},
+      {minLevel:14, heal:[1496,1904]}
+    ]},
+    healingTotem:{ranks:[
+      {minLevel:1, healPerTick:[90,130], radius:9, duration:14, tick:1.0, max:1},
+      {minLevel:8, healPerTick:[106,153], radius:9.5, duration:15, tick:1.0, max:1},
+      {minLevel:14, healPerTick:[122,177], radius:10, duration:16, tick:1.0, max:1}
+    ]},
+    sinisterStrike:{ranks:[
+      {minLevel:1, dmg:[500,660], addDmg:[480,620], reach:4.6, addReach:4.5, bossReach:10},
+      {minLevel:8, dmg:[590,779], addDmg:[566,732], reach:4.8, addReach:4.7, bossReach:10},
+      {minLevel:14, dmg:[680,898], addDmg:[653,843], reach:5.0, addReach:4.9, bossReach:10}
+    ]},
+    backstab:{ranks:[
+      {minLevel:1, dmg:[920,1180], addDmg:[880,1120], reach:4.4, addReach:4.3, bossReach:9.5, behindArc:1.35, stealthMul:1.25},
+      {minLevel:8, dmg:[1086,1392], addDmg:[1038,1322], reach:4.6, addReach:4.5, bossReach:9.5, behindArc:1.35, stealthMul:1.28},
+      {minLevel:14, dmg:[1251,1605], addDmg:[1197,1523], reach:4.8, addReach:4.7, bossReach:9.5, behindArc:1.4, stealthMul:1.32}
+    ]},
+    stealth:{ranks:[{minLevel:1}]},
+    sprint:{ranks:[
+      {minLevel:1, speedMul:1.55, duration:6},
+      {minLevel:8, speedMul:1.65, duration:7},
+      {minLevel:14, speedMul:1.75, duration:8}
+    ]},
   },
   /* V1-C2：潜行（脱战隐身 · 缩小主动 aggro） */
   stealth:{aggroMul:.35, alpha:.42, breakOnAttack:true, breakOnHit:true},

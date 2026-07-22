@@ -56,7 +56,7 @@ function scaledRange(arr){
   return [Math.round(arr[0]*m),Math.round(arr[1]*m)];
 }
 function spellStatLine(sk){
-  const bal=sk.bal&&BAL.skills[sk.bal];
+  const bal=sk.bal?(typeof getSkillBal==="function"?getSkillBal(sk.bal):(BAL.skills[sk.bal])):null;
   if(!bal)return "";
   const bits=[];
   if(bal.dmg){
@@ -64,6 +64,7 @@ function spellStatLine(sk){
     bits.push(`伤害 ${r[0]}–${r[1]}`);
   }
   if(bal.heal)bits.push(`治疗 ${bal.heal[0]}–${bal.heal[1]}`);
+  if(bal.healPerTick)bits.push(`每跳 ${bal.healPerTick[0]}–${bal.healPerTick[1]}`);
   if(bal.absorb){
     const a=Array.isArray(bal.absorb)?bal.absorb:[bal.absorb,bal.absorb];
     bits.push(`吸收 ${a[0]}–${a[1]}`);
@@ -74,6 +75,7 @@ function spellStatLine(sk){
   if(bal.invuln)bits.push(`免疫 ${bal.invuln}s`);
   if(bal.rootT)bits.push(`定身 ${bal.rootT}s`);
   if(bal.rageGain)bits.push(`怒气 +${bal.rageGain}`);
+  if(bal.speedMul)bits.push(`移速 ×${bal.speedMul}`);
   return bits.join(" · ");
 }
 
@@ -159,12 +161,13 @@ function renderSpellPanel(){
     const base=sk.cd;
     const cdTx=cd<base-0.01?`CD ${cd}s（基础 ${base}s）`:`CD ${cd}s`;
     const cost=sk.rage>0?`${CLS.resName} ${sk.rage}`:"无消耗";
+    const rk=sk.bal&&typeof skillRank==="function"?skillRank(sk.bal):1;
     const card=document.createElement("div");
     card.className="spell-card";
     card.innerHTML=
       `<img class="ic" src="${Icons.get(sk.icon||"sword",typeof SKILL_ICON_BORDER!=="undefined"?SKILL_ICON_BORDER:"#e8b34a")}" alt="">`+
       `<div class="body">`+
-        `<div class="nm">${i+1}. ${sk.name}</div>`+
+        `<div class="nm">${i+1}. ${sk.name} <span class="rank">Rank ${rk}</span></div>`+
         `<div class="meta">${cdTx} · ${cost}</div>`+
         `<div class="desc">${sk.desc||""}${spellStatLine(sk)?`<br>${spellStatLine(sk)}`:""}</div>`+
       `</div>`;

@@ -153,6 +153,22 @@ assert(html.includes('id="buffRow"'),"game.html 有 #buffRow HUD");
 assert(iconsSrc.includes("weakness(cx)")&&iconsSrc.includes("fear(cx)"),"icons.js 有虚弱/恐惧图标");
 assert(fs.readFileSync(path.join(__dirname,"main.js"),"utf8").includes("tickBuffs"),"main.js 调用 tickBuffs");
 
+/* V1-C4 技能 Rank 冒烟 */
+assert(coreSrc.includes("skillRank:")&&coreSrc.includes("ranks:["),"BALANCE 含 skillRank / ranks");
+assert(combatSrc.includes("function getSkillBal")&&combatSrc.includes("function skillRank"),"combat.js 有 getSkillBal/skillRank");
+assert(!/BAL\.skills\.[A-Za-z]+/.test(combatSrc.replace(/function getSkillBal[\s\S]*?function useSkill/,"")),"combat 技能取值走 getSkillBal（声明内除外）");
+assert(fs.readFileSync(path.join(__dirname,"panels.js"),"utf8").includes("Rank ${rk}")||fs.readFileSync(path.join(__dirname,"panels.js"),"utf8").includes("Rank "),
+  "法术书面板显示 Rank");
+assert(coreSrc.includes("heroicStrike:{ranks:"),"heroicStrike 使用 ranks 表");
+/* 无头：Lv1=R1 · Lv8=R2 · Lv14=R3 */
+(function(){
+  const vm={S:{p:{level:1}},BAL:null};
+  /* 轻量解析 unlock + heroicStrike ranks 档位数 */
+  assert(/unlock:\s*\[\s*1\s*,\s*8\s*,\s*14\s*\]/.test(coreSrc),"默认解锁 1/8/14");
+  const hs=coreSrc.match(/heroicStrike:\{ranks:\[([\s\S]*?)\]\}/);
+  assert(hs&&(hs[1].match(/minLevel:/g)||[]).length>=3,"heroicStrike 至少 3 档 Rank");
+})();
+
 /* STEP 20 AI 队友冒烟 */
 const cmpSrc=fs.readFileSync(path.join(__dirname,"companions.js"),"utf8");
 assert(cmpSrc.includes('shaman:"同伴')||cmpSrc.includes('shaman:"同伴 ·'),"companions.js 有萨满同伴名");

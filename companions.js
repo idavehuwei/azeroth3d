@@ -324,8 +324,8 @@ function companionTryHeal(c,dt){
   const selfPct=T.healSelfHpPct!=null?T.healSelfHpPct:.40;
   const dpsPct=T.healDpsHpPct!=null?T.healDpsHpPct:.50;
   const isShaman=c.classKey==="shaman";
-  const bigHeal=isShaman?BAL.skills.healingWave:BAL.skills.heal;
-  const smallHeal=isShaman?BAL.skills.healingWave:BAL.skills.flashHeal;
+  const bigHeal=getSkillBal(isShaman?"healingWave":"heal");
+  const smallHeal=getSkillBal(isShaman?"healingWave":"flashHeal");
   const bigLabel=isShaman?"治疗波":"治疗术";
   const smallLabel=isShaman?"治疗波":"快速治疗";
 

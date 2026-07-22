@@ -451,7 +451,9 @@ function tick(){
     let moveSpd=S.p.speed;
     if(S.p.sprintT>0){
       S.p.sprintT=Math.max(0,S.p.sprintT-dt);
-      const sm=(BAL.skills.sprint&&BAL.skills.sprint.speedMul)||1.55;
+      const sm=(typeof getSkillBal==="function"?getSkillBal("sprint").speedMul:null)
+        ||(BAL.skills.sprint&&(BAL.skills.sprint.speedMul||(BAL.skills.sprint.ranks&&BAL.skills.sprint.ranks[0].speedMul)))
+        ||1.55;
       moveSpd*=sm;
       if(S.p.sprintT<=0)log("疾步结束。","lg-sys");
     }

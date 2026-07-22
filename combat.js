@@ -24,6 +24,7 @@
           gainXP updateLevelUI gainCopper spendCopper formatCopperText updateGoldUI
           clearShieldVisual applyHeal clearAllTotems tickTotems
           breakStealth enterStealth getPlayerAggroMul isBehindTarget
+          skillRank getSkillBal
           （S.quests · STEP 22 任务运行时）
    ============================================================ */
 "use strict";
@@ -313,6 +314,43 @@ joyEl.addEventListener("touchend",()=>{joy.active=false;joy.x=joy.y=0;
 /* ============================================================
    玩家技能
    ============================================================ */
+/** V1-C4：根据角色等级返回技能 Rank（1–N） */
+function skillRank(balKey){
+  if(balKey&&typeof balKey==="object")balKey=balKey.bal||balKey.id;
+  const raw=balKey&&BAL.skills[balKey];
+  if(!raw)return 1;
+  const ranks=raw.ranks;
+  if(!ranks||!ranks.length)return 1;
+  const lv=(S.p&&S.p.level)|0||1;
+  let r=1;
+  for(let i=0;i<ranks.length;i++){
+    const min=ranks[i].minLevel!=null?ranks[i].minLevel
+      :((BAL.skillRank&&BAL.skillRank.unlock&&BAL.skillRank.unlock[i])||1);
+    if(lv>=min)r=i+1;
+  }
+  return r;
+}
+/** V1-C4：当前等级对应的技能数值表（无 ranks 时退回扁平字段） */
+function getSkillBal(balKey){
+  const raw=balKey&&BAL.skills[balKey];
+  if(!raw)return{};
+  const ranks=raw.ranks;
+  if(!ranks||!ranks.length){
+    const out={};
+    for(const k in raw)if(k!=="ranks")out[k]=raw[k];
+    return out;
+  }
+  const lv=(S.p&&S.p.level)|0||1;
+  let pick=ranks[0];
+  for(let i=0;i<ranks.length;i++){
+    const min=ranks[i].minLevel!=null?ranks[i].minLevel
+      :((BAL.skillRank&&BAL.skillRank.unlock&&BAL.skillRank.unlock[i])||1);
+    if(lv>=min)pick=ranks[i];
+  }
+  const out={};
+  for(const k in pick)if(k!=="minLevel")out[k]=pick[k];
+  return out;
+}
 function useSkill(i){
   if(!S.started||S.over||!S.p.alive)return;
   if(S.cds[i]>0||S.gcd>0)return;
@@ -359,14 +397,14 @@ function heroicStrike(){
   const thr={skillId:"heroicStrike"};
   if(S.mode==="world"){
     for(const m of MOBS){
-      if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<BAL.skills.heroicStrike.reach){
-        mobDamage(m,R(BAL.skills.heroicStrike.dmg),"英勇打击",thr);hit=true;break;
+      if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<getSkillBal("heroicStrike").reach){
+        mobDamage(m,R(getSkillBal("heroicStrike").dmg),"英勇打击",thr);hit=true;break;
       }
     }
   }else{
-    if(distToBoss()<=BAL.skills.heroicStrike.bossReach){dmgBoss(R(BAL.skills.heroicStrike.dmg),"英勇打击",thr);hit=true;}
+    if(distToBoss()<=getSkillBal("heroicStrike").bossReach){dmgBoss(R(getSkillBal("heroicStrike").dmg),"英勇打击",thr);hit=true;}
     S.adds.forEach(a=>{
-      if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<BAL.skills.heroicStrike.addReach){addDamage(a,R(BAL.skills.heroicStrike.addDmg),thr);hit=true;}
+      if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<getSkillBal("heroicStrike").addReach){addDamage(a,R(getSkillBal("heroicStrike").addDmg),thr);hit=true;}
     });
   }
   if(!hit){log("没有目标在近战范围内。");return false;}
@@ -382,14 +420,14 @@ function whirlwind(){
   const thr={skillId:"whirlwind"};
   if(S.mode==="world"){
     MOBS.forEach(m=>{
-      if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<BAL.skills.whirlwind.radius){
-        mobDamage(m,R(BAL.skills.whirlwind.dmg),"旋风斩",thr);any=true;
+      if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<getSkillBal("whirlwind").radius){
+        mobDamage(m,R(getSkillBal("whirlwind").dmg),"旋风斩",thr);any=true;
       }
     });
   }else{
-    if(distToBoss()<=BAL.skills.whirlwind.bossRadius){dmgBoss(R(BAL.skills.whirlwind.bossDmg),"旋风斩",thr);any=true;}
+    if(distToBoss()<=getSkillBal("whirlwind").bossRadius){dmgBoss(R(getSkillBal("whirlwind").bossDmg),"旋风斩",thr);any=true;}
     S.adds.forEach(a=>{
-      if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<BAL.skills.whirlwind.radius){addDamage(a,R(BAL.skills.whirlwind.dmg),thr);any=true;}
+      if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<getSkillBal("whirlwind").radius){addDamage(a,R(getSkillBal("whirlwind").dmg),thr);any=true;}
     });
   }
   if(!any)log("旋风斩没有命中任何目标。");
@@ -411,11 +449,11 @@ function charge(){
       if(d<best){best=d;target=a.mesh.position.clone().setY(0);}
     });
   }
-  if(!target||best<BAL.skills.charge.minDist){log("没有可冲锋的目标。");return false;}
+  if(!target||best<getSkillBal("charge").minDist){log("没有可冲锋的目标。");return false;}
   const dir=target.clone().sub(player.position).normalize();
-  const dest=target.clone().sub(dir.clone().multiplyScalar(BAL.skills.charge.stopDist));
+  const dest=target.clone().sub(dir.clone().multiplyScalar(getSkillBal("charge").stopDist));
   player.position.copy(clampArena(dest));
-  S.p.rage=Math.min(S.p.rageMax,S.p.rage+BAL.skills.charge.rageGain);
+  S.p.rage=Math.min(S.p.rageMax,S.p.rage+getSkillBal("charge").rageGain);
   spawnBurst(player.position.clone().setY(.6),0xffe9a0,18,1.2);
   /* STEP 27：冲锋产生瞬时仇恨 */
   if(typeof addThreat==="function"){
@@ -429,11 +467,11 @@ function charge(){
       if(nearest)addThreat(nearest,"player",0,"charge");
     }else if(bossTargetable())addThreat(BOSS_ENT,"player",0,"charge");
   }
-  log(`你向敌人发起冲锋！获得 ${BAL.skills.charge.rageGain} 点怒气。`,"lg-me");
+  log(`你向敌人发起冲锋！获得 ${getSkillBal("charge").rageGain} 点怒气。`,"lg-me");
   return true;
 }
 function potion(){
-  const heal=Math.round(R(BAL.skills.potion.heal));
+  const heal=Math.round(R(getSkillBal("potion").heal));
   S.p.hp=Math.min(S.p.hpMax,S.p.hp+heal);
   fct(player.position.clone().setY(3),`+${heal}`,"#8aff9a",18);
   VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.4)});
@@ -508,7 +546,7 @@ function pyroblast(){
   const t=pickTarget(CLS.range);
   if(!t){log("目标超出施法距离！");return false;}
   S.p.attackAnim=1;
-  firePlayerShot(t,R(BAL.skills.pyroblast.dmg),"炎爆术",1.7);
+  firePlayerShot(t,R(getSkillBal("pyroblast").dmg),"炎爆术",1.7);
   log("你吟唱出巨大的炎爆术！","lg-me");
   return true;
 }
@@ -517,15 +555,15 @@ function frostNova(){
   let any=false;
   if(S.mode==="world"){
     MOBS.forEach(m=>{
-      if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<BAL.skills.frostNova.radius){
-        mobDamage(m,R(BAL.skills.frostNova.dmg),"冰霜新星"); m.rootT=BAL.skills.frostNova.rootT; any=true;
+      if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<getSkillBal("frostNova").radius){
+        mobDamage(m,R(getSkillBal("frostNova").dmg),"冰霜新星"); m.rootT=getSkillBal("frostNova").rootT; any=true;
       }
     });
   }else{
-    if(bossTargetable()&&distToBoss()<=BAL.skills.frostNova.bossRadius){dmgBoss(R(BAL.skills.frostNova.bossDmg),"冰霜新星");any=true;}
+    if(bossTargetable()&&distToBoss()<=getSkillBal("frostNova").bossRadius){dmgBoss(R(getSkillBal("frostNova").bossDmg),"冰霜新星");any=true;}
     S.adds.forEach(a=>{
-      if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<BAL.skills.frostNova.radius){
-        addDamage(a,R(BAL.skills.frostNova.dmg)); a.rootT=BAL.skills.frostNova.rootT; any=true;
+      if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<getSkillBal("frostNova").radius){
+        addDamage(a,R(getSkillBal("frostNova").dmg)); a.rootT=getSkillBal("frostNova").rootT; any=true;
       }
     });
   }
@@ -534,14 +572,14 @@ function frostNova(){
 }
 function blink(){
   const dir=new THREE.Vector3(Math.sin(S.p.face),0,Math.cos(S.p.face));
-  player.position.add(dir.multiplyScalar(BAL.skills.blink.dist));
+  player.position.add(dir.multiplyScalar(getSkillBal("blink").dist));
   clampArena(player.position);
   spawnBurst(player.position.clone().setY(1.4),0xb08aff,22,1.6);
   log("你闪现到了新的位置！","lg-me");
   return true;
 }
 function iceBlock(){
-  S.p.invuln=BAL.skills.iceBlock.invuln;
+  S.p.invuln=getSkillBal("iceBlock").invuln;
   const p=player;
   const ice=new THREE.Mesh(new THREE.IcosahedronGeometry(1.9,0),
     new THREE.MeshStandardMaterial({color:0x9ad8ff,transparent:true,opacity:.5,roughness:.15,metalness:.2}));
@@ -556,7 +594,7 @@ function aimedShot(){
   const t=pickTarget(CLS.range);
   if(!t){log("目标超出射程！");return false;}
   S.p.attackAnim=1;
-  firePlayerShot(t,R(BAL.skills.aimedShot.dmg),"瞄准射击",1.4);
+  firePlayerShot(t,R(getSkillBal("aimedShot").dmg),"瞄准射击",1.4);
   log("你屏息凝神，射出致命一箭！","lg-me");
   return true;
 }
@@ -565,14 +603,14 @@ function multiShot(){
   if(S.mode==="world"){
     MOBS.forEach(m=>{
       if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<=CLS.range){
-        firePlayerShot({type:"mob",m},R(BAL.skills.multiShot.dmg),"多重射击");n++;
+        firePlayerShot({type:"mob",m},R(getSkillBal("multiShot").dmg),"多重射击");n++;
       }
     });
   }else{
-    if(bossTargetable()&&distToBoss()<=CLS.range){firePlayerShot({type:"boss"},R(BAL.skills.multiShot.dmg),"多重射击");n++;}
+    if(bossTargetable()&&distToBoss()<=CLS.range){firePlayerShot({type:"boss"},R(getSkillBal("multiShot").dmg),"多重射击");n++;}
     S.adds.forEach(a=>{
       if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<=CLS.range){
-        firePlayerShot({type:"add",a},R(BAL.skills.multiShot.dmg),"多重射击");n++;
+        firePlayerShot({type:"add",a},R(getSkillBal("multiShot").dmg),"多重射击");n++;
       }
     });
   }
@@ -583,9 +621,9 @@ function multiShot(){
 }
 function roll(){
   const dir=new THREE.Vector3(Math.sin(S.p.face),0,Math.cos(S.p.face));
-  player.position.add(dir.multiplyScalar(BAL.skills.roll.dist));
+  player.position.add(dir.multiplyScalar(getSkillBal("roll").dist));
   clampArena(player.position);
-  S.p.invuln=Math.max(S.p.invuln,BAL.skills.roll.invuln);
+  S.p.invuln=Math.max(S.p.invuln,getSkillBal("roll").invuln);
   spawnBurst(player.position.clone().setY(.6),0xd0ffa0,14,1);
   log("你灵巧地翻滚，短暂闪避一切伤害！","lg-me");
   return true;
@@ -612,21 +650,21 @@ function applyHeal(amount,label){
   return true;
 }
 function heal(){
-  return applyHeal(R(BAL.skills.heal.heal),"治疗术");
+  return applyHeal(R(getSkillBal("heal").heal),"治疗术");
 }
 function flashHeal(){
-  return applyHeal(R(BAL.skills.flashHeal.heal),"快速治疗");
+  return applyHeal(R(getSkillBal("flashHeal").heal),"快速治疗");
 }
 function smite(){
   const t=pickTarget(CLS.range);
   if(!t){log("目标超出施法距离！");return false;}
   S.p.attackAnim=1;
-  firePlayerShot(t,R(BAL.skills.smite.dmg),"神圣惩击",1.5);
+  firePlayerShot(t,R(getSkillBal("smite").dmg),"神圣惩击",1.5);
   log("你唤来神圣惩击！","lg-me");
   return true;
 }
 function powerWordShield(){
-  const bal=BAL.skills.powerWordShield;
+  const bal=getSkillBal("powerWordShield");
   const mul=1+((S.p.talentFx&&S.p.talentFx.shieldMul)||0);
   const absorb=Math.round(R(bal.absorb)*mul);
   clearShieldVisual();
@@ -648,7 +686,7 @@ function lightningBolt(){
   const t=pickTarget(CLS.range);
   if(!t){log("目标超出施法距离！");return false;}
   S.p.attackAnim=1;
-  firePlayerShot(t,R(BAL.skills.lightningBolt.dmg),"闪电箭",1.45);
+  firePlayerShot(t,R(getSkillBal("lightningBolt").dmg),"闪电箭",1.45);
   if(typeof SFX!=="undefined")SFX.play("lightning");
   log("你唤来闪电箭！","lg-me");
   return true;
@@ -657,13 +695,13 @@ function earthShock(){
   const t=pickTarget(CLS.range);
   if(!t){log("目标超出施法距离！");return false;}
   S.p.attackAnim=1;
-  firePlayerShot(t,R(BAL.skills.earthShock.dmg),"大地震击",1.15);
+  firePlayerShot(t,R(getSkillBal("earthShock").dmg),"大地震击",1.15);
   if(typeof SFX!=="undefined")SFX.play("lightning");
   log("大地震击！","lg-me");
   return true;
 }
 function healingWave(){
-  return applyHeal(R(BAL.skills.healingWave.heal),"治疗波");
+  return applyHeal(R(getSkillBal("healingWave").heal),"治疗波");
 }
 function disposeTotemMesh(mesh){
   if(!mesh)return;
@@ -696,7 +734,7 @@ function buildHealingTotemMesh(){
   return g;
 }
 function placeHealingTotem(){
-  const bal=BAL.skills.healingTotem;
+  const bal=getSkillBal("healingTotem");
   const max=bal.max||1;
   if(!S.totems)S.totems=[];
   while(S.totems.filter(x=>x.kind==="heal").length>=max){
@@ -719,7 +757,7 @@ function placeHealingTotem(){
 }
 function tickTotems(dt){
   if(!S.totems||!S.totems.length)return;
-  const bal=BAL.skills.healingTotem;
+  const bal=getSkillBal("healingTotem");
   for(let i=S.totems.length-1;i>=0;i--){
     const t=S.totems[i];
     t.t-=dt;
@@ -806,7 +844,7 @@ function enterStealth(){
 function stealth(){return enterStealth();}
 /** 目标背后判定：攻击者相对目标朝向接近正后方 */
 function isBehindTarget(targetPos,targetRotY,attackerPos,arc){
-  const half=(arc!=null?arc:(BAL.skills.backstab&&BAL.skills.backstab.behindArc)||1.35)*.5;
+  const half=(arc!=null?arc:(getSkillBal("backstab")&&getSkillBal("backstab").behindArc)||1.35)*.5;
   const toAtk=Math.atan2(attackerPos.x-targetPos.x,attackerPos.z-targetPos.z);
   let d=toAtk-targetRotY;
   while(d>Math.PI)d-=Math.PI*2;
@@ -816,7 +854,7 @@ function isBehindTarget(targetPos,targetRotY,attackerPos,arc){
 function sinisterStrike(){
   let hit=false;
   const thr={skillId:"sinisterStrike"};
-  const bal=BAL.skills.sinisterStrike;
+  const bal=getSkillBal("sinisterStrike");
   if(S.mode==="world"){
     for(const m of MOBS){
       if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<bal.reach){
@@ -838,7 +876,7 @@ function sinisterStrike(){
   return true;
 }
 function backstab(){
-  const bal=BAL.skills.backstab;
+  const bal=getSkillBal("backstab");
   let targetMesh=null, deal=null;
   if(S.mode==="world"){
     let best=1e9,pick=null;
@@ -889,7 +927,7 @@ function backstab(){
   return true;
 }
 function sprint(){
-  const bal=BAL.skills.sprint;
+  const bal=getSkillBal("sprint");
   S.p.sprintT=bal.duration;
   spawnBurst(player.position.clone().setY(.5),0xa0c0ff,12,1.1);
   if(typeof SFX!=="undefined")SFX.play("stealth");
@@ -946,6 +984,8 @@ function gainXP(amount){
     VFX.spawn("loot_spark",{pos:player.position.clone().setY(1.5),color:0xffd76a,count:60,spread:3});
     if(typeof grantTalentPointOnLevel==="function")grantTalentPointOnLevel(P.level);
     if(typeof onDeedLevelUp==="function")onDeedLevelUp(P.level);
+    if(typeof renderSpellPanel==="function")renderSpellPanel();
+    if(typeof updateSkillBarStats==="function")updateSkillBarStats();
   }
   updateLevelUI();
   if(typeof saveGame==="function")saveGame(true);
