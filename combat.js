@@ -521,7 +521,11 @@ addEventListener("keydown",e=>{
   if(k==="c")toggleCharPanel();
   if(k==="p")toggleSpellPanel();
   if(k==="l")toggleQuestLog();
-  if(k==="m")toggleWorldMap();
+  if(k==="m"){
+    if(typeof setMapPanelTab==="function"&&typeof worldMapOpen==="function"&&!worldMapOpen())
+      setMapPanelTab("zone",{redraw:false});
+    toggleWorldMap();
+  }
   if(k==="r"&&!e.repeat&&S.started&&S.p&&S.p.alive){
     S.p.autoRun=!S.p.autoRun;
     log(S.p.autoRun?"自动奔跑 · 开":"自动奔跑 · 关","lg-sys");

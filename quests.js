@@ -1642,9 +1642,27 @@ function resolveNpcWorldPos(npcId){
       if(m.npcId===npcId)return {x:m.x!=null?m.x:m.excl&&m.excl.position.x,z:m.z!=null?m.z:m.excl&&m.excl.position.z};
     }
   }
+  /* 地图地标 / live mesh（含赭岩·灰烬） */
+  if(typeof MAP_ZONES!=="undefined"&&typeof liveLandmarkPos==="function"){
+    for(const zid of Object.keys(MAP_ZONES)){
+      const lms=MAP_ZONES[zid].landmarks||[];
+      for(const lm of lms){
+        if(lm.id!==npcId)continue;
+        const p=liveLandmarkPos(lm);
+        if(p&&p.x!=null&&isFinite(p.x))return {x:p.x,z:p.z};
+      }
+    }
+  }
+  const alias={
+    ochre_outpost:"ochreOutpost",ochre_vendor:"ochreVendor",ochre_guard:"ochreGuard",
+    ember_scout:"emberScout",ember_vendor:"emberVendor",
+    darsok:"crossroadsSentinel",spirit:"spiritHealer",
+  };
+  const meshName=alias[npcId]||npcId;
   try{
-    const mesh=(typeof globalThis!=="undefined"?globalThis[npcId]:null)
-      ||(typeof window!=="undefined"?window[npcId]:null);
+    const mesh=(typeof globalThis!=="undefined"?globalThis[meshName]:null)
+      ||(typeof window!=="undefined"?window[meshName]:null)
+      ||(typeof globalThis!=="undefined"?globalThis[npcId]:null);
     if(mesh&&mesh.position)return {x:mesh.position.x,z:mesh.position.z};
   }catch(e){/* ignore */}
   return null;
@@ -1733,11 +1751,37 @@ function tickQuestGroundFx(dt){
 }
 
 /* ---- C9 任务日志 → 地图标记 ---- */
-function resolveQuestMapFocus(qOrId){
+function resolveQuestMapFocus(qOrId,opts){
+  opts=opts||{};
   const q=typeof qOrId==="string"?getQuestDef(qOrId):qOrId;
   if(!q)return null;
+  const kind=opts.kind||"auto";
   const st=questStatus(q.id);
   const obj=getObjective0(q);
+
+  if(kind==="giver"){
+    const giver=questGiverId(q);
+    if(!giver)return null;
+    const p=resolveNpcWorldPos(giver);
+    if(!p)return null;
+    return {x:p.x,z:p.z,zone:q.zone,label:questNpcLabel(giver),kind:"giver"};
+  }
+  if(kind==="turnin"){
+    const turn=questTurnInId(q);
+    if(!turn)return null;
+    const p=resolveNpcWorldPos(turn);
+    if(!p)return null;
+    return {x:p.x,z:p.z,zone:q.zone,label:questNpcLabel(turn),kind:"turnin"};
+  }
+  if(kind==="objective"){
+    if(obj&&(obj.type==="arrive"||obj.type==="interact")){
+      const p=resolveArriveTarget(obj);
+      if(p)return {x:p.x,z:p.z,zone:q.zone,label:obj.label||q.title,kind:"objective"};
+    }
+    return null;
+  }
+
+  /* auto：进行中优先目标点 → 可交还 NPC → 接取 NPC */
   if(st==="active"&&obj){
     if(obj.type==="arrive"||obj.type==="interact"){
       const p=resolveArriveTarget(obj);
@@ -1756,15 +1800,25 @@ function resolveQuestMapFocus(qOrId){
   }
   return null;
 }
-function setQuestMapFocus(qOrId){
-  const focus=resolveQuestMapFocus(qOrId);
-  if(!focus){log("该任务暂无地图坐标。","lg-sys");return null;}
+function setQuestMapFocus(qOrId,opts){
+  opts=opts||{};
+  const focus=resolveQuestMapFocus(qOrId,opts);
+  if(!focus){
+    const tip=opts.kind==="giver"?"接取 NPC 暂无坐标"
+      :opts.kind==="turnin"?"交还 NPC 暂无坐标"
+      :opts.kind==="objective"?"任务目标暂无坐标"
+      :"该任务暂无地图坐标。";
+    log(tip,"lg-sys");
+    return null;
+  }
   S.questMapFocus={
     x:focus.x,z:focus.z,zone:focus.zone||"mulgore",
     label:focus.label||"任务",kind:focus.kind||"objective",
     until:(S.t||0)+90
   };
-  announce(`地图标记 · ${focus.label}`);
+  const tag=focus.kind==="giver"?"接取":focus.kind==="turnin"?"交还":"目标";
+  announce(`地图标记 · ${tag} · ${focus.label}`);
+  if(typeof setMapPanelTab==="function")setMapPanelTab("zone",{redraw:false});
   if(typeof toggleWorldMap==="function"&&typeof worldMapOpen==="function"&&!worldMapOpen())
     toggleWorldMap(true);
   if(typeof drawWorldMap==="function")drawWorldMap();

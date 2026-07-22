@@ -539,16 +539,21 @@ function renderQuestDetail(e){
   if(e.tip&&st!=="done")html+=`<div class="ql-d-tip">${e.tip}</div>`;
   html+=`<div class="ql-acts">`;
   if(st!=="done"&&typeof setQuestMapFocus==="function"){
-    html+=`<button type="button" class="ql-map" data-qid="${e.id}">在地图上标记</button>`;
+    if(giver)html+=`<button type="button" class="ql-map" data-qid="${e.id}" data-mk="giver">标记接取 NPC</button>`;
+    if(turnIn)html+=`<button type="button" class="ql-map" data-qid="${e.id}" data-mk="turnin">标记交还 NPC</button>`;
+    const obj0=q&&q.objectives&&q.objectives[0];
+    if(st==="active"&&obj0&&(obj0.type==="arrive"||obj0.type==="interact"))
+      html+=`<button type="button" class="ql-map" data-qid="${e.id}" data-mk="objective">标记目标</button>`;
   }
   if(abandonable){
     html+=`<button type="button" class="ql-abandon" data-qid="${e.id}">放弃任务</button>`;
   }
   html+=`</div>`;
   detail.innerHTML=html;
-  const mapBtn=detail.querySelector(".ql-map");
-  if(mapBtn)mapBtn.addEventListener("click",()=>{
-    setQuestMapFocus(mapBtn.dataset.qid);
+  detail.querySelectorAll(".ql-map").forEach(mapBtn=>{
+    mapBtn.addEventListener("click",()=>{
+      setQuestMapFocus(mapBtn.dataset.qid,{kind:mapBtn.dataset.mk||"auto"});
+    });
   });
   const btn=detail.querySelector(".ql-abandon");
   if(btn)btn.addEventListener("click",()=>{
@@ -568,13 +573,20 @@ function renderQuestLog(){
   const list=questEntries();
   if(!list.length){
     listEl.innerHTML="";
-    detailEl.innerHTML=`<div class="ql-detail-empty">尚未接受任务。<br><br>与营地的长老 · 岩蹄对话（F）开始旅程。<br>按 L 随时打开任务日志。</div>`;
+    const cap=(BAL.quest&&BAL.quest.activeMax)|0;
+    const headTitle=$("#questLogTitle");
+    if(headTitle)headTitle.textContent=cap>0?`📜 任务日志 · 0/${cap}`:`📜 任务日志`;
+    detailEl.innerHTML=`<div class="ql-detail-empty">尚未接受任务。<br><br>与营地的长老 · 岩蹄对话（F）开始旅程。<br>按 L 随时打开任务日志。<br>最多可同时进行 ${cap||10} 条任务。</div>`;
     _questLogSel=null;
     return;
   }
   if(!_questLogSel||!list.some(e=>e.id===_questLogSel))_questLogSel=list[0].id;
   const active=list.filter(e=>e.status!=="done");
   const done=list.filter(e=>e.status==="done");
+  const cap=(BAL.quest&&BAL.quest.activeMax)|0;
+  const nActive=typeof countActiveQuests==="function"?countActiveQuests():active.length;
+  const headTitle=$("#questLogTitle");
+  if(headTitle)headTitle.textContent=cap>0?`📜 任务日志 · ${nActive}/${cap}`:`📜 任务日志`;
   let html="";
   const renderGroup=(title,arr)=>{
     if(!arr.length)return;
@@ -594,7 +606,7 @@ function renderQuestLog(){
         `<span class="ql-ic">${ic}</span><span class="ql-nm">${e.title}</span></div>`;
     }
   };
-  renderGroup(`进行中（${active.length}）`,active);
+  renderGroup(cap>0?`进行中（${nActive}/${cap}）`:`进行中（${active.length}）`,active);
   renderGroup(`已完成（${done.length}）`,done);
   listEl.innerHTML=html;
   listEl.querySelectorAll(".ql-row").forEach(row=>{

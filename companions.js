@@ -104,7 +104,50 @@ function dismissCompanion(opts){
 function spawnOffsetForIndex(idx){
   const offs=BAL.party&&BAL.party.spawnOffsets;
   if(offs&&offs[idx])return offs[idx];
-  return BAL.companion.spawnOffset||{x:2.2,z:1.4};
+  return BAL.companion.spawnOffset||{x:3.6,z:2.8};
+}
+
+/** 本地阵位 → 世界坐标：x=玩家右侧为正，z=身后为正（相对 S.p.face） */
+function companionWorldFromLocal(side,back){
+  const face=(S.p&&S.p.face)||0;
+  const fSin=Math.sin(face), fCos=Math.cos(face);
+  /* right=(fCos,-fSin) · behind=(-fSin,-fCos) */
+  return{
+    x:player.position.x+fCos*side-fSin*back,
+    z:player.position.z-fSin*side-fCos*back,
+  };
+}
+
+function companionSlotLocal(c){
+  const idx=Math.max(0,PARTY.indexOf(c));
+  const base=spawnOffsetForIndex(idx);
+  return{
+    side:(base.x||0)+(c.formSideOff||0),
+    back:(base.z||0)+(c.formBackOff||0),
+  };
+}
+
+/** 跟随落点：玩家左右散开 + 缓慢随机游走，不贴脚 */
+function companionFollowDest(c){
+  const loc=companionSlotLocal(c);
+  return companionWorldFromLocal(loc.side,loc.back);
+}
+
+function tickCompanionFormJitter(c,dt){
+  const C=BAL.companion;
+  const ampS=C.formJitterSide!=null?C.formJitterSide:2.4;
+  const ampB=C.formJitterBack!=null?C.formJitterBack:1.1;
+  c.formJitT=(c.formJitT||0)-dt;
+  if(c.formJitT<=0){
+    const t0=C.formJitterMinT!=null?C.formJitterMinT:1.8;
+    const t1=C.formJitterMaxT!=null?C.formJitterMaxT:4.5;
+    c.formJitT=t0+Math.random()*Math.max(0.1,t1-t0);
+    c.formJitSide=(Math.random()*2-1)*ampS;
+    c.formJitBack=(Math.random()*2-1)*ampB;
+  }
+  const k=Math.min(1,(C.formJitterLerp!=null?C.formJitterLerp:.55)*dt);
+  c.formSideOff=(c.formSideOff||0)+((c.formJitSide||0)-(c.formSideOff||0))*k;
+  c.formBackOff=(c.formBackOff||0)+((c.formJitBack||0)-(c.formBackOff||0))*k;
 }
 
 function recruitCompanion(classKey,opts){
@@ -122,12 +165,9 @@ function recruitCompanion(classKey,opts){
   const cls=CLASSES[classKey];
   const idx=PARTY.length;
   const off=spawnOffsetForIndex(idx);
+  const spawnPos=companionWorldFromLocal(off.x||3.6,off.z||2.8);
   const mesh=cls.build();
-  mesh.position.set(
-    player.position.x+(off.x||2),
-    0,
-    player.position.z+(off.z||1.5)
-  );
+  mesh.position.set(spawnPos.x,0,spawnPos.z);
   if(typeof clampArena==="function")clampArena(mesh.position);
   scene.add(mesh);
   const role=opts.role||guessRole(classKey);
@@ -148,6 +188,9 @@ function recruitCompanion(classKey,opts){
     face:0, walkPhase:0, attackAnim:0,
     reviveT:0, moving:false,
     auras:[],
+    formSideOff:0, formBackOff:0,
+    formJitSide:0, formJitBack:0,
+    formJitT:0.4+Math.random()*1.6,
   };
   PARTY.push(member);
   syncCompanionAlias();
@@ -216,7 +259,11 @@ function transferCompanionZone(toScene,gate){
     toScene.add(c.mesh);
     if(c.label)toScene.add(c.label);
     const off=spawnOffsetForIndex(i);
-    c.mesh.position.set(gx+(off.x||2),0,gz+(off.z||1.5));
+    /* gate 处按玩家朝向散开，避免叠在传送点 */
+    const face=(S.p&&S.p.face)||0;
+    const fSin=Math.sin(face), fCos=Math.cos(face);
+    const side=off.x||3.6, back=off.z||2.8;
+    c.mesh.position.set(gx+fCos*side-fSin*back,0,gz-fSin*side-fCos*back);
     if(typeof clampArena==="function")clampArena(c.mesh.position);
     if(c.label){
       c.label.position.set(c.mesh.position.x,3.6,c.mesh.position.z);
@@ -442,14 +489,17 @@ function tickOneCompanion(c,dt){
     c.hp=Math.min(c.hpMax,c.hp+c.hpMax*(C.regenPct||.04)*dt);
   }
 
-  const dPlayer=Math.hypot(player.position.x-c.mesh.position.x,player.position.z-c.mesh.position.z);
+  tickCompanionFormJitter(c,dt);
+  const dest=companionFollowDest(c);
+  const dSlot=Math.hypot(dest.x-c.mesh.position.x,dest.z-c.mesh.position.z);
   const hpPct=c.hp/c.hpMax;
 
   if(hpPct<C.retreatHpPct)c.state="RETREAT";
   else if(c.state==="RETREAT"&&hpPct>=C.retreatRecoverPct)c.state="FOLLOW";
 
   if(c.state==="RETREAT"){
-    if(dPlayer>C.followStop)companionMoveToward(c,player.position,cls.speed*(C.speedMul||1)*(C.retreatSpeedMul||1.15),dt);
+    /* 撤退也回阵位，不挤到玩家脚下 */
+    if(dSlot>C.followStop)companionMoveToward(c,dest,cls.speed*(C.speedMul||1)*(C.retreatSpeedMul||1.15),dt);
     else c.moving=false;
   }else if(companionTryHeal(c,dt)){
     /* HEAL */
@@ -472,8 +522,8 @@ function tickOneCompanion(c,dt){
         c.moving=false;
       }
     }else{
-      c.state=dPlayer>C.followDist?"FOLLOW":"IDLE";
-      if(dPlayer>C.followStop)companionMoveToward(c,player.position,cls.speed*(C.speedMul||1),dt);
+      c.state=dSlot>C.followDist?"FOLLOW":"IDLE";
+      if(dSlot>C.followStop)companionMoveToward(c,dest,cls.speed*(C.speedMul||1),dt);
       else c.moving=false;
     }
   }

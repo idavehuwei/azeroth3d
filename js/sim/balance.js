@@ -544,7 +544,7 @@ const BALANCE={
       runner_main:{xp:280,copper:120,kills:1},
     },
     trackerMax:5,
-    activeMax:5,   /* C9：同时进行中（active+ready）上限 */
+    activeMax:10,  /* 同时进行中（active+ready）上限 */
     groundPickupR:3.5},
   /* 枯原荒地（STEP 18）· V2 半径再×2（相对 V1-B2） */
   barrens:{
@@ -978,8 +978,14 @@ const BALANCE={
   },
   /* AI 队友（STEP 20）· 小队（STEP 26：玩家 + 最多 2 AI = 3 人） */
   companion:{
-    followDist:5.2,
-    followStop:2.6,
+    /* followDist/Stop 相对「阵位」而非玩家脚下，避免贴身 */
+    followDist:4.8,
+    followStop:1.15,
+    formJitterSide:2.4,     /* 左右随机走幅（本地 x） */
+    formJitterBack:1.1,     /* 前后微移 */
+    formJitterMinT:1.8,     /* 换随机目标间隔（秒） */
+    formJitterMaxT:4.5,
+    formJitterLerp:.55,     /* 朝随机偏移插值速度 */
     combatEngageR:24,
     meleeR:4.2,
     speedMul:1.08,
@@ -999,15 +1005,17 @@ const BALANCE={
     atkTimerStart:.4,
     mobHitChance:.35,
     reviveT:10,
-    spawnOffset:{x:2.2,z:1.4},
+    /* spawnOffset：本地坐标 x=右正左负 · z=身后正（相对玩家朝向） */
+    spawnOffset:{x:3.6,z:2.8},
   },
   party:{
     size:3,
     aiSlots:2,
     xpMul:1.15,
+    /* 左右散开阵位（本地：x 侧向 · z 身后） */
     spawnOffsets:[
-      {x:2.4,z:1.6},
-      {x:-2.2,z:1.8},
+      {x:3.8,z:2.6},
+      {x:-3.8,z:2.9},
     ],
     fill:{
       warrior:[{role:"healer",classKey:"priest"},{role:"dps",classKey:"mage"}],

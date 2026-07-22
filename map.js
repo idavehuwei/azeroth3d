@@ -9,6 +9,7 @@
           rares.js 运行时（getRareMapEntries）· professions.js 运行时（GATHER_NODES）
           zones.js 运行时（getCurrentZoneId showZoneSplash）· terrain.js 运行时（heightAt）
    [导出] updateMinimap toggleWorldMap worldMapOpen closeWorldMap drawWorldMap
+          setMapPanelTab getMapPanelTab
           MAP_ZONES getActiveMapZone setMapZone mapWorldToCanvas playerMapFace
           ensureTerrainThumb
    ============================================================ */
@@ -160,10 +161,11 @@ const MAP_ZONES={
     radius:()=>typeof ASHEN_R==="number"?ASHEN_R:(BAL.ashenCanyon&&BAL.ashenCanyon.radius)||320,
     landmarks:[
       {id:"ember_camp",label:"烬营",x:0,z:0,color:"#ff9060",kind:"camp"},
+      {id:"ember_scout",label:"烬羽",x:4,z:-4,color:"#ffb070",kind:"npc"},
+      {id:"ember_vendor",label:"商人",x:-12,z:-10,color:"#8aff9a",kind:"npc"},
       {id:"portal_e",label:T("zone.mulgore"),x:310,z:0,color:"#e8c898",kind:"portal"},
       {id:"portal_w",label:T("zone.hollow_crypt"),x:-310,z:6,color:"#ff6030",kind:"portal"},
       {id:"spirit",label:"灵魂医者",x:-6,z:20,color:"#a8d8ff",kind:"npc"},
-      {id:"ember_vendor",label:"商人",x:-12,z:-10,color:"#8aff9a",kind:"npc"},
       {id:"scorchtusk",label:T("mob.scorchtusk"),x:-150,z:-100,color:"#ffd700",kind:"elite"},
     ],
     elites:[],
@@ -240,6 +242,22 @@ function setMapZone(id){if(MAP_ZONES[id])_mapZoneId=id;}
 const _mm={cv:null,ctx:null,size:0};
 const _terrainThumbs={};
 const _wmapTiles={}; /* zoneId → canvas 缓存（大陆拼贴） */
+let _mapPanelTab="zone"; /* zone=当前区域 · world=大陆拼贴 */
+
+function getMapPanelTab(){return _mapPanelTab==="world"?"world":"zone";}
+function setMapPanelTab(tab,opts){
+  opts=opts||{};
+  _mapPanelTab=tab==="world"?"world":"zone";
+  syncMapTabButtons();
+  if(opts.redraw!==false&&worldMapOpen())drawWorldMap();
+}
+function syncMapTabButtons(){
+  const root=$("#mapTabs");
+  if(!root)return;
+  root.querySelectorAll("[data-map-tab]").forEach(btn=>{
+    btn.classList.toggle("on",btn.getAttribute("data-map-tab")===getMapPanelTab());
+  });
+}
 
 /** C13：mulgore 高度场降采样成俯视缩略图（其它区返回 null，走渐变） */
 function ensureTerrainThumb(zoneId){
@@ -389,6 +407,11 @@ function liveLandmarkPos(lm){
     return {x:crossroadsSentinel.position.x,z:crossroadsSentinel.position.z};
   if(lm.id==="ochre_outpost"&&typeof ochreOutpost!=="undefined"&&ochreOutpost)
     return {x:ochreOutpost.position.x,z:ochreOutpost.position.z};
+  if(lm.id==="ember_scout"&&typeof emberScout!=="undefined"&&emberScout)
+    return {x:emberScout.position.x,z:emberScout.position.z};
+  if(lm.id==="ember_vendor"&&typeof emberVendor!=="undefined"&&emberVendor)
+    return {x:emberVendor.position.x,z:emberVendor.position.z};
+  if(lm.id==="ashen"&&typeof PORTAL_ASHEN!=="undefined")return {x:PORTAL_ASHEN.x,z:PORTAL_ASHEN.z};
   return {x:lm.x,z:lm.z};
 }
 
@@ -753,7 +776,11 @@ function ensureMinimap(){
   if(_mm.cv.width!==sz){_mm.cv.width=sz;_mm.cv.height=sz;}
   _mm.ctx=_mm.cv.getContext("2d");
   _mm.size=sz;
-  _mm.cv.addEventListener("click",()=>{if(S.started)toggleWorldMap(true);});
+  _mm.cv.addEventListener("click",()=>{
+    if(!S.started)return;
+    setMapPanelTab("zone",{redraw:false});
+    toggleWorldMap(true);
+  });
 }
 
 function updateMinimap(){
@@ -848,12 +875,38 @@ function getContinentalTile(zoneId,side){
   return off;
 }
 
-function drawWorldMap(){
-  const cv=$("#worldMap");
-  if(!cv)return;
-  const sz=BAL.map.worldSize|0;
-  if(cv.width!==sz){cv.width=sz;cv.height=sz;}
-  const ctx=cv.getContext("2d");
+/** 区域大地图优先显示：任务焦点区 → 当前所在区 */
+function zoneMapFocusId(){
+  const f=typeof getQuestMapFocus==="function"?getQuestMapFocus():null;
+  if(f&&f.zone&&MAP_ZONES[f.zone])return f.zone;
+  const cur=typeof getCurrentZoneId==="function"?getCurrentZoneId():(_mapZoneId||"mulgore");
+  if(MAP_ZONES[cur])return cur;
+  if(cur==="molten_core")return"mulgore";
+  return"mulgore";
+}
+
+function drawZoneMapPanel(ctx,sz){
+  const zid=zoneMapFocusId();
+  const zone=MAP_ZONES[zid]||MAP_ZONES.mulgore;
+  const titleEl=$("#worldMapTitle");
+  if(titleEl)titleEl.textContent="🗺 "+(zone.name||zid)+" · 区域地图";
+  const prev=_mapZoneId;
+  _mapZoneId=zone.id;
+  const pad=(BAL.map&&BAL.map.worldPad)!=null?BAL.map.worldPad:18;
+  paintMap(ctx,sz,{pad,labels:true,enrich:true,compass:true,view:null});
+  _mapZoneId=prev;
+  const leg=$("#worldMapLeg");
+  if(leg){
+    leg.innerHTML=
+      `<span><i style="background:#7ab8ff"></i>你</span>`+
+      `<span><i style="background:#e06050"></i>敌对</span>`+
+      `<span><i style="background:#ffcc00;border-radius:0"></i>任务 !?</span>`+
+      `<span><i style="background:#ffd76a"></i>标记</span>`+
+      `<span><i style="background:#8aff9a"></i>采集</span>`;
+  }
+}
+
+function drawContinentalMapPanel(ctx,sz){
   const titleEl=$("#worldMapTitle");
   if(titleEl)titleEl.textContent=(typeof T==="function"?T("ui.world_map"):null)||"🗺 卡利姆多 · 世界地图";
 
@@ -926,6 +979,25 @@ function drawWorldMap(){
       ctx.restore();
     }
   }
+  const leg=$("#worldMapLeg");
+  if(leg){
+    leg.innerHTML=
+      `<span><i style="background:#ff9a55"></i>当前区</span>`+
+      `<span><i style="background:#ffe9a0"></i>任务区</span>`+
+      `<span><i style="background:#7ab8ff"></i>你的位置</span>`+
+      `<span>点「当前区域」查看单区详图</span>`;
+  }
+}
+
+function drawWorldMap(){
+  const cv=$("#worldMap");
+  if(!cv)return;
+  const sz=BAL.map.worldSize|0;
+  if(cv.width!==sz){cv.width=sz;cv.height=sz;}
+  const ctx=cv.getContext("2d");
+  syncMapTabButtons();
+  if(getMapPanelTab()==="world")drawContinentalMapPanel(ctx,sz);
+  else drawZoneMapPanel(ctx,sz);
 }
 function toggleWorldMap(force){
   if(!S.started)return;
@@ -934,6 +1006,7 @@ function toggleWorldMap(force){
   const open=force==null?!worldMapOpen():!!force;
   if(open){
     ov.classList.add("show");
+    syncMapTabButtons();
     drawWorldMap();
   }else{
     ov.classList.remove("show");
@@ -945,5 +1018,13 @@ $("#worldMapClose").addEventListener("click",()=>closeWorldMap());
 $("#worldMapOv").addEventListener("click",e=>{
   if(e.target.id==="worldMapOv")closeWorldMap();
 });
+const _mapTabsEl=$("#mapTabs");
+if(_mapTabsEl){
+  _mapTabsEl.addEventListener("click",e=>{
+    const btn=e.target.closest("[data-map-tab]");
+    if(!btn)return;
+    setMapPanelTab(btn.getAttribute("data-map-tab"));
+  });
+}
 
-console.info("[map] STEP 16 就绪：小地图常驻 · M 打开世界地图");
+console.info("[map] 小地图=当前区局部 · M/点击打开区域地图（Tab 切世界地图）");

@@ -16,7 +16,7 @@
    [导出] saveKeyFor listClassSaves latestSaveClassKey
           saveGame loadGame hasSave clearSave collectSaveData applySaveData
           exportSaveCode importSaveCode beginNewGame beginContinue
-          refreshStartMenu refreshClassSaveBadges wireGraphicsUI
+          refreshStartMenu refreshClassSaveBadges wireGraphicsUI wireBootSplash
           （存档字段含 companion · quests{} · mats{} · deeds{} · STEP 20–25；每职业一槽）
    ============================================================ */
 "use strict";
@@ -553,7 +553,11 @@ function importSaveCode(code){
 }
 
 function finishStart(msg){
-  $("#startOv").classList.add("hide");
+  stopBootSplash();
+  const splash=$("#bootSplash");
+  if(splash)splash.classList.add("gone");
+  const ov=$("#startOv");
+  if(ov){ov.classList.remove("boot-locked");ov.classList.add("hide");}
   S.started=true;
   if(typeof SFX!=="undefined"){SFX.init();SFX.music("world");}
   if(msg)announce(msg);
@@ -780,9 +784,123 @@ function wireGraphicsUI(){
   });
 }
 
+/* ---------------- 启动闪屏（动态熔岩 → 启程/存档） ---------------- */
+let _bootAnimId=0,_bootAlive=false;
+
+function stopBootSplash(){
+  _bootAlive=false;
+  if(_bootAnimId){cancelAnimationFrame(_bootAnimId);_bootAnimId=0;}
+}
+
+function enterStartHub(){
+  const splash=$("#bootSplash"), ov=$("#startOv");
+  if(!splash||splash.classList.contains("gone"))return;
+  splash.classList.add("gone");
+  if(ov)ov.classList.remove("boot-locked");
+  stopBootSplash();
+  refreshStartMenu();
+}
+
+function wireBootSplash(){
+  const splash=$("#bootSplash"), canvas=$("#bootCanvas"), btn=$("#btnEnterHub");
+  if(!splash||!canvas)return;
+  const ctx=canvas.getContext("2d");
+  if(!ctx){enterStartHub();return;}
+
+  const embers=[];
+  function resize(){
+    const dpr=Math.min(window.devicePixelRatio||1,2);
+    const w=window.innerWidth, h=window.innerHeight;
+    canvas.width=Math.floor(w*dpr);
+    canvas.height=Math.floor(h*dpr);
+    canvas.style.width=w+"px";
+    canvas.style.height=h+"px";
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const n=Math.max(48,Math.floor(w*h/14000));
+    while(embers.length<n){
+      embers.push({
+        x:Math.random()*w, y:h*(0.55+Math.random()*0.5),
+        r:0.6+Math.random()*2.4, vy:0.35+Math.random()*1.1,
+        vx:(Math.random()-0.5)*0.35, a:0.25+Math.random()*0.7,
+        life:Math.random(),
+      });
+    }
+    while(embers.length>n)embers.pop();
+  }
+
+  function frame(t){
+    if(!_bootAlive)return;
+    const w=window.innerWidth, h=window.innerHeight;
+    const pulse=0.5+0.5*Math.sin(t*0.0011);
+    ctx.fillStyle="#050301";
+    ctx.fillRect(0,0,w,h);
+
+    const g=ctx.createRadialGradient(w*0.5,h*0.92,8,w*0.5,h*0.55,h*0.85);
+    g.addColorStop(0,`rgba(255,90,20,${0.55+pulse*0.2})`);
+    g.addColorStop(0.35,`rgba(180,35,5,${0.28+pulse*0.1})`);
+    g.addColorStop(0.7,"rgba(40,10,2,0.35)");
+    g.addColorStop(1,"rgba(5,2,1,0)");
+    ctx.fillStyle=g;
+    ctx.fillRect(0,0,w,h);
+
+    const g2=ctx.createRadialGradient(w*0.5,h*0.38,10,w*0.5,h*0.38,Math.min(w,h)*0.42);
+    g2.addColorStop(0,`rgba(255,140,40,${0.08+pulse*0.05})`);
+    g2.addColorStop(1,"rgba(0,0,0,0)");
+    ctx.fillStyle=g2;
+    ctx.fillRect(0,0,w,h);
+
+    ctx.beginPath();
+    for(let i=0;i<7;i++){
+      const bx=(i/6)*w, by=h*0.88+Math.sin(t*0.002+i*1.3)*10+Math.sin(t*0.001+i)*6;
+      if(i===0)ctx.moveTo(bx,by);else ctx.lineTo(bx,by);
+    }
+    ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath();
+    const lava=ctx.createLinearGradient(0,h*0.82,0,h);
+    lava.addColorStop(0,`rgba(255,70,10,${0.35+pulse*0.15})`);
+    lava.addColorStop(0.55,"rgba(120,20,0,0.55)");
+    lava.addColorStop(1,"rgba(20,4,0,0.9)");
+    ctx.fillStyle=lava;
+    ctx.fill();
+
+    for(let i=0;i<embers.length;i++){
+      const e=embers[i];
+      e.y-=e.vy;
+      e.x+=e.vx+Math.sin(t*0.002+e.life*6)*0.15;
+      e.life+=0.004;
+      if(e.y<-8||e.a<0.05){
+        e.x=Math.random()*w;e.y=h*(0.7+Math.random()*0.35);
+        e.a=0.25+Math.random()*0.7;e.life=0;
+      }
+      const fade=Math.max(0,1-e.life*0.55);
+      ctx.beginPath();
+      ctx.fillStyle=`rgba(255,${140+Math.floor(e.a*80)},40,${e.a*fade})`;
+      ctx.arc(e.x,e.y,e.r,0,Math.PI*2);
+      ctx.fill();
+    }
+    _bootAnimId=requestAnimationFrame(frame);
+  }
+
+  function onEnter(e){
+    if(e&&e.target&&e.target.closest&&e.target.closest("#btnGfxGear,#gfxPanel"))return;
+    enterStartHub();
+  }
+
+  resize();
+  _bootAlive=true;
+  _bootAnimId=requestAnimationFrame(frame);
+  addEventListener("resize",()=>{if(_bootAlive)resize();});
+  splash.addEventListener("click",onEnter);
+  if(btn)btn.addEventListener("click",e=>{e.stopPropagation();enterStartHub();});
+  addEventListener("keydown",e=>{
+    if(!_bootAlive)return;
+    if(e.key==="Enter"||e.key===" "){e.preventDefault();enterStartHub();}
+  });
+}
+
 /* ---------------- 启动页绑定 ---------------- */
 function wireSaveUI(){
   migrateLegacySave();
+  wireBootSplash();
   refreshStartMenu();
   wireGraphicsUI();
   const btnCont=$("#btnContinue");

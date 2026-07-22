@@ -405,6 +405,10 @@
     color:#ffe9a0;background:rgba(60,40,12,.5);border:1px solid rgba(232,179,74,.4);
     padding:6px 12px;border-radius:2px}
   .ql-map:hover{border-color:var(--gold-bright);background:rgba(80,55,15,.6)}
+  .map-tabs{display:flex;gap:8px;margin:0 0 10px}
+  .map-tab{font:inherit;font-size:12px;letter-spacing:2px;padding:6px 14px;cursor:pointer;
+    color:#b09a7a;background:rgba(0,0,0,.35);border:1px solid rgba(120,80,40,.45)}
+  .map-tab.on{color:#ffd76a;border-color:rgba(232,179,74,.55);background:rgba(80,45,18,.35)}
   .ql-empty{font-size:12px;color:var(--parchment-muted);letter-spacing:1px;line-height:1.8;padding:8px 0}
   @media (max-width:560px){
     #questLog{width:min(96vw,520px)}
@@ -557,6 +561,38 @@
     box-shadow:0 0 26px rgba(255,120,20,.55);font-family:inherit}
   .overlay .btn:hover{filter:brightness(1.12)}
   .overlay .hint{margin-top:16px;font-size:10.5px;color:#8b7a5e;letter-spacing:1.5px;line-height:1.9;max-width:640px}
+
+  /* ---------- 启动闪屏（动态渲染 → 点击进入启程页） ---------- */
+  #bootSplash{position:fixed;inset:0;z-index:32;display:flex;align-items:center;justify-content:center;
+    background:#050301;cursor:pointer;transition:opacity .7s ease,visibility .7s;
+    overflow:hidden}
+  #bootSplash.gone{opacity:0;visibility:hidden;pointer-events:none}
+  #bootCanvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .boot-veil{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse 70% 55% at 50% 42%,transparent 0%,rgba(5,2,1,.35) 55%,rgba(5,2,1,.92) 100%),
+      linear-gradient(180deg,rgba(8,4,2,.25) 0%,transparent 28%,transparent 62%,rgba(20,6,0,.55) 100%)}
+  .boot-brand{position:relative;z-index:1;text-align:center;padding:24px 20px;max-width:640px;
+    pointer-events:none;animation:bootRise .9s ease-out both}
+  .boot-mark{font-size:clamp(11px,1.6vw,14px);letter-spacing:.55em;color:#c87840;margin-bottom:14px;
+    text-indent:.55em;animation:bootPulse 3.2s ease-in-out infinite}
+  .boot-title{font-size:clamp(36px,8vw,72px);font-weight:900;letter-spacing:.28em;color:#ffd9a0;
+    margin:0 0 10px;text-indent:.28em;line-height:1.15;
+    text-shadow:0 0 28px rgba(255,90,0,.95),0 0 80px rgba(255,40,0,.55),0 2px 0 rgba(40,10,0,.8);
+    animation:bootGlow 4s ease-in-out infinite}
+  .boot-tag{font-size:clamp(11px,1.7vw,15px);letter-spacing:.42em;color:#ff9a55;margin:0 0 36px;
+    text-indent:.42em;font-weight:400}
+  .boot-cta{pointer-events:auto;padding:14px 48px;font-size:15px;font-weight:800;letter-spacing:6px;
+    color:#2a1000;cursor:pointer;font-family:inherit;
+    background:linear-gradient(180deg,#ffce7a,#e0812a 60%,#a34a08);border:1px solid #ffcf90;
+    box-shadow:0 0 28px rgba(255,120,20,.55);animation:bootCta 2.4s ease-in-out infinite}
+  .boot-cta:hover{filter:brightness(1.12)}
+  .boot-hint{margin-top:18px;font-size:11px;letter-spacing:3px;color:#8b7a5e}
+  @keyframes bootRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes bootGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.08)}}
+  @keyframes bootPulse{0%,100%{opacity:.75}50%{opacity:1}}
+  @keyframes bootCta{0%,100%{box-shadow:0 0 22px rgba(255,120,20,.45)}50%{box-shadow:0 0 36px rgba(255,140,30,.75)}}
+  #startOv.boot-locked{overflow:hidden}
+  #startOv.boot-locked>#btnGfxGear,#startOv.boot-locked>#gfxPanel{z-index:33}
  
   /* ---------- 职业选择（9 职业 · 3×3） ---------- */
   #classPick{display:grid;grid-template-columns:repeat(3,minmax(0,148px));gap:10px;
@@ -777,7 +813,7 @@
 <div id="joy"><div id="joyKnob"></div></div>
 <div id="minimapWrap">
   <div class="mm-title" data-t="ui.minimap_spaced">赤 蹄 草 甸</div>
-  <canvas id="minimap" width="140" height="140" title="点击或按 M 打开世界地图"></canvas>
+  <canvas id="minimap" width="140" height="140" title="点击打开当前区域地图 · M"></canvas>
 </div>
 <div id="zoneSplash" aria-hidden="true">
   <div class="zs-name" id="zoneSplashName"></div>
@@ -787,6 +823,10 @@
 <div id="worldMapOv">
   <div id="worldMapBox">
     <div class="bag-title"><span id="worldMapTitle" data-t="ui.world_map">🗺 卡利姆多 · 世界地图</span><span class="bag-close" id="worldMapClose">✕</span></div>
+    <div id="mapTabs" class="map-tabs" role="tablist">
+      <button type="button" class="map-tab on" data-map-tab="zone" role="tab">当前区域</button>
+      <button type="button" class="map-tab" data-map-tab="world" role="tab">世界地图</button>
+    </div>
     <canvas id="worldMap" width="520" height="520"></canvas>
     <div id="worldMapLeg">
       <span><i style="background:#7ab8ff"></i>你（面向）</span>
@@ -802,7 +842,7 @@
       <span><i style="background:#ff9ad0"></i>精英</span>
       <span><i style="background:#ffe9a0;outline:1px solid #c9a06a"></i>任务区域</span>
     </div>
-    <div class="ph-hint mm">M 键开关 · 世界地图为多区拼贴 · 小地图箭头=角色面向</div>
+    <div class="ph-hint mm">M / 点击小地图：当前区域 · Tab 切世界地图 · 箭头=面向</div>
   </div>
 </div>
 <div id="bag">
@@ -832,7 +872,7 @@
   <div class="ph-hint">P 开关 · 可与角色面板同开 · 数值含装备与天赋</div>
 </div>
 <div class="hudPanel" id="questLog">
-  <div class="bag-title">📜 任务日志<span class="bag-close" id="questLogClose">✕</span></div>
+  <div class="bag-title"><span id="questLogTitle">📜 任务日志</span><span class="bag-close" id="questLogClose">✕</span></div>
   <div id="questLogBody" class="ql-split">
     <div class="ql-left" id="questLogList"></div>
     <div class="ql-right" id="questLogDetail"></div>
@@ -872,7 +912,18 @@
 </div>
 <div id="dlg"><div class="dname" data-t="npc.elder_dlg">🐂 长老 · 岩蹄</div><div id="dlgText"></div><div id="dlgBtns"></div></div>
  
-<div class="overlay" id="startOv">
+<div class="overlay boot-locked" id="startOv">
+  <div id="bootSplash" role="dialog" aria-label="炽心熔窟">
+    <canvas id="bootCanvas" aria-hidden="true"></canvas>
+    <div class="boot-veil" aria-hidden="true"></div>
+    <div class="boot-brand">
+      <div class="boot-mark" data-t="brand">炽心</div>
+      <h1 class="boot-title" data-t="start.title">炽心熔窟</h1>
+      <p class="boot-tag" data-t="meta.h2">EMBER&nbsp;CORE&nbsp;·&nbsp;深入炽热核心</p>
+      <button type="button" class="boot-cta" id="btnEnterHub" data-t="start.enter">进入游戏</button>
+      <p class="boot-hint" data-t="start.enterHint">点击任意处继续</p>
+    </div>
+  </div>
   <button type="button" id="btnGfxGear" title="画面与特效" aria-label="画面与特效" aria-expanded="false">⚙</button>
   <div id="gfxPanel" role="dialog" aria-label="画面与特效">
     <div class="gfx-head">画面与特效<span class="gfx-close" id="gfxClose" title="关闭">✕</span></div>
