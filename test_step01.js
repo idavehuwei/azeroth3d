@@ -183,6 +183,23 @@ assert(iconsSrc.includes("backstab(cx)")&&iconsSrc.includes("stealth(cx)")&&icon
 assert(sfxSrc.includes("stealth"),"sfx.js 有 stealth 音效");
 assert(html.includes('data-cls="rogue"'),"启程界面有盗贼职业卡");
 
+/* 术士冒烟 */
+assert(combatSrc.includes("warlock:{"),"combat.js 有 CLASSES.warlock");
+assert(combatSrc.includes("function shadowBolt")&&combatSrc.includes("function castCorruption"),"combat.js 有暗影箭/腐蚀术");
+assert(combatSrc.includes("function drainLifeTick")&&combatSrc.includes("function lifeTap"),"combat.js 有生命吸取/生命分流");
+assert(combatSrc.includes("channelTick")&&combatSrc.includes("prepaid"),"combat 引导技能预付与周期跳");
+assert(modelsSrc.includes("function buildWarlock"),"models.js 导出 buildWarlock");
+assert(modelsSrc.includes("warlock:")||modelsSrc.includes("warlock:{"),"models.js 有 warlock 人形配方");
+assert(talentsSrc.includes("warlock:{"),"talents.js 有 TALENTS.warlock");
+assert(talentsSrc.includes('id:"affliction"')&&talentsSrc.includes('id:"destruction"'),"术士天赋双枝 痛苦/毁灭");
+assert(coreSrc.includes("shadowBolt")&&coreSrc.includes("drainLife")&&coreSrc.includes("lifeTap"),"BALANCE.skills 含术士技能");
+assert(coreSrc.includes("warlock:")&&coreSrc.includes("improved_corr"),"BALANCE.talents 含 warlock");
+assert(/fill:[\s\S]*warlock:/.test(coreSrc),"BAL.party.fill 含 warlock");
+assert(iconsSrc.includes("shadow_bolt(cx)")&&iconsSrc.includes("drain_life(cx)")&&iconsSrc.includes("life_tap(cx)"),"icons.js 有术士图标");
+assert(iconsSrc.includes("portrait_warlock"),"icons.js 有术士肖像");
+assert(sfxSrc.includes("shadow"),"sfx.js 有 shadow 音效");
+assert(html.includes('data-cls="warlock"'),"启程界面有术士职业卡");
+
 /* V1-C3 Buff / Debuff 条冒烟 */
 const buffsSrc=fs.readFileSync(path.join(__dirname,"buffs.js"),"utf8");
 assert(buffsSrc.includes("function applyBuff"),"buffs.js 有 applyBuff");
@@ -213,6 +230,7 @@ assert(coreSrc.includes("heroicStrike:{ranks:"),"heroicStrike 使用 ranks 表")
 const cmpSrc=fs.readFileSync(path.join(__dirname,"companions.js"),"utf8");
 assert(cmpSrc.includes('shaman:"同伴')||cmpSrc.includes('shaman:"同伴 ·'),"companions.js 有萨满同伴名");
 assert(cmpSrc.includes('rogue:"同伴')||cmpSrc.includes("rogue:\"同伴"),"companions.js 有盗贼同伴名");
+assert(cmpSrc.includes('warlock:"同伴')||cmpSrc.includes("warlock:\"同伴"),"companions.js 有术士同伴名");
 assert(cmpSrc.includes("function recruitCompanion"),"companions.js 有 recruitCompanion");
 assert(cmpSrc.includes("function dismissCompanion"),"companions.js 有 dismissCompanion");
 assert(cmpSrc.includes("function tickCompanion"),"companions.js 有 tickCompanion");

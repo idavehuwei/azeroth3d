@@ -124,6 +124,27 @@ const BALANCE={
       {minLevel:8, speedMul:1.65, duration:7},
       {minLevel:14, speedMul:1.75, duration:8}
     ]},
+    /* —— 术士 —— */
+    shadowBolt:{ranks:[
+      {minLevel:1, dmg:[700,900]},
+      {minLevel:8, dmg:[826,1062]},
+      {minLevel:14, dmg:[952,1224]}
+    ]},
+    corruption:{ranks:[
+      {minLevel:1, duration:12, dmgPerTick:55, stacks:1},
+      {minLevel:8, duration:14, dmgPerTick:72, stacks:1},
+      {minLevel:14, duration:15, dmgPerTick:90, stacks:2}
+    ]},
+    drainLife:{ranks:[
+      {minLevel:1, dmgPerTick:[95,125], leech:.55, ticks:3},
+      {minLevel:8, dmgPerTick:[112,148], leech:.58, ticks:3},
+      {minLevel:14, dmgPerTick:[130,170], leech:.6, ticks:3}
+    ]},
+    lifeTap:{ranks:[
+      {minLevel:1, hpCost:280, manaGain:32},
+      {minLevel:8, hpCost:360, manaGain:40},
+      {minLevel:14, hpCost:440, manaGain:48}
+    ]},
     /* —— V1-C5 嘲讽 / 打断 —— */
     taunt:{ranks:[
       {minLevel:1, dur:4, range:16, margin:50000},
@@ -757,6 +778,15 @@ const BALANCE={
       fleet_footed     :{skillCd:{i:3,mul:.88}},
       master_subtlety  :{dmgMul:.04,fx:{stealthDmg:.06}},
     },
+    /* —— 术士 —— */
+    warlock:{
+      shadow_mastery :{dmgMul:.05},
+      improved_corr  :{skillCd:{i:1,mul:.90}},
+      shadow_power   :{dmgMul:.04,skillCd:{i:0,mul:.95}},
+      soul_siphon    :{fx:{leechMul:.06}},
+      improved_drain :{skillCd:{i:2,mul:.90}},
+      dark_pact      :{fx:{leechMul:.05},hpMaxMul:.04},
+    },
   },
   /* 存档（STEP 11）：localStorage 键与 schema 版本；改键会与旧存档隔离 */
   save:{key:"azeroth3d_save_v1",version:1},
@@ -883,6 +913,7 @@ const BALANCE={
       priest:[{role:"tank",classKey:"warrior"},{role:"dps",classKey:"archer"}],
       shaman:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
       rogue:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
+      warlock:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
     },
     roleLabel:{tank:"坦克",healer:"治疗",dps:"输出"},
   },
@@ -910,7 +941,7 @@ const BALANCE={
   /* 仇恨与职责（STEP 27） */
   threat:{
     perDmg:1,
-    flat:{heroicStrike:120, whirlwind:50, charge:80, taunt:200, companionAuto:0},
+    flat:{heroicStrike:120, whirlwind:50, charge:80, taunt:200, companionAuto:0, shadowBolt:90, corruption:40, drainLife:25},
     roleMul:{player:1, playerTank:1.55, tank:1.6, dps:1, healer:.75},
     tauntDur:4,
     tauntMargin:50000,

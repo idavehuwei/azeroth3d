@@ -5,7 +5,7 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ clamp rand R BAL scene camera ARENA_R）
           icons.js（Icons）
-          models.js（buildPlayer buildMage buildArcher buildPriest buildShaman buildRogue）
+          models.js（buildPlayer buildMage buildArcher buildPriest buildShaman buildRogue buildWarlock）
           creatures.js 运行时（buildFlameSpawn；raid/world 调用）
           items.js（ITEMS DROPS removeDrop dropLoot）
           world.js（player boss MOBS QUEST mobDamage updateQuest tryInteract）
@@ -169,6 +169,20 @@ const CLASSES={
        desc:"脱战后进入隐身，大幅缩小野怪主动仇恨半径。"},
       {name:"疾步",  icon:"sprint", cd:20, rage:20,fn:sprint,          bal:"sprint",unlock:8,
        desc:"短时间内大幅提高移动速度。"}]},
+  warlock:{title:"💀 你 · 人类术士",hp:3900,resMax:100,resStart:100,resName:"法力",resKind:"mana",
+    regen:7,hitGain:0,speed:10,ranged:true,range:28,sfx:"shadow",
+    autoMin:160,autoMax:210,autoSpd:1.75,shotColor:0xa040ff,build:buildWarlock,
+    barCss:"linear-gradient(180deg,#c090ff,#6a2088 60%,#301040)",
+    tip:"提示：法力随时间恢复；【腐蚀】挂 DoT，【生命吸取】引导吸血；缺蓝时【生命分流】换法力。",
+    skills:[
+      {name:"暗影箭",    icon:"shadow_bolt", cd:6,  rage:28,fn:shadowBolt,   bal:"shadowBolt",school:"spell",unlock:1,
+       desc:"投出暗影箭，对目标造成暗影伤害。",range:28,cast:2},
+      {name:"腐蚀术",    icon:"corruption",  cd:8,  rage:22,fn:castCorruption,bal:"corruption",school:"spell",unlock:4,
+       desc:"使目标感染腐蚀，持续受到暗影伤害。",range:28},
+      {name:"生命吸取",  icon:"drain_life",  cd:10, rage:30,fn:drainLifeEnd, bal:"drainLife",school:"spell",unlock:6,
+       desc:"引导吸取目标生命，化为自身治疗。",range:24,cast:3,channel:true,channelInterval:1,channelTick:drainLifeTick},
+      {name:"生命分流",  icon:"life_tap",    cd:4,  rage:0, fn:lifeTap,      bal:"lifeTap",unlock:8,
+       desc:"牺牲生命，立即回复法力。"}]},
 };
 let CLS=CLASSES.warrior;
 
@@ -703,9 +717,26 @@ function beginPlayerCast(sk,skillIdx,barSlot,dur){
     name:sk.name, t:0, dur,
     channel,
     interruptible:true,
+    tickAcc:0,
+    prepaid:false,
   };
+  /* 引导：开读条时预付资源与 CD（打断不退还） */
+  if(channel){
+    if(S.p.rage<(sk.rage|0)){
+      S.p.casting=null;
+      log(`${CLS.resName}不足！（${sk.name} 需要 ${sk.rage} ${CLS.resName}）`,"lg-sys");
+      return;
+    }
+    S.p.rage-=sk.rage|0;
+    S.cds[skillIdx]=typeof getSkillCd==="function"?getSkillCd(skillIdx):sk.cd;
+    const g=typeof gcdDuration==="function"?gcdDuration(playerResKind()):1.5;
+    S.gcd=g;
+    if(playerResKind()==="mana"&&typeof applyManaSpend==="function")applyManaSpend(S.res);
+    if(typeof markCombat==="function")markCombat(S.res);
+    S.p.casting.prepaid=true;
+  }
   showUnitCastBar("player",sk.name,{channel});
-  log(`开始施放【${sk.name}】…`,"lg-me");
+  log(channel?`开始引导【${sk.name}】…`:`开始施放【${sk.name}】…`,"lg-me");
 }
 /** STEP 20：玩家 / Boss 共用施法条驱动 */
 function showUnitCastBar(kind,name,opts){
@@ -782,10 +813,28 @@ function tickPlayerCast(dt){
   if(shell&&!shell.classList.contains("show"))showUnitCastBar("player",c.name,{channel:c.channel});
   setUnitCastBarProgress("player",k,c.channel);
   if(tx)tx.textContent=`${c.name}  ${Math.max(0,c.dur-c.t).toFixed(1)}`;
+  /* 引导周期结算（术士生命吸取等） */
+  if(c.channel&&typeof c.sk.channelTick==="function"){
+    const iv=c.sk.channelInterval!=null?+c.sk.channelInterval:1;
+    c.tickAcc=(c.tickAcc||0)+dt;
+    while(c.tickAcc>=iv){
+      c.tickAcc-=iv;
+      if(c.sk.channelTick()===false){
+        S.p.casting=null;
+        hidePlayerCastUi();
+        log(`【${c.name}】中断（目标失效）。`,"lg-sys");
+        return;
+      }
+    }
+  }
   if(c.t>=c.dur){
-    const sk=c.sk, idx=c.skillIdx;
+    const sk=c.sk, idx=c.skillIdx, prepaid=!!c.prepaid;
     S.p.casting=null;
     hidePlayerCastUi();
+    if(prepaid){
+      if(typeof sk.fn==="function")sk.fn();
+      return;
+    }
     if(S.p.rage<(sk.rage|0)){log(`${CLS.resName}不足，施法失败。`,"lg-sys");return;}
     finishSkillUse(sk,idx);
   }
@@ -1451,14 +1500,97 @@ function applyCorruptionToTarget(stacks){
   let ent=null, label="目标";
   if(tgt&&tgt.type==="mob"&&tgt.m){ent=tgt.m;label=tgt.m.name||"野怪";}
   else if(tgt&&tgt.type==="add"&&tgt.a){ent=tgt.a;label=tgt.a.name||"小怪";}
+  else if(tgt&&tgt.type==="boss"&&typeof BOSS_ENT!=="undefined"){ent=BOSS_ENT;label=(typeof targetDisplayInfo==="function"&&targetDisplayInfo(tgt)||{}).name||"首领";}
   if(!ent||typeof applyAura!=="function"){
     log("没有可施加腐蚀的目标。","lg-sys");
     return false;
   }
   const st=stacks!=null?stacks:3;
-  applyAura(ent,"corruption",{stacks:st});
+  const bal=typeof getSkillBal==="function"?getSkillBal("corruption"):null;
+  applyAura(ent,"corruption",{
+    stacks:st,
+    duration:bal&&bal.duration!=null?bal.duration:undefined,
+    dmgPerTick:bal&&bal.dmgPerTick!=null?bal.dmgPerTick:undefined,
+  });
   log(`【腐蚀】附着在${label}身上（${st} 层）。`,"lg-me");
   if(typeof announce==="function")announce("腐蚀");
+  return true;
+}
+
+/* ---------------- 术士技能 ---------------- */
+function shadowBolt(){
+  const t=resolveSkillTarget(CLS.range);
+  if(!t)return false;
+  S.p.attackAnim=1;
+  firePlayerShot(t,R(getSkillBal("shadowBolt").dmg),"暗影箭",1.5,{school:"spell",skillId:"shadowBolt"});
+  log("你射出暗影箭！","lg-me");
+  return true;
+}
+function castCorruption(){
+  const t=resolveSkillTarget(CLS.range);
+  if(!t)return false;
+  let ent=null, label="目标";
+  if(t.type==="mob"&&t.m){ent=t.m;label=t.m.name||"野怪";}
+  else if(t.type==="add"&&t.a){ent=t.a;label=t.a.name||"小怪";}
+  else if(t.type==="boss"&&typeof BOSS_ENT!=="undefined"){
+    ent=BOSS_ENT;
+    label=(typeof targetDisplayInfo==="function"&&targetDisplayInfo(t)||{}).name||"首领";
+  }
+  if(!ent||typeof applyAura!=="function"){log("无法腐蚀该目标。","lg-sys");return false;}
+  const bal=getSkillBal("corruption");
+  const stacks=bal.stacks!=null?bal.stacks:1;
+  applyAura(ent,"corruption",{
+    stacks,
+    duration:bal.duration,
+    dmgPerTick:bal.dmgPerTick,
+  });
+  S.p.attackAnim=.6;
+  spawnBurst(player.position.clone().setY(1.6),0xa040ff,10,1.2);
+  if(typeof SFX!=="undefined")SFX.play(CLS.sfx||"shadow");
+  log(`【腐蚀术】侵蚀了${label}！`,"lg-me");
+  return true;
+}
+/** 引导每跳：伤害 + 吸血；目标失效返回 false */
+function drainLifeTick(){
+  const range=(CLS&&CLS.range)||24;
+  const t=resolveSkillTarget(range,{silent:true});
+  if(!t)return false;
+  const bal=getSkillBal("drainLife");
+  const dmg=R(bal.dmgPerTick||[80,110]);
+  S.p.attackAnim=.45;
+  if(t.type==="mob"&&t.m){
+    if(typeof mobDamage==="function")mobDamage(t.m,dmg,"生命吸取");
+    else if(typeof hitEntity==="function")hitEntity(t.m,dmg,"生命吸取");
+  }else if(t.type==="add"&&t.a){
+    if(typeof addDamage==="function")addDamage(t.a,dmg);
+    else if(typeof hitEntity==="function")hitEntity(t.a,dmg,"生命吸取");
+  }else if(t.type==="boss"){
+    dmgBoss(dmg,"生命吸取");
+  }else return false;
+  const leech=(bal.leech!=null?+bal.leech:.55)*(1+((S.p.talentFx&&S.p.talentFx.leechMul)||0));
+  const heal=Math.max(1,Math.round(dmg*leech));
+  S.p.hp=Math.min(S.p.hpMax,S.p.hp+heal);
+  fct(player.position.clone().setY(3),`+${heal}`,"#8aff9a",15,{kind:"heal"});
+  if(typeof SFX!=="undefined")SFX.play(CLS.sfx||"shadow");
+  return true;
+}
+function drainLifeEnd(){
+  log("生命吸取引导结束。","lg-me");
+  return true;
+}
+function lifeTap(){
+  const bal=getSkillBal("lifeTap");
+  const hpCost=bal.hpCost!=null?bal.hpCost|0:Math.round(S.p.hpMax*.12);
+  const manaGain=bal.manaGain!=null?bal.manaGain|0:35;
+  if(S.p.hp<=hpCost+1){log("生命过低，无法分流！","lg-sys");return false;}
+  if(typeof applyEntityHpDamage==="function")applyEntityHpDamage(S.p,hpCost);
+  else S.p.hp=Math.max(1,S.p.hp-hpCost);
+  S.p.rage=Math.min(S.p.rageMax,(S.p.rage|0)+manaGain);
+  fct(player.position.clone().setY(3.1),`-${hpCost}`,"#c070ff",14);
+  fct(player.position.clone().setY(3.5),`+${manaGain} 法力`,"#a080ff",15);
+  spawnBurst(player.position.clone().setY(1.4),0x8040c0,12,1.3);
+  if(typeof SFX!=="undefined")SFX.play(CLS.sfx||"shadow");
+  log(`生命分流：牺牲 ${hpCost} 生命，回复 ${manaGain} 法力。`,"lg-me");
   return true;
 }
 

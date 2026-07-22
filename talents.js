@@ -101,6 +101,21 @@ const TALENTS={
       ]},
     ],
   },
+  /* 术士 */
+  warlock:{
+    branches:[
+      {id:"affliction",name:"痛苦",nodes:[
+        {id:"improved_corr",tier:1,name:"强化腐蚀",maxRank:3,icon:"corruption",desc:"腐蚀术冷却缩短"},
+        {id:"improved_drain",tier:2,name:"强化吸取",maxRank:3,icon:"drain_life",req:"improved_corr",reqRank:1,desc:"生命吸取冷却缩短"},
+        {id:"soul_siphon",tier:3,name:"灵魂虹吸",maxRank:3,icon:"drain_life",req:"improved_drain",reqRank:1,desc:"吸血比例提高"},
+      ]},
+      {id:"destruction",name:"毁灭",nodes:[
+        {id:"shadow_mastery",tier:1,name:"暗影掌握",maxRank:3,icon:"shadow_bolt",desc:"攻击伤害提高"},
+        {id:"shadow_power",tier:2,name:"暗影之力",maxRank:3,icon:"shadow_bolt",req:"shadow_mastery",reqRank:1,desc:"伤害提高，暗影箭冷却缩短"},
+        {id:"dark_pact",tier:3,name:"黑暗契约",maxRank:3,icon:"life_tap",req:"shadow_power",reqRank:1,desc:"吸血与生命上限提高"},
+      ]},
+    ],
+  },
 };
 
 /* 运行时态（挂在 S 上，便于存档 STEP 11） */

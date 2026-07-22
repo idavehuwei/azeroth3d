@@ -19,6 +19,7 @@ const CLASS_LOOK_META={
   priest :{armor:"robe",   animStyle:"cast"},
   shaman :{armor:"leather",animStyle:"cast"},
   rogue  :{armor:"leather",animStyle:"melee1h"},
+  warlock:{armor:"robe",   animStyle:"cast"},
 };
 
 function _j(name,x,y,z){

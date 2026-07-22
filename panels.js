@@ -283,7 +283,7 @@ function renderCharPanel(){
   const right=["waist","legs","feet","finger","offhand","ranged"];
   const bottom=["mainhand"];
   const yaw=(_charDollYaw|0)%360;
-  const clsIcon=CLS.key==="mage"?"✦":CLS.key==="archer"?"➶":CLS.key==="priest"?"✚":CLS.key==="shaman"?"⚡":CLS.key==="rogue"?"🗡":"⚔";
+  const clsIcon=CLS.key==="mage"?"✦":CLS.key==="archer"?"➶":CLS.key==="priest"?"✚":CLS.key==="shaman"?"⚡":CLS.key==="rogue"?"🗡":CLS.key==="warlock"?"💀":"⚔";
 
   body.innerHTML=
     `<div class="ph-layout">`+

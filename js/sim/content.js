@@ -23,15 +23,16 @@ var SIM_CONTENT={
       archer: {strMul:.5,agiMul:1, lvlMul:2, base:0, offset:10},
       priest: {strMul:0, agiMul:0, lvlMul:0, base:0, offset:0},
       shaman: {strMul:1, agiMul:0, lvlMul:1, base:0, offset:10},
-      rogue:  {strMul:1, agiMul:1, lvlMul:2, base:0, offset:20}
+      rogue:  {strMul:1, agiMul:1, lvlMul:2, base:0, offset:20},
+      warlock:{strMul:0, agiMul:0, lvlMul:0, base:0, offset:0}
     },
     /* 每 X 点敏捷 = 1% 暴击 */
     critAgiPer:{
-      warrior:20, mage:20, archer:15, priest:20, shaman:20, rogue:14
+      warrior:20, mage:20, archer:15, priest:20, shaman:20, rogue:14, warlock:20
     },
     /* 每 X 点敏捷 = 1% 躲闪 */
     dodgeAgiPer:{
-      warrior:20, mage:25, archer:18, priest:25, shaman:22, rogue:14
+      warrior:20, mage:25, archer:18, priest:25, shaman:22, rogue:14, warlock:25
     },
     baseCrit:5,           /* 基础暴击 % */
     baseDodge:5,
@@ -116,7 +117,8 @@ var SIM_CONTENT={
     archer: {str:22, agi:42, sta:28, int:18, spi:20, armor:80},
     priest: {str:14, agi:16, sta:24, int:42, spi:40, armor:45},
     shaman: {str:28, agi:20, sta:30, int:32, spi:30, armor:90},
-    rogue:  {str:28, agi:45, sta:26, int:14, spi:18, armor:70}
+    rogue:  {str:28, agi:45, sta:26, int:14, spi:18, armor:70},
+    warlock:{str:14, agi:16, sta:24, int:46, spi:32, armor:42}
   },
 
   /* ---- 猎人式远程死区（弓箭手） ---- */
@@ -160,7 +162,7 @@ var SIM_CONTENT={
   /* ---- plan-v4 STEP 16：统一光环定义 ---- */
   auras:{
     corruption:{
-      name:"腐蚀", kind:"debuff", type:"dot", icon:"venom",
+      name:"腐蚀", kind:"debuff", type:"dot", icon:"corruption",
       dur:9, tick:3, maxStacks:3, dmgPerTick:35
     },
     power_word_shield:{

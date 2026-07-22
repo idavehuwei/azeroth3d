@@ -3,7 +3,7 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（rand）· palette.js（PALETTE · MAT）· rig.js（assembleHumanoidRig）
    [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS CLASS_LOOK buildFromClassLook
-          buildPlayer buildMage buildArcher buildPriest buildShaman buildRogue buildBoss buildOnyxia
+          buildPlayer buildMage buildArcher buildPriest buildShaman buildRogue buildWarlock buildBoss buildOnyxia
           buildElder buildVendor buildSpiritHealer buildGraveyard tintNpcCloth
           buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem buildMarketStall buildCratePile
           BUILD_PAL placeProp GRAVEYARDS registerGraveyard nearestGraveyardSpawn
@@ -290,6 +290,32 @@ const HUMANOIDS={
     cape:{a:[.82,1.25],p:[0,1.65,-.28],rx:.14,m:'capeM'},
     weapon:'dagger', weaponMount:'armR', weaponPos:[0,-.7,.08],
   },
+  /* 💀 人类术士：暗紫长袍 + 弯角头冠 + 暗影法典 */
+  warlock:{
+    mats:{
+      robe:{c:0x2a1838,r:.85}, robeDark:{c:0x180c22,r:.9},
+      trim:{c:0x9060c0,r:.35,mt:.8}, skin:{c:0xd0a070,r:.8},
+      book:{c:0x4a1028,r:.8}, capeM:{c:0x140818,r:.9,ds:true},
+      horn:{c:0x3a2030,r:.7},
+    },
+    parts:[
+      {g:'cyl',a:[.5,1,1.6,8],p:[0,1,0],m:'robe'},
+      {g:'cyl',a:[.42,.5,1,8],p:[0,2.2,0],m:'robeDark'},
+      {g:'cyl',a:[.52,.52,.12,8],p:[0,1.75,0],m:'trim'},
+      {g:'box',a:[.46,.46,.44],p:[0,2.95,0],m:'skin'},
+      {g:'cyl',a:[.3,.32,.22,8],p:[0,3.22,0],m:'robeDark'},
+      {g:'cone',a:[.07,.32,5],p:[.2,3.42,0],r:[0,0,-.55],m:'horn'},
+      {g:'cone',a:[.07,.32,5],p:[-.2,3.42,0],r:[0,0,.55],m:'horn'},
+      {g:'oct',a:[.1,0],p:[0,2.35,.32],m:'trim'},
+      {g:'sph',a:[.26,8,6],p:[.54,2.55,0],m:'robeDark'},
+      {g:'sph',a:[.26,8,6],p:[-.54,2.55,0],m:'robeDark'},
+    ],
+    arm:{x:.55,y:2.55,mesh:{g:'cyl',a:[.14,.2,.9,7],p:[0,-.45,0],m:'robe'}},
+    armExtraL:[{g:'box',a:[.34,.44,.12],p:[-.05,-.95,.12],m:'book'}],
+    leg:{x:.2,y:.6,mesh:null},
+    cape:{a:[.95,1.9],p:[0,1.95,-.4],rx:.1,m:'capeM'},
+    weapon:'staff', weaponMount:'armR', weaponPos:[.05,-.9,.15],
+  },
 };
 
 /* ============================================================
@@ -357,6 +383,7 @@ function buildArcher(){return buildFromClassLook("archer");}
 function buildPriest(){return buildFromClassLook("priest");}
 function buildShaman(){return buildFromClassLook("shaman");}
 function buildRogue(){return buildFromClassLook("rogue");}
+function buildWarlock(){return buildFromClassLook("warlock");}
 
 /* ============================================================
    Boss 模型：熔渊领主（岩浆巨人，程序化原创低模）

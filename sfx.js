@@ -33,6 +33,8 @@ const SOUNDS={
   lightning:{src:"osc", wave:"sawtooth", freq:[520,980,1400], filter:"bandpass", ffreq:1600, q:.9,
            attack:.005, decay:.22, vol:.42},
   stealth:{src:"noise", filter:"lowpass", ffreq:380, attack:.04, decay:.35, vol:.28},
+  shadow :{src:"osc", wave:"sawtooth", freq:[420,90], filter:"lowpass", ffreq:900,
+           attack:.02, decay:.4, vol:.38},
 
   /* V1-A5 · 材质脚步（草/石/木） */
   foot_grass:{src:"noise", filter:"bandpass", ffreq:420, q:.8, attack:.002, decay:.08, vol:.22},

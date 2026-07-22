@@ -796,6 +796,10 @@ function bossTargetable(){return S.b.alive&&!S.b.rising&&!S.b.submerged;}
 const BOSS_ENT={
   get hp(){return S.b.hp}, set hp(v){S.b.hp=v},
   get mesh(){return typeof boss!=="undefined"?boss:null;},
+  get name(){
+    const cfg=typeof getBossCfg==="function"?getBossCfg():null;
+    return(cfg&&cfg.name)||(typeof T==="function"?T("boss.ragnaros"):"Boss");
+  },
   variance:BAL.variance.boss,
   threat:{},
   dead(){return !bossTargetable();},
@@ -1082,6 +1086,20 @@ function bossAI(dt){
 
   if(B.rising&&cfg.intro){tickBossIntro(dt,cfg);return;}
   if(B.submerged){tickBossSubmerged(dt);return;}
+  /* 术士等 DoT：推进 Boss 光环 */
+  if(typeof tickAuras==="function"&&typeof BOSS_ENT!=="undefined"){
+    tickAuras(BOSS_ENT,dt,{
+      onDot(ent,amount,aura){
+        if(amount<=0||!B.alive)return;
+        if(typeof applyEntityHpDamage==="function")applyEntityHpDamage(ent,amount);
+        else B.hp=Math.max(0,(B.hp|0)-amount);
+        if(typeof fct==="function"&&ent.fctPos)fct(ent.fctPos(),`-${amount}`,"#c070ff",14);
+        if(typeof log==="function"&&aura)log(`【${aura.name}】对${ent.name||"首领"}造成 ${amount} 点持续伤害。`,"lg-dmg");
+        if((B.hp|0)<=0&&ent.onDeath)ent.onDeath();
+      }
+    });
+    if(!B.alive)return;
+  }
   /* STEP 28：飞天高度插值；落地后回 0 */
   if(B.flying){
     const ty=B.flyTargetY||8;
