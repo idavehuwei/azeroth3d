@@ -617,9 +617,13 @@ placeTalkNpc(aska,_pAska.x,_pAska.z,Math.PI*.2,"阿斯卡 · 迷雾行者",BAL.n
   ()=>openNpcQuestDialogue("aska","🌫️ 阿斯卡 · 迷雾行者",T("poi.freewind")+"笼罩着迷雾。"));
 
 const vendor=buildVendor();
-placeTalkNpc(vendor,_pBaine.x-22,_pBaine.z-6,Math.PI*1.15,"商人 · 瓦尔格",BAL.npcLevel.varg,"#a8e8c0","varg",
-  ()=>openVendor("varg","🏕️ 商人 · 瓦尔格"));
+placeTalkNpc(vendor,_pBaine.x-22,_pBaine.z-6,Math.PI*1.15,"杂货商 · 瓦尔格",BAL.npcLevel.varg,"#a8e8c0","varg",
+  ()=>openVendor("varg","🛒 杂货商 · 瓦尔格"));
 const varg=vendor;
+/* STEP 18：武器匠（白装） */
+const weaponsmith=tintNpcCloth(buildVendor(),0x6a5040);
+placeTalkNpc(weaponsmith,_pBaine.x-16,_pBaine.z-12,Math.PI*1.05,"武器匠 · 石刃",BAL.npcLevel.weaponsmith,"#e8c898","weaponsmith",
+  ()=>openVendor("weaponsmith","⚔️ 武器匠 · 石刃"));
 
 /* —— 雷岩台 45,25 —— */
 const _pCairne=_npcAt(45,25);
@@ -1222,7 +1226,9 @@ function refreshVendorPanel(){
   if(stockEl){
     stockEl.innerHTML="";
     for(const id of currentVendorStock()){
-      const it=ITEMS[id]; if(!it||it.vendorBuy==null)continue;
+      const it=ITEMS[id];
+      const buy=typeof getVendorBuy==="function"?getVendorBuy(it): (it&&it.vendorBuy);
+      if(!it||buy==null)continue;
       const q=QUALITY[it.quality]||QUALITY.common;
       const card=document.createElement("button");
       card.type="button";
@@ -1230,7 +1236,7 @@ function refreshVendorPanel(){
       card.innerHTML=
         `<img src="${Icons.get(it.icon,q.color)}" style="border-color:${q.color}" alt="">`+
         `<div class="vb"><div class="vn" style="color:${q.color}">${it.name}</div>`+
-        `<div class="vp">${formatCopperText(it.vendorBuy)}</div></div>`;
+        `<div class="vp">${formatCopperText(buy)}</div></div>`;
       card.onclick=()=>{buyVendorItem(id);};
       if(typeof bindItemTip==="function")bindItemTip(card,it,"点击购买");
       stockEl.appendChild(card);

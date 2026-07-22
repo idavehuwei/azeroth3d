@@ -19,7 +19,7 @@
           getPlayerWeaponRange getPlayerAutoSpeed bagOpen
           itemTitle showItemTip hideItemTip bindItemTip itemTipHtml
           beginItemDrag endItemDrag getItemDrag
-          useItem sellItem buyVendorItem cancelConsume（STEP 13）
+          useItem sellItem buyVendorItem getVendorSell getVendorBuy cancelConsume（STEP 13/18）
    ============================================================ */
 "use strict";
 /* ---------------- 品质表：颜色即一切（描边/名字/方块光） ---------------- */
@@ -117,8 +117,9 @@ function reclaimUnequippedGear(rawEq,inv,equipped){
   return bag;
 }
 
-/* ---------------- 物品定义：{id,name,icon,quality,slot,stats,vendorBuy?,vendorSell?,use?}
-   slot: 装备位种类 | finger | misc | consumable；铜价见 vendorBuy/vendorSell（STEP 13） */
+/* ---------------- 物品定义：{id,name,icon,quality,slot,stats,vendorBuy?,vendorSell?,vendorPrice?,use?}
+   slot: 装备位种类 | finger | misc | consumable；铜价见 vendorBuy/vendorSell（STEP 13/18）
+   vendorPrice：计划别名，读写时由 getVendorBuy/getVendorSell 回退 */
 const ITEMS={
   /* —— 材料 / 杂物 —— */
   boar_meat    :{id:"boar_meat",    name:"野猪肋排",    icon:"meat",  quality:"common",   slot:"misc",  stats:null, vendorSell:6},
@@ -210,7 +211,17 @@ const ITEMS={
   iron_bracer  :{id:"iron_bracer",  name:"铁片护腕",    icon:"armor", quality:"uncommon",slot:"wrist",ilvl:8,armor:40,stats:{sta:4,str:4},vendorSell:40},
   oak_buckler  :{id:"oak_buckler",  name:"橡木圆盾",    icon:"armor", quality:"uncommon",slot:"offhand",ilvl:9,armor:120,stats:{sta:8,str:2},vendorSell:55},
   horn_bow     :{id:"horn_bow",     name:"角木短弓",    icon:"aimed", quality:"uncommon",slot:"ranged",ilvl:8,dmgRange:[14,22],speed:2.0,stats:{agi:7},vendorSell:50},
-  scrap_knife  :{id:"scrap_knife",  name:"锈蚀小刀",    icon:"sword", quality:"poor",    slot:"mainhand",ilvl:1,dmgRange:[3,6],speed:2.0,stats:{str:1},model:"sword",vendorSell:2},
+  scrap_knife  :{id:"scrap_knife",  name:"锈蚀小刀",    icon:"sword", quality:"poor",    slot:"mainhand",ilvl:1,dmgRange:[3,6],speed:2.0,stats:{str:1},model:"sword",vendorSell:6,vendorPrice:6},
+  frayed_cloth :{id:"frayed_cloth", name:"破旧碎布",    icon:"hide",  quality:"poor",    slot:"misc",  stats:null, vendorSell:5,vendorPrice:5},
+  rusty_nail   :{id:"rusty_nail",   name:"锈钉一撮",    icon:"ore",   quality:"poor",    slot:"misc",  stats:null, vendorSell:5,vendorPrice:5},
+  chipped_bone :{id:"chipped_bone", name:"碎裂骨片",    icon:"tusk",  quality:"poor",    slot:"misc",  stats:null, vendorSell:6,vendorPrice:6},
+  bent_copper  :{id:"bent_copper",  name:"弯铜片",      icon:"ore",   quality:"poor",    slot:"misc",  stats:null, vendorSell:7,vendorPrice:7},
+  worn_boot    :{id:"worn_boot",    name:"破旧单靴",    icon:"hide",  quality:"poor",    slot:"misc",  stats:null, vendorSell:5,vendorPrice:5},
+  /* —— 营地白装（STEP 18 武器匠 / 护甲商） —— */
+  camp_shortsword:{id:"camp_shortsword",name:"营地短剑",icon:"sword",quality:"common",slot:"mainhand",ilvl:3,dmgRange:[8,14],speed:2.1,stats:{str:2},model:"sword",vendorBuy:120,vendorSell:24},
+  camp_wood_mace:{id:"camp_wood_mace",name:"橡木轻锤",icon:"hammer",quality:"common",slot:"mainhand",ilvl:3,dmgRange:[9,15],speed:2.4,stats:{str:2,sta:1},model:"sword",vendorBuy:100,vendorSell:20},
+  camp_hunting_bow:{id:"camp_hunting_bow",name:"猎蹄短弓",icon:"aimed",quality:"common",slot:"ranged",ilvl:3,dmgRange:[7,12],speed:2.0,stats:{agi:2},vendorBuy:110,vendorSell:22},
+  camp_leather_vest:{id:"camp_leather_vest",name:"硬皮背心",icon:"armor",quality:"common",slot:"chest",ilvl:3,armor:45,stats:{sta:3,hpMax:80},vendorBuy:90,vendorSell:18},
   /* —— 商人消耗品 —— */
   plain_bread  :{id:"plain_bread",  name:"硬面饼",      icon:"bread",  quality:"common", slot:"consumable",use:"food",
                  stats:null, vendorBuy:25, vendorSell:5},
@@ -251,78 +262,92 @@ const LOOT={
   boar:{
     common  :["boar_meat","boar_tusk","boar_hide"],
     uncommon:["tusk_blade","hide_vest","boar_belt","plains_boots","tusk_buckler","hide_belt","iron_bracer"],
-    poor    :["scrap_knife","boar_tusk"],
+    poor    :["scrap_knife","frayed_cloth","chipped_bone","rusty_nail"],
     rare    :["plains_blade","mesa_guard","mesa_helm"],
   },
   add:{
     common  :["sulf_ash","sulf_core"],
     uncommon:["sulf_ring","ash_charm","hide_bracers"],
+    poor    :["rusty_nail","bent_copper","frayed_cloth"],
     rare    :["sulf_blade","sulf_orb","sulf_bracers"],
     epic    :["sulf_blade","sulf_orb"],
   },
   wolf:{
     common  :["wolf_pelt","wolf_fang"],
     uncommon:["tusk_blade","hide_vest","wolf_gauntlets","plains_cap"],
+    poor    :["frayed_cloth","worn_boot","chipped_bone"],
     rare    :["plains_blade","mesa_guard","plains_band"],
   },
   bird:{
     common  :["bird_meat","bird_meat","bird_meat","plainstrider_pelt","plainstrider_pelt","bird_feather"],
     uncommon:["hide_vest","plains_cloak","plains_boots"],
+    poor    :["frayed_cloth","rusty_nail","worn_boot"],
     rare    :["plains_blade","plains_cap"],
   },
   thunderhawk:{
     common  :["bird_meat","bird_meat","bird_feather","bird_feather","harpy_feather"],
     uncommon:["hide_vest","plains_cloak","wind_pauldrons"],
+    poor    :["frayed_cloth","bent_copper"],
     rare    :["plains_blade","wind_blade"],
   },
   youngBoar:{
     common  :["boar_meat","boar_hide"],
     uncommon:["hide_vest","boar_belt","plains_boots"],
+    poor    :["scrap_knife","frayed_cloth","chipped_bone"],
     rare    :["tusk_blade","plains_cap"],
   },
   bristleback:{
     common  :["soul_shard","soul_shard","quilboar_gland","quilboar_gland","boar_meat"],
     uncommon:["hide_vest","boar_belt","tusk_blade"],
+    poor    :["rusty_nail","scrap_knife","worn_boot"],
     rare    :["plains_blade","plains_cap"],
   },
   plainslion:{
     common  :["wolf_pelt","wolf_fang"],
     uncommon:["hide_vest","wolf_gauntlets","plains_boots"],
+    poor    :["frayed_cloth","chipped_bone"],
     rare    :["plains_blade","mesa_guard"],
   },
   windElement:{
     common  :["wind_essence","wind_essence","wind_essence","bird_feather"],
     uncommon:["wind_blade","plains_cloak"],
+    poor    :["bent_copper","frayed_cloth"],
     rare    :["plains_blade","wind_pauldrons"],
   },
   waterElement:{
     common  :["earth_shard","earth_shard","mutated_hide","mutated_hide","bird_feather"],
     uncommon:["hide_vest","plains_boots"],
+    poor    :["rusty_nail","worn_boot"],
     rare    :["plains_blade","plains_band"],
   },
   earthElement:{
     common  :["earth_shard","earth_shard","earth_shard","boar_hide"],
     uncommon:["hide_vest","mesa_guard"],
+    poor    :["bent_copper","chipped_bone"],
     rare    :["plains_blade","mesa_helm"],
   },
   kodo:{
     common  :["kodo_hide","kodo_hide","kodo_hide","boar_hide","wolf_pelt"],
     uncommon:["hide_vest","plains_boots","mesa_guard"],
+    poor    :["worn_boot","frayed_cloth","chipped_bone"],
     rare    :["plains_blade","mesa_helm"],
   },
   palemane:{
     common  :["wolf_pelt","wolf_fang"],
     uncommon:["tusk_blade","hide_vest","wolf_gauntlets"],
+    poor    :["frayed_cloth","rusty_nail"],
     rare    :["plains_blade","mesa_guard"],
   },
   baeldun:{
     common  :["blasting_powder","blasting_powder","boar_hide"],
     uncommon:["tusk_blade","hide_vest","plains_boots"],
+    poor    :["bent_copper","rusty_nail","scrap_knife"],
     rare    :["plains_blade","mesa_helm"],
   },
   baeldunDigger:{
     common  :["blasting_powder","blasting_powder","boar_hide"],
     uncommon:["hide_vest","tusk_blade","hide_bracers"],
+    poor    :["bent_copper","frayed_cloth"],
     rare    :["plains_blade","mesa_guard"],
   },
   venture:{
@@ -804,14 +829,27 @@ function useItem(id){
   }
   return false;
 }
+function getVendorSell(it){
+  if(!it)return null;
+  if(it.vendorSell!=null)return it.vendorSell|0;
+  if(it.vendorPrice!=null)return it.vendorPrice|0;
+  return null;
+}
+function getVendorBuy(it){
+  if(!it)return null;
+  if(it.vendorBuy!=null)return it.vendorBuy|0;
+  if(it.vendorPrice!=null)return it.vendorPrice|0;
+  return null;
+}
 function sellItem(id){
   if(!S.vendorOpen){log("需要在商人处才能出售。","lg-sys");return false;}
   const it=ITEMS[id];
-  if(!it||it.quest||it.vendorSell==null){log("该物品无法出售。","lg-sys");return false;}
+  const price=getVendorSell(it);
+  if(!it||it.quest||price==null){log("该物品无法出售。","lg-sys");return false;}
   const idx=S.inv.indexOf(id); if(idx<0)return false;
   S.inv.splice(idx,1);
-  gainCopper(it.vendorSell,{silent:true});
-  log(`出售【${it.name}】，获得 ${formatCopperText(it.vendorSell)}。`,"lg-sys");
+  gainCopper(price,{silent:true});
+  log(`出售【${it.name}】，获得 ${formatCopperText(price)}。`,"lg-sys");
   SFX.play("pickup");
   renderBag();
   if(typeof refreshVendorPanel==="function")refreshVendorPanel();
@@ -821,14 +859,15 @@ function sellItem(id){
 function buyVendorItem(id){
   if(!S.vendorOpen)return false;
   const it=ITEMS[id];
-  if(!it||it.vendorBuy==null){log("无法购买。","lg-sys");return false;}
+  const price=getVendorBuy(it);
+  if(!it||price==null){log("无法购买。","lg-sys");return false;}
   if(S.inv.length>=BAL.bag.size){log("背包已满。","lg-sys");return false;}
-  if(!spendCopper(it.vendorBuy)){
-    log(`金币不足（需要 ${formatCopperText(it.vendorBuy)}）。`,"lg-sys");
+  if(!spendCopper(price)){
+    log(`金币不足（需要 ${formatCopperText(price)}）。`,"lg-sys");
     return false;
   }
   S.inv.push(id);
-  log(`购买【${it.name}】，花费 ${formatCopperText(it.vendorBuy)}。`,"lg-sys");
+  log(`购买【${it.name}】，花费 ${formatCopperText(price)}。`,"lg-sys");
   SFX.play("pickup");
   renderBag();
   if(typeof refreshVendorPanel==="function")refreshVendorPanel();
@@ -912,8 +951,10 @@ function itemTitle(it){
   if(st.hpMax)parts.push(`生命上限 +${st.hpMax}`);
   if(it.slot==="consumable"&&it.use==="food")parts.push("坐下回血");
   if(it.slot==="consumable"&&it.use==="bandage")parts.push("包扎回血");
-  if(it.vendorSell!=null)parts.push(`售价 ${formatCopperText(it.vendorSell)}`);
-  if(it.vendorBuy!=null)parts.push(`买入 ${formatCopperText(it.vendorBuy)}`);
+  if(typeof getVendorSell==="function"?getVendorSell(it)!=null:it.vendorSell!=null)
+    parts.push(`售价 ${formatCopperText(typeof getVendorSell==="function"?getVendorSell(it):it.vendorSell)}`);
+  if(typeof getVendorBuy==="function"?getVendorBuy(it)!=null:it.vendorBuy!=null)
+    parts.push(`买入 ${formatCopperText(typeof getVendorBuy==="function"?getVendorBuy(it):it.vendorBuy)}`);
   return `${it.name}（${QUALITY[it.quality].name}）${parts.length?" · "+parts.join(" · "):""}`;
 }
 const SLOT_NAME={

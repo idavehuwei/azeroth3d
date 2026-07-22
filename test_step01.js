@@ -295,6 +295,12 @@ assert(raidSrc.includes("tickGhostWorld")&&raidSrc.includes("spawnCorpseMark"),"
 assert(raidSrc.includes("restoreDeathFromSave")&&raidSrc.includes("nearestGraveyardSpawn"),"STEP 17 读档死亡态 + 最近墓地");
 assert(coreSrc.includes("corpseWeaknessT")&&coreSrc.includes("swimMul"),"BALANCE 含跑尸短虚弱与游泳");
 assert(fs.existsSync(path.join(__dirname,"test_death.js")),"test_death.js 存在");
+assert(fs.existsSync(path.join(__dirname,"test_economy.js")),"test_economy.js 存在");
+assert(coreSrc.includes("weaponsmith")&&coreSrc.includes("camp_shortsword"),"BALANCE 含武器匠货架");
+assert(itemsSrc.includes("frayed_cloth")&&itemsSrc.includes("getVendorSell"),"灰装与 vendor 价助手");
+assert(worldSrc.includes("武器匠 · 石刃")&&worldSrc.includes("杂货商 · 瓦尔格"),"营地双商人");
+assert(html.includes("pGoldHud"),"金币 HUD 右下容器");
+assert(combatSrc.includes("formatMoney")&&combatSrc.includes("gainCopper"),"货币 format/gain");
 assert(mainSrc.includes("tickGhostWorld")&&mainSrc.includes("fallPeakY")&&mainSrc.includes("S.p.ghost"),"main 驱动幽灵移动/摔落");
 assert(mainSrc.includes("playerInWater"),"main 含游泳判定");
 assert(fs.readFileSync(path.join(__dirname,"models.js"),"utf8").includes("buildGraveyard"),"models 含墓地石碑");

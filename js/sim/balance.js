@@ -492,16 +492,18 @@ const BALANCE={
   },
   /* 背包（STEP 4）：格数 */
   bag:{size:36, cols:6},
-  /* 金币经济 + 商人（STEP 13）：铜为最小单位；1金=100银=10000铜 */
+  /* 金币经济 + 商人（STEP 13 / plan-v4 STEP 18）：铜为最小单位；1金=100银=10000铜 */
   economy:{
     copperPerSilver:100,
     copperPerGold:10000,
     vendorStock:["plain_bread","spring_water","linen_bandage","minor_potion"],
+    /* 杂货 = 消耗品；武器匠/护甲商 = 白装 */
     vendorStockByNpc:{
       vendor:["plain_bread","spring_water","linen_bandage","minor_potion","whetstone"],
       varg:["plain_bread","spring_water","linen_bandage","minor_potion","whetstone"],
-      barrens_vendor:["plain_bread","spring_water","linen_bandage","minor_potion","whetstone"],
-      barrens_armor:["plain_bread","spring_water","linen_bandage","minor_potion"],
+      weaponsmith:["camp_shortsword","camp_wood_mace","camp_hunting_bow"],
+      barrens_vendor:["camp_shortsword","camp_wood_mace","barrens_cleaver","whetstone"],
+      barrens_armor:["camp_leather_vest","plains_boots","hide_bracers","linen_bandage"],
       ochre_vendor:["plain_bread","spring_water","linen_bandage","minor_potion","whetstone"],
     },
     food:{healPct:.35,duration:18},      /* C10：坐下进食 18 秒回血 */
@@ -659,7 +661,7 @@ const BALANCE={
     meleeAutoR:4.5,
     showTot:true,            /* 目标的目标小框 */
   },
-  npcLevel:{hawkwind:10,grull:8,grayhorn:12,raoul:6,vera:5,whiterock:10,baine:40,bloodhoof_elder:35,tark:18,mull:16,haru:18,mara:14,kur:15,aska:20,cairne:60,stonetalon:40,seen:22,pala:20,hamya:24,magatha:50,runetotem:45,thunderhorn_guard:12,winterhoof_guard:10,windfury_sentinel:25,elder:40,vendor:25,varg:25,hunter:18,cook:20,spirit:55,crossroads:30,darsok:28,kag:26,mankrik:30,thom:27,kil:24,serra:25,lal:28,zinge:26,scriven:22,innkeeper:22,flightmaster:25,barrens_vendor:24,barrens_armor:24,ochre:28,ochre_guard:26,ochre_vendor:24,companion:null},
+  npcLevel:{hawkwind:10,grull:8,grayhorn:12,raoul:6,vera:5,whiterock:10,baine:40,bloodhoof_elder:35,tark:18,mull:16,haru:18,mara:14,kur:15,aska:20,cairne:60,stonetalon:40,seen:22,pala:20,hamya:24,magatha:50,runetotem:45,thunderhorn_guard:12,winterhoof_guard:10,windfury_sentinel:25,elder:40,vendor:25,varg:25,weaponsmith:26,hunter:18,cook:20,spirit:55,crossroads:30,darsok:28,kag:26,mankrik:30,thom:27,kil:24,serra:25,lal:28,zinge:26,scriven:22,innkeeper:22,flightmaster:25,barrens_vendor:24,barrens_armor:24,ochre:28,ochre_guard:26,ochre_vendor:24,companion:null},
   /* 营地 NPC 外观：体型缩放 + 姓名板高度（相对缩放后头顶） */
   npc:{scale:.72, labelY:4.05, labelW:6.2,
     /* 任务标记（魔兽式头顶 ! / ?）：更大、更高、轻弹跳 */

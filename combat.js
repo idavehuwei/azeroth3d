@@ -1853,7 +1853,7 @@ function applyOfflineRestXp(){
     log(`休息充足：休息经验 +${P.restXp-before}（离线约 ${hours.toFixed(1)} 小时）`,"lg-sys");
 }
 
-/* ---------------- 金币（STEP 13）：铜为最小单位 ---------------- */
+/* ---------------- 金币（STEP 13 / plan-v4 STEP 18）：铜为最小单位 ---------------- */
 function formatCopperParts(copper){
   const E=BAL.economy;
   let c=Math.max(0,copper|0);
@@ -1869,6 +1869,8 @@ function formatCopperText(copper){
   if(c||!parts.length)parts.push(`${c}铜`);
   return parts.join(" ");
 }
+/** plan-v4 命名别名 */
+function formatMoney(copper){return formatCopperText(copper);}
 function formatCopperHtml(copper){
   const {g,s,c}=formatCopperParts(copper);
   let h="";

@@ -94,9 +94,14 @@
     text-shadow:0 0 8px rgba(80,140,220,.5),0 1px 2px #000}
   #cmpFrame .barShell,#partyFrame .barShell{height:12px;margin-bottom:2px}
   #cmpFrame .cmp-st,#partyFrame .cmp-st{font-size:9px;color:#8aa0b8;margin-top:1px}
-  #pGold{font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:4px;
+  #pGold{font-size:11px;font-weight:700;letter-spacing:1px;
     text-shadow:0 1px 2px #000;display:flex;gap:8px;flex-wrap:wrap}
   #pGold .g{color:#ffd76a} #pGold .s{color:#d0d8e0} #pGold .c{color:#c98a4a}
+  /* STEP 18：金币常驻 HUD 右下（独立于玩家框架） */
+  #pGoldHud{position:fixed;right:16px;bottom:110px;z-index:10;
+    padding:6px 10px;background:rgba(8,6,4,.72);border:1px solid rgba(232,179,74,.35);
+    border-radius:2px;box-shadow:0 0 12px rgba(0,0,0,.45);pointer-events:none}
+  #pGoldHud #pGold{margin:0}
   /* V1-C3 Buff / Debuff 行 */
   #buffRow{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;min-height:0}
   .buff-ic{position:relative;width:32px;height:32px;flex:0 0 auto;
@@ -675,7 +680,6 @@
  
 <div id="playerFrame">
   <div class="pname" id="pName">⚔️ 你 · 人类战士</div>
-  <div id="pGold"><span class="c">0铜</span></div>
   <div class="barShell"><div class="barFill hpP" id="pHp"></div><div class="barText" id="pHpTx"></div></div>
   <div class="barShell" style="height:11px"><div class="barFill mpP" id="pRage"></div><div class="barText" id="pRageTx" style="font-size:9px"></div></div>
   <div class="barShell" style="height:10px;margin-top:4px">
@@ -684,6 +688,9 @@
     <div class="barText" id="pXpTx" style="font-size:8px"></div>
   </div>
   <div id="buffRow" aria-label="增益与减益"></div>
+</div>
+<div id="pGoldHud" aria-label="金钱">
+  <div id="pGold"><span class="c">0铜</span></div>
 </div>
 <div id="pCastShell" aria-hidden="true">
   <div id="pCastFill"></div>

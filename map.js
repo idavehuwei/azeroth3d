@@ -41,7 +41,8 @@ const MAP_ZONES={
       {id:"elder", label:"贝恩", color:"#ffd9a0", kind:"npc"},
       {id:"cairne", label:T("npc.cairne"), color:"#ffd9a0", kind:"npc"},
       {id:"mull", label:"穆尔", color:"#a8c8e8", kind:"npc"},
-      {id:"vendor", label:"瓦尔格", color:"#8aff9a", kind:"npc"},
+      {id:"vendor", label:"杂货商", color:"#8aff9a", kind:"npc"},
+      {id:"weaponsmith", label:"武器匠", color:"#e8c898", kind:"npc"},
       {id:"hunter", label:"哈鲁", color:"#d0e8a0", kind:"npc"},
       {id:"spirit", label:"灵魂医者", color:"#a8d8ff", kind:"npc"},
       {id:"portal",  label:T("zone.molten_core"),   x:0,   z:-344,color:"#ff8a4a", kind:"portal"},
@@ -276,6 +277,8 @@ function liveLandmarkPos(lm){
   if(lm.id==="harken"&&typeof harken!=="undefined")return {x:harken.position.x,z:harken.position.z};
   if(lm.id==="morin"&&typeof morin!=="undefined")return {x:morin.position.x,z:morin.position.z};
   if(lm.id==="vendor"&&typeof vendor!=="undefined")return {x:vendor.position.x,z:vendor.position.z};
+  if(lm.id==="weaponsmith"&&typeof weaponsmith!=="undefined"&&weaponsmith)
+    return {x:weaponsmith.position.x,z:weaponsmith.position.z};
   if(lm.id==="hunter"&&typeof hunter!=="undefined")return {x:hunter.position.x,z:hunter.position.z};
   if(lm.id==="barrens_vendor"&&typeof barrensVendor!=="undefined"&&barrensVendor)
     return {x:barrensVendor.position.x,z:barrensVendor.position.z};
