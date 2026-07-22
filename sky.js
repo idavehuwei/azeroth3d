@@ -8,7 +8,7 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（BAL）
    [导出] createSkyDome configureSunShadow attachFillLight
-          initZoneSky updateSky disposeSky SKY
+          initZoneSky updateSky disposeSky refreshSunShadows SKY
    ============================================================ */
 "use strict";
 
@@ -102,12 +102,24 @@ const SKY=(function(){
     return entry;
   }
 
+  function shadowMapSizeForDevice(S){
+    const mobile=typeof isMobileClient==="function"?isMobileClient()
+      :(typeof matchMedia==="function"&&matchMedia("(pointer:coarse)").matches);
+    const desk=S.shadowMap||2048;
+    const mob=S.shadowMapMobile!=null?S.shadowMapMobile:1024;
+    return mobile?Math.min(desk,mob):desk;
+  }
+
   function configureSunShadow(sun,opts){
     if(!sun||!sun.shadow)return sun;
     const S=Object.assign({},balSky(),opts||{});
     const half=S.shadowHalf!=null?S.shadowHalf:35;
+    const map=opts&&opts.shadowMap!=null?opts.shadowMap:shadowMapSizeForDevice(S);
     sun.castShadow=true;
-    sun.shadow.mapSize.set(S.shadowMap||2048,S.shadowMap||2048);
+    if(sun.shadow.mapSize.x!==map||sun.shadow.mapSize.y!==map){
+      sun.shadow.mapSize.set(map,map);
+      if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}
+    }
     sun.shadow.camera.left=-half;
     sun.shadow.camera.right=half;
     sun.shadow.camera.top=half;
@@ -118,6 +130,18 @@ const SKY=(function(){
     sun.shadow.normalBias=S.shadowNormalBias!=null?S.shadowNormalBias:.04;
     if(sun.target&&sun.parent&&!sun.target.parent)sun.parent.add(sun.target);
     return sun;
+  }
+
+  /** R8：画面预设 / 移动端切换后刷新各区太阳阴影贴图尺寸 */
+  function refreshSunShadows(){
+    const apply=sun=>{if(sun)configureSunShadow(sun);};
+    if(typeof ZONES!=="undefined"&&ZONES){
+      Object.keys(ZONES).forEach(id=>{
+        const z=ZONES[id];
+        if(z&&z.lights&&z.lights.sun)apply(z.lights.sun);
+      });
+    }
+    if(typeof sun!=="undefined")apply(sun);
   }
 
   function attachFillLight(scene,opts){
@@ -386,6 +410,7 @@ const SKY=(function(){
 
   return{
     createSkyDome,configureSunShadow,attachFillLight,initZoneSky,updateSky,disposeSky,
+    refreshSunShadows,
   };
 })();
 
@@ -395,3 +420,4 @@ const attachFillLight=(s,o)=>SKY.attachFillLight(s,o);
 const initZoneSky=(s,l,o)=>SKY.initZoneSky(s,l,o);
 const updateSky=(t,dt)=>SKY.updateSky(t,dt);
 const disposeSky=(s)=>SKY.disposeSky(s);
+const refreshSunShadows=()=>SKY.refreshSunShadows();

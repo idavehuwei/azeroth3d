@@ -478,6 +478,7 @@ function _gfxCollectUI(){
     hitFlash:!!($("#gfxHitFlash")&&$("#gfxHitFlash").checked),
     dissolve:!!($("#gfxDissolve")&&$("#gfxDissolve").checked),
     useLights:!!($("#gfxLights")&&$("#gfxLights").checked),
+    fakeBloom:!!($("#gfxBloom")&&$("#gfxBloom").checked),
   };
 }
 function syncGraphicsUI(state){
@@ -494,7 +495,10 @@ function syncGraphicsUI(state){
     const pre=GFX_PRESETS[state.preset];
     hint.textContent=pre?(pre.hint||""):"";
   }
-  const map=[["gfxTrails","trails"],["gfxHitFlash","hitFlash"],["gfxDissolve","dissolve"],["gfxLights","useLights"]];
+  const map=[
+    ["gfxTrails","trails"],["gfxHitFlash","hitFlash"],["gfxDissolve","dissolve"],
+    ["gfxLights","useLights"],["gfxBloom","fakeBloom"],
+  ];
   for(let i=0;i<map.length;i++){
     const el=$("#"+map[i][0]);
     if(el)el.checked=!!state[map[i][1]];
@@ -526,13 +530,14 @@ function wireGraphicsUI(){
         trails:!!pre.trails,
         hitFlash:!!pre.hitFlash,
         dissolve:!!pre.dissolve,
+        fakeBloom:!!pre.fakeBloom,
       };
       const state=saveGraphicsSettings(next);
       syncGraphicsUI(state);
       if(typeof announce==="function")announce("画面："+(pre.label||btn.dataset.preset));
     });
   }
-  ["gfxTrails","gfxHitFlash","gfxDissolve","gfxLights"].forEach(id=>{
+  ["gfxTrails","gfxHitFlash","gfxDissolve","gfxLights","gfxBloom"].forEach(id=>{
     const el=$("#"+id);
     if(!el)return;
     el.addEventListener("change",()=>{

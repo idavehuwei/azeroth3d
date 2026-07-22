@@ -500,6 +500,21 @@
     font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;letter-spacing:1px;
     color:#7dff9a;background:rgba(0,0,0,.5);padding:4px 9px;border:1px solid var(--ui-line)}
   #fps.low{color:#ff8a4a}
+  /* ---------- 性能面板（R8）：` 键；?dev 默认开 ---------- */
+  #debugHud{position:fixed;top:10px;right:12px;z-index:25;display:none;pointer-events:none;
+    min-width:200px;padding:8px 10px;text-align:left;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;letter-spacing:.5px;
+    color:#c8e8d0;background:rgba(0,0,0,.62);border:1px solid var(--ui-line);
+    box-shadow:0 0 16px rgba(0,0,0,.45)}
+  #debugHud.over{border-color:#ff6a3a;box-shadow:0 0 14px rgba(255,80,30,.35)}
+  #debugHud .dbg-head{font-size:11px;font-weight:700;color:var(--gold-bright);letter-spacing:1px;margin-bottom:6px}
+  #debugHud .dbg-head kbd{font:inherit;color:#ffcf98;border:1px solid var(--panel-border);padding:0 4px}
+  #debugHud #dbgLines{margin:0;white-space:pre;line-height:1.55;color:#9edcb0}
+  #debugHud.over #dbgLines{color:#ffb090}
+  #debugHud #dbgWarn{margin-top:6px;font-size:10px;letter-spacing:1px}
+  #debugHud #dbgWarn.ok{color:#7dff9a}
+  #debugHud #dbgWarn.bad{color:#ff8a4a;font-weight:700}
+  #debugHud .dbg-foot{margin-top:6px;font-size:9px;color:#8b7a5e;letter-spacing:0}
  
   /* ---------- 任务追踪 & NPC 对话 ---------- */
   #interactBtn{position:fixed;left:50%;bottom:94px;transform:translateX(-50%);z-index:12;display:none;
@@ -657,7 +672,8 @@
     <label class="gfx-opt"><input type="checkbox" id="gfxHitFlash"><span>受击闪白</span></label>
     <label class="gfx-opt"><input type="checkbox" id="gfxDissolve"><span>死亡溶解</span></label>
     <label class="gfx-opt"><input type="checkbox" id="gfxLights"><span>动态点光</span><span class="warn">较耗性能</span></label>
-    <p class="gfx-foot">立即生效，并记住本机设置。卡顿时优先选「流畅」或关闭点光。</p>
+    <label class="gfx-opt"><input type="checkbox" id="gfxBloom"><span>假 Bloom 外壳</span><span class="warn">零 CDN</span></label>
+    <p class="gfx-foot">立即生效，并记住本机设置。卡顿时优先选「流畅」。游戏中按 <kbd style="color:#ffcf98">`</kbd> 查看性能预算。</p>
   </div>
   <h1>熔火之心</h1>
   <h2>MOLTEN&nbsp;CORE&nbsp;·&nbsp;深入炽热核心</h2>
@@ -759,6 +775,11 @@
 <script src="onyxia.js"></script>
 <script src="finder.js"></script>
 <script src="save.js"></script>
-<script>ensureAllZonesBuilt(); if(typeof setWeather==="function")setWeather(typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore");</script>
+<script src="debug.js"></script>
+<script>
+ensureAllZonesBuilt();
+if(typeof refreshSunShadows==="function")refreshSunShadows();
+if(typeof setWeather==="function")setWeather(typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore");
+</script>
 </body>
 </html>

@@ -32,14 +32,13 @@
 | `creatures.js` | 生物族群工厂 | buildQuadruped, buildElemental, buildHumanoidMob, buildFlameSpawn, QUADS, MOB_LOOK |
 | `models.js` | 职业 / NPC / Boss / 建筑 | buildPlayer…, buildBoss, buildHut/Tent/Fence/Watchtower |
 | `anim.js` | 生物动画挂点 | updateMobAnim, beginDeathRoll, updateBossHammerAnim, updateBossWingAnim |
-| `vfx.js` | 战斗表现层 | VFX.spawn, tickVfx, pulseHitFlash, ground_warn / 粒子池 |
+| `vfx.js` | 战斗表现层 | VFX.spawn, tickVfx, pulseHitFlash, ground_warn / 粒子池 / fakeBloom |
 | `weather.js` | 天气层（render-only） | setWeather, updateWeather, clearWeather |
 | `world.js` | 莫高雷世界 | player, boss, MOBS, QUEST, enterRaid, mobDie, setCorpse, tryInteract, vendor, spiritHealer |
 | `combat.js` | 战斗系统 | S, CLASSES, SKILLS, hitEntity, useSkill, gainCopper, getFocusTarget |
 | `buffs.js` | Buff / Debuff 条 | applyBuff, tickBuffs, renderBuffHud, clearAllBuffs |
 | `companions.js` | AI 队友 / 3 人小队 | PARTY, formParty, recruitCompanion, tickCompanion |
 | `threat.js` | 仇恨与职责 | addThreat, getTopThreatActor, meleeHitFromThreat, checkPartyWipe |
-| `vfx.js` | 特效注册表 | VFX, fireProjectile, spawnTelegraph, spawnBurst, disposeVfxMesh |
 | `talents.js` | 天赋数据层 | TALENTS, spendTalent, getSkillCd, cheatTalent |
 | `panels.js` | HUD 面板 | toggleCharPanel, toggleSpellPanel, toggleQuestLog |
 | `quests.js` | 任务枢纽 | QUESTS, acceptQuest, turnInQuest, onQuestMobKill, getQuestLogEntries |
@@ -56,6 +55,7 @@
 | `onyxia.js` | 奥妮克希亚巢穴 | sceneOnyxia, ONYXIA_DUNGEON, buildOnyxiaZone |
 | `finder.js` | 本地地下城查找器 | toggleDungeonFinderPanel, queueDungeonFinder |
 | `save.js` | 存档系统 | saveGame, loadGame, exportSaveCode, importSaveCode |
+| `debug.js` | 性能预算 / 作弊台 | toggleDebugHud, tickDebugHud, cheat.tp/level/time/seed |
 | `main.js` | 主循环 | tick, clampArena |
 | `sfx.js` | 程序化音效 | SFX.init, play, playFoot, playHit, music |
 
@@ -67,7 +67,8 @@
 ## 开发进度
 
 - 已执行账本：`plan-merged.md`（STEP 0–29 / v4.0 完成）
-- **下一阶段单机路线：`plan-v1.md`**（对照 WoC 补齐美术/内容/系统；默认不做联机）
+- **plan-V2 渲染线 R0–R8 已完成**（见 `plan-V2.md`）
+- **下一阶段：`plan-v1.md` / G 表**（对照补齐玩法缺口；默认不做联机）
 
 ## 协作流程
 

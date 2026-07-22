@@ -5,7 +5,7 @@
    ------------------------------------------------------------
    [依赖] THREE（全局，CDN 引入）
    [导出] $ clamp rand R srand worldRng BALANCE BAL WORLD_SEED
-          hashZoneId getZoneSeed setZoneSeed
+          hashZoneId getZoneSeed setZoneSeed effectiveWorldSeed isMobileClient
           sceneRaid scene camera renderer lavaUniforms ARENA_R embers
           EMBERS emberVel makeLabel makeNameplate updateNameplateHp updateNameplatePresentation disposeNameplate
           GFX_PRESETS getGraphicsSettings applyGraphicsSettings loadGraphicsSettings saveGraphicsSettings
@@ -537,6 +537,7 @@ const BALANCE={
     cameraFar:620,
     shadowHalf:35,
     shadowMap:2048,
+    shadowMapMobile:1024,   /* R8：移动端阴影贴图降档 */
     shadowNear:.5,
     shadowFar:220,
     shadowBias:-0.0002,
@@ -627,6 +628,8 @@ const BALANCE={
     trails:true,                     /* 法术拖尾（画面设置可关） */
     hitFlash:true,                   /* 受击闪白 */
     dissolve:true,                   /* 死亡溶解 */
+    fakeBloom:false,                 /* R8：假 bloom 外扩壳（零 CDN，默认关） */
+    fakeBloomShell:{scale:1.55, opacity:.2, shotR:.85, shotOp:.18},
     lava_bolt:{color:0xffa030,glow:0xff4400,glowOp:.4,radius:.75,glowR:1.15,segs:6,originScale:.7,
       trailLen:5,trailSize:.32},
     venom_bolt:{color:0x66cc44,glow:0x228822,glowOp:.45,radius:.7,glowR:1.05,segs:6,originScale:.7,
@@ -708,6 +711,12 @@ const BALANCE={
   save:{key:"azeroth3d_save_v1",version:1},
   /* FPS 叠层（STEP 12）：刷新间隔秒；着色对照目标帧率 */
   fps:{updateInterval:.5,desktopTarget:60,mobileTarget:30},
+  /* 性能预算（plan-V2 · R8）：debug.js 超标告警；桌面 / 移动两档 */
+  perf:{
+    updateInterval:.5,
+    desktop:{fps:60, drawCalls:300, triangles:350000, textures:16},
+    mobile :{fps:30, drawCalls:150, triangles:150000, textures:16},
+  },
   /* 植被 · 水体 · 场景道具（plan-V2 · R3） */
   props:{
     grassCount:8000,
@@ -852,6 +861,10 @@ const BAL=BALANCE;
    玩法随机（伤害浮动、游荡目标等）仍走 rand()，两路分流
    ============================================================ */
 const WORLD_SEED=20260721;
+let WORLD_SEED_OVERRIDE=null; /* cheat.seed(n) 覆盖；已建区不重滚 */
+function effectiveWorldSeed(){
+  return WORLD_SEED_OVERRIDE!=null?(WORLD_SEED_OVERRIDE>>>0):WORLD_SEED;
+}
 function SeededRng(seed){let a=seed>>>0;return function(){
   a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
   t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
@@ -862,11 +875,14 @@ function hashZoneId(id){
   for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619)>>>0;
   return h>>>0;
 }
-function getZoneSeed(id){return(WORLD_SEED^hashZoneId(id))>>>0;}
+function getZoneSeed(id){return(effectiveWorldSeed()^hashZoneId(id))>>>0;}
 let _zoneRng=SeededRng(getZoneSeed("mulgore"));
 function setZoneSeed(id){_zoneRng=SeededRng(getZoneSeed(id));}
 function worldRng(){return _zoneRng();}       /* 兼容旧调用点；实际走当前分区 RNG */
 const srand=(a,b)=>a+_zoneRng()*(b-a);         /* 摆放类随机：静态布景专用 */
+function isMobileClient(){
+  return typeof matchMedia==="function"&&matchMedia("(pointer:coarse)").matches;
+}
 
 /* ---------------- makeLabel：Canvas 悬浮文字（掉落系统以品质色调用，默认参数保持旧观感） ---------------- */
 function makeLabel(text,w,color="#ffd9a0",glow="rgba(255,90,0,.95)"){
@@ -1027,25 +1043,28 @@ const embers=new THREE.Points(emberGeo,new THREE.PointsMaterial({color:0xffa040,
    ============================================================ */
 const GFX_PRESETS={
   low:{
-    label:"流畅", hint:"少粒子 · 无拖尾 · 无点光",
-    useLights:false, trails:false, hitFlash:true, dissolve:false,
+    label:"流畅", hint:"少粒子 · 无拖尾 · 阴影 1024 · 无假 Bloom",
+    useLights:false, trails:false, hitFlash:true, dissolve:false, fakeBloom:false,
     pool:{capacity:4, maxCount:12},
     impactLife:.55, impactSize:.35, trailLen:0, segs:5,
     counts:{melee_impact:4, roar_aura:8, heal_cross:6, loot_spark:6},
+    shadowMap:1024, pixelRatioCap:1.25,
   },
   balanced:{
     label:"均衡", hint:"默认推荐 · 性能与观感兼顾",
-    useLights:false, trails:true, hitFlash:true, dissolve:true,
+    useLights:false, trails:true, hitFlash:true, dissolve:true, fakeBloom:false,
     pool:{capacity:8, maxCount:24},
     impactLife:.75, impactSize:.4, trailLen:5, segs:6,
     counts:{melee_impact:8, roar_aura:18, heal_cross:10, loot_spark:12},
+    shadowMap:2048, pixelRatioCap:2,
   },
   high:{
-    label:"华丽", hint:"更多粒子 · 拖尾 · 可选点光",
-    useLights:false, trails:true, hitFlash:true, dissolve:true,
+    label:"华丽", hint:"更多粒子 · 拖尾 · 假 Bloom 外壳",
+    useLights:false, trails:true, hitFlash:true, dissolve:true, fakeBloom:true,
     pool:{capacity:14, maxCount:40},
     impactLife:1.0, impactSize:.45, trailLen:8, segs:8,
     counts:{melee_impact:14, roar_aura:28, heal_cross:14, loot_spark:18},
+    shadowMap:2048, pixelRatioCap:2,
   },
 };
 
@@ -1061,6 +1080,7 @@ function getGraphicsSettings(){
     trails:!!pre.trails,
     hitFlash:!!pre.hitFlash,
     dissolve:!!pre.dissolve,
+    fakeBloom:!!pre.fakeBloom,
   };
 }
 
@@ -1074,6 +1094,7 @@ function applyGraphicsSettings(cfg,opts){
     trails:cfg&&cfg.trails!=null?!!cfg.trails:!!pre.trails,
     hitFlash:cfg&&cfg.hitFlash!=null?!!cfg.hitFlash:!!pre.hitFlash,
     dissolve:cfg&&cfg.dissolve!=null?!!cfg.dissolve:!!pre.dissolve,
+    fakeBloom:cfg&&cfg.fakeBloom!=null?!!cfg.fakeBloom:!!pre.fakeBloom,
   };
   _gfxState=state;
   const V=BAL.vfx;
@@ -1082,6 +1103,7 @@ function applyGraphicsSettings(cfg,opts){
   V.trails=state.trails;
   V.hitFlash=state.hitFlash;
   V.dissolve=state.dissolve;
+  V.fakeBloom=state.fakeBloom;
   V.pool={capacity:pre.pool.capacity, maxCount:pre.pool.maxCount};
   if(!V.impact)V.impact={};
   V.impact.life=pre.impactLife;
@@ -1094,6 +1116,12 @@ function applyGraphicsSettings(cfg,opts){
     const k=keys[i];
     if(V[k]&&pre.counts[k]!=null)V[k].count=pre.counts[k];
   }
+  /* R8：阴影档 + 像素比（移动端阴影仍封顶 shadowMapMobile） */
+  if(BAL.sky&&pre.shadowMap)BAL.sky.shadowMap=pre.shadowMap;
+  if(typeof renderer!=="undefined"&&renderer&&pre.pixelRatioCap){
+    renderer.setPixelRatio(Math.min(devicePixelRatio,pre.pixelRatioCap));
+  }
+  if(typeof refreshSunShadows==="function")refreshSunShadows();
   if(opts.rebuild&&typeof rebuildVfxPool==="function")rebuildVfxPool();
   return state;
 }

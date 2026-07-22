@@ -27,6 +27,7 @@
           world.js 运行时（heli sun fireflies FIREFLIES ffPhases）
           save.js 运行时（启程 / 继续冒险）
           map.js 运行时（updateMinimap）
+          debug.js 运行时（tickDebugHud · 在 script 链末尾加载）
    [导出] clampArena tick chosenClass toggleFps
    ============================================================ */
 "use strict";
@@ -60,7 +61,9 @@ const clock=new THREE.Clock();
 
 /* ---------------- FPS 叠层（STEP 12） ---------------- */
 const FPS={show:false,frames:0,acc:0,value:0,el:null};
-function isMobilePointer(){return matchMedia("(pointer:coarse)").matches;}
+function isMobilePointer(){
+  return typeof isMobileClient==="function"?isMobileClient():matchMedia("(pointer:coarse)").matches;
+}
 function fpsTarget(){return isMobilePointer()?BAL.fps.mobileTarget:BAL.fps.desktopTarget;}
 function applyFpsVisibility(){
   if(!FPS.el)FPS.el=$("#fps");
@@ -799,6 +802,7 @@ function tick(){
   if(typeof updateMinimap==="function")updateMinimap();
 
   renderer.render(scene,camera);
+  if(typeof tickDebugHud==="function")tickDebugHud(dt);
 }
 tick();
 

@@ -160,6 +160,20 @@ function vfxProjectile(p){
     new THREE.MeshBasicMaterial({color:p.glow||p.color,transparent:true,opacity:p.glowOp!=null?p.glowOp:.4})
   );
   g.add(core); g.add(glow);
+  /* R8：假 bloom——BackSide 外扩壳，零 CDN / 默认关 */
+  if(BAL.vfx&&BAL.vfx.fakeBloom){
+    const fb=BAL.vfx.fakeBloomShell||{};
+    const sm=fb.scale!=null?fb.scale:1.55;
+    const op=fb.opacity!=null?fb.opacity:.2;
+    const shell=new THREE.Mesh(
+      VFX_GEO.sphere((p.glowR||p.radius*1.5)*sc*sm,Math.max(5,seg-1)),
+      new THREE.MeshBasicMaterial({
+        color:p.glow||p.color,transparent:true,opacity:op,
+        side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false,
+      })
+    );
+    g.add(shell);
+  }
 
   const trailsOn=BAL.vfx&&BAL.vfx.trails!==false;
   const trailN=trailsOn?Math.min(p.trailLen!=null?p.trailLen:5,8):0;

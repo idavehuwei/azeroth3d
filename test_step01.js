@@ -741,8 +741,23 @@ assert(coreSrc.includes("azeroth3d_gfx_v1"),"画面设置独立 localStorage 键
 assert(vfxSrc.includes("rebuildVfxPool")&&vfxSrc.includes("BAL.vfx.trails"),"vfx 尊重拖尾开关/池重建");
 assert(saveSrc.includes("wireGraphicsUI"),"save 绑定画面设置 UI");
 
+/* plan-V2 · R8 性能预算与可选后期 */
+assert(html.includes('src="debug.js"'),"game.html 加载 debug.js");
+const debugSrc=fs.readFileSync(path.join(__dirname,"debug.js"),"utf8");
+assert(debugSrc.includes("toggleDebugHud")&&debugSrc.includes("tickDebugHud"),"debug 含面板开关/tick");
+assert(debugSrc.includes("getPerfBudget")&&debugSrc.includes("cheat.tp"),"debug 含预算与 cheat.tp");
+assert(debugSrc.includes("cheatLevel")&&debugSrc.includes("cheatTime")&&debugSrc.includes("cheatSeed"),"debug 含 level/time/seed");
+assert(coreSrc.includes("BAL.perf")||coreSrc.includes("perf:{"),"BALANCE 含 perf 预算表");
+assert(coreSrc.includes("shadowMapMobile")&&coreSrc.includes("fakeBloom"),"含移动阴影档与假 Bloom");
+assert(coreSrc.includes("isMobileClient")&&coreSrc.includes("effectiveWorldSeed"),"含移动检测/种子覆盖");
+assert(skySrc.includes("refreshSunShadows")&&skySrc.includes("shadowMapSizeForDevice"),"sky 含阴影刷新/移动档");
+assert(vfxSrc.includes("fakeBloom")&&vfxSrc.includes("BackSide"),"vfx 假 Bloom 外扩壳");
+assert(mainSrc.includes("tickDebugHud"),"main 驱动 tickDebugHud");
+assert(html.includes("debugHud")||debugSrc.includes("debugHud"),"含 debugHud 面板");
+assert(html.includes("gfxBloom"),"登录页含假 Bloom 开关");
+
 if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–29 … / V1 · plan-V2 R0–R7 冒烟");
+console.log("\n全部通过 · STEP 17–29 … / V1 · plan-V2 R0–R8 冒烟");

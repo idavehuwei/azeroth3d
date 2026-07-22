@@ -617,6 +617,16 @@ function firePlayerShot(tgt,dmg,label,scale=1){
   const m=new THREE.Mesh(coreGeo,new THREE.MeshBasicMaterial({color:CLS.shotColor}));
   const glow=new THREE.Mesh(glowGeo,new THREE.MeshBasicMaterial({color:CLS.shotColor,transparent:true,opacity:.35}));
   m.add(glow);
+  if(BAL.vfx&&BAL.vfx.fakeBloom){
+    const fb=BAL.vfx.fakeBloomShell||{};
+    const r=(fb.shotR!=null?fb.shotR:.85)*scale;
+    const op=fb.shotOp!=null?fb.shotOp:.18;
+    const shellGeo=typeof VFX_GEO!=="undefined"?VFX_GEO.sphere(r,6):new THREE.SphereGeometry(r,6,6);
+    m.add(new THREE.Mesh(shellGeo,new THREE.MeshBasicMaterial({
+      color:CLS.shotColor,transparent:true,opacity:op,
+      side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false,
+    })));
+  }
   m.position.copy(player.position); m.position.y=1.9;
   scene.add(m);
   S.pShots.push({mesh:m,tgt,dmg,label,speed:28,shotColor:CLS.shotColor});
