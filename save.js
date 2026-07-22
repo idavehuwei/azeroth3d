@@ -15,7 +15,7 @@
           deeds.js 运行时（collectDeedsSave applyDeedsSave resetDeeds）
    [导出] saveGame loadGame hasSave clearSave collectSaveData applySaveData
           exportSaveCode importSaveCode beginNewGame beginContinue
-          refreshStartMenu
+          refreshStartMenu wireGraphicsUI
           （存档字段含 companion · quests{} · mats{} · deeds{} · STEP 20–25）
    ============================================================ */
 "use strict";
@@ -469,9 +469,83 @@ function showNewGamePanel(show){
   if(tools)tools.style.display=show?"none":"block";
 }
 
+/* ---------------- 登录页 · 画面设置齿轮 ---------------- */
+function _gfxCollectUI(){
+  const on=$("#gfxPresets button.on");
+  return {
+    preset:on&&on.dataset.preset?on.dataset.preset:(BAL.graphics.defaultPreset||"balanced"),
+    trails:!!($("#gfxTrails")&&$("#gfxTrails").checked),
+    hitFlash:!!($("#gfxHitFlash")&&$("#gfxHitFlash").checked),
+    dissolve:!!($("#gfxDissolve")&&$("#gfxDissolve").checked),
+    useLights:!!($("#gfxLights")&&$("#gfxLights").checked),
+  };
+}
+function syncGraphicsUI(state){
+  state=state||(typeof getGraphicsSettings==="function"?getGraphicsSettings():null);
+  if(!state)return;
+  const presets=$("#gfxPresets");
+  if(presets){
+    presets.querySelectorAll("button").forEach(b=>{
+      b.classList.toggle("on",b.dataset.preset===state.preset);
+    });
+  }
+  const hint=$("#gfxHint");
+  if(hint&&typeof GFX_PRESETS!=="undefined"){
+    const pre=GFX_PRESETS[state.preset];
+    hint.textContent=pre?(pre.hint||""):"";
+  }
+  const map=[["gfxTrails","trails"],["gfxHitFlash","hitFlash"],["gfxDissolve","dissolve"],["gfxLights","useLights"]];
+  for(let i=0;i<map.length;i++){
+    const el=$("#"+map[i][0]);
+    if(el)el.checked=!!state[map[i][1]];
+  }
+}
+function wireGraphicsUI(){
+  const gear=$("#btnGfxGear"), panel=$("#gfxPanel"), close=$("#gfxClose");
+  if(!gear||!panel||typeof getGraphicsSettings!=="function")return;
+  syncGraphicsUI(getGraphicsSettings());
+  const setOpen=open=>{
+    panel.classList.toggle("open",!!open);
+    gear.setAttribute("aria-expanded",open?"true":"false");
+  };
+  gear.addEventListener("click",e=>{
+    e.stopPropagation();
+    setOpen(!panel.classList.contains("open"));
+  });
+  if(close)close.addEventListener("click",e=>{e.stopPropagation();setOpen(false);});
+  const presets=$("#gfxPresets");
+  if(presets){
+    presets.addEventListener("click",e=>{
+      const btn=e.target.closest("button[data-preset]");
+      if(!btn||typeof GFX_PRESETS==="undefined")return;
+      const pre=GFX_PRESETS[btn.dataset.preset];
+      if(!pre)return;
+      const next={
+        preset:btn.dataset.preset,
+        useLights:!!pre.useLights,
+        trails:!!pre.trails,
+        hitFlash:!!pre.hitFlash,
+        dissolve:!!pre.dissolve,
+      };
+      const state=saveGraphicsSettings(next);
+      syncGraphicsUI(state);
+      if(typeof announce==="function")announce("画面："+(pre.label||btn.dataset.preset));
+    });
+  }
+  ["gfxTrails","gfxHitFlash","gfxDissolve","gfxLights"].forEach(id=>{
+    const el=$("#"+id);
+    if(!el)return;
+    el.addEventListener("change",()=>{
+      const state=saveGraphicsSettings(_gfxCollectUI());
+      syncGraphicsUI(state);
+    });
+  });
+}
+
 /* ---------------- 启动页绑定 ---------------- */
 function wireSaveUI(){
   refreshStartMenu();
+  wireGraphicsUI();
   const btnCont=$("#btnContinue");
   if(btnCont)btnCont.addEventListener("click",()=>beginContinue());
   const btnNew=$("#btnNew");

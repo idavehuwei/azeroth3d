@@ -687,6 +687,29 @@ function applyBossFrame(cfg){
   const hero=S.difficulty==="heroic";
   if(n)n.textContent="🔥 "+cfg.name+(hero?"（英雄）":"");
   if(t)t.textContent=cfg.title+(hero?" · 英雄难度":"");
+  refreshBossHpTicks(true);
+}
+
+/** R7：Boss 血条分段刻度（阶段阈值，如 50% / 30%） */
+function refreshBossHpTicks(force){
+  const el=$("#bossHpTicks"); if(!el)return;
+  const cfg=typeof getBossCfg==="function"?getBossCfg():null;
+  const st=cfg&&BAL[cfg.statsKey];
+  const key=(S.b&&S.b.id||"")+"|"+(st&&st.phase2At)+"|"+(st&&st.phase3At);
+  if(!force&&el.dataset.key===key)return;
+  el.dataset.key=key;
+  el.innerHTML="";
+  if(!st)return;
+  const marks=[];
+  if(st.phase2At!=null)marks.push(st.phase2At);
+  if(st.phase3At!=null)marks.push(st.phase3At);
+  /* 无阶段数据时画 25/50/75 通用刻度 */
+  if(!marks.length)marks.push(.75,.5,.25);
+  marks.forEach(p=>{
+    const i=document.createElement("i");
+    i.style.left=(p*100)+"%";
+    el.appendChild(i);
+  });
 }
 
 function armBossSkills(){
@@ -770,6 +793,7 @@ function bossTargetable(){return S.b.alive&&!S.b.rising&&!S.b.submerged;}
 
 const BOSS_ENT={
   get hp(){return S.b.hp}, set hp(v){S.b.hp=v},
+  get mesh(){return typeof boss!=="undefined"?boss:null;},
   variance:BAL.variance.boss,
   threat:{},
   dead(){return !bossTargetable();},

@@ -7,7 +7,8 @@
    [导出] $ clamp rand R srand worldRng BALANCE BAL WORLD_SEED
           hashZoneId getZoneSeed setZoneSeed
           sceneRaid scene camera renderer lavaUniforms ARENA_R embers
-          EMBERS emberVel makeLabel makeNameplate updateNameplateHp disposeNameplate
+          EMBERS emberVel makeLabel makeNameplate updateNameplateHp updateNameplatePresentation disposeNameplate
+          GFX_PRESETS getGraphicsSettings applyGraphicsSettings loadGraphicsSettings saveGraphicsSettings
    ============================================================ */
 /* ============================================================
    熔火之心 · 最终 Boss 战斗模拟
@@ -602,11 +603,15 @@ const BALANCE={
     recenterSpd:3.2,        /* 前进时视角回正（LMB 环绕后） */
     bothBtnForward:true,    /* 左右键同按 = 朝镜头前进（魔兽） */
   },
-  /* 头顶姓名板（血条 + 等级） */
+  /* 头顶姓名板（血条 + 等级）· plan-V2 R7 打磨（性能优先：无每帧 raycast） */
   nameplate:{
     barW:1.9, barH:.16,
     enemy:"#d84828", friend:"#3a9a48", bg:"#1a1208",
     enemyGlow:"rgba(180,40,20,.9)", friendGlow:"rgba(40,120,50,.9)",
+    eliteBorder:"#ffd76a",
+    near:10, far:42,         /* 距离缩放区间；超出 far 直接隐藏 */
+    minScale:.55, maxScale:1.1,
+    farFade:.3,              /* 远处最低不透明度（距离衰减，非 raycast） */
   },
   npcLevel:{hawkwind:10,grull:8,grayhorn:12,raoul:6,vera:5,whiterock:10,baine:40,bloodhoof_elder:35,tark:18,mull:16,haru:18,mara:14,kur:15,aska:20,cairne:60,stonetalon:40,seen:22,pala:20,hamya:24,magatha:50,runetotem:45,thunderhorn_guard:12,winterhoof_guard:10,windfury_sentinel:25,elder:40,vendor:25,varg:25,hunter:18,cook:20,spirit:55,crossroads:30,darsok:28,kag:26,mankrik:30,thom:27,kil:24,serra:25,lal:28,zinge:26,scriven:22,innkeeper:22,flightmaster:25,barrens_vendor:24,barrens_armor:24,ochre:28,ochre_guard:26,ochre_vendor:24,companion:null},
   /* 营地 NPC 外观：体型缩放 + 姓名板高度（相对缩放后头顶） */
@@ -616,18 +621,32 @@ const BALANCE={
     /* 野怪经验在 mobs 表；xpMax[i] = 第 i+1 级升下一级所需（共 max-1 档） */
     xpMax:[200,300,450,650,900,1200,1600,2100,2700,3500,4200,5000,5900,6900,8000,9200,10500],
     perLevel:{dmgMul:.05, hpMax:.08}},
-  /* 特效配方默认参数（STEP 9a）：改观感只改这里；运行时 ctx 可覆盖 */
+  /* 特效配方默认参数（STEP 9a / plan-V2 R7）：性能优先——默认关动态点光 */
   vfx:{
-    lava_bolt:{color:0xffa030,glow:0xff4400,glowOp:.4,radius:.9,glowR:1.4,segs:10,originScale:.7},
-    venom_bolt:{color:0x66cc44,glow:0x228822,glowOp:.45,radius:.85,glowR:1.3,segs:10,originScale:.7},
-    eruption_ring:{ringColor:0xff2200,discColor:0xff3b00,ringOp:.85,discOp:.22,yRing:.06,yDisc:.05,innerMul:.86},
-    venom_ring:{ringColor:0x44aa22,discColor:0x33cc44,ringOp:.8,discOp:.2,yRing:.06,yDisc:.05,innerMul:.86},
-    melee_impact:{color:0xff6a1a,count:14,spread:1.2,size:.45},
-    roar_aura:{color:0xffb040,count:70,spread:7,size:.45},
-    heal_cross:{color:0x66ff88,count:20,spread:1.4,size:.45},
-    loot_spark:{color:0xffd76a,count:24,spread:1.6,size:.45},
-    impact:{size:.45,life:1.1},   /* 通用粒子爆发默认 */
+    useLights:false,                 /* PointLight 极贵；弹道/爆发默认只用自发光球 */
+    trails:true,                     /* 法术拖尾（画面设置可关） */
+    hitFlash:true,                   /* 受击闪白 */
+    dissolve:true,                   /* 死亡溶解 */
+    lava_bolt:{color:0xffa030,glow:0xff4400,glowOp:.4,radius:.75,glowR:1.15,segs:6,originScale:.7,
+      trailLen:5,trailSize:.32},
+    venom_bolt:{color:0x66cc44,glow:0x228822,glowOp:.45,radius:.7,glowR:1.05,segs:6,originScale:.7,
+      trailLen:5,trailSize:.3},
+    eruption_ring:{ringColor:0xff2200,discColor:0xff3b00,ringOp:.85,discOp:.22,yRing:.06,yDisc:.05,innerMul:.92},
+    venom_ring:{ringColor:0x44aa22,discColor:0x33cc44,ringOp:.8,discOp:.2,yRing:.06,yDisc:.05,innerMul:.92},
+    melee_impact:{color:0xff6a1a,count:8,spread:1.1,size:.4},
+    roar_aura:{color:0xffb040,count:18,spread:5.5,size:.4},
+    heal_cross:{color:0x66ff88,count:10,spread:1.2,size:.4},
+    loot_spark:{color:0xffd76a,count:12,spread:1.4,size:.4},
+    holy_shield:{color:0xffe9a0,op:.35,radius:1.85,y:1.75},
+    rune_ring:{color:0xffd76a,ringColor:0xffd76a,ringOp:.55,r:2.4,life:3},
+    impact:{size:.4,life:.75},       /* 爆发寿命缩短，少占池位 */
+    hit:{dur:.12, lean:.18},
+    critChance:.14, critSizeMul:1.45,
+    dissolveSpd:1.4,
+    pool:{capacity:8, maxCount:24},  /* 并发爆发上限 / 单次粒子上限 */
   },
+  /* 画面/特效偏好（登录页齿轮；与角色存档分离，写入独立 localStorage） */
+  graphics:{key:"azeroth3d_gfx_v1", defaultPreset:"balanced"},
   /* 天赋（STEP 10a）：点数规则 + 每节点每级修饰量；树形拓扑在 talents.js */
   talents:{
     firstPointLevel:2,   /* 升到 2 级起每级 1 点；1→10 共 9 点 */
@@ -881,6 +900,7 @@ function makeNameplate(name,level,opts){
   opts=opts||{};
   const NP=BAL.nameplate||{};
   const friendly=!!opts.friendly;
+  const elite=!!opts.elite;
   const color=opts.color||(friendly?"#a8e8c0":"#ffd9a0");
   const glow=opts.glow||(friendly?(NP.friendGlow||"rgba(40,120,50,.9)"):(NP.enemyGlow||"rgba(180,40,20,.9)"));
   const barW=opts.barW!=null?opts.barW:(NP.barW||1.9);
@@ -890,6 +910,14 @@ function makeNameplate(name,level,opts){
   const lab=makeLabel(title,opts.w||5.2,color,glow);
   lab.position.y=.28;
   g.add(lab);
+  /* R7：精英金色描边 */
+  if(elite){
+    const border=makeBarSprite(NP.eliteBorder||"#ffd76a",barW+.12,barH+.1);
+    border.position.y=-.12;
+    border.position.z=-0.01;
+    g.add(border);
+    g.userData.border=border;
+  }
   const bg=makeBarSprite(NP.bg||"#1a1208",barW,barH);
   bg.position.y=-.12;
   g.add(bg);
@@ -897,7 +925,7 @@ function makeNameplate(name,level,opts){
   fill.center.set(0,.5);
   fill.position.set(-barW/2,-.12,0.01);
   g.add(fill);
-  g.userData={lab,bg,fill,barW,barH,friendly,level,name};
+  g.userData={lab,bg,fill,barW,barH,friendly,elite,level,name,baseOp:1};
   return g;
 }
 function updateNameplateHp(root,hp,hpMax){
@@ -905,6 +933,51 @@ function updateNameplateHp(root,hp,hpMax){
   const ratio=hpMax>0?Math.max(0,Math.min(1,hp/hpMax)):0;
   const barW=root.userData.barW||1.9;
   root.userData.fill.scale.x=Math.max(0.001,barW*ratio);
+}
+/**
+ * R7：姓名板距离缩放 / 远距淡出 / 超远隐藏（O(1)，无 raycast）
+ * 遮挡 raycast 已撤下——全场景 traverse + 每板一次 intersect 会拖垮帧率。
+ */
+function updateNameplatePresentation(root,worldPos){
+  if(!root||!worldPos||!camera)return;
+  const NP=BAL.nameplate||{};
+  const dx=worldPos.x-camera.position.x;
+  const dy=worldPos.y-camera.position.y;
+  const dz=worldPos.z-camera.position.z;
+  const distSq=dx*dx+dy*dy+dz*dz;
+  const far=NP.far!=null?NP.far:42;
+  const farSq=far*far;
+  if(distSq>farSq){
+    if(root.visible)root.visible=false;
+    return;
+  }
+  if(!root.visible)root.visible=true;
+
+  const near=NP.near!=null?NP.near:10;
+  const dist=Math.sqrt(distSq);
+  const t=dist<=near?0:Math.min(1,(dist-near)/Math.max(.01,far-near));
+  const sMax=NP.maxScale!=null?NP.maxScale:1.1;
+  const sMin=NP.minScale!=null?NP.minScale:.55;
+  const s=sMax*(1-t)+sMin*t;
+  if(root.userData._npScale!==s){
+    root.userData._npScale=s;
+    root.scale.setScalar(s);
+  }
+
+  const farFade=NP.farFade!=null?NP.farFade:.3;
+  const fade=1-t*(1-farFade);
+  if(root.userData._npFade===fade)return;
+  root.userData._npFade=fade;
+  const U=root.userData;
+  const sprites=[U.lab,U.bg,U.fill,U.border];
+  for(let i=0;i<sprites.length;i++){
+    const sp=sprites[i];
+    if(!sp||!sp.material)continue;
+    const m=sp.material;
+    if(m.userData._npBaseOp==null)m.userData._npBaseOp=m.opacity!=null?m.opacity:1;
+    m.transparent=true;
+    m.opacity=m.userData._npBaseOp*fade;
+  }
 }
 function disposeNameplate(root){
   if(!root)return;
@@ -947,3 +1020,105 @@ emberGeo.setAttribute("position",new THREE.BufferAttribute(emberPos,3));
 const embers=new THREE.Points(emberGeo,new THREE.PointsMaterial({color:0xffa040,size:.32,
   transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false}));
 /* 火星粒子在 buildRaidScene 中加到 sceneRaid */
+
+/* ============================================================
+   画面 / 特效偏好（登录页齿轮）
+   与角色存档分离；改预设只动 BAL.vfx 性能字段，不改颜色语义
+   ============================================================ */
+const GFX_PRESETS={
+  low:{
+    label:"流畅", hint:"少粒子 · 无拖尾 · 无点光",
+    useLights:false, trails:false, hitFlash:true, dissolve:false,
+    pool:{capacity:4, maxCount:12},
+    impactLife:.55, impactSize:.35, trailLen:0, segs:5,
+    counts:{melee_impact:4, roar_aura:8, heal_cross:6, loot_spark:6},
+  },
+  balanced:{
+    label:"均衡", hint:"默认推荐 · 性能与观感兼顾",
+    useLights:false, trails:true, hitFlash:true, dissolve:true,
+    pool:{capacity:8, maxCount:24},
+    impactLife:.75, impactSize:.4, trailLen:5, segs:6,
+    counts:{melee_impact:8, roar_aura:18, heal_cross:10, loot_spark:12},
+  },
+  high:{
+    label:"华丽", hint:"更多粒子 · 拖尾 · 可选点光",
+    useLights:false, trails:true, hitFlash:true, dissolve:true,
+    pool:{capacity:14, maxCount:40},
+    impactLife:1.0, impactSize:.45, trailLen:8, segs:8,
+    counts:{melee_impact:14, roar_aura:28, heal_cross:14, loot_spark:18},
+  },
+};
+
+let _gfxState=null;
+
+function getGraphicsSettings(){
+  if(_gfxState)return Object.assign({},_gfxState);
+  const p=BAL.graphics&&BAL.graphics.defaultPreset||"balanced";
+  const pre=GFX_PRESETS[p]||GFX_PRESETS.balanced;
+  return {
+    preset:p,
+    useLights:!!pre.useLights,
+    trails:!!pre.trails,
+    hitFlash:!!pre.hitFlash,
+    dissolve:!!pre.dissolve,
+  };
+}
+
+function applyGraphicsSettings(cfg,opts){
+  opts=opts||{};
+  const presetId=(cfg&&cfg.preset&&GFX_PRESETS[cfg.preset])?cfg.preset:(BAL.graphics.defaultPreset||"balanced");
+  const pre=GFX_PRESETS[presetId];
+  const state={
+    preset:presetId,
+    useLights:cfg&&cfg.useLights!=null?!!cfg.useLights:!!pre.useLights,
+    trails:cfg&&cfg.trails!=null?!!cfg.trails:!!pre.trails,
+    hitFlash:cfg&&cfg.hitFlash!=null?!!cfg.hitFlash:!!pre.hitFlash,
+    dissolve:cfg&&cfg.dissolve!=null?!!cfg.dissolve:!!pre.dissolve,
+  };
+  _gfxState=state;
+  const V=BAL.vfx;
+  if(!V)return state;
+  V.useLights=state.useLights;
+  V.trails=state.trails;
+  V.hitFlash=state.hitFlash;
+  V.dissolve=state.dissolve;
+  V.pool={capacity:pre.pool.capacity, maxCount:pre.pool.maxCount};
+  if(!V.impact)V.impact={};
+  V.impact.life=pre.impactLife;
+  V.impact.size=pre.impactSize;
+  const tLen=state.trails?pre.trailLen:0;
+  if(V.lava_bolt){V.lava_bolt.trailLen=tLen; V.lava_bolt.segs=pre.segs;}
+  if(V.venom_bolt){V.venom_bolt.trailLen=tLen; V.venom_bolt.segs=pre.segs;}
+  const keys=["melee_impact","roar_aura","heal_cross","loot_spark"];
+  for(let i=0;i<keys.length;i++){
+    const k=keys[i];
+    if(V[k]&&pre.counts[k]!=null)V[k].count=pre.counts[k];
+  }
+  if(opts.rebuild&&typeof rebuildVfxPool==="function")rebuildVfxPool();
+  return state;
+}
+
+function loadGraphicsSettings(){
+  let cfg=null;
+  try{
+    const key=BAL.graphics&&BAL.graphics.key;
+    if(key){
+      const raw=localStorage.getItem(key);
+      if(raw)cfg=JSON.parse(raw);
+    }
+  }catch(e){cfg=null;}
+  if(!cfg||typeof cfg!=="object")cfg={preset:BAL.graphics.defaultPreset||"balanced"};
+  if(!GFX_PRESETS[cfg.preset])cfg.preset=BAL.graphics.defaultPreset||"balanced";
+  return applyGraphicsSettings(cfg);
+}
+
+function saveGraphicsSettings(cfg){
+  const state=applyGraphicsSettings(cfg||getGraphicsSettings(),{rebuild:true});
+  try{
+    const key=BAL.graphics&&BAL.graphics.key;
+    if(key)localStorage.setItem(key,JSON.stringify(state));
+  }catch(e){}
+  return state;
+}
+
+loadGraphicsSettings();

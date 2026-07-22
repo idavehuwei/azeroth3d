@@ -22,7 +22,7 @@
           sky.js 运行时（updateSky · render-only 昼夜/阴影跟随）
           rig.js 运行时（updateHumanoidAnim）
           items.js（updateDrops nearestDrop removeDropOf cancelConsume）
-          vfx.js（VFX spawnBurst fireProjectile disposeVfxMesh）
+          vfx.js（VFX spawnBurst fireProjectile disposeVfxMesh tickVfx）
           raid.js 运行时（bossAI distToBoss bossTargetable DUNGEON）
           world.js 运行时（heli sun fireflies FIREFLIES ffPhases）
           save.js 运行时（启程 / 继续冒险）
@@ -276,6 +276,8 @@ function tick(){
         if(typeof updateMobAnim==="function")updateMobAnim(m,dt);
         m.label.position.set(m.mesh.position.x,gy+m.labelY,m.mesh.position.z);
         if(typeof updateNameplateHp==="function")updateNameplateHp(m.label,m.hp,m.hpMax);
+        if(typeof updateNameplatePresentation==="function")
+          updateNameplatePresentation(m.label,m.label.position);
         /* 精英光环脉动 */
         if(m.elite&&m.aura&&m.state!=="dead"){
           const pulse=BAL.elite.aura.pulse||.3;
@@ -494,7 +496,10 @@ function tick(){
         phase:S.p.walkPhase,
         style,
       });
-      if(S.p.animHitT>0)S.p.animHitT=Math.max(0,S.p.animHitT-dt*6);
+      if(S.p.animHitT>0){
+        const hitDur=(BAL.vfx&&BAL.vfx.hit&&BAL.vfx.hit.dur)||.12;
+        S.p.animHitT=Math.max(0,S.p.animHitT-dt/hitDur);
+      }
       /* V1-A5：脚步（walkPhase 过零） */
       const sFoot=Math.sin(S.p.walkPhase);
       if(ml>.1&&S.p._prevFootSin!=null&&S.p._prevFootSin<0&&sFoot>=0){
@@ -657,6 +662,8 @@ function tick(){
       if(a.label){
         a.label.position.set(a.mesh.position.x,2.8,a.mesh.position.z);
         if(typeof updateNameplateHp==="function")updateNameplateHp(a.label,a.hp,a.hpMax);
+        if(typeof updateNameplatePresentation==="function")
+          updateNameplatePresentation(a.label,a.label.position);
       }
     }
 
@@ -666,7 +673,7 @@ function tick(){
       const dir=pr.target.clone().sub(pr.mesh.position);
       const d=dir.length();
       if(d<1.2){
-        VFX.spawn("melee_impact",{pos:pr.mesh.position,color:0xff6a1a,count:30,spread:2.5});
+        VFX.spawn("melee_impact",{pos:pr.mesh.position,color:0xff6a1a,count:10,spread:2.0});
         if(player.position.distanceTo(pr.target)<pr.hitR)playerHit(R(pr.dmg),pr.label);
         else{log(`你成功躲开了${pr.label}！`,"lg-me");fct(player.position.clone().setY(3.4),"躲避！","#8ad0ff",16);}
         scene.remove(pr.mesh);disposeVfxMesh(pr.mesh);S.projectiles.splice(i,1);continue;
@@ -702,14 +709,16 @@ function tick(){
       dir.normalize();sh.mesh.position.add(dir.multiplyScalar(sh.speed*dt));
     }
 
-    /* ---- 地面 AoE ---- */
+    /* ---- 地面 AoE（填充动画由 tickVfx；此处推进计时并结算伤害） ---- */
     for(let i=S.telegraphs.length-1;i>=0;i--){
       const tg=S.telegraphs[i];tg.t+=dt;
-      const k=Math.min(1,tg.t/tg.delay);
-      tg.disc.scale.setScalar(.2+k*.8);
-      tg.ring.material.opacity=.5+Math.sin(S.t*10)*.3;
+      if(tg.kind!=="ground_warn"){
+        const k=Math.min(1,tg.t/tg.delay);
+        if(tg.disc)tg.disc.scale.setScalar(.2+k*.8);
+        if(tg.ring&&tg.ring.material)tg.ring.material.opacity=.5+Math.sin(S.t*10)*.3;
+      }
       if(tg.t>=tg.delay){
-        VFX.spawn("melee_impact",{pos:new THREE.Vector3(tg.x,.4,tg.z),color:0xff4400,count:40,spread:tg.r*.8});
+        VFX.spawn("melee_impact",{pos:new THREE.Vector3(tg.x,.4,tg.z),color:0xff4400,count:12,spread:tg.r*.7});
         if(Math.hypot(player.position.x-tg.x,player.position.z-tg.z)<tg.r)
           playerHit(R(tg.dmg||BAL.boss.eruption.dmg),tg.label||"熔岩喷发");
         scene.remove(tg.ring);scene.remove(tg.disc);
@@ -719,23 +728,9 @@ function tick(){
     }
   }
 
-  /* ---- 粒子爆发衰减 ---- */
-  for(let i=S.bursts.length-1;i>=0;i--){
-    const b=S.bursts[i];b.life+=dt;
-    const lifeMax=(BAL.vfx.impact&&BAL.vfx.impact.life)||1.1;
-    const arr=b.pts.geometry.attributes.position.array;
-    for(let j=0;j<b.vel.length;j++){
-      arr[j*3]+=b.vel[j].x*dt;arr[j*3+1]+=b.vel[j].y*dt;arr[j*3+2]+=b.vel[j].z*dt;
-      b.vel[j].y-=dt*6;
-    }
-    b.pts.geometry.attributes.position.needsUpdate=true;
-    b.pts.material.opacity=1-b.life/lifeMax;
-    if(b.life>lifeMax){
-      scene.remove(b.pts);
-      disposeVfxMesh(b.pts);
-      S.bursts.splice(i,1);
-    }
-  }
+  /* ---- R7：拖尾 / 预警填充 / 池化爆发 / 法阵 ---- */
+  if(typeof tickVfx==="function")tickVfx(dt);
+  if(typeof tickHitFlash==="function"&&boss)tickHitFlash(boss,dt);
 
   /* ---- 相机跟随（魔兽第三人称：默认背后；左键环绕偏移；右键与朝向锁定） ---- */
   {
@@ -777,6 +772,7 @@ function tick(){
   }
 
   /* ---- UI 刷新 ---- */
+  if(typeof refreshBossHpTicks==="function")refreshBossHpTicks();
   if(S.mode==="raid"){
     const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
     if(D.stage==="corridor"||D.stage==="bridge"){

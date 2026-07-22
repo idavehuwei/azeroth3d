@@ -50,7 +50,7 @@ const S={
   b:{id:"ragnaros",hp:BAL.boss.hp,hpMax:BAL.boss.hp,alive:true,rising:true,riseT:0,
      phase:1,swingT:0,casting:null,castT:0,castDur:0,
      next:{},submerged:false,submergeT:0,canLeave:false,nextAddSpawn:0,addWave:null},
-  adds:[],projectiles:[],pShots:[],telegraphs:[],bursts:[],
+  adds:[],projectiles:[],pShots:[],telegraphs:[],bursts:[],auras:[],
   totems:[], /* V1-C1：玩家图腾地面 aura */
   cds:[0,0,0,0],gcd:0,
   inv:[],      /* 背包（STEP 2 起：拾取的物品 id 列表） */
@@ -211,14 +211,18 @@ function log(msg,cls="lg-sys"){
 }
 function announce(t){const a=$("#announce");a.textContent=t;a.classList.remove("pop");void a.offsetWidth;a.classList.add("pop");}
 const v3=new THREE.Vector3();
-function fct(worldPos,text,color,size=17){
+function fct(worldPos,text,color,size=17,opts){
   v3.copy(worldPos).project(camera);
   if(v3.z>1)return;
-  const el=document.createElement("div"); el.className="fct";
+  const el=document.createElement("div");
+  el.className="fct"+(opts&&opts.crit?" fct-crit":"");
   el.style.left=((v3.x*.5+.5)*innerWidth+rand(-18,18))+"px";
   el.style.top =((-v3.y*.5+.5)*innerHeight)+"px";
-  el.style.color=color; el.style.fontSize=size+"px"; el.textContent=text;
-  document.body.appendChild(el); setTimeout(()=>el.remove(),1150);
+  el.style.color=color;
+  const sz=opts&&opts.crit?Math.round(size*((BAL.vfx&&BAL.vfx.critSizeMul)||1.45)):size;
+  el.style.fontSize=sz+"px";
+  el.textContent=opts&&opts.crit?`${text}!`:text;
+  document.body.appendChild(el); setTimeout(()=>el.remove(),opts&&opts.crit?1300:1150);
 }
 function hurtFlash(){const f=$("#hurtFlash");f.style.transition="none";f.style.opacity=.9;
   requestAnimationFrame(()=>{f.style.transition="opacity .5s";f.style.opacity=0;});}
@@ -379,7 +383,11 @@ function hitEntity(ent,amount,label,opts){
   /* 上帝模式：固定伤害，跳过系数与浮动 */
   amount=S.god?BAL.god.dmg:Math.round(amount*S.p.dmgMul*(v?rand(v[0],v[1]):1));
   ent.hp=Math.max(0,ent.hp-amount);
-  fct(ent.fctPos(),`-${amount}`,"#ffdf8a",ent.fctSize?ent.fctSize(label):14);
+  /* R7：FCT 暴击字号/抖动（表现层；不改结算伤害） */
+  const crit=!S.god&&rand()<((BAL.vfx&&BAL.vfx.critChance)||.14);
+  fct(ent.fctPos(),`-${amount}`,"#ffdf8a",ent.fctSize?ent.fctSize(label):14,{crit});
+  /* R7：受击闪白 + 后仰（跳过共享材质） */
+  if(ent.mesh&&typeof pulseHitFlash==="function")pulseHitFlash(ent.mesh);
   /* V1-A5：受击分层（肉体/甲壳） */
   if(typeof SFX!=="undefined"&&SFX.playHit){
     let kind=ent.type||ent.hitKind||"hit";
@@ -603,10 +611,11 @@ function getFocusTarget(range){
 function firePlayerShot(tgt,dmg,label,scale=1){
   setCurrentTarget(tgt);
   SFX.play(CLS.sfx||"fireball");
-  const m=new THREE.Mesh(new THREE.SphereGeometry(.3*scale,8,8),
-    new THREE.MeshBasicMaterial({color:CLS.shotColor}));
-  const glow=new THREE.Mesh(new THREE.SphereGeometry(.55*scale,8,8),
-    new THREE.MeshBasicMaterial({color:CLS.shotColor,transparent:true,opacity:.35}));
+  /* 复用共享球几何，避免每次施法 new SphereGeometry */
+  const coreGeo=typeof VFX_GEO!=="undefined"?VFX_GEO.sphere(.3*scale,6):new THREE.SphereGeometry(.3*scale,6,6);
+  const glowGeo=typeof VFX_GEO!=="undefined"?VFX_GEO.sphere(.55*scale,6):new THREE.SphereGeometry(.55*scale,6,6);
+  const m=new THREE.Mesh(coreGeo,new THREE.MeshBasicMaterial({color:CLS.shotColor}));
+  const glow=new THREE.Mesh(glowGeo,new THREE.MeshBasicMaterial({color:CLS.shotColor,transparent:true,opacity:.35}));
   m.add(glow);
   m.position.copy(player.position); m.position.y=1.9;
   scene.add(m);
@@ -624,7 +633,7 @@ function pyroblast(){
 }
 function frostNova(){
   tryInterrupt(getSkillBal("frostNova").bossRadius||12,"冰霜新星");
-  spawnBurst(player.position.clone().setY(.8),0x8ad8ff,36,2.4);
+  spawnBurst(player.position.clone().setY(.8),0x8ad8ff,14,2.2);
   let any=false;
   if(S.mode==="world"){
     MOBS.forEach(m=>{
@@ -707,9 +716,16 @@ function roll(){
 function clearShieldVisual(){
   const m=S.p.shieldMesh;
   if(!m)return;
+  if(S.auras){
+    for(let i=S.auras.length-1;i>=0;i--)
+      if(S.auras[i].mesh===m)S.auras.splice(i,1);
+  }
   if(m.parent)m.parent.remove(m);
-  if(m.geometry)m.geometry.dispose();
-  if(m.material)disposeMaterial(m.material);
+  if(typeof disposeVfxMesh==="function")disposeVfxMesh(m);
+  else{
+    if(m.geometry)m.geometry.dispose();
+    if(m.material)disposeMaterial(m.material);
+  }
   S.p.shieldMesh=null;
 }
 function applyHeal(amount,label){
@@ -745,9 +761,11 @@ function powerWordShield(){
   clearShieldVisual();
   if(typeof applyBuff==="function")applyBuff("power_word_shield",{duration:bal.duration,absorb});
   else{S.p.absorb=absorb;S.p.absorbT=bal.duration;}
-  const ice=new THREE.Mesh(new THREE.IcosahedronGeometry(1.85,0),
-    MAT.get("emissive.holy"));
-  ice.position.y=1.75; player.add(ice);
+  const ice=typeof attachShieldAura==="function"
+    ?attachShieldAura(player):(function(){
+      const m=new THREE.Mesh(new THREE.IcosahedronGeometry(1.85,0),MAT.get("emissive.holy"));
+      m.position.y=1.75; player.add(m); return m;
+    })();
   S.p.shieldMesh=ice;
   fct(player.position.clone().setY(3.2),`盾 ${absorb}`,"#ffe9a0",16);
   if(typeof SFX!=="undefined")SFX.play("holy");
@@ -1032,6 +1050,7 @@ function playerHit(amount,source){
   if(BAL.stealth&&BAL.stealth.breakOnHit!==false)breakStealth("hit");
   S.p.hp-=amount; hurtFlash(); SFX.play("hit");
   S.p.animHitT=1;
+  if(player&&typeof pulseHitFlash==="function")pulseHitFlash(player);
   fct(player.position.clone().setY(3),`-${amount}`,"#ff6a5a",18);
   log(`${source} 对你造成 ${amount} 点伤害！`,"lg-dmg");
   if(S.p.hp<=0){S.p.hp=0;playerDie();}
@@ -1058,7 +1077,7 @@ function gainXP(amount){
     SFX.play("levelup");
     announce(`升 级 ！ Lv.${P.level}`);
     log(`你升到了 ${P.level} 级！生命上限 +${hpGain}，基础伤害 +${Math.round(L.perLevel.dmgMul*100)}%。`,"lg-heal");
-    VFX.spawn("loot_spark",{pos:player.position.clone().setY(1.5),color:0xffd76a,count:60,spread:3});
+    VFX.spawn("loot_spark",{pos:player.position.clone().setY(1.5),color:0xffd76a,spread:2.2});
     if(typeof grantTalentPointOnLevel==="function")grantTalentPointOnLevel(P.level);
     if(typeof onDeedLevelUp==="function")onDeedLevelUp(P.level);
     if(typeof renderSpellPanel==="function")renderSpellPanel();

@@ -838,7 +838,7 @@ function spawnMob(type,x,z,group,opts){
   const dispName=opts.name||T.name;
   const nameColor=opts.color||T.color||(isWB||opts.rare||T.rare?(BAL.rares&&BAL.rares.gold)||"#ffd700":"#ffd9a0");
   const mobLv=st.level!=null?st.level:1;
-  const label=makeNameplate(dispName,mobLv,{w:T.labelW+(isWB?1.5:0),color:nameColor,glow:nameColor});
+  const label=makeNameplate(dispName,mobLv,{w:T.labelW+(isWB?1.5:0),color:nameColor,glow:nameColor,elite:isElite});
   label.position.set(x,gy+labelY,z); scn.add(label);
   updateNameplateHp(label,st.hp,st.hp);
   const m={type,name:dispName,level:mobLv,mesh,label,stats:st,loot:LOOT[T.loot],

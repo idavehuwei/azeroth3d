@@ -112,8 +112,35 @@ function updateMobAnim(m,dt){
   const bal=BAL.anim||{};
 
   if(m.state==="dead"||A.deathActive){
+    const wasRolling=!!A.deathActive;
     tickDeathRoll(mesh,dt);
+    if(wasRolling&&!A.deathActive&&typeof beginDissolve==="function"&&!mesh.userData.dissolving)
+      beginDissolve(mesh);
+    if(typeof tickDissolve==="function")tickDissolve(mesh,dt);
     return;
+  }
+
+  /* R7：受击闪白（跳过共享材质）+ 后仰 */
+  if(U.hitFlashT>0){
+    const dur=U.hitFlashDur||((BAL.vfx&&BAL.vfx.hit&&BAL.vfx.hit.dur)||.12);
+    U.hitFlashT=Math.max(0,U.hitFlashT-dt/dur);
+    const pulse=U.hitFlashT*.5;
+    mesh.traverse(o=>{
+      if(!o.isMesh||!o.material||!o.material.emissive)return;
+      if(o.material.userData&&o.material.userData.sharedMat)return;
+      o.material.emissive.setHex(0xffe8d0);
+      o.material.emissiveIntensity=pulse;
+    });
+    const lean=(BAL.vfx&&BAL.vfx.hit&&BAL.vfx.hit.lean)||.18;
+    if(U.hitLean)mesh.rotation.x=lean*U.hitFlashT;
+  }else if(U.hitLean){
+    mesh.rotation.x*=Math.max(0,1-dt*8);
+    if(Math.abs(mesh.rotation.x)<.01){mesh.rotation.x=0;U.hitLean=0;}
+    mesh.traverse(o=>{
+      if(!o.isMesh||!o.material||!o.material.emissive)return;
+      if(o.material.userData&&o.material.userData.sharedMat)return;
+      o.material.emissiveIntensity=0;
+    });
   }
 
   if(m.moving){

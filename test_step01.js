@@ -716,8 +716,33 @@ assert(coreSrc.includes("bossHammerDecay")&&coreSrc.includes("bossShakeAmp"),"BA
 assert(mainSrc.includes("updateBossHammerAnim")&&mainSrc.includes("camShake"),"main 驱动挥锤/震屏");
 assert(worldSrc.includes('build:()=>buildQuadruped(QUADS.wolf)'),"草原狼仍为配方接线");
 
+/* plan-V2 · R7 战斗表现层 */
+assert(html.includes('src="vfx.js"'),"game.html 加载 vfx.js");
+const vfxSrc=fs.readFileSync(path.join(__dirname,"vfx.js"),"utf8");
+assert(vfxSrc.includes('type:"ground_warn"')&&vfxSrc.includes('type:"projectile"'),"vfx 含 ground_warn/projectile");
+assert(vfxSrc.includes('type:"impact"')&&vfxSrc.includes('type:"aura"'),"vfx 含 impact/aura");
+assert(vfxSrc.includes("VFX_POOL")&&vfxSrc.includes("function tickVfx"),"vfx 含粒子池与 tickVfx");
+assert(vfxSrc.includes("trailLen")||vfxSrc.includes("trailArr"),"projectile 含拖尾");
+assert(vfxSrc.includes("uFill")&&vfxSrc.includes("_warnShaderMat"),"ground_warn 含填充 shader");
+assert(vfxSrc.includes("pulseHitFlash")&&vfxSrc.includes("attachShieldAura"),"vfx 含受击闪白/护盾");
+assert(coreSrc.includes("critChance")&&coreSrc.includes("hit:{dur"),"BALANCE.vfx 含暴击/受击参数");
+assert(coreSrc.includes("updateNameplatePresentation")&&coreSrc.includes("eliteBorder"),"姓名板距离/精英描边");
+assert(combatSrc.includes("fct-crit")||combatSrc.includes("opts.crit"),"FCT 支持暴击样式");
+assert(combatSrc.includes("pulseHitFlash"),"hitEntity 挂受击闪白");
+assert(mainSrc.includes("tickVfx")&&mainSrc.includes("updateNameplatePresentation"),"main 驱动 tickVfx/姓名板");
+assert(html.includes("bossHpTicks")&&html.includes("fct-crit"),"HUD 含 Boss 刻度与暴击 FCT");
+assert(raidSrc.includes("refreshBossHpTicks"),"raid 刷新 Boss 血条刻度");
+assert(vfxSrc.includes("eruption_ring")&&vfxSrc.includes("ground_warn"),"喷发预警走 ground_warn");
+
+/* 登录页画面设置（齿轮） */
+assert(html.includes("btnGfxGear")&&html.includes("gfxPanel"),"登录页含画面设置齿轮");
+assert(coreSrc.includes("GFX_PRESETS")&&coreSrc.includes("applyGraphicsSettings"),"core 含画面预设");
+assert(coreSrc.includes("azeroth3d_gfx_v1"),"画面设置独立 localStorage 键");
+assert(vfxSrc.includes("rebuildVfxPool")&&vfxSrc.includes("BAL.vfx.trails"),"vfx 尊重拖尾开关/池重建");
+assert(saveSrc.includes("wireGraphicsUI"),"save 绑定画面设置 UI");
+
 if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–29 … / V1 · plan-V2 R0–R6 冒烟");
+console.log("\n全部通过 · STEP 17–29 … / V1 · plan-V2 R0–R7 冒烟");
