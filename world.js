@@ -13,18 +13,18 @@
           creatures.js（buildQuadruped buildElemental buildHumanoidMob buildMeleeHumanoid buildCentaur
             QUADS MOB_LOOK MOB_HUMANOIDS MELEE_HUMANOIDS）
           anim.js 运行时（beginDeathRoll resetDeathRoll）
-          items.js（dropLoot rollLoot LOOT tryLoot buyVendorItem）
+          items.js（dropLoot rollLoot rollMobLoot LOOT tryLoot buyVendorItem）
           combat.js 运行时（S log announce fct spawnBurst hitEntity closeDialogue
             gainCopper rollCopperRange …）
           companions.js 运行时（openRecruitDialogue companionAlive）
           quests.js 运行时（acceptQuest turnInQuest onQuestMobKill questsForNpc）
           professions.js 运行时（buildWorkbench spawnGatherNodesForZone tryProfessionInteract）
           rares.js 运行时（spawnRaresForZone onRareKill）
-          vfx.js 运行时（VFX spawnBurst）
+          vfx.js 运行时（VFX spawnBurst beginDissolve）
           save.js 运行时（saveGame；接任务/交任务/离本）
    [导出] player boss BOSS_MESHES WORLD_R MULGORE BLOODHOOF CAMP_NARACHE REDROCK_LAKE sceneWorld heli sun worldFlames PORTAL_POS portalUni
           portalLabel enterRaid fadeTo MOBS QUEST moveToward mobDamage mobDie
-          mobTargetable addTargetable setCorpse updateQuest setMarker tryInteract openDialogue closeDialogue
+          mobTargetable addTargetable setCorpse requestCorpseDissolve updateQuest setMarker tryInteract openDialogue closeDialogue
           openVendor refreshVendorPanel closeVendorPanel openSpiritDialogue
           leaveRaid resetBoss spawnExitPortal removeExitPortal exitPortal
           fireflies FIREFLIES ffPhases elder baine hawkwind grull mull harken morin ruul varg
@@ -959,6 +959,14 @@ function setCorpse(m,on){
     else{m.mesh.rotation.z=0;m.mesh.position.y=0;}
     m.mesh.position.y=0;
     if(m.attackAnim!=null)m.attackAnim=0;
+    /* G1：重生时清溶解态 */
+    m.awaitLoot=false;
+    if(m.mesh.userData){
+      m.mesh.userData.dissolving=false;
+      m.mesh.userData.dissolveT=0;
+    }
+    m.mesh.scale.set(1,1,1);
+    m.mesh.visible=true;
   }
   m.mesh.traverse(o=>{
     if(o.userData&&o.userData.eliteAura){o.visible=!on;return;}
@@ -968,11 +976,24 @@ function setCorpse(m,on){
   });
   if(m.aura&&m.aura.light)m.aura.light.visible=!on;
 }
+/** G1 / R7：拾取完成或尸体超时后再溶解（共享材质只缩缩放淡出） */
+function requestCorpseDissolve(ent){
+  if(!ent||!ent.mesh)return;
+  ent.awaitLoot=false;
+  const mesh=ent.mesh;
+  if(mesh.userData&&mesh.userData.dissolving)return;
+  if(typeof beginDissolve==="function"&&!(BAL.vfx&&BAL.vfx.dissolve===false)){
+    beginDissolve(mesh);
+  }else{
+    mesh.visible=false;
+  }
+}
 /* 野怪死亡（STEP 1 onDeath 唯一挂接点）：留尸 + 掉落（STEP 2）+ 经验（STEP 3）
-   STEP 5 泛化：数值/掉落/经验全部来自实体自身配置；精英走 eliteWeights 必掉优秀以上 */
+   STEP 5 泛化：数值/掉落/经验全部来自实体自身配置；精英走 eliteWeights 必掉优秀以上
+   G1：有掉落则 awaitLoot，溶解推迟到拾取或尸体超时 */
 function mobDie(m){
   m.state="dead"; m.respawnT=m.stats.respawnT; m.corpseT=BAL.loot.corpseT; m.moving=false;
-  m.casting=null;
+  m.casting=null; m.awaitLoot=false;
   if(typeof clearCurrentTargetIf==="function")clearCurrentTargetIf(m);
   if(typeof clearThreat==="function")clearThreat(m);
   m.label.visible=false;
@@ -981,8 +1002,13 @@ function mobDie(m){
   log(`你击杀了${m.name}！`,"lg-me");
   if(typeof onRareKill==="function")onRareKill(m);
   else if(m.elite)announce(`${m.name} 被击败！`);
-  dropLoot(m.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),
-    [typeof rollMobLoot==="function"?rollMobLoot(m):rollLoot(m.loot,m.elite?BAL.loot.eliteWeights:null)],m);
+  const it=typeof rollMobLoot==="function"?rollMobLoot(m)
+    :rollLoot(m.loot,m.elite?BAL.loot.eliteWeights:null);
+  if(it){
+    m.awaitLoot=true;
+    dropLoot(m.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),[it],m,
+      ()=>requestCorpseDissolve(m));
+  }
   gainXP(m.stats.xp);
   const cu=rollCopperRange(m.stats.copper);
   if(cu)gainCopper(cu);

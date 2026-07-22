@@ -1087,7 +1087,13 @@ function gainXP(amount){
     SFX.play("levelup");
     announce(`升 级 ！ Lv.${P.level}`);
     log(`你升到了 ${P.level} 级！生命上限 +${hpGain}，基础伤害 +${Math.round(L.perLevel.dmgMul*100)}%。`,"lg-heal");
-    VFX.spawn("loot_spark",{pos:player.position.clone().setY(1.5),color:0xffd76a,spread:2.2});
+    /* G2：升级金光——火花 + 径向爆发（数值来自 BAL.levels.levelUp） */
+    const lu=L.levelUp||{};
+    const luc=lu.color!=null?lu.color:0xffd76a;
+    const pos=player.position.clone().setY(1.5);
+    VFX.spawn("loot_spark",{pos:pos.clone(),color:luc,spread:lu.sparkSpread!=null?lu.sparkSpread:2.2});
+    if(typeof spawnBurst==="function")
+      spawnBurst(pos,luc,lu.burstCount!=null?lu.burstCount:18,lu.burstSpread!=null?lu.burstSpread:2.4);
     if(typeof grantTalentPointOnLevel==="function")grantTalentPointOnLevel(P.level);
     if(typeof onDeedLevelUp==="function")onDeedLevelUp(P.level);
     if(typeof renderSpellPanel==="function")renderSpellPanel();

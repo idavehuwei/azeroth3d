@@ -313,14 +313,14 @@ defineBoss({
   },
 });
 
-/* ---- 玛格曼达：熔火一号位（STEP 9c）· 大体型 + 多机制 ---- */
+/* ---- 熔岩巨兽 / 玛格曼达：熔火一号位（STEP 9c · plan-V2 G6）---- */
 defineBoss({
   id:"magmadar",
-  name:"玛格曼达 · 熔岩猎犬",
+  name:"熔岩巨兽 · 玛格曼达",
   title:"熔火之心 · 一号首领",
-  hitNoun:"玛格曼达",
+  hitNoun:"熔岩巨兽",
   statsKey:"magmadar",
-  build:()=>buildQuadruped(QUADS.magmadar),
+  build:()=>buildQuadruped(QUADS.lavabeast||QUADS.magmadar),
   projectileY:5.5, fctY:7.5,
   intro:{
     type:"appear", fromY:0, toY:0, dur:1.4,
@@ -1156,13 +1156,21 @@ function addDie(a){
   if(typeof beginDeathRoll==="function")beginDeathRoll(a);
   else{a.mesh.rotation.z=Math.PI/2; a.mesh.position.y=.25;}
   a.corpseT=BAL.loot.corpseT;
+  a.awaitLoot=false;
   const table=a.lootTable&&LOOT[a.lootTable]?a.lootTable:"add";
   const dropped=rollLoot(LOOT[table],getRaidLootWeights());
-  if(dropped)dropLoot(a.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),[dropped],a);
+  if(dropped){
+    a.awaitLoot=true;
+    dropLoot(a.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),[dropped],a,
+      ()=>{if(typeof requestCorpseDissolve==="function")requestCorpseDissolve(a);});
+  }
   log(a.dieLog||"一只小怪被消灭了！","lg-me");
   const bal=BAL[(typeof getDungeon==="function"&&getDungeon().addCfg&&getDungeon().addCfg.balKey)||"add"]||BAL.add;
   const cu=rollCopperRange(bal.copper);
   if(cu)gainCopper(cu);
+  /* G2：副本小怪 onDeath → gainXP（数值来自 BAL[addCfg.balKey].xp） */
+  const xpAdd=(a.stats&&a.stats.xp!=null)?a.stats.xp:(bal.xp|0);
+  if(xpAdd&&typeof gainXP==="function")gainXP(xpAdd);
   const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
   if(D.stage==="corridor"){
     D.mobsAlive--;

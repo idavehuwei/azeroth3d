@@ -756,8 +756,68 @@ assert(mainSrc.includes("tickDebugHud"),"main 驱动 tickDebugHud");
 assert(html.includes("debugHud")||debugSrc.includes("debugHud"),"含 debugHud 面板");
 assert(html.includes("gfxBloom"),"登录页含假 Bloom 开关");
 
+/* plan-V2 · G1 图标/掉落/尸体拾取 + 溶解延迟 */
+assert(html.includes('src="icons.js"')&&html.includes('src="items.js"'),"game.html 加载 icons/items");
+assert(iconsSrc.includes("Icons.canvas")||iconsSrc.includes("canvas("),"icons 含 canvas 工厂");
+assert(itemsSrc.includes("function dropLoot")&&itemsSrc.includes("function tryLoot"),"items 含 dropLoot/tryLoot");
+assert(itemsSrc.includes("onLooted"),"dropLoot 支持 onLooted 回调");
+assert(worldSrc.includes("requestCorpseDissolve")&&worldSrc.includes("awaitLoot"),"尸体溶解延迟到拾取");
+assert(worldSrc.includes("requestCorpseDissolve(m)")||worldSrc.includes("()=>requestCorpseDissolve"),"mobDie 挂 onLooted 溶解");
+assert(animSrc.includes("awaitLoot")&&animSrc.includes("requestCorpseDissolve"),"anim 有掉落时不抢先溶解");
+assert(raidSrc.includes("awaitLoot")&&raidSrc.includes("requestCorpseDissolve"),"副本小怪同样延迟溶解");
+
+/* plan-V2 · G2 经验与等级 */
+assert(coreSrc.includes("levels:{max:18")||coreSrc.includes("max:18"),"BALANCE.levels.max=18");
+assert(coreSrc.includes("xpMax:[")&&coreSrc.includes("perLevel:"),"含 xpMax 曲线与 perLevel 成长");
+assert(coreSrc.includes("levelUp:")&&coreSrc.includes("burstCount"),"含升级金光参数");
+assert(coreSrc.includes("xp:120")||coreSrc.includes("add:{")&&coreSrc.includes("xp:"),"副本小怪 BAL.add 含 xp");
+assert(combatSrc.includes("function gainXP")&&combatSrc.includes("updateLevelUI"),"combat 含 gainXP/updateLevelUI");
+assert(combatSrc.includes("spawnBurst")&&combatSrc.includes("loot_spark"),"升级金光含 spawnBurst+loot_spark");
+assert(html.includes('id="pXp"')||html.includes("id=\"pXp\""),"HUD 含经验条 #pXp");
+assert(worldSrc.includes("gainXP(m.stats.xp)"),"野怪 onDeath 给经验");
+assert(raidSrc.includes("gainXP")&&raidSrc.includes("xpAdd"),"副本小怪 onDeath 给经验");
+assert(mainSrc.includes("pXp")||mainSrc.includes("#pXp")||mainSrc.includes("p.xp"),"main 刷新经验条");
+
+/* plan-V2 · G3 背包 / 装备 / 真换装 */
+assert(html.includes('id="bag"')||html.includes("id=\"bag\""),"HUD 含背包 #bag");
+assert(itemsSrc.includes("EQUIP_SLOTS")&&itemsSrc.includes("function equipItem")&&itemsSrc.includes("function unequipItem"),"items 含装备 API");
+assert(itemsSrc.includes("function applyEquipStats")&&itemsSrc.includes("dmgMul")&&itemsSrc.includes("hpMax"),"装备叠加 dmgMul/hpMax");
+assert(itemsSrc.includes("function toggleBag")&&itemsSrc.includes("function renderBag"),"含 B 键背包开关/渲染");
+assert(itemsSrc.includes("setWeapon(player")&&modelsSrc.includes("function setWeapon"),"主手装备调用 setWeapon");
+assert(modelsSrc.includes("userData.weapon")&&modelsSrc.includes("weaponMount"),"setWeapon 替换挂点上的武器组");
+assert(rigSrc.includes("handR")&&rigSrc.includes("weaponMount"),"R5 武器挂 handR/handL");
+assert(combatSrc.includes('==="b"')||combatSrc.includes("toggleBag()"),"B 键打开背包");
+assert(panelsSrc.includes("unequipItem")||panelsSrc.includes("S.eq"),"C 面板可卸装");
+assert(coreSrc.includes("bag:{size:")||coreSrc.includes("bag:{"),"BALANCE.bag 背包容量");
+
+/* plan-V2 · G4 野怪 AI / 新怪 / 稀有 */
+assert(worldSrc.includes("function aggroMob")&&worldSrc.includes("socialR"),"社群仇恨 aggroMob/socialR");
+assert(coreSrc.includes("leash:")&&coreSrc.includes("regenPct"),"脱战回巢 BAL.leash");
+assert(worldSrc.includes("QUADS.wolf")||worldSrc.includes("QUADS.bird")||creaturesSrc.includes("wolf:"),"含狼/陆行鸟配方接线");
+assert(worldSrc.includes("harpy")&&(worldSrc.includes("greyjaw")||raresSrc.includes("greyjaw")||raresSrc.includes("老灰鬃")),"含鹰身女妖/稀有");
+assert(raresSrc.includes("RARES")||raresSrc.includes("spawnRaresForZone"),"rares.js 稀有框架");
+
+/* plan-V2 · G5 程序化音效 */
+assert(html.includes('src="sfx.js"'),"game.html 加载 sfx.js");
+assert(sfxSrc.includes("SOUNDS")&&sfxSrc.includes("AudioContext"),"sfx 音色表 + WebAudio");
+assert(sfxSrc.includes("growl")&&sfxSrc.includes("playHit"),"族群吼叫/受击分层");
+assert(worldSrc.includes('SFX.play("growl")')||worldSrc.includes("SFX.play('growl')"),"仇恨播 growl");
+
+/* plan-V2 · G6 副本工厂 + 熔岩巨兽 */
+assert(raidSrc.includes("function createBoss")&&raidSrc.includes("defineBoss"),"raid 含 createBoss 工厂");
+assert(raidSrc.includes("corridor")&&raidSrc.includes("boss1")&&raidSrc.includes("bridge"),"副本分段 corridor/boss1/bridge");
+assert(raidSrc.includes("magmadar")&&raidSrc.includes("lavabeast"),"第二 Boss 熔岩巨兽接线");
+assert(creaturesSrc.includes("lavabeast"),"creatures 含 lavabeast 配方");
+
+/* plan-V2 · G7 天赋 + 存档 */
+assert(talentsSrc.includes("TALENTS")&&talentsSrc.includes("tier:"),"天赋树含 tier 层级");
+assert(html.includes('src="talents.js"')&&html.includes('src="save.js"'),"加载 talents/save");
+assert(saveSrc.includes("exportSaveCode")&&saveSrc.includes("importSaveCode"),"Base64 导出/导入");
+assert(saveSrc.includes("localStorage")&&saveSrc.includes("collectSaveData"),"纯数据 localStorage 存档");
+assert(saveSrc.includes("talents")||saveSrc.includes("spent"),"存档含天赋字段");
+
 if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–29 … / V1 · plan-V2 R0–R8 冒烟");
+console.log("\n全部通过 · STEP 17–29 … / V1 · plan-V2 R0–R8 / G1–G7 冒烟");

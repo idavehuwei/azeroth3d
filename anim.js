@@ -3,6 +3,7 @@
    生物动画挂点（plan-v1 · V1-A3 / plan-V2 · R6）：走 / 攻 / 死 + 族群特化
    ------------------------------------------------------------
    [依赖] core.js（BAL）· THREE 运行时（mesh.rotation）
+          world.js 运行时（requestCorpseDissolve）· vfx.js 运行时（beginDissolve tickDissolve）
    [导出] ensureAnim beginDeathRoll tickDeathRoll resetDeathRoll
           updateMobAnim updateBossWingAnim updateBossHammerAnim
    ============================================================ */
@@ -114,8 +115,11 @@ function updateMobAnim(m,dt){
   if(m.state==="dead"||A.deathActive){
     const wasRolling=!!A.deathActive;
     tickDeathRoll(mesh,dt);
-    if(wasRolling&&!A.deathActive&&typeof beginDissolve==="function"&&!mesh.userData.dissolving)
-      beginDissolve(mesh);
+    /* G1：有掉落待拾取时不溶解；无掉落则侧倒结束后溶解 */
+    if(wasRolling&&!A.deathActive&&!mesh.userData.dissolving&&!m.awaitLoot){
+      if(typeof requestCorpseDissolve==="function")requestCorpseDissolve(m);
+      else if(typeof beginDissolve==="function")beginDissolve(mesh);
+    }
     if(typeof tickDissolve==="function")tickDissolve(mesh,dt);
     return;
   }

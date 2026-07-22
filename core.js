@@ -260,7 +260,7 @@ const BALANCE={
     bossCoreGlow:{min:1, max:2.8}, /* 熔核亮度随缺血上升 */
   },
   /* 烈焰之子 */
-  add:{level:15, hp:1400, dmg:[130,190], atkCd:2, speed:4.6, meleeR:3, stopR:2.6, copper:[12,28]},
+  add:{level:15, hp:1400, dmg:[130,190], atkCd:2, speed:4.6, meleeR:3, stopR:2.6, copper:[12,28], xp:120},
   /* 炎魔领主 · 拉戈斯 */
   boss:{hp:120000, phase2At:.5, phase3At:.3, submergeT:25, addCount:4, copper:2500,
     melee   :{dmg:[300,420], p2Mul:1.25, p3Mul:1.5, cd:[3,4.2], range:12, hitRange:13, delayMs:450},
@@ -284,7 +284,7 @@ const BALANCE={
     ground:0x2a3a28, wall:0x1a2818, moss:0x3a5a30,
     sky:0x0a1208, fog:0x142010, fogDensity:0.028,
   },
-  wailingAdd:{hp:2200, dmg:[110,160], atkCd:2.1, speed:4.8, meleeR:3.1, stopR:2.5, copper:[20,40]},
+  wailingAdd:{hp:2200, dmg:[110,160], atkCd:2.1, speed:4.8, meleeR:3.1, stopR:2.5, copper:[20,40], xp:140},
   cobrahn:{hp:42000, phase2At:.55, addCount:2, copper:600,
     melee :{dmg:[200,280], p2Mul:1.3, cd:[2.5,3.4], range:9, hitRange:10, delayMs:280},
     spit  :{dmg:[240,320], cast:1.4, cd:[5.5,7.5], hitR:3.0, speed:17, count:3, p2Count:5, fan:0.48},
@@ -303,7 +303,7 @@ const BALANCE={
     ground:0x2a1a18, wall:0x1a1010, bone:0xc8b898,
     sky:0x120808, fog:0x1a0c0c, fogDensity:0.022,
   },
-  onyxiaAdd:{hp:2800, dmg:[130,180], atkCd:2.0, speed:5.2, meleeR:3.0, stopR:2.4, copper:[30,55]},
+  onyxiaAdd:{hp:2800, dmg:[130,180], atkCd:2.0, speed:5.2, meleeR:3.0, stopR:2.4, copper:[30,55], xp:180},
   onyxia:{hp:92000, phase2At:.70, phase3At:.40, addCount:3, copper:1800, flyY:8,
     melee :{dmg:[260,360], p2Mul:1.0, p3Mul:1.4, cd:[2.6,3.6], range:11, hitRange:12, delayMs:300},
     spit  :{dmg:[280,380], cast:1.5, cd:[5.5,7.5], hitR:3.2, speed:18,
@@ -322,7 +322,7 @@ const BALANCE={
     ground:0x3a1810, wall:0x2a1008, lava:0xff6020,
     sky:0x180808, fog:0x2a1008, fogDensity:0.026,
   },
-  ragefireAdd:{hp:2400, dmg:[120,170], atkCd:2.0, speed:5.0, meleeR:3.0, stopR:2.4, copper:[22,45]},
+  ragefireAdd:{hp:2400, dmg:[120,170], atkCd:2.0, speed:5.0, meleeR:3.0, stopR:2.4, copper:[22,45], xp:135},
   oggleflint:{hp:38000, phase2At:.55, addCount:2, copper:550,
     melee :{dmg:[190,270], p2Mul:1.3, cd:[2.4,3.3], range:9, hitRange:10, delayMs:280},
     spit  :{dmg:[220,300], cast:1.35, cd:[5.2,7.0], hitR:2.9, speed:18, count:3, p2Count:5, fan:0.46},
@@ -617,11 +617,13 @@ const BALANCE={
   npcLevel:{hawkwind:10,grull:8,grayhorn:12,raoul:6,vera:5,whiterock:10,baine:40,bloodhoof_elder:35,tark:18,mull:16,haru:18,mara:14,kur:15,aska:20,cairne:60,stonetalon:40,seen:22,pala:20,hamya:24,magatha:50,runetotem:45,thunderhorn_guard:12,winterhoof_guard:10,windfury_sentinel:25,elder:40,vendor:25,varg:25,hunter:18,cook:20,spirit:55,crossroads:30,darsok:28,kag:26,mankrik:30,thom:27,kil:24,serra:25,lal:28,zinge:26,scriven:22,innkeeper:22,flightmaster:25,barrens_vendor:24,barrens_armor:24,ochre:28,ochre_guard:26,ochre_vendor:24,companion:null},
   /* 营地 NPC 外观：体型缩放 + 姓名板高度（相对缩放后头顶） */
   npc:{scale:.72, labelY:4.05, markerY:5.15, labelW:6.2},
-  /* 经验与等级（STEP 3）：经验来源 / 升级曲线 / 每级成长 */
+  /* 经验与等级（STEP 3 / G2）：经验来源 / 升级曲线 / 每级成长；上限 18（区域门） */
   levels:{max:18, xp:{quest:300, boss:2000, magmadar:800, barrensQuest:400, durotarQuest:380, cobrahn:900, verdan:1600, onyxia:2200, oggleflint:850, taragaman:1500},
-    /* 野怪经验在 mobs 表；xpMax[i] = 第 i+1 级升下一级所需（共 max-1 档） */
+    /* 野怪经验在 mobs 表；副本小怪在 add/wailingAdd/…；xpMax[i] = 第 i+1 级升下一级所需（共 max-1 档） */
     xpMax:[200,300,450,650,900,1200,1600,2100,2700,3500,4200,5000,5900,6900,8000,9200,10500],
-    perLevel:{dmgMul:.05, hpMax:.08}},
+    perLevel:{dmgMul:.05, hpMax:.08},
+    /* 升级金光（loot_spark + spawnBurst） */
+    levelUp:{color:0xffd76a, sparkSpread:2.2, burstCount:18, burstSpread:2.4}},
   /* 特效配方默认参数（STEP 9a / plan-V2 R7）：性能优先——默认关动态点光 */
   vfx:{
     useLights:false,                 /* PointLight 极贵；弹道/爆发默认只用自发光球 */

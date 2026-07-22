@@ -72,9 +72,9 @@ const QUADS={
             head:"beak",neck:"long",gait:{freq:2.3,lift:.24}},
   crocolisk:{fur:0x4a6a48,furD:0x2a3a28,accent:0x6a8a58,snoutLong:true,ears:false,mane:false,tail:'whip',size:1.25,style:"wolf",
             head:"wolf",gait:{freq:1.8,lift:.1}},
-  /* R6：熔岩巨兽（模型；Boss 逻辑留给 G6） */
-  lavabeast:{fur:0x6a2010,furD:0x2a1008,accent:0xff6020,tusks:true,tuskBig:true,mane:true,ears:true,tail:'whip',size:3.2,style:"wolf",glow:0xff4400,
-            head:"wolf",bulk:1.35,gait:{freq:1.3,lift:.1}},
+  /* G6：熔岩巨兽 = 玛格曼达 Boss 体型（与 magmadar 配方对齐） */
+  lavabeast:{fur:0x8a2208,furD:0x3a1008,accent:0xff6020,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:5.1,style:"wolf",glow:0xff4400,
+            head:"wolf",bulk:1.4,gait:{freq:1.6,lift:.14}},
 };
 
 /** plan-V2 R6 名称：与 QUADS 同一对象，加四足怪 = MOB_LOOK.xxx */

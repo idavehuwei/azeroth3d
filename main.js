@@ -210,9 +210,15 @@ function tick(){
         if((m.zoneId||"mulgore")!==zid)continue;
         const st=m.stats;
         if(m.state==="dead"){
-          /* 尸体停留（STEP 2）：倒地灰化 8 秒后消失，掉落留至重生 */
+          /* 尸体停留（STEP 2 / G1）：倒地灰化；超时溶解，掉落可留至重生 */
           if(typeof updateMobAnim==="function")updateMobAnim(m,dt);
-          if(m.corpseT>0){m.corpseT-=dt;if(m.corpseT<=0)m.mesh.visible=false;}
+          if(m.corpseT>0){
+            m.corpseT-=dt;
+            if(m.corpseT<=0){
+              if(typeof requestCorpseDissolve==="function")requestCorpseDissolve(m);
+              else m.mesh.visible=false;
+            }
+          }
           m.respawnT-=dt;
           if(m.respawnT<=0){
             m.state="wander"; m.hp=m.hpMax; m.attackAnim=0;
@@ -637,6 +643,7 @@ function tick(){
         if(typeof updateMobAnim==="function")updateMobAnim(a,dt);
         a.corpseT-=dt;
         if(a.corpseT<=0){
+          if(typeof requestCorpseDissolve==="function")requestCorpseDissolve(a);
           scene.remove(a.mesh);
           if(a.label){scene.remove(a.label);if(typeof disposeNameplate==="function")disposeNameplate(a.label);}
           S.adds.splice(i,1);
