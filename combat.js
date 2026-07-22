@@ -133,12 +133,12 @@ const CLASSES={
     regen:8,hitGain:0,speed:10,ranged:true,range:28,sfx:"holy",
     autoMin:155,autoMax:205,autoSpd:1.65,shotColor:0xfff0a0,build:buildPriest,
     barCss:"linear-gradient(180deg,#fff8d0,#d4af37 60%,#8a7020)",
-    tip:"提示：法力随时间恢复；远程自动施放神圣惩击；【治疗术】续航，【真言术：盾】先吸收伤害。",
+    tip:"提示：法力随时间恢复；【治疗术】续航，【恢复术】挂 HoT，【真言术：盾】先吸收伤害。",
     skills:[
       {name:"治疗术",    icon:"heal", cd:8,  rage:35,fn:heal,           bal:"heal",unlock:1,
        desc:"施放圣光，恢复大量生命。",cast:2.5},
-      {name:"快速治疗",  icon:"flash_heal", cd:4,  rage:20,fn:flashHeal,     bal:"flashHeal",unlock:4,
-       desc:"迅速施法，立即恢复中等生命。",cast:1.2},
+      {name:"恢复术",    icon:"renew", cd:6,  rage:22,fn:castRenew,     bal:"renew",unlock:4,
+       desc:"为自己施加圣光愈合，持续恢复生命。"},
       {name:"神圣惩击",  icon:"holy", cd:6,  rage:25,fn:smite,         bal:"smite",school:"spell",unlock:6,
        desc:"对目标造成神圣伤害。",range:28,cast:2},
       {name:"真言术：盾",icon:"holy_shield", cd:12, rage:30,fn:powerWordShield,bal:"powerWordShield",unlock:8,
@@ -161,16 +161,16 @@ const CLASSES={
     regen:12,hitGain:0,speed:11.2,ranged:false,range:8,sfx:"swing",
     autoMin:145,autoMax:195,autoSpd:1.35,shotColor:0xc0c8d8,build:buildRogue,
     barCss:"linear-gradient(180deg,#d0d8e8,#5a6a88 60%,#2a3448)",
-    tip:"提示：能量自动恢复；脱战可【潜行】缩小被发现距离；从背后【背刺】造成高额伤害。",
+    tip:"提示：能量自动恢复；影袭/背刺攒连击点，【剔骨】按连击点爆发；从背后【背刺】；脱战可【潜行】。",
     skills:[
       {name:"影袭",  icon:"sinister_strike", cd:5,  rage:25,fn:sinisterStrike, bal:"sinisterStrike",school:"physical",combo:1,unlock:1,
-       desc:"迅捷一击，对近战目标造成物理伤害。",range:5},
+       desc:"迅捷一击，对近战目标造成物理伤害，获得 1 连击点。",range:5},
       {name:"背刺",  icon:"backstab", cd:8,  rage:35,fn:backstab,        bal:"backstab",school:"physical",combo:1,unlock:4,
-       desc:"必须位于目标背后；潜行中伤害更高。",range:5},
+       desc:"必须位于目标背后；潜行中伤害更高；获得 1 连击点。",range:5},
       {name:"潜行",  icon:"stealth", cd:10, rage:0, fn:stealth,         bal:"stealth",unlock:6,
        desc:"脱战后进入隐身，大幅缩小野怪主动仇恨半径。"},
-      {name:"疾步",  icon:"sprint", cd:20, rage:20,fn:sprint,          bal:"sprint",unlock:8,
-       desc:"短时间内大幅提高移动速度。"}]},
+      {name:"剔骨",  icon:"eviscerate", cd:6, rage:35,fn:eviscerate,    bal:"eviscerate",school:"physical",spendCombo:true,unlock:8,
+       desc:"终结技：消耗全部连击点，对目标造成爆发物理伤害。",range:5}]},
   /* build / 技能 fn 惰性挂接：避免字面量解析期 ReferenceError → CLS TDZ */
   warlock:{title:"💀 你 · 人类术士",hp:3900,resMax:100,resStart:100,resName:"法力",resKind:"mana",
     regen:7,hitGain:0,speed:10,ranged:true,range:28,sfx:"shadow",
@@ -837,7 +837,7 @@ function finishSkillUse(sk,skillIdx){
   S.gcd=g;
   if(playerResKind()==="mana"&&typeof applyManaSpend==="function")applyManaSpend(S.res);
   if(typeof markCombat==="function")markCombat(S.res);
-  if(sk.combo&&typeof addComboPoints==="function"){
+  if(sk.combo&&!sk.spendCombo&&typeof addComboPoints==="function"){
     const n=addComboPoints(S.res,sk.combo|0);
     if(n>0)log(`连击点 · ${n}`,"lg-me");
   }
@@ -1513,6 +1513,20 @@ function heal(){
 function flashHeal(){
   return applyHeal(R(getSkillBal("flashHeal").heal),"快速治疗");
 }
+function castRenew(){
+  const bal=getSkillBal("renew");
+  if(typeof applyAura!=="function"){log("无法施加恢复术。","lg-sys");return false;}
+  applyAura(S.p,"renew",{
+    duration:bal.duration,
+    healPerSec:bal.healPerSec,
+  });
+  S.p.attackAnim=.4;
+  spawnBurst(player.position.clone().setY(1.5),0xffe080,12,1.3);
+  fct(player.position.clone().setY(3.2),"恢复","#ffe9a0",14,{kind:"heal"});
+  if(typeof SFX!=="undefined")SFX.play("heal");
+  log(`恢复术！持续恢复生命 ${bal.duration} 秒。`,"lg-heal");
+  return true;
+}
 function smite(){
   const t=resolveSkillTarget(CLS.range);
   if(!t)return false;
@@ -2051,6 +2065,34 @@ function sprint(){
   spawnBurst(player.position.clone().setY(.5),0xa0c0ff,12,1.1);
   if(typeof SFX!=="undefined")SFX.play("stealth");
   log(`疾步！移动速度提高，持续 ${bal.duration} 秒。`,"lg-me");
+  return true;
+}
+/** 盗贼终结技：消耗连击点造成爆发伤害 */
+function eviscerate(){
+  const pts=typeof getComboPoints==="function"?getComboPoints(S.res):0;
+  if(pts<=0){log("需要连击点才能剔骨！","lg-sys");return false;}
+  const bal=getSkillBal("eviscerate");
+  const thr={skillId:"eviscerate",school:"physical"};
+  const tgt=resolveSkillTarget(bal.reach||5);
+  if(!tgt)return false;
+  setCurrentTarget(tgt);
+  const per=bal.perCombo!=null?bal.perCombo:.42;
+  const base=R(bal.dmg);
+  const dmg=Math.round(base*(1+per*(pts-1)));
+  const addBase=R(bal.addDmg||bal.dmg);
+  const addDmg=Math.round(addBase*(1+per*(pts-1)));
+  if(tgt.type==="mob")mobDamage(tgt.m,dmg,"剔骨",thr);
+  else if(tgt.type==="boss"){
+    if(distToBoss()>(bal.bossReach||bal.reach||5)){log(typeof T==="function"?T("combat.target_oor"):"目标超出射程！");return false;}
+    dmgBoss(dmg,"剔骨",thr);
+  }else if(tgt.type==="add")addDamage(tgt.a,addDmg,thr);
+  if(typeof spendComboPoints==="function")spendComboPoints(S.res);
+  else if(typeof clearComboPoints==="function")clearComboPoints(S.res);
+  breakStealth("attack");
+  S.p.attackAnim=1;
+  if(typeof SFX!=="undefined")SFX.play("swing");
+  log(`剔骨（${pts} 连击点）！`,"lg-me");
+  fct(player.position.clone().setY(2.6),`×${pts}`,"#d0e0ff",14);
   return true;
 }
 

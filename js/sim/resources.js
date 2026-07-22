@@ -5,7 +5,7 @@
    依赖：SIM_CONTENT 或 BAL.sim
    导出：rageConstant rageFromDamage gcdDuration
          createResourceState tickResources applyManaSpend markCombat
-         addComboPoints clearComboPoints getComboPoints
+         addComboPoints clearComboPoints getComboPoints spendComboPoints
    ============================================================ */
 "use strict";
 
@@ -139,4 +139,10 @@ function clearComboPoints(rs){
 
 function getComboPoints(rs){
   return rs?rs.combo|0:0;
+}
+/** 读取并清空连击点（终结技） */
+function spendComboPoints(rs){
+  const n=getComboPoints(rs);
+  clearComboPoints(rs);
+  return n;
 }

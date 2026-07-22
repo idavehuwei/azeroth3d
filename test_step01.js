@@ -123,6 +123,8 @@ const balSrc=fs.readFileSync(path.join(__dirname,"js/sim/balance.js"),"utf8");
 const coreSrc=fs.readFileSync(path.join(__dirname,"core.js"),"utf8")+balSrc;
 assert(coreSrc.includes("powerWordShield"),"BALANCE.skills 含 powerWordShield");
 assert(coreSrc.includes("flashHeal")&&coreSrc.includes("smite"),"BALANCE.skills 含 flashHeal/smite");
+assert(coreSrc.includes("renew:")&&combatSrc.includes("castRenew")&&combatSrc.includes('bal:"renew"'),"牧师恢复术 HoT");
+assert(fs.readFileSync(path.join(__dirname,"js/sim/content.js"),"utf8").includes('name:"恢复"'),"SIM_CONTENT.auras.renew");
 assert(fs.existsSync(path.join(__dirname,"js/sim/balance.js")),"js/sim/balance.js 存在");
 assert(html.includes('src="js/sim/balance.js"'),"game.html 加载 balance.js");
 assert(html.includes('src="js/sim/rules.js"'),"game.html 加载 rules.js");
@@ -143,6 +145,7 @@ assert(!fs.readFileSync(path.join(__dirname,"js/sim/strings.js"),"utf8").include
 
 const iconsSrc=fs.readFileSync(path.join(__dirname,"icons.js"),"utf8");
 assert(iconsSrc.includes("holy(cx)")&&iconsSrc.includes("holy_shield(cx)")&&iconsSrc.includes("flash_heal(cx)"),"icons.js 有牧师图标配方");
+assert(iconsSrc.includes("renew(cx)"),"icons.js 有恢复术图标");
 
 const sfxSrc=fs.readFileSync(path.join(__dirname,"sfx.js"),"utf8");
 assert(sfxSrc.includes("heal")&&sfxSrc.includes("holy"),"sfx.js 有 heal/holy 音效");
@@ -172,6 +175,9 @@ assert(combatSrc.includes("function stealth")||combatSrc.includes("function ente
 assert(combatSrc.includes("function backstab"),"combat.js 有背刺");
 assert(combatSrc.includes("function getPlayerAggroMul"),"combat.js 有 getPlayerAggroMul");
 assert(combatSrc.includes("function isBehindTarget"),"combat.js 有背后判定");
+assert(combatSrc.includes("function eviscerate")&&combatSrc.includes("spendCombo"),"combat.js 有剔骨终结技");
+assert(coreSrc.includes("eviscerate:")||balSrc.includes("eviscerate:"),"BALANCE.skills 含 eviscerate");
+assert(html.includes("comboDots"),"HUD 含连击点指示");
 assert(modelsSrc.includes("function buildRogue"),"models.js 导出 buildRogue");
 assert(modelsSrc.includes("rogue:")||modelsSrc.includes("rogue:{"),"models.js 有 rogue 人形配方");
 assert(talentsSrc.includes("rogue:{"),"talents.js 有 TALENTS.rogue");
@@ -179,7 +185,7 @@ assert(talentsSrc.includes('id:"assassination"')&&talentsSrc.includes('id:"subtl
 assert(coreSrc.includes("backstab")&&coreSrc.includes("sinisterStrike"),"BALANCE.skills 含盗贼技能");
 assert(coreSrc.includes("stealth:{aggroMul")||coreSrc.includes("aggroMul:"),"BALANCE.stealth 含 aggroMul");
 assert(/fill:[\s\S]*rogue:/.test(coreSrc),"BAL.party.fill 含 rogue");
-assert(iconsSrc.includes("backstab(cx)")&&iconsSrc.includes("stealth(cx)")&&iconsSrc.includes("sprint(cx)"),"icons.js 有盗贼图标");
+assert(iconsSrc.includes("backstab(cx)")&&iconsSrc.includes("stealth(cx)")&&iconsSrc.includes("eviscerate(cx)"),"icons.js 有盗贼图标");
 assert(sfxSrc.includes("stealth"),"sfx.js 有 stealth 音效");
 assert(html.includes('data-cls="rogue"'),"启程界面有盗贼职业卡");
 
@@ -199,6 +205,14 @@ assert(iconsSrc.includes("shadow_bolt(cx)")&&iconsSrc.includes("drain_life(cx)")
 assert(iconsSrc.includes("portrait_warlock"),"icons.js 有术士肖像");
 assert(sfxSrc.includes("shadow"),"sfx.js 有 shadow 音效");
 assert(html.includes('data-cls="warlock"'),"启程界面有术士职业卡");
+
+/* plan-v4 STEP 23 · 牧师/盗贼/术士子系统压测冒烟 */
+assert(combatSrc.includes("castRenew")&&combatSrc.includes("applyAura(S.p,\"renew\""),"牧师 HoT 走 auras");
+assert(combatSrc.includes("isBehindTarget")&&combatSrc.includes("背刺必须位于目标背后"),"盗贼背刺背后门禁");
+assert(combatSrc.includes("spendComboPoints")||fs.readFileSync(path.join(__dirname,"js/sim/resources.js"),"utf8").includes("spendComboPoints"),"连击点消费 API");
+assert(combatSrc.includes("channelTick")&&combatSrc.includes("drainLifeTick"),"术士引导吸血");
+assert(combatSrc.includes("function skillRank")&&balSrc.includes("ranks:["),"法术 ranks 升阶");
+assert(fs.readFileSync(path.join(__dirname,"panels.js"),"utf8").includes("Rank")||fs.readFileSync(path.join(__dirname,"panels.js"),"utf8").includes("skillRank"),"法术书展示 Rank");
 
 /* 德鲁伊冒烟 */
 assert(combatSrc.includes("druid:{"),"combat.js 有 CLASSES.druid");

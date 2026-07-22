@@ -61,7 +61,8 @@ const TALENTS={
     branches:[
       {id:"holy",name:"神圣",nodes:[
         {id:"holy_light",tier:1,name:"圣光",maxRank:3,icon:"heal",desc:"治疗量提高"},
-        {id:"flash_mastery",tier:2,name:"迅捷治疗",maxRank:3,icon:"flash_heal",req:"holy_light",reqRank:1,desc:"快速治疗冷却缩短"},
+        {id:"flash_mastery",tier:2,name:"愈合力",maxRank:3,icon:"renew",req:"holy_light",reqRank:1,desc:"恢复术冷却缩短"},
+        {id:"spirit_guide",tier:3,name:"精神指引",maxRank:3,icon:"heal",req:"flash_mastery",reqRank:1,desc:"法力回复提高"},
         {id:"divine_grace",tier:3,name:"神恩",maxRank:3,icon:"heal",req:"flash_mastery",reqRank:1,desc:"治疗量提高，治疗术冷却缩短"},
       ]},
       {id:"discipline",name:"戒律",nodes:[
@@ -96,7 +97,7 @@ const TALENTS={
       ]},
       {id:"subtlety",name:"敏锐",nodes:[
         {id:"shadow_focus",tier:1,name:"暗影专注",maxRank:3,icon:"stealth",desc:"潜行时更难被发现"},
-        {id:"fleet_footed",tier:2,name:"疾足",maxRank:3,icon:"sprint",req:"shadow_focus",reqRank:1,desc:"疾步冷却缩短"},
+        {id:"fleet_footed",tier:2,name:"剔骨专精",maxRank:3,icon:"eviscerate",req:"shadow_focus",reqRank:1,desc:"剔骨冷却缩短"},
         {id:"master_subtlety",tier:3,name:"敏锐大师",maxRank:3,icon:"stealth",req:"fleet_footed",reqRank:1,desc:"伤害提高，潜行开场更狠"},
       ]},
     ],

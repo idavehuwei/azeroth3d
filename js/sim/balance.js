@@ -88,6 +88,11 @@ const BALANCE={
       {minLevel:8, absorb:[2124,2596], duration:15},
       {minLevel:14, absorb:[2448,2992], duration:16}
     ]},
+    renew:{ranks:[
+      {minLevel:1, duration:12, healPerSec:48},
+      {minLevel:8, duration:14, healPerSec:62},
+      {minLevel:14, duration:15, healPerSec:78}
+    ]},
     lightningBolt:{ranks:[
       {minLevel:1, dmg:[740,940]},
       {minLevel:8, dmg:[873,1109]},
@@ -123,6 +128,11 @@ const BALANCE={
       {minLevel:1, speedMul:1.55, duration:6},
       {minLevel:8, speedMul:1.65, duration:7},
       {minLevel:14, speedMul:1.75, duration:8}
+    ]},
+    eviscerate:{ranks:[
+      {minLevel:1, dmg:[280,360], perCombo:.42, addDmg:[260,340], reach:4.6, addReach:4.5, bossReach:10},
+      {minLevel:8, dmg:[330,425], perCombo:.45, addDmg:[308,400], reach:4.8, addReach:4.7, bossReach:10},
+      {minLevel:14, dmg:[380,490], perCombo:.48, addDmg:[356,460], reach:5.0, addReach:4.9, bossReach:10}
     ]},
     /* —— 术士 —— */
     shadowBolt:{ranks:[

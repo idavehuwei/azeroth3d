@@ -539,6 +539,26 @@ const RECIPES={
     cx.fillStyle="#c0ffd0";
     cx.beginPath();cx.moveTo(32,14);cx.quadraticCurveTo(40,24,32,40);cx.quadraticCurveTo(24,24,32,14);cx.fill();
   },
+  renew(cx){
+    P.bg(cx,"#282010","#100804");
+    P.glow(cx,32,30,18,"rgba(255,220,120,.5)");
+    cx.fillStyle="#ffe080";
+    cx.beginPath();cx.ellipse(32,34,11,15,0,0,6.283);cx.fill();
+    cx.fillStyle="#fff8d0";
+    cx.beginPath();cx.arc(32,22,7,0,6.283);cx.fill();
+    cx.strokeStyle="#d4af37";cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(32,12);cx.lineTo(32,18);cx.stroke();
+  },
+  eviscerate(cx){
+    P.bg(cx,"#1a1c22","#08090c");
+    P.glow(cx,32,32,16,"rgba(180,200,255,.4)");
+    cx.fillStyle="#c8d0e0";
+    cx.beginPath();cx.moveTo(18,40);cx.lineTo(32,12);cx.lineTo(46,40);cx.closePath();cx.fill();
+    cx.fillStyle="#5a6888";
+    cx.fillRect(28,38,8,12);
+    cx.fillStyle="#ffe9a0";
+    for(let i=0;i<3;i++){cx.beginPath();cx.arc(22+i*8,44,2.2,0,6.283);cx.fill();}
+  },
   entangling(cx){
     P.bg(cx,"#201810","#0c0804");
     P.glow(cx,32,36,16,"rgba(80,160,60,.45)");

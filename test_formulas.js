@@ -28,6 +28,7 @@ const{
   SIM_CONTENT,hpFromStamina,manaFromInt,attackPower,critFromAgi,dodgeFromAgi,armorFromAgi,
   deriveStats,emptyStats,meleeTable,armorReduction,spellHitChance,rollMeleeAttack,rollSpellAttack,
   rageConstant,rageFromDamage,gcdDuration,createResourceState,tickResources,addComboPoints,
+  clearComboPoints,getComboPoints,spendComboPoints,
   settleDamage,buildAttackerCtx,buildTargetCtx,
   applyAbsorbShield,applyEntityHpDamage,allocEntityId
 }=ctx;
@@ -104,6 +105,24 @@ addComboPoints(rs,2);
 assert(rs.combo===4,"连击点累加");
 addComboPoints(rs,10);
 assert(rs.combo===5,"连击点上限 5");
+const spent=spendComboPoints(rs);
+assert(spent===5&&rs.combo===0,"spendComboPoints 消费并清零");
+addComboPoints(rs,3);
+assert(getComboPoints(rs)===3,"getComboPoints");
+clearComboPoints(rs);
+assert(getComboPoints(rs)===0,"clearComboPoints");
+/* 背后判定（与 combat.isBehindTarget 同式） */
+function behindAt(tx,tz,tRot,ax,az,arc){
+  const half=(arc!=null?arc:1.35)*.5;
+  const toAtk=Math.atan2(ax-tx,az-tz);
+  let d=toAtk-tRot;
+  while(d>Math.PI)d-=Math.PI*2;
+  while(d<-Math.PI)d+=Math.PI*2;
+  return Math.abs(d)>Math.PI-half;
+}
+assert(behindAt(0,0,0,0,-2),"正后方可背刺");
+assert(!behindAt(0,0,0,0,2),"正前方不可背刺");
+assert(!behindAt(0,0,0,2,0),"侧面不可背刺");
 /* 能量 tick：2 秒 +20 */
 rs.energyAcc=0;
 tickResources(p,rs,{dt:2.0,resKind:"energy"});

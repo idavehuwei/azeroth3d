@@ -1155,6 +1155,17 @@ function tick(){
   $("#pHpTx").textContent=`${Math.max(0,Math.round(S.p.hp))} / ${S.p.hpMax}`;
   $("#pRage").style.transform=`scaleX(${S.p.rage/S.p.rageMax})`;
   $("#pRageTx").textContent=`${(CLS&&CLS.resName)||"资源"} ${Math.round(S.p.rage)}`;
+  const comboEl=$("#comboDots");
+  if(comboEl){
+    const show=CLS&&CLS.resKind==="energy";
+    comboEl.classList.toggle("on",!!show);
+    comboEl.setAttribute("aria-hidden",show?"false":"true");
+    if(show){
+      const n=typeof getComboPoints==="function"?getComboPoints(S.res):0;
+      const dots=comboEl.querySelectorAll("span");
+      for(let i=0;i<dots.length;i++)dots[i].classList.toggle("on",i<n);
+    }
+  }
   $("#pXp").style.transform=`scaleX(${S.p.level>=BAL.levels.max?1:S.p.xp/S.p.xpMax})`;
   const restEl=$("#pXpRest");
   if(restEl){

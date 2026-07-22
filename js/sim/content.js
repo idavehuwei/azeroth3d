@@ -173,6 +173,10 @@ var SIM_CONTENT={
       name:"真言术：盾", kind:"buff", type:"absorb", icon:"holy_shield",
       dur:15, maxStacks:1
     },
+    renew:{
+      name:"恢复", kind:"buff", type:"hot", icon:"renew",
+      dur:12, tick:3, maxStacks:1, healPerSec:48
+    },
     rooted:{
       name:"定身", kind:"debuff", type:"crowd", flag:"rooted", icon:"frost",
       dur:4, maxStacks:1

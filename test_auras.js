@@ -82,6 +82,22 @@ assert(SIM_CONTENT.auras.power_word_shield.type==="absorb","护盾类型 absorb"
   assert(!hasAura(p,"ice_block"),"冰障到期");
 }
 
+/* ---- 牧师恢复术 HoT（STEP 23） ---- */
+{
+  assert(SIM_CONTENT.auras.renew&&SIM_CONTENT.auras.renew.type==="hot","SIM_CONTENT.auras.renew 为 hot");
+  const p={hp:100,hpMax:500,auras:[]};
+  applyAura(p,"renew",{duration:12,healPerSec:50});
+  assert(hasAura(p,"renew"),"施加恢复");
+  let healed=0;
+  for(let step=0;step<4;step++){
+    tickAuras(p,3,{
+      onHot(ent,amount){healed+=amount;ent.hp=Math.min(ent.hpMax,ent.hp+amount);}
+    });
+  }
+  assert(healed>=140,"恢复术 12 秒内跳疗");
+  assert(p.hp>100,"玩家生命因 HoT 上升");
+}
+
 assert(typeof listAuras==="function"&&listAuras({auras:[]}).length===0,"listAuras 空列表");
 
 if(failed){
