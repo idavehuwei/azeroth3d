@@ -318,9 +318,10 @@ assert(html.includes('src="quests.js"'),"game.html 加载 quests.js");
 assert(questsSrc.includes("const QUESTS=")&&questsSrc.includes('id:"elder_boars"'),"quests.js 有 QUESTS 注册表");
 assert(questsSrc.includes("QUEST_DB"),"C9 QUEST_DB 别名");
 assert(coreSrc.includes("activeMax:10")&&questsSrc.includes("countActiveQuests"),"C9 同时任务上限");
-assert(questsSrc.includes('kind==="giver"')&&questsSrc.includes('kind==="turnin"'),"任务地图可标记接取/交还 NPC");
+assert(questsSrc.includes('kind==="giver"')&&questsSrc.includes('kind==="turnin"')&&questsSrc.includes("resolveKillMobMapPos"),"任务地图可标记发起者/交还/怪物");
 assert(html.includes("mapTabs")&&html.includes('data-map-tab="zone"')&&html.includes('data-map-tab="world"'),"地图面板区域/世界 Tab");
 assert(fs.readFileSync(path.join(__dirname,"map.js"),"utf8").includes("setMapPanelTab")&&fs.readFileSync(path.join(__dirname,"map.js"),"utf8").includes("drawZoneMapPanel"),"区域地图绘制 API");
+assert(coreSrc.includes("miniSize:200")||balSrc.includes("miniSize:200"),"小地图放大 200");
 assert(questsSrc.includes("normalizeObjectiveType")&&questsSrc.includes("interact"),"C9 目标别名/interact");
 assert(questsSrc.includes("npcHasQuestOfferLowLevel")&&questsSrc.includes("applyNpcQuestMarkerVisual"),"C9 灰色感叹号");
 assert(questsSrc.includes("tryQuestGroundInteract")&&questsSrc.includes("spawnQuestGroundForQuest"),"C9 地面闪光物");
@@ -417,7 +418,7 @@ const saveSrc=fs.readFileSync(path.join(__dirname,"save.js"),"utf8");
 const panelsSrc=fs.readFileSync(path.join(__dirname,"panels.js"),"utf8");
 assert(saveSrc.includes("collectQuestSave")&&saveSrc.includes("applyQuestSave"),"save.js 读写 quests");
 assert(panelsSrc.includes("getQuestLogEntries"),"panels.js 多条目任务日志");
-assert(panelsSrc.includes("标记接取 NPC")&&panelsSrc.includes("标记交还 NPC")&&panelsSrc.includes("进行中")&&panelsSrc.includes("已完成"),"C9 日志分组与地图按钮");
+assert(panelsSrc.includes("标记发起者")&&panelsSrc.includes("标记交任务")&&panelsSrc.includes("标记怪物地点")&&panelsSrc.includes("进行中")&&panelsSrc.includes("已完成"),"C9 日志分组与地图按钮");
 assert(zonesSrc.includes("onQuestZoneEnter"),"zones.js 切入触发区域任务");
 
 /* STEP 23 专业技能冒烟 */

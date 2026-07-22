@@ -1751,6 +1751,88 @@ function tickQuestGroundFx(dt){
 }
 
 /* ---- C9 任务日志 → 地图标记 ---- */
+function questKillMobKeys(obj){
+  if(!obj)return [];
+  if(obj.type==="boss"&&obj.bossId)return [obj.bossId];
+  if(obj.type!=="kill")return [];
+  return (obj.mobs&&obj.mobs.length)?obj.mobs.slice():(obj.mob?[obj.mob]:[]);
+}
+
+/** 击杀目标落点：活怪优先 → home → 稀有表 → 区域 POI 兜底 */
+function resolveKillMobMapPos(q,obj){
+  const keys=questKillMobKeys(obj);
+  if(!keys.length)return null;
+  const zone=q&&q.zone?q.zone:null;
+  const px=(typeof player!=="undefined"&&player)?player.position.x:0;
+  const pz=(typeof player!=="undefined"&&player)?player.position.z:0;
+  let best=null,bestD=Infinity;
+  let sx=0,sz=0,sn=0;
+  if(typeof MOBS!=="undefined"){
+    for(const m of MOBS){
+      if(!m||keys.indexOf(m.type)<0)continue;
+      if(zone&&m.zoneId&&m.zoneId!==zone)continue;
+      const alive=m.state!=="dead"&&m.state!=="return";
+      const hx=(alive&&m.mesh)?m.mesh.position.x:(m.home?m.home.x:null);
+      const hz=(alive&&m.mesh)?m.mesh.position.z:(m.home?m.home.z:null);
+      if(hx==null||hz==null||!isFinite(hx))continue;
+      sx+=hx;sz+=hz;sn++;
+      const d=Math.hypot(hx-px,hz-pz);
+      const score=d+(alive?0:80);
+      if(score<bestD){bestD=score;best={x:hx,z:hz,label:m.name||keys[0],alive};}
+    }
+  }
+  if(best){
+    /* 多只时用均值，避免钉在一只游荡怪上 */
+    if(sn>=3)return {x:sx/sn,z:sz/sn,label:best.label||keys[0]};
+    return best;
+  }
+  if(typeof RARES!=="undefined"){
+    for(const e of RARES){
+      if(keys.indexOf(e.type)<0)continue;
+      if(zone&&e.zone&&e.zone!==zone)continue;
+      return {x:e.x,z:e.z,label:e.label||e.name||e.type};
+    }
+  }
+  if(typeof WORLD_BOSSES!=="undefined"){
+    for(const e of WORLD_BOSSES){
+      if(keys.indexOf(e.type)<0)continue;
+      if(zone&&e.zone&&e.zone!==zone)continue;
+      return {x:e.x,z:e.z,label:e.label||e.name||e.type};
+    }
+  }
+  /* 静态营地兜底（无活怪/未建区时仍能标大致方向） */
+  const camp={
+    bristleback:()=>typeof MULGORE!=="undefined"?{x:MULGORE.redCloud.x+8,z:MULGORE.redCloud.z-6}:null,
+    palemane:()=>typeof MULGORE!=="undefined"?{x:MULGORE.palemane.x,z:MULGORE.palemane.z}:null,
+    wolf:()=>typeof MULGORE!=="undefined"?{x:MULGORE.redCloud.x-20,z:MULGORE.redCloud.z+10}:null,
+    waterElement:()=>typeof MULGORE!=="undefined"?{x:MULGORE.thunderhorn.x,z:MULGORE.thunderhorn.z}:null,
+    windfury:()=>typeof MULGORE!=="undefined"?{x:MULGORE.windfury.x,z:MULGORE.windfury.z}:null,
+    harpy:()=>typeof MULGORE!=="undefined"?{x:MULGORE.windfury.x+8,z:MULGORE.windfury.z-12}:null,
+    barrensBristle:()=>typeof BARRENS!=="undefined"?{x:BARRENS.bristleback.x,z:BARRENS.bristleback.z}:null,
+    barrensLion:()=>typeof BARRENS!=="undefined"?{x:BARRENS.goldRoad.x,z:BARRENS.goldRoad.z}:null,
+    oasisHarpy:()=>typeof BARRENS!=="undefined"?{x:BARRENS.deadOasis.x,z:BARRENS.deadOasis.z}:null,
+    quilboarElder:()=>typeof BARRENS!=="undefined"?{x:BARRENS.taurajo.x+18,z:BARRENS.taurajo.z-12}:null,
+    scorp:()=>({x:-112,z:-72}),
+    razorback:()=>({x:40,z:80}),
+    ashboar:()=>({x:-40,z:30}),
+    cinderwolf:()=>({x:50,z:-40}),
+    slagimp:()=>({x:-80,z:-60}),
+    scorchtusk:()=>({x:-150,z:-100}),
+    plainslion:()=>typeof MULGORE!=="undefined"?{x:MULGORE.golden.x,z:MULGORE.golden.z}:null,
+    kodo:()=>typeof BLOODHOOF!=="undefined"?{x:BLOODHOOF.x+30,z:BLOODHOOF.z}:null,
+    boar:()=>typeof MULGORE!=="undefined"?{x:MULGORE.redCloud.x,z:MULGORE.redCloud.z}:null,
+    boarKing:()=>({x:40,z:-120}),
+  };
+  for(const k of keys){
+    if(camp[k]){
+      const p=camp[k]();
+      if(p)return {x:p.x,z:p.z,label:k};
+    }
+  }
+  if(obj&&obj.x!=null&&obj.z!=null)return {x:+obj.x,z:+obj.z,label:obj.label||keys[0]};
+  return null;
+}
+
 function resolveQuestMapFocus(qOrId,opts){
   opts=opts||{};
   const q=typeof qOrId==="string"?getQuestDef(qOrId):qOrId;
@@ -1773,16 +1855,32 @@ function resolveQuestMapFocus(qOrId,opts){
     if(!p)return null;
     return {x:p.x,z:p.z,zone:q.zone,label:questNpcLabel(turn),kind:"turnin"};
   }
+  if(kind==="mob"||kind==="kill"){
+    const p=resolveKillMobMapPos(q,obj);
+    if(!p)return null;
+    const nm=(typeof MOB_TYPES!=="undefined"&&MOB_TYPES[p.label]&&MOB_TYPES[p.label].name)||p.label;
+    return {x:p.x,z:p.z,zone:q.zone,label:nm,kind:"mob"};
+  }
   if(kind==="objective"){
-    if(obj&&(obj.type==="arrive"||obj.type==="interact")){
-      const p=resolveArriveTarget(obj);
+    if(obj&&(obj.type==="arrive"||obj.type==="interact"||obj.type==="escort")){
+      const p=obj.type==="escort"
+        ?{x:+obj.destX,z:+obj.destZ}
+        :resolveArriveTarget(obj);
       if(p)return {x:p.x,z:p.z,zone:q.zone,label:obj.label||q.title,kind:"objective"};
+    }
+    if(obj&&(obj.type==="kill"||obj.type==="boss")){
+      const p=resolveKillMobMapPos(q,obj);
+      if(p)return {x:p.x,z:p.z,zone:q.zone,label:p.label,kind:"mob"};
     }
     return null;
   }
 
-  /* auto：进行中优先目标点 → 可交还 NPC → 接取 NPC */
+  /* auto：击杀怪点 → 到达/交互 → 交还 → 发起 */
   if(st==="active"&&obj){
+    if(obj.type==="kill"||obj.type==="boss"){
+      const p=resolveKillMobMapPos(q,obj);
+      if(p)return {x:p.x,z:p.z,zone:q.zone,label:p.label,kind:"mob"};
+    }
     if(obj.type==="arrive"||obj.type==="interact"){
       const p=resolveArriveTarget(obj);
       if(p)return {x:p.x,z:p.z,zone:q.zone,label:obj.label||q.title,kind:"objective"};
@@ -1804,8 +1902,9 @@ function setQuestMapFocus(qOrId,opts){
   opts=opts||{};
   const focus=resolveQuestMapFocus(qOrId,opts);
   if(!focus){
-    const tip=opts.kind==="giver"?"接取 NPC 暂无坐标"
+    const tip=opts.kind==="giver"?"发起者暂无坐标"
       :opts.kind==="turnin"?"交还 NPC 暂无坐标"
+      :(opts.kind==="mob"||opts.kind==="kill")?"怪物地点暂无坐标"
       :opts.kind==="objective"?"任务目标暂无坐标"
       :"该任务暂无地图坐标。";
     log(tip,"lg-sys");
@@ -1816,7 +1915,10 @@ function setQuestMapFocus(qOrId,opts){
     label:focus.label||"任务",kind:focus.kind||"objective",
     until:(S.t||0)+90
   };
-  const tag=focus.kind==="giver"?"接取":focus.kind==="turnin"?"交还":"目标";
+  const tag=focus.kind==="giver"?"发起者"
+    :focus.kind==="turnin"?"交还"
+    :focus.kind==="mob"?"怪物"
+    :"目标";
   announce(`地图标记 · ${tag} · ${focus.label}`);
   if(typeof setMapPanelTab==="function")setMapPanelTab("zone",{redraw:false});
   if(typeof toggleWorldMap==="function"&&typeof worldMapOpen==="function"&&!worldMapOpen())

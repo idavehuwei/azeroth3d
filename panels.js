@@ -539,11 +539,14 @@ function renderQuestDetail(e){
   if(e.tip&&st!=="done")html+=`<div class="ql-d-tip">${e.tip}</div>`;
   html+=`<div class="ql-acts">`;
   if(st!=="done"&&typeof setQuestMapFocus==="function"){
-    if(giver)html+=`<button type="button" class="ql-map" data-qid="${e.id}" data-mk="giver">标记接取 NPC</button>`;
-    if(turnIn)html+=`<button type="button" class="ql-map" data-qid="${e.id}" data-mk="turnin">标记交还 NPC</button>`;
+    if(giver)html+=`<button type="button" class="ql-map" data-qid="${e.id}" data-mk="giver">标记发起者</button>`;
+    if(turnIn)html+=`<button type="button" class="ql-map" data-qid="${e.id}" data-mk="turnin">标记交任务</button>`;
     const obj0=q&&q.objectives&&q.objectives[0];
-    if(st==="active"&&obj0&&(obj0.type==="arrive"||obj0.type==="interact"))
-      html+=`<button type="button" class="ql-map" data-qid="${e.id}" data-mk="objective">标记目标</button>`;
+    const killKeys=typeof questKillMobKeys==="function"?questKillMobKeys(obj0):[];
+    if(killKeys.length)
+      html+=`<button type="button" class="ql-map" data-qid="${e.id}" data-mk="mob">标记怪物地点</button>`;
+    else if(obj0&&(obj0.type==="arrive"||obj0.type==="interact"||obj0.type==="escort"))
+      html+=`<button type="button" class="ql-map" data-qid="${e.id}" data-mk="objective">标记目标地点</button>`;
   }
   if(abandonable){
     html+=`<button type="button" class="ql-abandon" data-qid="${e.id}">放弃任务</button>`;
