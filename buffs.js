@@ -229,6 +229,11 @@ function renderBuffHud(){
       st.className="buff-st";
       st.textContent=String(Math.round(b.absorb));
       el.appendChild(st);
+    }else if(b.stacks!=null&&b.stacks>1){
+      const st=document.createElement("span");
+      st.className="buff-st";
+      st.textContent="×"+String(b.stacks|0);
+      el.appendChild(st);
     }
     if(typeof bindTipHtml==="function")bindTipHtml(el,()=>buffTipHtml(b));
     else el.title=(b.name||b.id)+" · "+sec+"s";

@@ -38,14 +38,18 @@
   #targetFrame.elite{border-color:#c9a06a;box-shadow:0 0 14px rgba(232,179,74,.35),var(--panel-inset)}
   #targetFrame.rare{border-color:#a8b0c8;box-shadow:0 0 14px rgba(180,190,220,.3),var(--panel-inset)}
   #targetHead{display:flex;gap:8px;align-items:center;margin-bottom:5px}
-  #targetAvatar{width:36px;height:36px;border:1px solid var(--panel-border-hi);background:#1a1008;flex-shrink:0}
+  #targetAvatar{width:36px;height:36px;border:1px solid var(--panel-border-hi);background:#1a1008;flex-shrink:0;
+    object-fit:contain;display:block;border-radius:2px}
   #targetMeta{min-width:0;flex:1}
   #targetName{font-size:13px;font-weight:800;color:#ffd9a0;letter-spacing:1px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 2px #000}
   #targetSub{font-size:10px;color:#c9a06a;letter-spacing:1px;margin-top:1px}
   #totFrame{position:fixed;top:92px;left:28px;z-index:10;opacity:0;transition:opacity .25s;
-    background:rgba(14,8,5,.85);border:1px solid rgba(201,160,106,.4);padding:3px 8px;font-size:11px;color:#e8c898}
+    background:rgba(14,8,5,.85);border:1px solid rgba(201,160,106,.4);padding:4px 8px 6px;
+    min-width:110px;font-size:11px;color:#e8c898}
   #totFrame.show{opacity:1}
+  #totName{font-weight:700;letter-spacing:1px;color:#cfe4ff}
+  #totFrame .barShell{height:8px;margin-top:3px}
   #bossName{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;
     text-shadow:0 0 12px rgba(255,90,0,.8),0 2px 3px #000}
   #bossName .n{font-size:20px;font-weight:900;letter-spacing:4px;color:#ffd9a0}
@@ -86,11 +90,19 @@
   #playerFrame{position:fixed;left:16px;bottom:110px;width:min(300px,44vw);z-index:10}
   #playerFrame .pname{font-size:13px;font-weight:700;color:#a8d8ff;letter-spacing:2px;margin-bottom:3px;
     text-shadow:0 0 8px rgba(90,160,255,.6),0 1px 2px #000}
+  #playerFrame .uf-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  #playerFrame .uf-meta{flex:1;min-width:0}
+  #playerAvatar,#targetAvatar,.party-av{
+    width:36px;height:36px;flex:0 0 auto;border:1px solid rgba(232,179,74,.55);
+    border-radius:2px;background:#0a0604;object-fit:contain;display:block;
+    box-shadow:0 0 8px rgba(255,140,40,.25)}
   #playerFrame .barShell{height:16px;margin-bottom:4px}
   #cmpFrame,#partyFrame{position:fixed;left:16px;bottom:210px;width:min(260px,40vw);z-index:10;display:none}
   #partyFrame .party-slot{margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(120,160,220,.2)}
   #partyFrame .party-slot:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
-  #cmpFrame .pname,#partyFrame .pname{font-size:11px;font-weight:700;color:#9ec9ff;letter-spacing:1px;margin-bottom:2px;
+  #partyFrame .party-head{display:flex;align-items:center;gap:6px;margin-bottom:2px}
+  #partyFrame .party-av{width:28px;height:28px}
+  #cmpFrame .pname,#partyFrame .pname{font-size:11px;font-weight:700;color:#9ec9ff;letter-spacing:1px;margin-bottom:0;
     text-shadow:0 0 8px rgba(80,140,220,.5),0 1px 2px #000}
   #cmpFrame .barShell,#partyFrame .barShell{height:12px;margin-bottom:2px}
   #cmpFrame .cmp-st,#partyFrame .cmp-st{font-size:9px;color:#8aa0b8;margin-top:1px}
@@ -126,8 +138,10 @@
   .skill.empty .nm{color:#6a5a48}
   .skill.oor{box-shadow:0 0 14px rgba(220,40,40,.45),inset 0 0 12px rgba(0,0,0,.75);border-color:#e05050}
   .skill.oor .nm{color:#ff9090}
-  .skill.nores{box-shadow:0 0 14px rgba(60,120,220,.45),inset 0 0 12px rgba(0,0,0,.75);border-color:#5a9ae0}
-  .skill.nores .nm{color:#9ec8ff}
+  /* STEP 20：资源不足变暗（非蓝边） */
+  .skill.nores{filter:brightness(.45) saturate(.55);opacity:.72;border-color:#4a4038;
+    box-shadow:inset 0 0 12px rgba(0,0,0,.85)}
+  .skill.nores .nm{color:#7a6a58}
   .skill.drop-ok{outline:2px solid #ffd76a;outline-offset:2px}
   .skill .ic{width:28px;height:28px;display:block;margin:2px auto 0;border:1px solid rgba(232,179,74,.55);
     border-radius:2px;background:#0a0604;object-fit:contain;image-rendering:auto;
@@ -514,6 +528,8 @@
   .fct-dodge{color:#a8d8ff!important}
   .fct-parry{color:#ffe9a0!important}
   .fct-glancing{color:#a0a0a0!important;font-size:13px!important}
+  .fct-heal{color:#8aff9a!important}
+  .fct-xp{color:#c9a0ff!important}
   @keyframes fctCrit{0%{transform:translate(-50%,0) scale(.6) rotate(-4deg);opacity:0}
     12%{opacity:1;transform:translate(calc(-50% + 3px),-10px) scale(1.45) rotate(3deg)}
     28%{transform:translate(calc(-50% - 2px),-22px) scale(1.35) rotate(-2deg)}
@@ -668,7 +684,7 @@
 </div>
 <div id="targetFrame" aria-label="当前目标">
   <div id="targetHead">
-    <canvas id="targetAvatar" width="36" height="36"></canvas>
+    <img id="targetAvatar" alt="" width="36" height="36">
     <div id="targetMeta">
       <div id="targetName">—</div>
       <div id="targetSub">敌对</div>
@@ -676,10 +692,17 @@
   </div>
   <div class="barShell"><div class="barFill" id="targetHp"></div><div class="barText" id="targetHpTx"></div></div>
 </div>
-<div id="totFrame"><span id="totName">→ —</span></div>
+<div id="totFrame"><span id="totName">→ —</span>
+  <div class="barShell"><div class="barFill hpP" id="totHp"></div></div>
+</div>
  
 <div id="playerFrame">
-  <div class="pname" id="pName">⚔️ 你 · 人类战士</div>
+  <div class="uf-head">
+    <img id="playerAvatar" alt="" width="36" height="36">
+    <div class="uf-meta">
+      <div class="pname" id="pName">⚔️ 你 · 人类战士</div>
+    </div>
+  </div>
   <div class="barShell"><div class="barFill hpP" id="pHp"></div><div class="barText" id="pHpTx"></div></div>
   <div class="barShell" style="height:11px"><div class="barFill mpP" id="pRage"></div><div class="barText" id="pRageTx" style="font-size:9px"></div></div>
   <div class="barShell" style="height:10px;margin-top:4px">
@@ -698,12 +721,18 @@
 </div>
 <div id="partyFrame">
   <div class="party-slot" id="partySlot0">
-    <div class="pname">同伴</div>
+    <div class="party-head">
+      <img class="party-av" alt="" width="28" height="28">
+      <div class="pname">同伴</div>
+    </div>
     <div class="barShell"><div class="barFill hpP"></div><div class="barText"></div></div>
     <div class="cmp-st">—</div>
   </div>
   <div class="party-slot" id="partySlot1">
-    <div class="pname">同伴</div>
+    <div class="party-head">
+      <img class="party-av" alt="" width="28" height="28">
+      <div class="pname">同伴</div>
+    </div>
     <div class="barShell"><div class="barFill hpP"></div><div class="barText"></div></div>
     <div class="cmp-st">—</div>
   </div>

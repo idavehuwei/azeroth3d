@@ -857,7 +857,7 @@ function tick(){
           el.style.setProperty("--cd","0");
         }
       }
-      /* 资源不足 · 蓝色；有目标且超出射程 · 红色 */
+      /* 资源不足 · 变暗；有目标且超出射程 · 红色 */
       let nores=false, oor=false;
       if(sk&&S.started&&S.p.alive){
         nores=sk.rage>0&&S.p.rage<sk.rage;

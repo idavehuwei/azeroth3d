@@ -529,6 +529,9 @@ function updateCompanionHud(){
       const stEl=slot.querySelector(".cmp-st");
       const rl=(BAL.party.roleLabel&&BAL.party.roleLabel[c.role])||"";
       if(nameEl)nameEl.textContent=`${ROLE_ICON[c.role]||""} ${CMP_NAMES[c.classKey]||"同伴"}${rl?" · "+rl:""}`;
+      const av=slot.querySelector(".party-av");
+      if(av&&typeof setUnitPortrait==="function")
+        setUnitPortrait(av,typeof portraitIconForClass==="function"?portraitIconForClass(c.classKey):"portrait_companion","#9ec9ff");
       const ratio=c.hpMax?Math.max(0,c.hp/c.hpMax):0;
       if(hpEl)hpEl.style.transform=`scaleX(${c.alive?ratio:0})`;
       if(hpTx)hpTx.textContent=c.alive

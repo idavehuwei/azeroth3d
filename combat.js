@@ -27,6 +27,7 @@
           firePlayerShot
           useSkill hitEntity dmgBoss pickTarget firePlayerShot playerHit
           beginPlayerCast cancelPlayerCast tickPlayerCast finishSkillUse
+          showUnitCastBar hideUnitCastBar setUnitCastBarProgress skillTargetOutOfRange
           isTargetAlive setCurrentTarget getFocusTarget clearCurrentTargetIf
           resolveSkillTarget cycleHostileTargets
           gainXP updateLevelUI gainCopper spendCopper formatCopperText updateGoldUI
@@ -299,6 +300,7 @@ function setClass(key){
   refreshActionBarUI();
   if(typeof renderCharPanel==="function")renderCharPanel();
   if(typeof renderSpellPanel==="function")renderSpellPanel();
+  if(typeof refreshPlayerAvatar==="function")refreshPlayerAvatar();
 }
 
 /** plan-V3 C3：从 SIM_CONTENT.baseStats 初始化属性并派生 */
@@ -393,11 +395,14 @@ function fct(worldPos,text,color,size=17,opts){
   else if(kind==="dodge")cls+=" fct-dodge";
   else if(kind==="parry")cls+=" fct-parry";
   else if(kind==="glancing")cls+=" fct-glancing";
+  else if(kind==="heal")cls+=" fct-heal";
+  else if(kind==="xp")cls+=" fct-xp";
   el.className=cls;
   el.style.left=((v3.x*.5+.5)*innerWidth+rand(-18,18))+"px";
   el.style.top =((-v3.y*.5+.5)*innerHeight)+"px";
-  if(color&&!kind)el.style.color=color;
-  else if(color&&(kind==="hit"||!kind))el.style.color=color;
+  if(color&&kind!=="heal"&&kind!=="xp"&&kind!=="miss"&&kind!=="dodge"&&kind!=="parry"&&kind!=="glancing")
+    el.style.color=color;
+  else if(color&&!kind)el.style.color=color;
   const sz=opts&&opts.crit?Math.round(size*((BAL.vfx&&BAL.vfx.critSizeMul)||1.45)):size;
   el.style.fontSize=sz+"px";
   el.textContent=opts&&opts.crit?`${text}!`:text;
@@ -668,13 +673,28 @@ function useSkill(i){
   }
   if(S.cds[skillIdx]>0)return;
   if(S.p.rage<sk.rage){log(`${CLS.resName}不足！（${sk.name} 需要 ${sk.rage} ${CLS.resName}）`,"lg-sys");return;}
-  /* Track E：读条技能先进入 casting，完成后再结算 */
+  /* STEP 20：有射程的技能，当前目标过远则不开读条、不进 CD */
+  if(typeof skillTargetOutOfRange==="function"&&skillTargetOutOfRange(sk)){
+    const msgOor=typeof T==="function"?T("combat.target_oor"):"目标超出射程！";
+    log(msgOor,"lg-sys");
+    return;
+  }
   const castDur=sk.cast>0?+sk.cast:0;
   if(castDur>0){
     beginPlayerCast(sk,skillIdx,i,castDur);
     return;
   }
   finishSkillUse(sk,skillIdx);
+}
+/** 当前目标是否相对技能射程过远/过近（与动作栏 .oor 同口径） */
+function skillTargetOutOfRange(sk){
+  if(!sk||sk.range==null)return false;
+  if(typeof isTargetAlive!=="function"||!isTargetAlive(S.currentTarget))return false;
+  if(typeof targetDist!=="function")return false;
+  const d=targetDist(S.currentTarget);
+  if(d>sk.range)return true;
+  if(CLS&&CLS.minRange&&d<CLS.minRange&&sk.range>=CLS.minRange)return true;
+  return false;
 }
 function beginPlayerCast(sk,skillIdx,barSlot,dur){
   const channel=!!sk.channel;
@@ -684,24 +704,49 @@ function beginPlayerCast(sk,skillIdx,barSlot,dur){
     channel,
     interruptible:true,
   };
-  showPlayerCastUi(sk.name,channel);
+  showUnitCastBar("player",sk.name,{channel});
   log(`开始施放【${sk.name}】…`,"lg-me");
 }
-function showPlayerCastUi(name,channel){
+/** STEP 20：玩家 / Boss 共用施法条驱动 */
+function showUnitCastBar(kind,name,opts){
+  opts=opts||{};
+  if(kind==="boss"){
+    const shell=$("#castShell"), fill=$("#castFill"), tx=$("#castText");
+    if(shell){
+      shell.style.display="block";
+      shell.classList.toggle("interruptible",opts.interruptible!==false);
+    }
+    if(fill)fill.style.transform="scaleX(0)";
+    if(tx)tx.textContent=name||"施法";
+    return;
+  }
   const shell=$("#pCastShell"), fill=$("#pCastFill"), tx=$("#pCastText");
   if(!shell)return;
   shell.classList.add("show");
-  shell.classList.toggle("channel",!!channel);
+  shell.classList.toggle("channel",!!opts.channel);
   shell.setAttribute("aria-hidden","false");
   if(fill)fill.style.transform="scaleX(0)";
   if(tx)tx.textContent=name||"施法";
 }
-function hidePlayerCastUi(){
+function hideUnitCastBar(kind){
+  if(kind==="boss"){
+    const shell=$("#castShell");
+    if(shell){shell.style.display="none";shell.classList.remove("interruptible");}
+    return;
+  }
   const shell=$("#pCastShell");
   if(!shell)return;
   shell.classList.remove("show","channel");
   shell.setAttribute("aria-hidden","true");
 }
+function setUnitCastBarProgress(kind,progress,channel){
+  const fill=$(kind==="boss"?"#castFill":"#pCastFill");
+  if(!fill)return;
+  const k=Math.max(0,Math.min(1,progress));
+  fill.style.transform=`scaleX(${channel?1-k:k})`;
+}
+function showPlayerCastUi(name,channel){showUnitCastBar("player",name,{channel});}
+function hidePlayerCastUi(){hideUnitCastBar("player");}
 function finishSkillUse(sk,skillIdx){
   if(!sk||!sk.fn)return false;
   if(!sk.fn())return false;
@@ -734,8 +779,8 @@ function tickPlayerCast(dt){
   c.t+=dt;
   const k=Math.min(1,c.t/c.dur);
   const fill=$("#pCastFill"), tx=$("#pCastText"), shell=$("#pCastShell");
-  if(shell&&!shell.classList.contains("show"))showPlayerCastUi(c.name,c.channel);
-  if(fill)fill.style.transform=`scaleX(${c.channel?1-k:k})`;
+  if(shell&&!shell.classList.contains("show"))showUnitCastBar("player",c.name,{channel:c.channel});
+  setUnitCastBarProgress("player",k,c.channel);
   if(tx)tx.textContent=`${c.name}  ${Math.max(0,c.dur-c.t).toFixed(1)}`;
   if(c.t>=c.dur){
     const sk=c.sk, idx=c.skillIdx;
@@ -1357,7 +1402,7 @@ function applyHeal(amount,label){
     crit=true;
   }
   S.p.hp=Math.min(S.p.hpMax,S.p.hp+heal);
-  fct(player.position.clone().setY(3),crit?`暴击 +${heal}`:`+${heal}`,"#8aff9a",crit?22:18,{crit});
+  fct(player.position.clone().setY(3),crit?`暴击 +${heal}`:`+${heal}`,"#8aff9a",crit?22:18,{crit,kind:"heal"});
   VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.4)});
   if(typeof SFX!=="undefined")SFX.play("heal");
   log(crit?`你施放【${label}】，暴击恢复 ${heal} 点生命值！`:`你施放【${label}】，恢复 ${heal} 点生命值。`,"lg-heal");
@@ -1749,7 +1794,7 @@ function gainXP(amount,opts){
   P.xp+=amount;
   const col=bonus>0?"#7ec8ff":"#c9a0ff";
   const tx=bonus>0?`+${amount} 经验（休+${bonus}）`:`+${amount} 经验`;
-  fct(player.position.clone().setY(3.6),tx,col,14);
+  fct(player.position.clone().setY(3.6),tx,col,14,{kind:"xp"});
 
   while(P.level<L.max&&P.xp>=P.xpMax){
     P.xp-=P.xpMax; P.level++;

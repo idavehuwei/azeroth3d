@@ -819,14 +819,22 @@ function startCast(name,dur,done,meta){
     skillKey:meta.skillKey||null,
   };
   S.b.castT=0; S.b.castDur=dur;
-  $("#castShell").style.display="block"; $("#castText").textContent=name;
-  const shell=$("#castShell");
-  if(shell)shell.classList.toggle("interruptible",S.b.casting.interruptible!==false);
+  if(typeof showUnitCastBar==="function")
+    showUnitCastBar("boss",name,{interruptible:S.b.casting.interruptible});
+  else{
+    $("#castShell").style.display="block"; $("#castText").textContent=name;
+    const shell=$("#castShell");
+    if(shell)shell.classList.toggle("interruptible",S.b.casting.interruptible!==false);
+  }
 }
 function clearBossCast(){
-  S.b.casting=null; $("#castShell").style.display="none";
-  const shell=$("#castShell");
-  if(shell)shell.classList.remove("interruptible");
+  S.b.casting=null;
+  if(typeof hideUnitCastBar==="function")hideUnitCastBar("boss");
+  else{
+    $("#castShell").style.display="none";
+    const shell=$("#castShell");
+    if(shell)shell.classList.remove("interruptible");
+  }
 }
 /** V1-C5：打断 Boss 读条；opts.lockout 秒内推迟该技能下次施放 */
 function interruptBossCast(opts){
@@ -1091,7 +1099,9 @@ function bossAI(dt){
 
   if(B.casting){
     B.castT+=dt;
-    $("#castFill").style.transform=`scaleX(${Math.min(1,B.castT/B.castDur)})`;
+    if(typeof setUnitCastBarProgress==="function")
+      setUnitCastBarProgress("boss",Math.min(1,B.castT/B.castDur),false);
+    else $("#castFill").style.transform=`scaleX(${Math.min(1,B.castT/B.castDur)})`;
     if(B.castT>=B.castDur){
       const c=B.casting; clearBossCast(); c.done();
     }

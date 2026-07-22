@@ -297,6 +297,9 @@ assert(coreSrc.includes("corpseWeaknessT")&&coreSrc.includes("swimMul"),"BALANCE
 assert(fs.existsSync(path.join(__dirname,"test_death.js")),"test_death.js 存在");
 assert(fs.existsSync(path.join(__dirname,"test_economy.js")),"test_economy.js 存在");
 assert(fs.existsSync(path.join(__dirname,"test_quests.js")),"test_quests.js 存在");
+assert(fs.existsSync(path.join(__dirname,"test_ui.js")),"test_ui.js 存在");
+assert(html.includes("playerAvatar")&&fs.readFileSync(path.join(__dirname,"icons.js"),"utf8").includes("portrait_warrior"),"STEP 20 单位肖像");
+assert(combatSrc.includes("showUnitCastBar")&&combatSrc.includes("skillTargetOutOfRange"),"STEP 20 施法条/OOR");
 assert(itemsSrc.includes("可与饮水同时")||itemsSrc.includes("可与饮水并行"),"STEP 19 进食可与饮水并行");
 assert(questsSrc.includes("byClass")&&(questsSrc.includes('type==="reach"')||questsSrc.includes('"reach"')),"STEP 19 byClass/reach 别名");
 assert(coreSrc.includes("weaponsmith")&&coreSrc.includes("camp_shortsword"),"BALANCE 含武器匠货架");
