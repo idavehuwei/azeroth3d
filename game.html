@@ -562,12 +562,23 @@
   #classPick{display:grid;grid-template-columns:repeat(3,minmax(0,148px));gap:10px;
     margin:0 auto 18px;justify-content:center;max-width:480px;width:100%}
   .ccard{width:auto;padding:10px 8px;border:1px solid var(--panel-border);background:var(--slot-bg);
-    cursor:pointer;transition:.15s;text-align:center;box-shadow:inset 0 0 14px rgba(0,0,0,.45);min-width:0}
+    cursor:pointer;transition:.15s;text-align:center;box-shadow:inset 0 0 14px rgba(0,0,0,.45);min-width:0;position:relative}
   .ccard .ci{font-size:26px;line-height:1.1;filter:drop-shadow(0 0 8px rgba(255,140,40,.5))}
   .ccard .cn{font-size:13px;font-weight:800;letter-spacing:2px;margin:5px 0 3px;color:var(--gold-bright)}
   .ccard .cd2{font-size:10px;line-height:1.55;color:var(--parchment-muted)}
+  .ccard .csave{position:absolute;top:6px;right:6px;font-size:9px;font-weight:800;letter-spacing:1px;
+    color:#2a1000;background:linear-gradient(180deg,#ffce7a,#e0812a);border:1px solid #ffcf90;
+    padding:1px 5px;border-radius:2px;box-shadow:0 0 8px rgba(255,120,20,.45)}
+  .ccard.has-save{border-color:rgba(232,179,74,.65)}
   .ccard:hover{border-color:var(--gold-bright);transform:translateY(-2px)}
   .ccard.sel{border-color:var(--gold-bright);background:rgba(120,50,10,.45);box-shadow:0 0 20px rgba(255,120,20,.45)}
+  #saveMeta{font-size:12px;color:#b09a7a;letter-spacing:1px;margin-bottom:10px;display:none;max-width:520px;width:100%}
+  #saveMeta .save-meta-tip{font-size:10px;color:#8b7a5e;letter-spacing:1px;margin-bottom:8px}
+  #saveMeta .save-meta-list{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+  #saveMeta .save-chip{font:inherit;font-size:11px;letter-spacing:1px;cursor:pointer;
+    color:#ffcf98;background:rgba(40,20,10,.75);border:1px solid rgba(232,179,74,.45);
+    padding:5px 10px;border-radius:2px}
+  #saveMeta .save-chip:hover{border-color:#ffcf90;background:rgba(80,40,15,.85)}
   @media (max-width:520px){
     #classPick{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:100%}
     .ccard{padding:8px 4px}
@@ -582,7 +593,6 @@
   #startMenu .btn-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
   #startMenu .btn.ghost,.overlay .btn.ghost{background:rgba(40,20,10,.7);color:#ffcf98;
     box-shadow:0 0 14px rgba(255,120,20,.25)}
-  #saveMeta{font-size:12px;color:#b09a7a;letter-spacing:1px;margin-bottom:4px;display:none}
   #newGamePanel{display:none}
   #newGamePanel .btn-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
   #saveImportBox{margin-top:18px;max-width:480px;width:100%}

@@ -1085,6 +1085,10 @@ assert(talentsSrc.includes("TALENTS")&&talentsSrc.includes("tier:"),"天赋树�
 assert(html.includes('src="talents.js"')&&html.includes('src="save.js"'),"加载 talents/save");
 assert(saveSrc.includes("exportSaveCode")&&saveSrc.includes("importSaveCode"),"Base64 导出/导入");
 assert(saveSrc.includes("localStorage")&&saveSrc.includes("collectSaveData"),"纯数据 localStorage 存档");
+assert(saveSrc.includes("function saveKeyFor")&&coreSrc.includes("keyPrefix"),"每职业存档键 saveKeyFor");
+assert(saveSrc.includes("listClassSaves")&&saveSrc.includes("migrateLegacySave"),"多槽列表与旧档迁移");
+assert(saveSrc.includes("saveKeyFor(ck)")&&saveSrc.includes("重新启程"),"新游戏仅清当前职业槽");
+assert(html.includes("csave")||html.includes("save-chip"),"职业卡存档徽章 / 继续芯片");
 assert(saveSrc.includes("talents")||saveSrc.includes("spent"),"存档含天赋字段");
 
 if(process.exitCode){

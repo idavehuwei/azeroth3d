@@ -885,8 +885,13 @@ const BALANCE={
       sacred_shield  :{fx:{healMul:.05},hpMaxMul:.05},
     },
   },
-  /* 存档（STEP 11）：localStorage 键与 schema 版本；改键会与旧存档隔离 */
-  save:{key:"azeroth3d_save_v1",version:1},
+  /* 存档（STEP 11）：每职业一槽；legacy key 仅作迁移源 */
+  save:{
+    key:"azeroth3d_save_v1",
+    keyPrefix:"azeroth3d_save_v1_",
+    version:1,
+    classKeys:["warrior","mage","archer","priest","shaman","rogue","warlock","druid","paladin"],
+  },
   /* FPS 叠层（STEP 12）：刷新间隔秒；着色对照目标帧率 */
   fps:{updateInterval:.5,desktopTarget:60,mobileTarget:30},
   /* 性能预算（plan-V2 · R8）：debug.js 超标告警；桌面 / 移动两档 */

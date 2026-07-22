@@ -13,10 +13,11 @@
           quests.js 运行时（collectQuestSave applyQuestSave resetAllQuests）
           professions.js 运行时（collectMatsSave applyMatsSave resetMats）
           deeds.js 运行时（collectDeedsSave applyDeedsSave resetDeeds）
-   [导出] saveGame loadGame hasSave clearSave collectSaveData applySaveData
+   [导出] saveKeyFor listClassSaves latestSaveClassKey
+          saveGame loadGame hasSave clearSave collectSaveData applySaveData
           exportSaveCode importSaveCode beginNewGame beginContinue
-          refreshStartMenu wireGraphicsUI
-          （存档字段含 companion · quests{} · mats{} · deeds{} · STEP 20–25）
+          refreshStartMenu refreshClassSaveBadges wireGraphicsUI
+          （存档字段含 companion · quests{} · mats{} · deeds{} · STEP 20–25；每职业一槽）
    ============================================================ */
 "use strict";
 
@@ -25,6 +26,23 @@ const SAVE_SLOTS=typeof EQUIP_SLOTS!=="undefined"?EQUIP_SLOTS.slice():[
   "hands","legs","feet","finger","mainhand",
 ];
 
+function saveClassKeys(){
+  if(BAL.save&&BAL.save.classKeys&&BAL.save.classKeys.length)return BAL.save.classKeys.slice();
+  if(typeof CLASSES!=="undefined")return Object.keys(CLASSES);
+  return["warrior","mage","archer","priest","shaman","rogue","warlock","druid","paladin"];
+}
+/** 职业存档键：azeroth3d_save_v1_warrior */
+function saveKeyFor(classKey){
+  const ck=classKey||"warrior";
+  const prefix=(BAL.save&&BAL.save.keyPrefix)||"azeroth3d_save_v1_";
+  return prefix+ck;
+}
+function resolveSaveClassKey(classKey){
+  if(classKey)return classKey;
+  if(S.started&&typeof talentClassKey==="function")return talentClassKey()||"warrior";
+  if(typeof chosenClass!=="undefined"&&chosenClass)return chosenClass;
+  return latestSaveClassKey()||"warrior";
+}
 function normalizeSaveZoneId(z){
   if(z==="molten_core"||z==="raid")return "molten_core";
   if(z==="wailing_caverns"||z==="wailing")return "wailing_caverns";
@@ -411,7 +429,8 @@ function saveGame(silent){
   if(!S.started)return false;
   try{
     const data=collectSaveData();
-    localStorage.setItem(BAL.save.key,JSON.stringify(data));
+    const ck=data.classKey||resolveSaveClassKey();
+    localStorage.setItem(saveKeyFor(ck),JSON.stringify(data));
     if(!silent)log("进度已保存。","lg-sys");
     refreshStartMenu();
     return true;
@@ -421,9 +440,34 @@ function saveGame(silent){
   }
 }
 
-function readStoredSave(){
+/** 将旧全局档迁移到对应职业槽（仅一次） */
+function migrateLegacySave(){
   try{
-    const raw=localStorage.getItem(BAL.save.key);
+    const legacyKey=(BAL.save&&BAL.save.key)||"azeroth3d_save_v1";
+    const raw=localStorage.getItem(legacyKey);
+    if(!raw)return false;
+    const checked=validateSave(JSON.parse(raw));
+    if(!checked.ok||!checked.data)return false;
+    const ck=checked.data.classKey||"warrior";
+    const dest=saveKeyFor(ck);
+    if(!localStorage.getItem(dest))localStorage.setItem(dest,JSON.stringify(checked.data));
+    localStorage.removeItem(legacyKey);
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+function readStoredSave(classKey){
+  try{
+    migrateLegacySave();
+    const ck=classKey||null;
+    if(!ck){
+      /* 无指定职业：返回最近存档（兼容旧调用） */
+      const list=listClassSaves();
+      return list.length?{ok:true,data:list[0].data}:null;
+    }
+    const raw=localStorage.getItem(saveKeyFor(ck));
     if(!raw)return null;
     return validateSave(JSON.parse(raw));
   }catch(e){
@@ -431,29 +475,62 @@ function readStoredSave(){
   }
 }
 
-function hasSave(){
-  const r=readStoredSave();
-  return !!(r&&r.ok);
+function listClassSaves(){
+  migrateLegacySave();
+  const out=[];
+  for(const ck of saveClassKeys()){
+    try{
+      const raw=localStorage.getItem(saveKeyFor(ck));
+      if(!raw)continue;
+      const r=validateSave(JSON.parse(raw));
+      if(r&&r.ok&&r.data)out.push({classKey:ck,data:r.data});
+    }catch(e){}
+  }
+  out.sort((a,b)=>(b.data.savedAt||0)-(a.data.savedAt||0));
+  return out;
 }
 
-function clearSave(){
-  try{localStorage.removeItem(BAL.save.key);}catch(e){}
+function latestSaveClassKey(){
+  const list=listClassSaves();
+  return list.length?list[0].classKey:null;
+}
+
+function hasSave(classKey){
+  if(classKey){
+    const r=readStoredSave(classKey);
+    return !!(r&&r.ok);
+  }
+  return listClassSaves().length>0;
+}
+
+function clearSave(classKey){
+  try{
+    if(classKey){
+      localStorage.removeItem(saveKeyFor(classKey));
+    }else{
+      for(const ck of saveClassKeys())localStorage.removeItem(saveKeyFor(ck));
+      if(BAL.save&&BAL.save.key)localStorage.removeItem(BAL.save.key);
+    }
+  }catch(e){}
   refreshStartMenu();
 }
 
-function loadGame(){
-  const r=readStoredSave();
+function loadGame(classKey){
+  const ck=classKey||latestSaveClassKey();
+  if(!ck)return {ok:false,reason:"没有存档"};
+  const r=readStoredSave(ck);
   if(!r)return {ok:false,reason:"没有存档"};
   if(!r.ok)return r;
   applySaveData(r.data);
   return {ok:true,data:r.data};
 }
 
-function exportSaveCode(){
+function exportSaveCode(classKey){
   let payload=null;
   if(S.started)payload=collectSaveData();
   else{
-    const r=readStoredSave();
+    const ck=classKey||(typeof chosenClass!=="undefined"?chosenClass:null)||latestSaveClassKey();
+    const r=ck?readStoredSave(ck):null;
     if(r&&r.ok)payload=r.data;
   }
   if(!payload)return null;
@@ -466,7 +543,8 @@ function importSaveCode(code){
     const json=b64ToUtf8(code.trim().replace(/\s+/g,""));
     const checked=validateSave(JSON.parse(json));
     if(!checked.ok)return checked;
-    localStorage.setItem(BAL.save.key,JSON.stringify(checked.data));
+    const ck=checked.data.classKey||"warrior";
+    localStorage.setItem(saveKeyFor(ck),JSON.stringify(checked.data));
     refreshStartMenu();
     return {ok:true,data:checked.data};
   }catch(e){
@@ -483,7 +561,9 @@ function finishStart(msg){
 }
 
 function beginNewGame(classKey){
-  clearSave();
+  const ck=classKey||"warrior";
+  /* 只清该职业槽，其它职业存档保留（不刷新菜单，避免启程闪烁） */
+  try{localStorage.removeItem(saveKeyFor(ck));}catch(e){}
   if(typeof resetAllQuests==="function")resetAllQuests({silent:true});
   else{
     QUEST.state=0; QUEST.kills=0;
@@ -496,7 +576,7 @@ function beginNewGame(classKey){
   S.inv=[]; S.eq=typeof emptyEquipment==="function"?emptyEquipment():{};
   S.p.gold=0; S.over=false; S.mode="world"; S.zoneId="mulgore";
   S.currentTarget=null;
-  setClass(classKey||"warrior");
+  setClass(ck);
   S.god=$("#godChk")&&$("#godChk").checked;
   if(typeof enterZone==="function"&&(typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore")!=="mulgore"){
     enterZone("mulgore","camp",{skipFade:true,skipSave:true,silent:true,force:true});
@@ -517,25 +597,92 @@ function beginNewGame(classKey){
   setTimeout(()=>log(CLS.tip,"lg-sys"),2200);
 }
 
-function beginContinue(){
-  const r=loadGame();
+function beginContinue(classKey){
+  const ck=classKey||latestSaveClassKey();
+  const r=loadGame(ck);
   if(!r.ok){log(r.reason||"无法读取存档","lg-sys");return false;}
   S.god=false;
-  finishStart(r.data.zone==="raid"?"你在"+T("zone.molten_core")+"外苏醒……":"继续冒险");
+  const zoneRaid=r.data.zone==="raid"||r.data.zoneId==="molten_core";
+  finishStart(zoneRaid?"你在"+T("zone.molten_core")+"外苏醒……":"继续冒险");
   log(`读取存档：${CLASSES[r.data.classKey].title} · Lv.${r.data.level}`,"lg-sys");
-  if(r.data.zone==="raid")log("副本遭遇不保留——请再次踏入传送门。","lg-sys");
+  if(zoneRaid)log("副本遭遇不保留——请再次踏入传送门。","lg-sys");
   return true;
 }
 
+function classShortTitle(classKey){
+  const c=CLASSES[classKey];
+  if(!c||!c.title)return classKey;
+  /* 「⚔️ 你 · 人类战士」→「战士」 */
+  const m=String(c.title).match(/[·•]\s*(.+)$/);
+  return m?m[1].replace(/^人类|^兽人|^暗夜精灵/,"").trim()||m[1]:c.title;
+}
+
+function refreshClassSaveBadges(){
+  const pick=$("#classPick");
+  if(!pick)return;
+  const byCk={};
+  for(const s of listClassSaves())byCk[s.classKey]=s.data;
+  pick.querySelectorAll(".ccard").forEach(card=>{
+    const ck=card.dataset.cls;
+    let badge=card.querySelector(".csave");
+    if(byCk[ck]){
+      if(!badge){
+        badge=document.createElement("div");
+        badge.className="csave";
+        card.appendChild(badge);
+      }
+      badge.textContent=`Lv.${byCk[ck].level|0}`;
+      badge.title=`该职业已有存档 · ${new Date(byCk[ck].savedAt||0).toLocaleString()}`;
+      card.classList.add("has-save");
+    }else{
+      if(badge)badge.remove();
+      card.classList.remove("has-save");
+    }
+  });
+  updateStartButtonLabel();
+}
+
+function updateStartButtonLabel(){
+  const btn=$("#btnStart");
+  if(!btn)return;
+  const ck=(typeof chosenClass!=="undefined"?chosenClass:"warrior");
+  if(hasSave(ck))btn.textContent="重新启程（覆盖该职业）";
+  else btn.textContent="启 程";
+}
+
 function refreshStartMenu(){
+  migrateLegacySave();
   const cont=$("#btnContinue"), meta=$("#saveMeta");
-  const r=readStoredSave();
-  const ok=r&&r.ok;
-  if(cont)cont.style.display=ok?"inline-block":"none";
+  const list=listClassSaves();
+  const ok=list.length>0;
+  if(cont){
+    cont.style.display=ok?"inline-block":"none";
+    if(ok){
+      const d=list[0].data;
+      cont.textContent=`继续 · ${classShortTitle(d.classKey)} Lv.${d.level|0}`;
+    }else cont.textContent="继续冒险";
+  }
   if(meta){
     if(ok){
-      const d=r.data, t=d.savedAt?new Date(d.savedAt).toLocaleString():"";
-      meta.textContent=`存档：${CLASSES[d.classKey].title} · Lv.${d.level}${t?" · "+t:""}`;
+      meta.innerHTML="";
+      const tip=document.createElement("div");
+      tip.className="save-meta-tip";
+      tip.textContent="各职业独立存档 · 点选职业可覆盖或继续最近一档";
+      meta.appendChild(tip);
+      const row=document.createElement("div");
+      row.className="save-meta-list";
+      for(const s of list){
+        const chip=document.createElement("button");
+        chip.type="button";
+        chip.className="save-chip";
+        chip.dataset.cls=s.classKey;
+        const t=s.data.savedAt?new Date(s.data.savedAt).toLocaleDateString():"";
+        chip.textContent=`${classShortTitle(s.classKey)} · Lv.${s.data.level|0}${t?" · "+t:""}`;
+        chip.title="点击继续该职业";
+        chip.addEventListener("click",()=>beginContinue(s.classKey));
+        row.appendChild(chip);
+      }
+      meta.appendChild(row);
       meta.style.display="block";
     }else{
       meta.textContent=""; meta.style.display="none";
@@ -543,6 +690,7 @@ function refreshStartMenu(){
   }
   const exp=$("#btnExportSave");
   if(exp)exp.style.display=ok?"inline-block":"none";
+  refreshClassSaveBadges();
   /* 无存档时直接展开职业选择，减少多点一次 */
   if(!S.started)showNewGamePanel(!ok);
 }
@@ -634,19 +782,29 @@ function wireGraphicsUI(){
 
 /* ---------------- 启动页绑定 ---------------- */
 function wireSaveUI(){
+  migrateLegacySave();
   refreshStartMenu();
   wireGraphicsUI();
   const btnCont=$("#btnContinue");
   if(btnCont)btnCont.addEventListener("click",()=>beginContinue());
   const btnNew=$("#btnNew");
-  if(btnNew)btnNew.addEventListener("click",()=>showNewGamePanel(true));
+  if(btnNew)btnNew.addEventListener("click",()=>{showNewGamePanel(true);refreshClassSaveBadges();});
   const btnBack=$("#btnBackMenu");
   if(btnBack)btnBack.addEventListener("click",()=>showNewGamePanel(false));
   const btnStart=$("#btnStart");
   if(btnStart)btnStart.addEventListener("click",()=>{
     const cls=(typeof chosenClass!=="undefined"?chosenClass:"warrior");
+    if(hasSave(cls)&&!confirm(`「${classShortTitle(cls)}」已有存档，重新启程将覆盖该职业进度。其它职业存档不受影响。继续？`))return;
     beginNewGame(cls);
   });
+  const pick=$("#classPick");
+  if(pick){
+    pick.addEventListener("click",e=>{
+      const card=e.target.closest(".ccard");
+      if(!card||!card.dataset.cls)return;
+      updateStartButtonLabel();
+    });
+  }
   const btnImp=$("#btnImportSave");
   if(btnImp)btnImp.addEventListener("click",()=>{
     const ta=$("#saveCodeIn");
@@ -654,12 +812,13 @@ function wireSaveUI(){
     const r=importSaveCode(code);
     if(!r.ok){announce(r.reason||"导入失败");return;}
     if(ta)ta.value="";
-    announce("存档已导入");
+    announce(`存档已导入 · ${classShortTitle(r.data.classKey)}`);
     refreshStartMenu();
   });
   const btnExp=$("#btnExportSave");
   if(btnExp)btnExp.addEventListener("click",()=>{
-    const code=exportSaveCode();
+    const ck=(typeof chosenClass!=="undefined"?chosenClass:null)||latestSaveClassKey();
+    const code=exportSaveCode(ck);
     if(!code){announce("没有可导出的存档");return;}
     const ta=$("#saveCodeOut");
     if(ta){ta.value=code;ta.style.display="block";ta.select();}
@@ -673,12 +832,13 @@ function wireSaveUI(){
 
 window.cheatSave={
   save:()=>saveGame(false),
-  load:()=>loadGame(),
+  load:(ck)=>loadGame(ck),
   clear:clearSave,
+  list:listClassSaves,
   export:exportSaveCode,
   import:importSaveCode,
   dump:()=>collectSaveData(),
 };
 
 wireSaveUI();
-console.info("[save] STEP 11 就绪：继续冒险 / cheatSave.export() / .import(code)");
+console.info("[save] 每职业独立存档 · cheatSave.list() / .export(classKey) / .import(code)");
