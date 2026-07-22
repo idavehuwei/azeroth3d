@@ -33,7 +33,7 @@ function maxXpLevel(){
   return getXpCurve().length+1;
 }
 
-/** 灰色线：player - mob >= greyBelow → 零经验（验收：6 级打 1 级猪） */
+/** 灰色线：player - mob >= greyBelow → 零经验（STEP 15：5 级打 1 级猪） */
 function isGreyMob(playerLevel,mobLevel,cfg){
   cfg=cfg||_xpCfg();
   const pl=playerLevel|0, ml=mobLevel|0;

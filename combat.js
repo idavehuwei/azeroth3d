@@ -282,6 +282,7 @@ function setClass(key){
   player=CLS.build(); player.position.copy(pos); player.rotation.y=rot; scene.add(player);
   S.p.hpMax=CLS.hp; S.p.hp=CLS.hp;
   S.p.rageMax=CLS.resMax; S.p.rage=CLS.resStart; S.p.speed=CLS.speed;
+  S.p._appliedHpBonus=0; S.p._appliedManaBonus=0;
   S.p.absorb=0; S.p.absorbT=0;
   S.p.stealth=false; S.p.sprintT=0;
   if(typeof createResourceState==="function")S.res=createResourceState();
@@ -334,8 +335,37 @@ function refreshPlayerDerived(){
   S.p.stats.level=S.p.level|0||1;
   if(typeof deriveStats==="function")
     S.p.derived=deriveStats(S.p.stats,CLS.key||"warrior");
-  else S.p.derived={ap:0,critPct:5,dodgePct:5,armor:S.p.stats.armor|0,apDmgMul:1};
-  /* 耐力加成暴露在 derived；装备 hpMax 仍走 applyEquipStats legacy */
+  else S.p.derived={ap:0,critPct:5,dodgePct:5,armor:S.p.stats.armor|0,hpBonus:0,manaBonus:0,apDmgMul:1};
+  /* STEP 15：耐力/智力转换驱动生命与法力上限 */
+  applyDerivedResourceCaps();
+}
+
+/** 将 derived.hpBonus / manaBonus 增量叠到 hpMax / rageMax（相对上次已应用值） */
+function applyDerivedResourceCaps(){
+  if(!S.p||!S.p.derived)return;
+  const d=S.p.derived;
+  const prevHp=S.p._appliedHpBonus|0;
+  const nextHp=d.hpBonus|0;
+  const dHp=nextHp-prevHp;
+  if(dHp){
+    S.p.hpMax=Math.max(1,(S.p.hpMax|0)+dHp);
+    if(dHp>0)S.p.hp=Math.min(S.p.hpMax,(S.p.hp|0)+dHp);
+    else S.p.hp=Math.min(S.p.hp|0,S.p.hpMax);
+    S.p._appliedHpBonus=nextHp;
+  }
+  if(playerResKind()==="mana"){
+    const prevM=S.p._appliedManaBonus|0;
+    const nextM=d.manaBonus|0;
+    const dM=nextM-prevM;
+    if(dM){
+      S.p.rageMax=Math.max(1,(S.p.rageMax|0)+dM);
+      if(dM>0)S.p.rage=Math.min(S.p.rageMax,(S.p.rage|0)+dM);
+      else S.p.rage=Math.min(S.p.rage|0,S.p.rageMax);
+      S.p._appliedManaBonus=nextM;
+    }
+  }else{
+    S.p._appliedManaBonus=0;
+  }
 }
 function playerResKind(){
   return(CLS&&CLS.resKind)||(CLS&&CLS.resName==="法力"?"mana":CLS&&CLS.resName==="能量"?"energy":"rage");
@@ -1597,7 +1627,7 @@ function sprint(){
   return true;
 }
 
-function playerHit(amount,source){
+function playerHit(amount,source,atkLevel){
   if(S.p.ghost)return; /* 灵魂形态不受伤 */
   if(!S.p.alive||S.p.invuln>0)return;
   /* C10：受击打断进食/饮水/包扎；Track E：打断读条 */
@@ -1605,10 +1635,10 @@ function playerHit(amount,source){
   if(S.p.casting&&BAL.cast&&BAL.cast.hitInterrupt!==false&&typeof cancelPlayerCast==="function")
     cancelPlayerCast("hit");
   amount=Math.round(amount*R(BAL.variance.player));
-  /* C4：玩家护甲减伤 */
+  /* C4：玩家护甲减伤（攻击者等级默认同级，可由第三参覆盖） */
   if(typeof armorReduction==="function"){
     if(!S.p.derived&&typeof refreshPlayerDerived==="function")refreshPlayerDerived();
-    const atkLv=10; /* 粗略：野怪默认级；后续可由 source 传入 */
+    const atkLv=(typeof atkLevel==="number"&&isFinite(atkLevel))?Math.max(1,atkLevel|0):Math.max(1,S.p.level|0);
     const red=armorReduction((S.p.derived&&S.p.derived.armor)||0,atkLv);
     amount=Math.max(1,Math.round(amount*(1-red)));
   }

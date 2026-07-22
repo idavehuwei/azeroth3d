@@ -211,6 +211,7 @@ function rebuildLevelStats(level){
   S.p.level=1; S.p.xp=0;
   S.p.xpMax=(typeof xpToNext==="function"?xpToNext(1):null)||L.xpMax[0];
   S.p.dmgMul=1; S.p.hpMax=CLS.hp; S.p.hp=CLS.hp;
+  S.p._appliedHpBonus=0; S.p._appliedManaBonus=0;
   /* 读开局属性；等级成长叠在 baseStats 上 */
   if(typeof initPlayerStats==="function")initPlayerStats(CLS.key);
   for(let lv=2;lv<=level;lv++){

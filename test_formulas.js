@@ -144,8 +144,8 @@ const{
 }=ctx;
 assert(getXpCurve()[0]===400&&getXpCurve()[1]===900,"XP_CURVE 1→2=400, 2→3=900");
 assert(xpToNext(1)===400&&xpToNext(3)===1400,"xpToNext 对齐曲线");
-assert(isGreyMob(6,1)===true,"6 级打 1 级猪为灰色（零经验）");
-assert(isGreyMob(5,1)===false,"5 级打 1 级猪仍有经验");
+assert(isGreyMob(5,1)===true,"5 级打 1 级猪为灰色（零经验）");
+assert(isGreyMob(4,1)===false,"4 级打 1 级猪仍有经验");
 assert(scaledMobXp(6,1)===0,"灰色线 scaledMobXp=0");
 assert(baseMobXp(1)===50&&baseMobXp(10)===95,"基础野怪 XP = 45+5×Lv");
 assert(scaledMobXp(1,1)>0&&scaledMobXp(1,3)>scaledMobXp(1,1),"打高等级怪经验更高");

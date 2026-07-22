@@ -138,8 +138,9 @@ var SIM_CONTENT={
     mobPerLevel:5,
     eliteMul:2,
     worldBossMul:2.5,
-    /* 相对玩家等级：灰色线 = playerLevel - greyBelow（≥6 级时至少 greyBelow=5 → 6 级打 1 级猪归零） */
-    greyBelow:5,
+    /* 相对玩家等级：灰色线 = playerLevel - mobLevel >= greyBelow
+       STEP 15 验收：5 级打 1 级猪零经验 → greyBelow:4 */
+    greyBelow:4,
     /* 等级差倍率（mobLevel - playerLevel） */
     diffMul:{
       "3":1.4,"2":1.25,"1":1.1,"0":1,
