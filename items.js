@@ -140,6 +140,11 @@ const ITEMS={
   barrens_cleaver:{id:"barrens_cleaver",name:"贫瘠劈刀",icon:"sword",quality:"uncommon",slot:"mainhand",stats:{dmgMul:1.09},model:"sword",vendorSell:160},
   ochre_fang   :{id:"ochre_fang",   name:"赭岩毒牙刃",  icon:"sword", quality:"rare",    slot:"mainhand",stats:{dmgMul:1.13},model:"sword",vendorSell:260},
   whelp_claw   :{id:"whelp_claw",   name:"幼龙利爪",    icon:"sword", quality:"uncommon",slot:"mainhand",stats:{dmgMul:1.04},model:"sword",vendorSell:160},
+  /* —— 怒焰裂谷 —— */
+  rage_blade   :{id:"rage_blade",   name:"怒焰短刃",    icon:"sword", quality:"uncommon",slot:"mainhand",stats:{dmgMul:1.08},model:"sword",vendorSell:140},
+  cinder_vest  :{id:"cinder_vest",  name:"燃烬皮甲",    icon:"armor", quality:"uncommon",slot:"chest",stats:{hpMax:380},vendorSell:150},
+  ember_band   :{id:"ember_band",   name:"余烬指环",    icon:"star",  quality:"rare",    slot:"finger",stats:{hpMax:240,dmgMul:1.03},vendorSell:220},
+  slag_helm    :{id:"slag_helm",    name:"炉渣战盔",    icon:"armor", quality:"rare",    slot:"head",stats:{hpMax:300},vendorSell:200},
   /* —— 头部 —— */
   plains_cap   :{id:"plains_cap",   name:"草原皮帽",    icon:"hide",  quality:"uncommon",slot:"head",stats:{hpMax:120},vendorSell:40},
   mesa_helm    :{id:"mesa_helm",    name:"红岩战盔",    icon:"armor", quality:"rare",    slot:"head",stats:{hpMax:280},vendorSell:160},
@@ -287,6 +292,15 @@ const LOOT={
     common  :["bird_meat","bird_feather","zebra_hide"],
     uncommon:["hide_vest","barrens_cuirass","plains_cloak","plains_boots"],
     rare    :["barrens_cleaver","plains_blade","plains_band"],
+  },
+  ragefireAdd:{
+    common  :["sulf_ash","sulf_core"],
+    uncommon:["rage_blade","cinder_vest","hide_bracers"],
+    rare    :["ember_band","sulf_blade"],
+  },
+  ragefire:{
+    uncommon:["rage_blade","cinder_vest","ember_band"],
+    rare    :["slag_helm","ember_band","sulf_blade","ash_treads"],
   },
 };
 /* 按权重掷品质档（可传 BAL.loot.eliteWeights 等），再从该档均匀取一件（玩法随机 → rand 路线） */

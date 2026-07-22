@@ -165,11 +165,11 @@
 - 新目标类型：交付物品、使用物品、到达地点、护送（简化跟随 NPC）
 - **验收：** L 日志可滚动；存档不丢进度 ← **已通过**（`node test_step01.js`）
 
-#### V1-B3 · 第四副本「怒焰裂谷·精简」`P0`
+#### V1-B3 · 第四副本「怒焰裂谷·精简」`P0` ✅
 
-- 单 Boss 或双 Boss；复用 `createBoss` + 红圈/直线
-- 挂查找器 `BAL.lfg.entries`
-- **验收：** Shift+I 可进；通关功绩一条
+- 双 Boss：走廊燃刃 → 奥格弗林特（直线/喷吐）→ 饥饿者塔拉加曼（红圈）
+- 挂查找器 `BAL.lfg.entries`；赭岩西口入口 Lv13；通关功绩 `dungeon_ragefire_clear`
+- **验收：** Shift+I 可进；通关功绩一条 ← **已通过**（`node test_step01.js`）
 
 #### V1-B4 · Heroic 难度档 `P1`
 

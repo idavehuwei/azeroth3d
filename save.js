@@ -29,6 +29,7 @@ function normalizeSaveZoneId(z){
   if(z==="molten_core"||z==="raid")return "molten_core";
   if(z==="wailing_caverns"||z==="wailing")return "wailing_caverns";
   if(z==="onyxias_lair"||z==="onyxia")return "onyxias_lair";
+  if(z==="ragefire_chasm"||z==="ragefire")return "ragefire_chasm";
   if(z==="barrens")return "barrens";
   if(z==="durotar")return "durotar";
   if(z==="mulgore"||z==="world"||!z)return "mulgore";
@@ -215,10 +216,12 @@ function rebuildLevelStats(level){
 function applySaveData(data){
   /* 副本态不恢复遭遇，回世界；野外按 zoneId 重建 */
   const wantZone=normalizeSaveZoneId(data.zoneId||data.zone);
-  /* 副本遭遇不恢复：熔火回莫高雷，哀嚎回贫瘠之地 */
+  /* 副本遭遇不恢复：熔火回莫高雷，哀嚎/奥妮回贫瘠，怒焰回赭岩 */
   const restoreZone=wantZone==="molten_core"?"mulgore"
-    :(wantZone==="wailing_caverns"||wantZone==="onyxias_lair"?"barrens":wantZone);
-  const gate=restoreZone==="durotar"?"outpost"
+    :(wantZone==="wailing_caverns"||wantZone==="onyxias_lair"?"barrens"
+      :(wantZone==="ragefire_chasm"?"durotar":wantZone));
+  const gate=restoreZone==="durotar"
+    ?(wantZone==="ragefire_chasm"?"from_ragefire":"outpost")
     :(restoreZone==="barrens"
       ?(wantZone==="wailing_caverns"?"from_wailing":wantZone==="onyxias_lair"?"from_onyxia":"crossroads")
       :"camp");

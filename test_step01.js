@@ -250,7 +250,7 @@ assert(finderSrc.includes("function toggleDungeonFinderPanel"),"finder.js 有 to
 assert(finderSrc.includes("function renderDungeonFinderPanel"),"finder.js 有 render");
 assert(finderSrc.includes("function queueDungeonFinder"),"finder.js 有 queueDungeonFinder");
 assert(finderSrc.includes("formParty")&&finderSrc.includes("enterZone"),"finder.js 组队+传送");
-assert(coreSrc.includes("molten_core")&&coreSrc.includes("wailing_caverns")&&coreSrc.includes("onyxias_lair"),"三副本均在 BAL.lfg 目录");
+assert(coreSrc.includes("molten_core")&&coreSrc.includes("wailing_caverns")&&coreSrc.includes("onyxias_lair")&&coreSrc.includes("ragefire_chasm"),"四副本均在 BAL.lfg 目录");
 assert(coreSrc.includes("lfg:")&&coreSrc.includes('difficulty:"normal"'),"BALANCE 含 lfg 表");
 assert(combatSrc.includes("toggleDungeonFinderPanel")&&combatSrc.includes('"i"'),"combat.js 绑定 Shift+I");
 assert(panelsSrc.includes('"finder"')||panelsSrc.includes("'finder'"),"panels.js closeAllHudPanels 含 finder");
@@ -332,6 +332,21 @@ assert(saveSrc.includes('"durotar"')||saveSrc.includes("durotar"),"save 识别 d
 assert(questsSrc.includes("ochre_sting"),"赭岩入口任务");
 assert(deedsSrc.includes("enter_durotar"),"进区功绩");
 
+/* plan-v1 · V1-B3 怒焰裂谷冒烟 */
+const ragefireSrc=fs.readFileSync(path.join(__dirname,"ragefire.js"),"utf8");
+assert(html.includes('src="ragefire.js"'),"game.html 加载 ragefire.js");
+assert(ragefireSrc.includes('id:"ragefire_chasm"')&&ragefireSrc.includes("RAGEFIRE_DUNGEON"),"ragefire.js 注册 ragefire_chasm");
+assert(ragefireSrc.includes("buildRagefireZone")&&ragefireSrc.includes("activateRaidBoss"),"ragefire.js 有场景与 Boss 激活");
+assert(ragefireSrc.includes("oggleflint")&&ragefireSrc.includes("taragaman"),"怒焰分段含奥格弗林特/塔拉加曼");
+assert(raidSrc.includes('id:"oggleflint"')&&raidSrc.includes('id:"taragaman"'),"raid.js 定义怒焰双 Boss");
+assert(coreSrc.includes("ragefire:")&&coreSrc.includes("ragefireAdd")&&coreSrc.includes("oggleflint:")&&coreSrc.includes("taragaman:"),"BALANCE 含怒焰数值");
+assert(coreSrc.includes("taragaman:1500")||coreSrc.includes("oggleflint:850"),"BALANCE.levels.xp 含怒焰 Boss");
+assert(durotarSrc.includes("to_ragefire")&&durotarSrc.includes("DUROTAR_PORTAL_W"),"赭岩西口指向怒焰裂谷");
+assert(itemsSrc.includes("rage_blade")&&itemsSrc.includes("ember_band"),"怒焰掉落物品");
+assert(mapSrc28.includes("ragefire_chasm"),"map.js 有怒焰图层");
+assert(deedsSrc.includes("dungeon_ragefire_clear"),"功绩含怒焰通关");
+assert(saveSrc.includes("ragefire_chasm"),"save 识别 ragefire_chasm");
+
 function DEEDS_COUNT_OK(src){
   const m=src.match(/id:"[^"]+"/g)||[];
   /* DEEDS 表内 id 约 18；过滤 DEED_BY_ID 等 */
@@ -342,4 +357,4 @@ if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–29 … / V1-A1–A5 · V1-B1–B2 冒烟");
+console.log("\n全部通过 · STEP 17–29 … / V1-A1–A5 · V1-B1–B3 冒烟");

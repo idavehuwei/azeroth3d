@@ -473,6 +473,9 @@ const QUADS={
   deviate :{fur:0x4a8a3a,furD:0x2a5a20,accent:0x6ab050,tusks:true,mane:true,ears:true,tail:'up',size:1.25,quills:true,style:"boar"},
   cobrahn :{fur:0x3a7a28,furD:0x1a4010,accent:0x55a040,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:4.2,style:"wolf"},
   verdan  :{fur:0x2a6a38,furD:0x143820,accent:0x48a050,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:5.5,style:"wolf"},
+  /* —— V1-B3 怒焰裂谷 —— */
+  oggleflint:{fur:0x8a3018,furD:0x3a1008,accent:0xff6020,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:4.0,style:"wolf",glow:0xff4400},
+  taragaman :{fur:0xa82810,furD:0x481008,accent:0xff8030,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:5.2,style:"wolf",glow:0xff5500},
 };
 
 function _quadMat(hex,opts){

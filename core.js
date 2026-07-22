@@ -176,6 +176,25 @@ const BALANCE={
     deepBreath:{dmg:[620,820], cast:2.2, cd:[14,18], delay:2.0,
       segs:8, p2Segs:8, p3Segs:10, step:3.8, ringR:3.8},
   },
+  /* 怒焰裂谷·精简（plan-v1 · V1-B3） */
+  ragefire:{
+    arenaR:22,
+    minLevel:13,
+    corridorCount:3,
+    ground:0x3a1810, wall:0x2a1008, lava:0xff6020,
+    sky:0x180808, fog:0x2a1008, fogDensity:0.026,
+  },
+  ragefireAdd:{hp:2400, dmg:[120,170], atkCd:2.0, speed:5.0, meleeR:3.0, stopR:2.4, copper:[22,45]},
+  oggleflint:{hp:38000, phase2At:.55, addCount:2, copper:550,
+    melee :{dmg:[190,270], p2Mul:1.3, cd:[2.4,3.3], range:9, hitRange:10, delayMs:280},
+    spit  :{dmg:[220,300], cast:1.35, cd:[5.2,7.0], hitR:2.9, speed:18, count:3, p2Count:5, fan:0.46},
+    breath:{dmg:[360,480], cast:1.6, cd:[9.5,12.5], delay:1.45, segs:5, step:3.8, ringR:3.1, p2Segs:7},
+  },
+  taragaman:{hp:62000, phase2At:.5, addCount:3, copper:1100,
+    melee :{dmg:[230,320], p2Mul:1.35, cd:[2.5,3.4], range:10, hitRange:11, delayMs:300},
+    spit  :{dmg:[260,340], cast:1.45, cd:[5.8,7.8], hitR:3.2, speed:17, count:4, p2Count:6, fan:0.48},
+    stomp :{dmg:[340,460], cast:1.35, cd:[8.5,11.5], count:3, p2Count:5, delay:1.7, ringR:5.2},
+  },
   /* 任务 · 主线 + 支线奖励表（STEP 22） */
   quest:{boarKills:3, rewardHp:600, rewardDmgMul:1.15, rewardCopper:150,
     barrens:{quilboarKills:4, rewardXp:400, rewardCopper:200},
@@ -242,6 +261,7 @@ const BALANCE={
   durotar:{
     radius:176,
     minLevel:12,
+    ragefireMinLevel:13,
     ground:0xd07838, dirt:0xa85828, sky:0xf0b878, fog:0xe09858, fogDensity:0.009,
     hemiSky:0xffd0a0, hemiGround:0x8a4020, hemiIntensity:1.0,
     sunColor:0xffc880, sunIntensity:1.2,
@@ -304,6 +324,7 @@ const BALANCE={
       molten_core:"clear",
       wailing_caverns:"mist",
       onyxias_lair:"clear",
+      ragefire_chasm:"dust",
     },
     clear:{fogBlend:0, fogDensityMul:1},
     rain:{
@@ -344,7 +365,7 @@ const BALANCE={
   /* 营地 NPC 外观：体型缩放 + 姓名板高度（相对缩放后头顶） */
   npc:{scale:.72, labelY:4.05, markerY:5.15, labelW:6.2},
   /* 经验与等级（STEP 3）：经验来源 / 升级曲线 / 每级成长 */
-  levels:{max:18, xp:{quest:300, boss:2000, magmadar:800, barrensQuest:400, durotarQuest:380, cobrahn:900, verdan:1600, onyxia:2200},
+  levels:{max:18, xp:{quest:300, boss:2000, magmadar:800, barrensQuest:400, durotarQuest:380, cobrahn:900, verdan:1600, onyxia:2200, oggleflint:850, taragaman:1500},
     /* 野怪经验在 mobs 表；xpMax[i] = 第 i+1 级升下一级所需（共 max-1 档） */
     xpMax:[200,300,450,650,900,1200,1600,2100,2700,3500,4200,5000,5900,6900,8000,9200,10500],
     perLevel:{dmgMul:.05, hpMax:.08}},
@@ -472,6 +493,7 @@ const BALANCE={
     difficulties:["normal"],
     entries:[
       {id:"molten_core",    name:"熔火之心",       blurb:"走廊 → 玛格曼达 → 拉戈斯", minLevel:0,  gate:"entrance", icon:"dungeon"},
+      {id:"ragefire_chasm", name:"怒焰裂谷",       blurb:"燃刃兽人 → 奥格弗林特 → 饥饿者", minLevel:13, gate:"entrance", icon:"fireball"},
       {id:"wailing_caverns",name:"哀嚎洞穴",       blurb:"变异蛇 → 考布莱恩 → 吞噬者", minLevel:15, gate:"entrance", icon:"venom"},
       {id:"onyxias_lair",   name:"奥妮克希亚巢穴", blurb:"幼龙 → 黑龙女王三阶段",   minLevel:16, gate:"entrance", icon:"fireball"},
     ],

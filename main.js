@@ -105,6 +105,7 @@ function tick(){
   if(typeof southPortalLabel!=="undefined"&&southPortalLabel)southPortalLabel.position.y=12.2+Math.sin(S.t*1.4)*.2;
   if(typeof barrensPortalUni!=="undefined"&&barrensPortalUni)barrensPortalUni.uTime.value=S.t;
   if(typeof durotarPortalUni!=="undefined"&&durotarPortalUni)durotarPortalUni.uTime.value=S.t;
+  if(typeof durotarRagefirePortalUni!=="undefined"&&durotarRagefirePortalUni)durotarRagefirePortalUni.uTime.value=S.t;
 
   /* 火星上升 */
   const pp=embers.geometry.attributes.position.array;

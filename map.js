@@ -82,6 +82,7 @@ const MAP_ZONES={
     landmarks:[
       {id:"ochre_outpost",label:"赭岩哨站",x:0,z:0,color:"#ffb070",kind:"camp"},
       {id:"portal_e",label:"贫瘠之地",x:164,z:0,color:"#e8c898",kind:"portal"},
+      {id:"portal_w",label:"怒焰裂谷",x:-164,z:8,color:"#ff7040",kind:"portal"},
       {id:"spirit",label:"灵魂医者",x:-4,z:12,color:"#a8d8ff",kind:"npc"},
       {id:"ochre_vendor",label:"商人",x:-8,z:-6,color:"#8aff9a",kind:"npc"},
       {id:"ochre_guard",label:"卫士",x:10,z:6,color:"#ff9a70",kind:"npc"},
@@ -97,7 +98,25 @@ const MAP_ZONES={
       bg:"#1a0c06",
       fill:"rgba(160,70,30,.42)",
       stroke:"rgba(220,120,60,.55)",
-      road:[["ochre_outpost","portal_e"]],
+      road:[["ochre_outpost","portal_e"],["ochre_outpost","portal_w"]],
+    },
+  },
+  ragefire_chasm:{
+    id:"ragefire_chasm",
+    name:"怒焰裂谷",
+    radius:()=>(BAL.ragefire&&BAL.ragefire.arenaR)||22,
+    landmarks:[
+      {id:"entrance",label:"入口",x:0,z:16,color:"#ff9060",kind:"portal"},
+      {id:"lava",label:"熔岩池",x:0,z:-8,color:"#ff4400",kind:"camp"},
+    ],
+    elites:[],
+    outline:[
+      [0,-1],[.65,-.75],[1,0],[.65,.75],[0,1],[-.65,.75],[-1,0],[-.65,-.75],
+    ],
+    terrain:{
+      bg:"#140808",
+      fill:"rgba(120,40,20,.5)",
+      stroke:"rgba(255,100,40,.55)",
     },
   },
   wailing_caverns:{
@@ -175,7 +194,11 @@ function liveLandmarkPos(lm){
       return {x:DUROTAR_PORTAL_E.x,z:DUROTAR_PORTAL_E.z};
     if(typeof BARRENS_PORTAL_E!=="undefined")return {x:BARRENS_PORTAL_E.x,z:BARRENS_PORTAL_E.z};
   }
-  if(lm.id==="portal_w"&&typeof BARRENS_PORTAL_W!=="undefined")return {x:BARRENS_PORTAL_W.x,z:BARRENS_PORTAL_W.z};
+  if(lm.id==="portal_w"){
+    if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="durotar"&&typeof DUROTAR_PORTAL_W!=="undefined")
+      return {x:DUROTAR_PORTAL_W.x,z:DUROTAR_PORTAL_W.z};
+    if(typeof BARRENS_PORTAL_W!=="undefined")return {x:BARRENS_PORTAL_W.x,z:BARRENS_PORTAL_W.z};
+  }
   if(lm.id==="crossroads"&&typeof crossroadsSentinel!=="undefined"&&crossroadsSentinel)
     return {x:crossroadsSentinel.position.x,z:crossroadsSentinel.position.z};
   if(lm.id==="ochre_outpost"&&typeof ochreOutpost!=="undefined"&&ochreOutpost)

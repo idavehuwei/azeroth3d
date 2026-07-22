@@ -13,7 +13,7 @@
           professions.js 运行时（spawnGatherNodesForZone）
           rares.js 运行时（spawnRaresForZone）
           save.js 运行时（saveGame）
-   [导出] sceneDurotar DUROTAR_R DUROTAR_PORTAL_E
+   [导出] sceneDurotar DUROTAR_R DUROTAR_PORTAL_E DUROTAR_PORTAL_W
           durotarHeli durotarSun durotarFlames
           buildDurotarZone tryInteractDurotar
           updateDurotarMarkers ochreOutpostDist durotarSpiritDist ochreVendorDist ochreGuardDist
@@ -22,8 +22,9 @@
 
 const DUROTAR_R=BAL.durotar.radius;
 const sceneDurotar=new THREE.Scene();
-/* 东口回贫瘠；落点与门距开，防乒乓 */
+/* 东口回贫瘠；西口进怒焰；落点与门距开，防乒乓 */
 const DUROTAR_PORTAL_E=new THREE.Vector3(DUROTAR_R-10,0,0);
+const DUROTAR_PORTAL_W=new THREE.Vector3(-(DUROTAR_R-10),0,8);
 
 let durotarHeli=null,durotarSun=null;
 const durotarFlames=[];
@@ -32,7 +33,7 @@ let durotarSpirit=null,durotarSpiritLabel=null;
 let ochreVendor=null,ochreVendorLabel=null;
 let ochreGuard=null,ochreGuardLabel=null;
 let durotarMarkerExcl=null,durotarMarkerQ=null;
-let durotarPortalUni=null;
+let durotarPortalUni=null,durotarRagefirePortalUni=null;
 
 function buildDurotarZone(scn){
   const root=scn||sceneDurotar;
@@ -128,6 +129,36 @@ function buildDurotarZone(scn){
   const eLab=makeLabel("贫瘠之地",11,"#e8c898","rgba(120,70,30,.9)");
   eLab.position.set(DUROTAR_PORTAL_E.x,11.8,DUROTAR_PORTAL_E.z); root.add(eLab);
 
+  /* 西口 → 怒焰裂谷 */
+  const rfMat=new THREE.MeshStandardMaterial({color:0x5a2010,roughness:.9,flatShading:true,
+    emissive:0xff4000,emissiveIntensity:.28});
+  const wPlat=new THREE.Mesh(new THREE.CylinderGeometry(6.5,7.5,1,12),rfMat);
+  wPlat.position.set(DUROTAR_PORTAL_W.x,.5,DUROTAR_PORTAL_W.z); wPlat.receiveShadow=true; root.add(wPlat);
+  [[-3.2],[3.2]].forEach(([sz])=>{
+    const pil=new THREE.Mesh(new THREE.BoxGeometry(1.4,8.2,1.4),rfMat);
+    pil.position.set(DUROTAR_PORTAL_W.x,4.6,DUROTAR_PORTAL_W.z+sz); pil.castShadow=true; root.add(pil);
+  });
+  const wLintel=new THREE.Mesh(new THREE.BoxGeometry(1.5,1.3,8.5),rfMat);
+  wLintel.position.set(DUROTAR_PORTAL_W.x,9.0,DUROTAR_PORTAL_W.z); root.add(wLintel);
+  durotarRagefirePortalUni={uTime:{value:0}};
+  const wDisc=new THREE.Mesh(new THREE.CircleGeometry(2.7,36),new THREE.ShaderMaterial({
+    uniforms:durotarRagefirePortalUni,transparent:true,side:THREE.DoubleSide,depthWrite:false,
+    vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`
+      varying vec2 vUv;uniform float uTime;
+      void main(){
+        vec2 p=vUv-.5; float r=length(p)*2.; float ang=atan(p.y,p.x);
+        float sw=sin(ang*3.0-uTime*2.4+r*7.);
+        vec3 c=mix(vec3(1.,.4,.12),vec3(.55,.12,.04),smoothstep(-.5,.7,sw));
+        c=mix(c,vec3(.12,.02,0.),smoothstep(.7,1.,r));
+        gl_FragColor=vec4(c*1.2,smoothstep(1.,.88,r));
+      }`}));
+  wDisc.position.set(DUROTAR_PORTAL_W.x,4.5,DUROTAR_PORTAL_W.z); wDisc.rotation.y=-Math.PI/2; root.add(wDisc);
+  const wLab=makeLabel("怒焰裂谷",11,"#ff9060","rgba(100,30,10,.9)");
+  wLab.position.set(DUROTAR_PORTAL_W.x,11.8,DUROTAR_PORTAL_W.z); root.add(wLab);
+  const wLab2=makeLabel("副本入口",8,"#ffb090","rgba(80,20,8,.85)");
+  wLab2.position.set(DUROTAR_PORTAL_W.x,10.4,DUROTAR_PORTAL_W.z); root.add(wLab2);
+
   const _npcLy=(BAL.npc&&BAL.npc.labelY)||4.05, _npcMy=(BAL.npc&&BAL.npc.markerY)||5.15, _npcLw=(BAL.npc&&BAL.npc.labelW)||6.2;
   ochreOutpost=tintNpcCloth(buildVendor(),0x8a4020);
   ochreOutpost.position.set(2,0,-2); ochreOutpost.rotation.y=Math.PI;
@@ -178,7 +209,7 @@ function buildDurotarZone(scn){
     spawnGatherNodesForZone("durotar",root,{
       radius:DUROTAR_R,
       camp:{x:0,z:0},
-      portals:[{x:DUROTAR_PORTAL_E.x,z:DUROTAR_PORTAL_E.z}],
+      portals:[{x:DUROTAR_PORTAL_E.x,z:DUROTAR_PORTAL_E.z},{x:DUROTAR_PORTAL_W.x,z:DUROTAR_PORTAL_W.z}],
     });
   }
   const z=ZONES.durotar;
@@ -295,6 +326,7 @@ registerZone({
   dayNight:true,
   gates:{
     from_barrens:{x:DUROTAR_R-24,z:0},
+    from_ragefire:{x:-(DUROTAR_R-24),z:8},
     outpost:{x:0,z:0},
     spirit:{x:0,z:6},
     default:{x:0,z:0},
@@ -310,14 +342,29 @@ registerZone({
     autoEnter:true,
     targetZone:"barrens",
     targetGate:"from_durotar",
+  },{
+    id:"to_ragefire",
+    pos:()=>DUROTAR_PORTAL_W,
+    hintR:()=>BAL.zones.portalHintR,
+    enterR:()=>BAL.zones.portalEnterR,
+    announce:"怒焰裂谷 · 副本入口",
+    logHint:"西侧裂隙喷吐着硫磺与怒焰……走进即可进入怒焰裂谷。",
+    requireAlive:true,
+    autoEnter:true,
+    minLevel:()=>BAL.durotar.ragefireMinLevel||13,
+    lockedAnnounce:()=>`等级不足！需要 Lv.${BAL.durotar.ragefireMinLevel||13}`,
+    lockedLog:()=>`怒焰裂谷危机四伏——当前 Lv.${S.p.level}，建议升到 Lv.${BAL.durotar.ragefireMinLevel||13} 后再挑战。`,
+    targetZone:"ragefire_chasm",
+    targetGate:"entrance",
   }],
   onEnter(fromId,gateId,opts){
     if(opts&&opts.silent)return;
     if(fromId==="barrens")log("灼热的橙土迎面扑来——你已踏入赭岩谷。","lg-sys");
+    if(fromId==="ragefire_chasm")log("你离开怒焰裂谷，重回赭岩哨站的热风中。","lg-sys");
     updateDurotarMarkers();
     if(typeof updateQuest==="function")updateQuest();
   },
   onLeave(){},
 });
 
-console.info("[durotar] V1-B1 就绪：赭岩谷 · 哨站 · 巨蝎/刺脊/崖风鹰身");
+console.info("[durotar] V1-B1 就绪：赭岩谷 · 哨站 · 巨蝎/刺脊/崖风鹰身 · 西口怒焰");

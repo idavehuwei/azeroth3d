@@ -474,6 +474,115 @@ defineBoss({
   },
 });
 
+/* ---- 奥格弗林特：怒焰裂谷一号位（V1-B3）· 熔岩喷吐 / 直线 ---- */
+defineBoss({
+  id:"oggleflint",
+  name:"奥格弗林特",
+  title:"怒焰裂谷 · 一号首领",
+  hitNoun:"奥格弗林特",
+  statsKey:"oggleflint",
+  build:()=>buildQuadruped(QUADS.oggleflint),
+  projectileY:4.6, fctY:6.2,
+  intro:{
+    type:"appear", fromY:0, toY:0, dur:1.2,
+    burst:{at:.3,window:.2,vfx:"roar_aura",pos:[0,2.5,-10],color:0xff6020,count:50,spread:4},
+    sfx:"growl",
+    announce:"奥格弗林特咆哮着站起！",
+    log:"燃刃督军奥格弗林特从熔岩缝隙后冲出！",
+  },
+  bob:false,
+  home:{x:0,z:-10},
+  skills:[
+    {id:"melee",type:"melee",bal:"melee",name:"熔岩重击",firstDelay:2.2,
+      vfx:"melee_impact",label:"奥格弗林特的重击",phaseMul:{2:"p2Mul"}},
+    {id:"spit",type:"cast_projectile",bal:"spit",name:"熔岩喷吐",firstDelay:4,
+      vfx:"lava_bolt",log:"奥格弗林特喷出熔岩！",exclusive:true,
+      countKey:{1:"count",2:"p2Count"},fanKey:"fan"},
+    {id:"breath",type:"cast_line",bal:"breath",name:"火焰吐息",firstDelay:7,
+      sfx:"breath_fire",
+      vfx:"eruption_ring",
+      announce:"火焰吐息 · 躲开直线！",log:"奥格弗林特张开巨口，火焰沿直线喷涌！",
+      exclusive:true,segsKey:{1:"segs",2:"p2Segs"}},
+  ],
+  phases:[
+    {to:2,from:1,hpPctKey:"phase2At",onEnter:"enrage",
+      sfx:"growl",announce:"⚠️ 奥格弗林特狂暴！",
+      log:"督军的铠甲烧红——喷吐更密，燃刃兽人从暗处涌出！",
+      compressNext:{melee:1.2,spit:2.2,breath:3.5},
+      burst:{vfx:"roar_aura",y:3.5,color:0xff4400,count:70,spread:6},
+      spawnAdds:{countKey:"addCount",r:[8,14],zOff:-2}},
+  ],
+  death:{
+    isFinal:false, nextStage:"boss",
+    sfx:"growl",announce:"奥格弗林特倒下了！",
+    log:"督军跪倒在熔岩边，裂谷深处传来更沉重的咆哮……",
+    tip:"通往饥饿者巢穴的道路已打开。",
+    xpKey:"oggleflint", copperKey:"oggleflint",
+    lootTable:"ragefire", lootPos:[0,0,-5], lootDelay:1400,
+    lootAnnounce:"灰烬中浮出战利品",
+  },
+  defeat:{
+    endTitle:"团 灭",endSub:"YOU HAVE BEEN DEFEATED",
+    endHtml:"熔岩吞没了走廊，奥格弗林特的咆哮回荡。<br>释放灵魂，在入口重整旗鼓。",
+  },
+});
+
+/* ---- 饥饿者塔拉加曼 · 怒焰终局（V1-B3） ---- */
+defineBoss({
+  id:"taragaman",
+  name:"饥饿者 · 塔拉加曼",
+  title:"怒焰裂谷 · 最终首领",
+  hitNoun:"塔拉加曼",
+  statsKey:"taragaman",
+  build:()=>buildQuadruped(QUADS.taragaman),
+  projectileY:5.4, fctY:7.0,
+  intro:{
+    type:"appear", fromY:0, toY:0, dur:1.5,
+    burst:{at:.35,window:.2,vfx:"roar_aura",pos:[0,3,-12],color:0xff8030,count:80,spread:5},
+    sfx:"roar",
+    announce:"饥饿者塔拉加曼苏醒了！",
+    log:"裂谷最深处，巨大的燃刃恶魔睁开双眼——熔岩随之翻涌！",
+  },
+  bob:false,
+  home:{x:0,z:-12},
+  skills:[
+    {id:"melee",type:"melee",bal:"melee",name:"饥饿撕咬",firstDelay:2.5,
+      vfx:"melee_impact",label:"塔拉加曼的撕咬",phaseMul:{2:"p2Mul"}},
+    {id:"spit",type:"cast_projectile",bal:"spit",name:"燃烬喷射",firstDelay:5,
+      vfx:"lava_bolt",log:"塔拉加曼甩出燃烬！",exclusive:true,
+      countKey:{1:"count",2:"p2Count"},fanKey:"fan"},
+    {id:"stomp",type:"cast_telegraph",bal:"stomp",name:"熔岩震踏",firstDelay:9,
+      vfx:"eruption_ring",playerRingRKey:"ringR",
+      countKey:{1:"count",2:"p2Count"},
+      announce:"熔岩震踏 · 快躲开红圈！",log:"地面崩裂，熔岩从石缝中喷溅！",exclusive:true},
+  ],
+  phases:[
+    {to:2,from:1,hpPctKey:"phase2At",onEnter:"enrage",
+      sfx:"roar",announce:"⚠️ 塔拉加曼狂暴！",
+      log:"饥饿者发出震耳咆哮——更多燃刃兽人从岩壁爬出！",
+      compressNext:{melee:1.3,spit:2.5,stomp:3.5},
+      burst:{vfx:"roar_aura",y:4,color:0xff5500,count:90,spread:7},
+      spawnAdds:{countKey:"addCount",r:[9,15],zOff:-2}},
+  ],
+  death:{
+    isFinal:true, questComplete:false,
+    sfx:"roar",announce:"塔拉加曼已被击败！",
+    log:"恶魔缓缓倒下，裂谷中的怒焰渐渐平息……",
+    tip:"已拾取战利品后，走进入口处的传送门即可返回赭岩谷。",
+    xpKey:"taragaman", copperKey:"taragaman",
+    lootTable:"ragefire", lootPos:[0,0,-6], lootDelay:2000,
+    lootAnnounce:"稀有战利品出现了",
+    lootLog:"灰烬散去，装备散落在熔岩边——靠近按 F 拾取。",
+    endTitle:"胜 利",endSub:"RAGEFIRE CHASM · CLEARED",
+    endHtml:"饥饿者的躯体崩解为焦土。<br>前往副本入口处，走进传送门返回赭岩谷。",
+    burst:{vfx:"roar_aura",y:5,color:0xff8030,count:100,spread:8},
+  },
+  defeat:{
+    endTitle:"团 灭",endSub:"YOU HAVE BEEN DEFEATED",
+    endHtml:"怒焰吞没了裂谷，饥饿者的嘶鸣回荡。<br>释放灵魂，在入口重整旗鼓。",
+  },
+});
+
 /* ---- 奥妮克希亚：巢穴精简团本（STEP 28）· 三阶段飞天/喷吐/深呼吸 ---- */
 defineBoss({
   id:"onyxia",
