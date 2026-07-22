@@ -850,6 +850,7 @@ function spawnMob(type,x,z,group,opts){
     hp:st.hp,hpMax:st.hp,state:"wander",home:{x,z},dest:null,wanderT:rand(0,3),
     atkT:0,rootT:0,respawnT:0,corpseT:0,castCd:0,casting:null,moving:false,aura:null,
     attackAnim:0,
+    armor:st.armor!=null?st.armor:(40+mobLv*12+(isElite?80:0)),
     variance:BAL.variance.mob,
     dead(){return this.state==="dead"||this.state==="return";},
     fctPos(){return this.mesh.position.clone().setY(this.labelY-.4);},

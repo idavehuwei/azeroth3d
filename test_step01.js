@@ -329,6 +329,14 @@ assert(mainSrc.includes("resolveCamCollision")&&mainSrc.includes("playerGroundY"
 assert(mainSrc.includes("firstPerson")||mainSrc.includes("firstPersonDist"),"C1 近距第一人称");
 assert(combatSrc.includes("touchLook")&&combatSrc.includes("pinch"),"C1 移动端右半屏视角 / 捏合缩放");
 assert(combatSrc.includes("clearMoveTarget")&&combatSrc.includes("Escape"),"C1 Esc 取消目标");
+/* plan-V3 · C3–C5 sim / 命中表 / 资源 */
+assert(fs.existsSync(path.join(__dirname,"js/sim/content.js"))&&fs.existsSync(path.join(__dirname,"js/sim/stats.js")),"C3 sim content/stats");
+assert(fs.existsSync(path.join(__dirname,"js/sim/formulas.js"))&&fs.existsSync(path.join(__dirname,"js/sim/resources.js")),"C4/C5 formulas/resources");
+assert(fs.existsSync(path.join(__dirname,"js/sim/entity.js"))&&fs.existsSync(path.join(__dirname,"test_formulas.js")),"entity.js + test_formulas.js");
+assert(combatSrc.includes("settleDamage")&&combatSrc.includes("initPlayerStats")&&combatSrc.includes("playerResKind"),"combat 接线 C3–C5");
+assert(coreSrc.includes("BALANCE.sim")||coreSrc.includes("SIM_CONTENT"),"core 合并 SIM_CONTENT");
+assert(html.includes('src="js/sim/formulas.js"')&&html.includes('src="js/sim/resources.js"'),"game.html 加载 sim 公式/资源");
+assert(mainSrc.includes("tickResources")&&mainSrc.includes("minRange"),"main 资源 tick + 远程死区");
 /* plan-V3 · C2 目标系统 + 姓名板 + 目标框 */
 assert(combatSrc.includes("function resolveSkillTarget")&&combatSrc.includes("function cycleHostileTargets"),"C2 resolveSkillTarget / Tab 循环");
 assert(combatSrc.includes("S.currentTarget")&&combatSrc.includes("S.target"),"C2 currentTarget / target 别名");

@@ -47,14 +47,16 @@ const S={
   mats:{},              /* STEP 23：采集材料堆叠 {matId:count} */
   deeds:null,           /* STEP 25：功绩之书（ensureDeeds 初始化） */
   craftOpen:false,
-  p:{hp:5200,hpMax:5200,rage:20,rageMax:100,speed:10.5,alive:true,dmgMul:1,
+  p:{hp:5200,hpMax:5200,rage:20,rageMax:100,speed:10.5,alive:true,dmgMul:1,debugMul:1,
      atkTimer:0,attackAnim:0,walkPhase:0,face:0,invuln:0,
      absorb:0,absorbT:0,shieldMesh:null,   /* STEP 19 真言术：盾 */
      stealth:false,sprintT:0,              /* V1-C2 潜行 / 疾步 */
      level:1,xp:0,xpMax:BAL.levels.xpMax[0],gold:0,   /* 经验与等级（STEP 3）· 金币铜（STEP 13） */
      eating:null,bandaging:null,gathering:null,weaknessT:0,
      whetstoneT:0,whetstoneAdd:0,
-     vy:0,grounded:true,autoRun:false,_wantJump:false}, /* plan-V3 C1 */
+     vy:0,grounded:true,autoRun:false,_wantJump:false, /* plan-V3 C1 */
+     stats:null,derived:null}, /* plan-V3 C3 五属性 */
+  res:typeof createResourceState==="function"?createResourceState():{inCombat:false,combatT:0,manaFsr:0,energyAcc:0,combo:0},
   b:{id:"ragnaros",hp:BAL.boss.hp,hpMax:BAL.boss.hp,alive:true,rising:true,riseT:0,
      phase:1,swingT:0,casting:null,castT:0,castDur:0,
      next:{},submerged:false,submergeT:0,canLeave:false,nextAddSpawn:0,addWave:null},
@@ -77,49 +79,49 @@ const S={
    ============================================================ */
 let SKILLS=[];
 const CLASSES={
-  warrior:{title:"⚔️ 你 · 人类战士",hp:5200,resMax:100,resStart:20,resName:"怒气",
-    regen:0,hitGain:8,speed:10.5,ranged:false,range:10,sfx:"swing",
+  warrior:{title:"⚔️ 你 · 人类战士",hp:5200,resMax:100,resStart:20,resName:"怒气",resKind:"rage",
+    regen:0,hitGain:0,speed:10.5,ranged:false,range:10,sfx:"swing",
     autoMin:150,autoMax:210,autoSpd:1.6,shotColor:0xffffff,build:buildPlayer,
     barCss:"linear-gradient(180deg,#ffd76a,#c98a1f 60%,#7a4d0c)",
     tip:"提示：近身积攒怒气；【冲锋】贴近并可打断读条；【嘲讽】强制拉住目标仇恨。",
     skills:[
-      {name:"英勇打击",icon:"sword",cd:5, rage:20,fn:heroicStrike,bal:"heroicStrike",
+      {name:"英勇打击",icon:"sword",cd:5, rage:20,fn:heroicStrike,bal:"heroicStrike",school:"physical",
        desc:"奋力一击，对面前敌人造成物理伤害。"},
-      {name:"旋风斩",  icon:"whirlwind",cd:9, rage:30,fn:whirlwind,bal:"whirlwind",
+      {name:"旋风斩",  icon:"whirlwind",cd:9, rage:30,fn:whirlwind,bal:"whirlwind",school:"physical",
        desc:"旋转兵器，对周围敌人造成范围物理伤害。"},
       {name:"冲锋",    icon:"charge",cd:12,rage:0, fn:charge,bal:"charge",
        desc:"向目标冲锋并贴近；若目标正在读条则可打断。"},
       {name:"嘲讽",    icon:"taunt",cd:8, rage:0, fn:taunt,bal:"taunt",
        desc:"强制目标攻击你一段时间，并大幅拉高仇恨。"}]},
-  mage:{title:"🔮 你 · 人类法师",hp:3800,resMax:100,resStart:100,resName:"法力",
+  mage:{title:"🔮 你 · 人类法师",hp:3800,resMax:100,resStart:100,resName:"法力",resKind:"mana",
     regen:7,hitGain:0,speed:10,ranged:true,range:30,sfx:"fireball",
     autoMin:175,autoMax:235,autoSpd:1.8,shotColor:0xff8a30,build:buildMage,
     barCss:"linear-gradient(180deg,#7ab8ff,#2a5ec9 60%,#123a7a)",
     tip:"提示：法力随时间恢复；远程自动施放火球，【闪现】拉开距离，危急时开【寒冰屏障】免疫伤害。",
     skills:[
-      {name:"炎爆术",  icon:"fireball",cd:7, rage:30,fn:pyroblast,bal:"pyroblast",
+      {name:"炎爆术",  icon:"fireball",cd:7, rage:30,fn:pyroblast,bal:"pyroblast",school:"spell",
        desc:"蓄力投出巨大火球，造成高额火焰伤害。"},
-      {name:"冰霜新星",icon:"frost",cd:11,rage:25,fn:frostNova,bal:"frostNova",
+      {name:"冰霜新星",icon:"frost",cd:11,rage:25,fn:frostNova,bal:"frostNova",school:"spell",
        desc:"冻结周围敌人并造成冰霜伤害，短暂定身。"},
       {name:"闪现",    icon:"blink",cd:12,rage:15,fn:blink,bal:"blink",
        desc:"瞬间向前传送一段距离。"},
       {name:"寒冰屏障",icon:"ice_block",cd:25,rage:0, fn:iceBlock,bal:"iceBlock",
        desc:"把自己封进寒冰，短时间内免疫伤害。"}]},
-  archer:{title:"🏹 你 · 精灵弓箭手",hp:4300,resMax:100,resStart:100,resName:"能量",
-    regen:11,hitGain:0,speed:11.5,ranged:true,range:32,sfx:"arrow",
+  archer:{title:"🏹 你 · 精灵弓箭手",hp:4300,resMax:100,resStart:100,resName:"能量",resKind:"energy",
+    regen:11,hitGain:0,speed:11.5,ranged:true,range:32,sfx:"arrow",minRange:5,
     autoMin:140,autoMax:190,autoSpd:1.25,shotColor:0xd0ffa0,build:buildArcher,
     barCss:"linear-gradient(180deg,#d8ff7a,#7fb32a 60%,#3d6a0c)",
     tip:"提示：能量随时间恢复；边走边射保持距离，【翻滚】可位移并短暂闪避一切伤害。",
     skills:[
-      {name:"瞄准射击",icon:"aimed",cd:6, rage:30,fn:aimedShot,bal:"aimedShot",
+      {name:"瞄准射击",icon:"aimed",cd:6, rage:30,fn:aimedShot,bal:"aimedShot",school:"physical",
        desc:"精确瞄准，射出高伤害箭矢。"},
-      {name:"多重射击",icon:"multi_shot",cd:10,rage:35,fn:multiShot,bal:"multiShot",
+      {name:"多重射击",icon:"multi_shot",cd:10,rage:35,fn:multiShot,bal:"multiShot",school:"physical",
        desc:"同时射出多支箭，打击多个目标。"},
       {name:"翻滚",    icon:"roll",cd:9, rage:20,fn:roll,bal:"roll",
        desc:"向前翻滚位移，短暂闪避一切伤害。"},
       {name:"治疗药水",icon:"potion",cd:22,rage:0, fn:potion,bal:"potion",
        desc:"喝下药水，立即回复生命。"}]},
-  priest:{title:"✨ 你 · 人类牧师",hp:4000,resMax:100,resStart:100,resName:"法力",
+  priest:{title:"✨ 你 · 人类牧师",hp:4000,resMax:100,resStart:100,resName:"法力",resKind:"mana",
     regen:8,hitGain:0,speed:10,ranged:true,range:28,sfx:"holy",
     autoMin:155,autoMax:205,autoSpd:1.65,shotColor:0xfff0a0,build:buildPriest,
     barCss:"linear-gradient(180deg,#fff8d0,#d4af37 60%,#8a7020)",
@@ -129,33 +131,33 @@ const CLASSES={
        desc:"施放圣光，恢复大量生命。"},
       {name:"快速治疗",  icon:"flash_heal", cd:4,  rage:20,fn:flashHeal,     bal:"flashHeal",
        desc:"迅速施法，立即恢复中等生命。"},
-      {name:"神圣惩击",  icon:"holy", cd:6,  rage:25,fn:smite,         bal:"smite",
+      {name:"神圣惩击",  icon:"holy", cd:6,  rage:25,fn:smite,         bal:"smite",school:"spell",
        desc:"对目标造成神圣伤害。"},
       {name:"真言术：盾",icon:"holy_shield", cd:12, rage:30,fn:powerWordShield,bal:"powerWordShield",
        desc:"为自己施加吸收护盾，持续一段时间。"}]},
-  shaman:{title:"🌀 你 · 兽人萨满",hp:4200,resMax:100,resStart:100,resName:"法力",
+  shaman:{title:"🌀 你 · 兽人萨满",hp:4200,resMax:100,resStart:100,resName:"法力",resKind:"mana",
     regen:8,hitGain:0,speed:10.2,ranged:true,range:26,sfx:"lightning",
     autoMin:160,autoMax:210,autoSpd:1.7,shotColor:0x66ccff,build:buildShaman,
     barCss:"linear-gradient(180deg,#7ad0ff,#2a8a9a 60%,#104858)",
     tip:"提示：法力自动恢复；闪电箭远程输出；【治疗图腾】落地持续回血。",
     skills:[
-      {name:"闪电箭",    icon:"lightning", cd:6,  rage:28,fn:lightningBolt, bal:"lightningBolt",
+      {name:"闪电箭",    icon:"lightning", cd:6,  rage:28,fn:lightningBolt, bal:"lightningBolt",school:"spell",
        desc:"投出闪电，对目标造成自然伤害。"},
-      {name:"大地震击",  icon:"earth_shock", cd:7,  rage:25,fn:earthShock,    bal:"earthShock",
+      {name:"大地震击",  icon:"earth_shock", cd:7,  rage:25,fn:earthShock,    bal:"earthShock",school:"spell",
        desc:"以大地之力震击目标。"},
       {name:"治疗波",    icon:"heal", cd:8,  rage:32,fn:healingWave,   bal:"healingWave",
        desc:"引导水流，恢复自身生命。"},
       {name:"治疗图腾",  icon:"totem", cd:18, rage:35,fn:placeHealingTotem,bal:"healingTotem",
        desc:"在脚下放置图腾，持续治疗范围内的自己。"}]},
-  rogue:{title:"🗡 你 · 人类盗贼",hp:4100,resMax:100,resStart:100,resName:"能量",
+  rogue:{title:"🗡 你 · 人类盗贼",hp:4100,resMax:100,resStart:100,resName:"能量",resKind:"energy",
     regen:12,hitGain:0,speed:11.2,ranged:false,range:8,sfx:"swing",
     autoMin:145,autoMax:195,autoSpd:1.35,shotColor:0xc0c8d8,build:buildRogue,
     barCss:"linear-gradient(180deg,#d0d8e8,#5a6a88 60%,#2a3448)",
     tip:"提示：能量自动恢复；脱战可【潜行】缩小被发现距离；从背后【背刺】造成高额伤害。",
     skills:[
-      {name:"影袭",  icon:"sinister_strike", cd:5,  rage:25,fn:sinisterStrike, bal:"sinisterStrike",
+      {name:"影袭",  icon:"sinister_strike", cd:5,  rage:25,fn:sinisterStrike, bal:"sinisterStrike",school:"physical",combo:1,
        desc:"迅捷一击，对近战目标造成物理伤害。"},
-      {name:"背刺",  icon:"backstab", cd:8,  rage:35,fn:backstab,        bal:"backstab",
+      {name:"背刺",  icon:"backstab", cd:8,  rage:35,fn:backstab,        bal:"backstab",school:"physical",combo:1,
        desc:"必须位于目标背后；潜行中伤害更高。"},
       {name:"潜行",  icon:"stealth", cd:10, rage:0, fn:stealth,         bal:"stealth",
        desc:"脱战后进入隐身，大幅缩小野怪主动仇恨半径。"},
@@ -199,6 +201,9 @@ function setClass(key){
   S.p.rageMax=CLS.resMax; S.p.rage=CLS.resStart; S.p.speed=CLS.speed;
   S.p.absorb=0; S.p.absorbT=0;
   S.p.stealth=false; S.p.sprintT=0;
+  if(typeof createResourceState==="function")S.res=createResourceState();
+  else S.res={inCombat:false,combatT:0,manaFsr:0,energyAcc:0,combo:0};
+  initPlayerStats(key);
   SKILLS=CLS.skills;
   if(typeof initTalentsForClass==="function")initTalentsForClass(key);
   else updateLevelUI();
@@ -209,6 +214,32 @@ function setClass(key){
   if(typeof renderCharPanel==="function")renderCharPanel();
   if(typeof renderSpellPanel==="function")renderSpellPanel();
 }
+
+/** plan-V3 C3：从 SIM_CONTENT.baseStats 初始化属性并派生 */
+function initPlayerStats(clsKey){
+  const key=clsKey||(CLS&&CLS.key)||"warrior";
+  const base=(BAL.sim&&BAL.sim.baseStats&&BAL.sim.baseStats[key])||
+    (typeof SIM_CONTENT!=="undefined"&&SIM_CONTENT.baseStats&&SIM_CONTENT.baseStats[key])||
+    {str:20,agi:20,sta:20,int:20,spi:20,armor:50};
+  S.p.stats=typeof cloneStats==="function"?cloneStats(base):Object.assign({level:S.p.level},base);
+  S.p.stats.level=S.p.level|0||1;
+  refreshPlayerDerived();
+}
+function refreshPlayerDerived(){
+  if(!S.p.stats)return;
+  S.p.stats.level=S.p.level|0||1;
+  if(typeof deriveStats==="function")
+    S.p.derived=deriveStats(S.p.stats,CLS.key||"warrior");
+  else S.p.derived={ap:0,critPct:5,dodgePct:5,armor:S.p.stats.armor|0,apDmgMul:1};
+  /* 耐力加成叠在职业基础生命上（装备 hpMax 仍走 applyEquipStats） */
+  if(S.p.derived&&S.p.derived.hpBonus!=null&&CLS){
+    /* 不在此重写 hpMax，避免冲掉装备；仅暴露 derived 给面板 */
+  }
+}
+function playerResKind(){
+  return(CLS&&CLS.resKind)||(CLS&&CLS.resName==="法力"?"mana":CLS&&CLS.resName==="能量"?"energy":"rage");
+}
+
 setClass("warrior");
 
 /* ---------------- UI 工具 ---------------- */
@@ -484,10 +515,26 @@ function getSkillBal(balKey){
 }
 function useSkill(i){
   if(!S.started||S.over||!S.p.alive)return;
-  if(S.cds[i]>0||S.gcd>0)return;
-  const sk=SKILLS[i];
+  const sk=SKILLS[i]; if(!sk)return;
+  const qWin=(BAL.sim&&BAL.sim.resources&&BAL.sim.resources.gcd&&BAL.sim.resources.gcd.queueWindow)||.2;
+  if(S.gcd>0){
+    if(S.gcd<=qWin&&S.res){S.res.queuedSkill=i;return;}
+    return;
+  }
+  if(S.cds[i]>0)return;
   if(S.p.rage<sk.rage){log(`${CLS.resName}不足！（${sk.name} 需要 ${sk.rage} ${CLS.resName}）`,"lg-sys");return;}
-  if(sk.fn()){S.p.rage-=sk.rage;S.cds[i]=typeof getSkillCd==="function"?getSkillCd(i):sk.cd;S.gcd=.8;}
+  if(sk.fn()){
+    S.p.rage-=sk.rage;
+    S.cds[i]=typeof getSkillCd==="function"?getSkillCd(i):sk.cd;
+    const g=typeof gcdDuration==="function"?gcdDuration(playerResKind()):1.5;
+    S.gcd=g;
+    if(playerResKind()==="mana"&&typeof applyManaSpend==="function")applyManaSpend(S.res);
+    if(typeof markCombat==="function")markCombat(S.res);
+    if(sk.combo&&typeof addComboPoints==="function"){
+      const n=addComboPoints(S.res,sk.combo|0);
+      if(n>0)log(`连击点 · ${n}`,"lg-me");
+    }
+  }
 }
 /* bossTargetable 在 raid.js 定义 */
 
@@ -499,29 +546,78 @@ function useSkill(i){
    掉落（STEP 2）与经验（STEP 3）只需挂接各实体的 onDeath。
    ============================================================ */
 function hitEntity(ent,amount,label,opts){
+  opts=opts||{};
   if(ent.dead&&ent.dead())return;
   /* 尸体 / 回巢不可再结算伤害（防自动普攻误锁） */
   if(ent.mesh&&typeof mobTargetable==="function"&&MOBS&&MOBS.includes(ent)&&!mobTargetable(ent))return;
   if(ent.mesh&&typeof addTargetable==="function"&&S.adds&&S.adds.includes(ent)&&!addTargetable(ent))return;
-  const v=ent.variance;
-  /* 上帝模式：固定伤害，跳过系数与浮动 */
-  amount=S.god?BAL.god.dmg:Math.round(amount*S.p.dmgMul*(v?rand(v[0],v[1]):1));
+
+  if(typeof markCombat==="function")markCombat(S.res);
+  if(!S.p.derived&&typeof refreshPlayerDerived==="function")refreshPlayerDerived();
+
+  const school=opts.school||"physical";
+  const attacker=typeof buildAttackerCtx==="function"
+    ?buildAttackerCtx(S.p,CLS.key,S.p.derived)
+    :{level:S.p.level,critPct:5,apDmgMul:1,dmgMul:S.p.dmgMul};
+  let target;
+  if(typeof BOSS_ENT!=="undefined"&&ent===BOSS_ENT){
+    target=typeof buildTargetCtx==="function"
+      ?buildTargetCtx({type:"boss",level:(S.b&&S.b.level)||((BAL.boss&&BAL.boss.level)||20),armor:600,elite:true})
+      :{level:20,armor:600,dodgePct:5};
+  }else{
+    target=typeof buildTargetCtx==="function"?buildTargetCtx(ent):{level:ent.level||1,armor:ent.armor||0,dodgePct:5};
+  }
+
+  let result;
+  if(typeof settleDamage==="function"){
+    result=settleDamage({
+      base:amount,attacker,target,school,
+      god:!!S.god,godDmg:BAL.god&&BAL.god.dmg,
+      variance:S.god?null:ent.variance,
+      rng:Math.random
+    });
+  }else{
+    const v=ent.variance;
+    const dmg=S.god?BAL.god.dmg:Math.round(amount*S.p.dmgMul*(v?rand(v[0],v[1]):1));
+    result={outcome:"hit",damage:dmg,mitigated:0,raw:dmg};
+  }
+
+  const outcome=result.outcome||"hit";
+  if(outcome==="miss"||outcome==="dodge"||outcome==="parry"){
+    const msg=typeof T==="function"?T("combat."+outcome):(outcome==="miss"?"未命中":outcome==="dodge"?"被躲闪":"被招架");
+    fct(ent.fctPos(),msg,"#e8e8e8",ent.fctSize?ent.fctSize(label):14);
+    return;
+  }
+
+  amount=result.damage|0;
+  if(amount<=0&&outcome==="glancing"){
+    fct(ent.fctPos(),typeof T==="function"?T("combat.glancing"):"偏斜","#a0a0a0",12);
+    return;
+  }
   ent.hp=Math.max(0,ent.hp-amount);
-  /* R7：FCT 暴击字号/抖动（表现层；不改结算伤害） */
-  const crit=!S.god&&rand()<((BAL.vfx&&BAL.vfx.critChance)||.14);
-  fct(ent.fctPos(),`-${amount}`,"#ffdf8a",ent.fctSize?ent.fctSize(label):14,{crit});
-  /* R7：受击闪白 + 后仰（跳过共享材质） */
+  const crit=outcome==="crit";
+  const glancing=outcome==="glancing";
+  const col=glancing?"#a8a8a8":"#ffdf8a";
+  const tx=glancing?`${typeof T==="function"?T("combat.glancing"):"偏斜"} -${amount}`:`-${amount}`;
+  fct(ent.fctPos(),tx,col,ent.fctSize?ent.fctSize(label):14,{crit});
+  if(crit&&typeof S!=="undefined"){
+    /* 轻微顿帧 */
+    S._hitStopT=.08;
+  }
   if(ent.mesh&&typeof pulseHitFlash==="function")pulseHitFlash(ent.mesh);
-  /* V1-A5：受击分层（肉体/甲壳） */
   if(typeof SFX!=="undefined"&&SFX.playHit){
     let kind=ent.type||ent.hitKind||"hit";
     if(typeof BOSS_ENT!=="undefined"&&ent===BOSS_ENT&&S.b&&S.b.id)kind=S.b.id;
     SFX.playHit(kind);
   }
   if(ent.onHit)ent.onHit(amount,label);
-  /* STEP 27：默认记玩家仇恨；同伴须传 opts.sourceKey */
   if(typeof addThreat==="function"&&!(opts&&opts.noThreat)){
     addThreat(ent,(opts&&opts.sourceKey)||"player",amount,opts&&opts.skillId);
+  }
+  /* C5：战士造成伤害获怒 */
+  if(playerResKind()==="rage"&&amount>0&&typeof rageFromDamage==="function"){
+    const gain=rageFromDamage(amount,S.p.level,"deal");
+    S.p.rage=Math.min(S.p.rageMax,S.p.rage+gain);
   }
   if(ent.hp<=0)ent.onDeath();
 }
@@ -529,7 +625,7 @@ function hitEntity(ent,amount,label,opts){
 function dmgBoss(amount,label,opts){hitEntity(BOSS_ENT,amount,label,opts);}
 function heroicStrike(){
   const bal=getSkillBal("heroicStrike");
-  const thr={skillId:"heroicStrike"};
+  const thr={skillId:"heroicStrike",school:"physical"};
   const tgt=resolveSkillTarget(bal.reach||5);
   if(!tgt)return false;
   setCurrentTarget(tgt);
@@ -688,8 +784,19 @@ function isTargetAlive(tgt){
   return false;
 }
 function setCurrentTarget(tgt){
+  const prev=S.currentTarget;
   if(tgt&&isTargetAlive(tgt)){S.currentTarget=tgt;S.target=tgt;}
   else{S.currentTarget=null;S.target=null;}
+  /* C5：换目标清空连击点 */
+  const clearOn=(BAL.sim&&BAL.sim.resources&&BAL.sim.resources.combo&&BAL.sim.resources.combo.clearOnRetarget!==false);
+  if(clearOn&&typeof clearComboPoints==="function"&&S.res){
+    const changed=!prev||!S.currentTarget||prev.type!==S.currentTarget.type||
+      (prev.type==="mob"&&prev.m!==S.currentTarget.m)||
+      (prev.type==="add"&&prev.a!==S.currentTarget.a)||
+      (prev.type==="boss"&&S.currentTarget.type!=="boss");
+    if(changed&&(!S.currentTarget||!prev))clearComboPoints(S.res);
+    else if(changed&&prev&&S.currentTarget)clearComboPoints(S.res);
+  }
   if(typeof refreshTargetFrame==="function")refreshTargetFrame();
 }
 function clearCurrentTargetIf(ent){
@@ -831,7 +938,8 @@ function cycleHostileTargets(reverse){
   setCurrentTarget(next);
   return next;
 }
-function firePlayerShot(tgt,dmg,label,scale=1){
+function firePlayerShot(tgt,dmg,label,scale=1,opts){
+  opts=opts||{};
   setCurrentTarget(tgt);
   SFX.play(CLS.sfx||"fireball");
   /* 复用共享球几何，避免每次施法 new SphereGeometry */
@@ -852,7 +960,11 @@ function firePlayerShot(tgt,dmg,label,scale=1){
   }
   m.position.copy(player.position); m.position.y=1.9;
   scene.add(m);
-  S.pShots.push({mesh:m,tgt,dmg,label,speed:28,shotColor:CLS.shotColor});
+  S.pShots.push({
+    mesh:m,tgt,dmg,label,speed:28,shotColor:CLS.shotColor,
+    school:opts.school||(CLS.ranged&&CLS.resKind==="mana"?"spell":"physical"),
+    skillId:opts.skillId,sourceKey:opts.sourceKey
+  });
 }
 
 /* ---------------- 法师技能 ---------------- */
@@ -860,7 +972,7 @@ function pyroblast(){
   const t=resolveSkillTarget(CLS.range);
   if(!t)return false;
   S.p.attackAnim=1;
-  firePlayerShot(t,R(getSkillBal("pyroblast").dmg),"炎爆术",1.7);
+  firePlayerShot(t,R(getSkillBal("pyroblast").dmg),"炎爆术",1.7,{school:"spell",skillId:"pyroblast"});
   log("你吟唱出巨大的炎爆术！","lg-me");
   return true;
 }
@@ -1246,7 +1358,15 @@ function sprint(){
 
 function playerHit(amount,source){
   if(!S.p.alive||S.p.invuln>0)return;
+  if(typeof markCombat==="function")markCombat(S.res);
   amount=Math.round(amount*R(BAL.variance.player));
+  /* C4：玩家护甲减伤 */
+  if(typeof armorReduction==="function"){
+    if(!S.p.derived&&typeof refreshPlayerDerived==="function")refreshPlayerDerived();
+    const atkLv=10; /* 粗略：野怪默认级；后续可由 source 传入 */
+    const red=armorReduction((S.p.derived&&S.p.derived.armor)||0,atkLv);
+    amount=Math.max(1,Math.round(amount*(1-red)));
+  }
   /* STEP 19：吸收盾先扣，溢出再扣血（玩家受击入口在 playerHit，非 hitEntity） */
   if(S.p.absorb>0){
     const absorbed=Math.min(S.p.absorb,amount);
@@ -1268,6 +1388,11 @@ function playerHit(amount,source){
   if(player&&typeof pulseHitFlash==="function")pulseHitFlash(player);
   fct(player.position.clone().setY(3),`-${amount}`,"#ff6a5a",18);
   log(`${source} 对你造成 ${amount} 点伤害！`,"lg-dmg");
+  /* C5：战士受击获怒 */
+  if(playerResKind()==="rage"&&typeof rageFromDamage==="function"){
+    const gain=rageFromDamage(amount,S.p.level,"take");
+    S.p.rage=Math.min(S.p.rageMax,S.p.rage+gain);
+  }
   if(S.p.hp<=0){S.p.hp=0;playerDie();}
 }
 
@@ -1288,6 +1413,12 @@ function gainXP(amount){
     const hpGain=Math.round(CLS.hp*L.perLevel.hpMax);
     P.hpMax+=hpGain; P.hp=Math.min(P.hpMax,P.hp+hpGain);
     P.dmgMul+=L.perLevel.dmgMul;
+    if(P.stats){
+      P.stats.str=(P.stats.str|0)+2;
+      P.stats.sta=(P.stats.sta|0)+2;
+      P.stats.agi=(P.stats.agi|0)+1;
+      if(typeof refreshPlayerDerived==="function")refreshPlayerDerived();
+    }
     if(P.level>=L.max)P.xp=0;
     SFX.play("levelup");
     announce(`升 级 ！ Lv.${P.level}`);

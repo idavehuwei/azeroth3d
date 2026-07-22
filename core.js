@@ -882,6 +882,9 @@ const BALANCE={
   },
 };
 const BAL=BALANCE;
+/* plan-V3 C3–C5：合并 sim 内容表（js/sim/content.js 先于 core 加载） */
+if(typeof SIM_CONTENT!=="undefined")BALANCE.sim=SIM_CONTENT;
+else if(!BALANCE.sim)BALANCE.sim={};
 
 /* ============================================================
    可播种随机器（STEP 0，参考 WoC 确定性 Rng）

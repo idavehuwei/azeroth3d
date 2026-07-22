@@ -178,7 +178,13 @@ function updateFps(dt){
 
 function tick(){
   requestAnimationFrame(tick);
-  const dt=Math.min(clock.getDelta(),.05);
+  let dt=Math.min(clock.getDelta(),.05);
+  /* C4：暴击轻微顿帧 */
+  if(S._hitStopT>0){
+    const hs=Math.min(S._hitStopT,dt);
+    S._hitStopT-=hs;
+    dt=Math.max(0,dt-hs*.85);
+  }
   S.t+=dt;
   if(typeof lavaUniforms!=="undefined"&&lavaUniforms)lavaUniforms.uTime.value=S.t;
   if(typeof portalUni!=="undefined"&&portalUni)portalUni.uTime.value=S.t;
@@ -624,10 +630,20 @@ function tick(){
       let did=false;
       const autoR=(BAL.target&&BAL.target.meleeAutoR)||4.5;
       if(CLS.ranged){
-        const tgt=typeof resolveSkillTarget==="function"
+        const minR=CLS.minRange!=null?CLS.minRange:((BAL.sim&&BAL.sim.ranged&&BAL.sim.ranged.minRange)||0);
+        let tgt=typeof resolveSkillTarget==="function"
           ?resolveSkillTarget(CLS.range,{silent:true})
           :pickTarget(CLS.range);
-        if(tgt){S.p.attackAnim=1;firePlayerShot(tgt,rand(CLS.autoMin,CLS.autoMax),null);did=true;}
+        if(tgt&&minR>0&&targetDist(tgt)<minR){
+          /* 猎人死区：太近不射 */
+          tgt=null;
+        }
+        if(tgt){
+          S.p.attackAnim=1;
+          const school=CLS.resKind==="mana"?"spell":"physical";
+          firePlayerShot(tgt,rand(CLS.autoMin,CLS.autoMax),null,1,{school});
+          did=true;
+        }
       }else{
         let tgt=isTargetAlive(S.currentTarget)?S.currentTarget:null;
         if(tgt&&targetDist(tgt)>autoR)tgt=null;
@@ -635,9 +651,10 @@ function tick(){
         if(tgt){
           setCurrentTarget(tgt);
           S.p.attackAnim=1;
-          if(tgt.type==="mob")mobDamage(tgt.m,rand(CLS.autoMin,CLS.autoMax));
-          else if(tgt.type==="boss")dmgBoss(rand(CLS.autoMin,CLS.autoMax));
-          else if(tgt.type==="add")addDamage(tgt.a,rand(CLS.autoMin,CLS.autoMax));
+          const thr={school:"physical"};
+          if(tgt.type==="mob")mobDamage(tgt.m,rand(CLS.autoMin,CLS.autoMax),undefined,thr);
+          else if(tgt.type==="boss")dmgBoss(rand(CLS.autoMin,CLS.autoMax),undefined,thr);
+          else if(tgt.type==="add")addDamage(tgt.a,rand(CLS.autoMin,CLS.autoMax),thr);
           did=true;
         }
       }
@@ -647,7 +664,7 @@ function tick(){
       S.p.atkTimer=did?CLS.autoSpd:.3;
     }
 
-    /* ---- 资源恢复 & 冷却 ---- */
+    /* ---- 资源恢复 & 冷却（C5） ---- */
     S.p.invuln=Math.max(0,S.p.invuln-dt);
     /* STEP 19：真言术：盾持续时间 */
     if(S.p.absorbT>0){
@@ -659,8 +676,22 @@ function tick(){
     }
     if(typeof tickTotems==="function")tickTotems(dt);
     if(typeof tickBuffs==="function")tickBuffs(dt);
-    if(CLS.regen)S.p.rage=Math.min(S.p.rageMax,S.p.rage+CLS.regen*dt);
+    if(typeof tickResources==="function"&&S.res){
+      const sitting=!!(S.p.eating||(keys&&(keys.x||keys["x"])));
+      tickResources(S.p,S.res,{
+        dt,
+        resKind:typeof playerResKind==="function"?playerResKind():(CLS.resKind||"rage"),
+        regen:CLS.regen||0,
+        spi:(S.p.stats&&S.p.stats.spi)|0,
+        level:S.p.level,
+        sitting
+      });
+    }else if(CLS.regen)S.p.rage=Math.min(S.p.rageMax,S.p.rage+CLS.regen*dt);
     S.gcd=Math.max(0,S.gcd-dt);
+    if(S.gcd<=0&&S.res&&S.res.queuedSkill>=0){
+      const qi=S.res.queuedSkill; S.res.queuedSkill=-1;
+      if(typeof useSkill==="function")useSkill(qi);
+    }
     document.querySelectorAll(".skill").forEach((el,i)=>{
       S.cds[i]=Math.max(0,S.cds[i]-dt);
       el.classList.toggle("oncd",S.cds[i]>0);
@@ -795,11 +826,13 @@ function tick(){
       const dir=tp.clone().sub(sh.mesh.position);
       if(dir.length()<2){
         spawnBurst(sh.mesh.position,sh.shotColor||CLS.shotColor,12,1);
-        const thrOpts=sh.sourceKey||sh.skillId
-          ?{sourceKey:sh.sourceKey||"player",skillId:sh.skillId}:undefined;
-        if(sh.tgt.type==="boss")dmgBoss(sh.dmg,sh.label,thrOpts);
-        else if(sh.tgt.type==="mob")mobDamage(sh.tgt.m,sh.dmg,sh.label,thrOpts);
-        else addDamage(sh.tgt.a,sh.dmg*rand(.92,1.08),thrOpts);
+        const thrOpts={};
+        if(sh.sourceKey||sh.skillId){thrOpts.sourceKey=sh.sourceKey||"player";thrOpts.skillId=sh.skillId;}
+        if(sh.school)thrOpts.school=sh.school;
+        const thr=Object.keys(thrOpts).length?thrOpts:undefined;
+        if(sh.tgt.type==="boss")dmgBoss(sh.dmg,sh.label,thr);
+        else if(sh.tgt.type==="mob")mobDamage(sh.tgt.m,sh.dmg,sh.label,thr);
+        else addDamage(sh.tgt.a,sh.dmg*rand(.92,1.08),thr);
         scene.remove(sh.mesh);disposeVfxMesh(sh.mesh);S.pShots.splice(i,1);continue;
       }
       dir.normalize();sh.mesh.position.add(dir.multiplyScalar(sh.speed*dt));

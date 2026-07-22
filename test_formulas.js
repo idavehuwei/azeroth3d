@@ -1,0 +1,119 @@
+#!/usr/bin/env node
+/* plan-V3 C3–C5：sim 公式无头单测（不加载 THREE） */
+"use strict";
+const fs=require("fs");
+const path=require("path");
+const vm=require("vm");
+
+let failed=0;
+function assert(cond,msg){
+  if(cond)console.log("PASS:",msg);
+  else{console.log("FAIL:",msg);failed++;}
+}
+
+const root=__dirname;
+const ctx={console,Math};
+vm.createContext(ctx);
+for(const f of [
+  "js/sim/content.js",
+  "js/sim/stats.js",
+  "js/sim/formulas.js",
+  "js/sim/resources.js",
+  "js/sim/entity.js"
+]){
+  vm.runInContext(fs.readFileSync(path.join(root,f),"utf8"),ctx,{filename:f});
+}
+
+const{
+  SIM_CONTENT,hpFromStamina,manaFromInt,attackPower,critFromAgi,dodgeFromAgi,armorFromAgi,
+  deriveStats,emptyStats,meleeTable,armorReduction,spellHitChance,rollMeleeAttack,rollSpellAttack,
+  rageConstant,rageFromDamage,gcdDuration,createResourceState,tickResources,addComboPoints,
+  settleDamage,buildAttackerCtx,buildTargetCtx
+}=ctx;
+
+assert(!!SIM_CONTENT&&SIM_CONTENT.stats&&SIM_CONTENT.melee,"SIM_CONTENT 含 stats/melee");
+assert(hpFromStamina(0)===0,"hpFromStamina(0)=0");
+assert(hpFromStamina(20)===20,"hpFromStamina(20)=20（前 20 点每点 +1）");
+assert(hpFromStamina(30)===20+10*10,"hpFromStamina(30)=120（超出每点 +10）");
+assert(manaFromInt(20)===20,"manaFromInt(20)=20");
+assert(manaFromInt(25)===20+5*15,"manaFromInt(25)=95");
+assert(armorFromAgi(10)===20,"armorFromAgi = agi×2");
+assert(attackPower({str:45,agi:0,level:1},"warrior")>0,"战士 AP > 0");
+const der=deriveStats({str:45,agi:25,sta:40,int:10,spi:15,armor:120,level:1},"warrior");
+assert(der.ap>0&&der.critPct>5&&der.apDmgMul>=1,"deriveStats 产出 AP/暴击/伤害乘区");
+
+/* 护甲 */
+assert(armorReduction(0,60)===0,"护甲 0 → 减伤 0");
+const big=armorReduction(1e9,60);
+assert(big<=.75+1e-9,"护甲减伤上限 75%");
+assert(armorReduction(400,1)>0&&armorReduction(400,1)<.75,"中等护甲有减伤");
+
+/* 命中表和为 100 */
+const tab=meleeTable({level:1,critPct:10},{level:1,dodgePct:5});
+const sum=["miss","dodge","parry","glancing","block","crit","hit"].reduce((a,k)=>a+(tab[k]|0),0);
+assert(Math.abs(sum-100)<1e-6,"近战表概率和 = 100");
+assert(spellHitChance(1,1)===96,"法术同级命中 96%");
+assert(spellHitChance(1,4)===83,"法术 +3 命中 83%");
+
+/* 采样：同级应有 hit/crit；对 +3 应有更多 miss/glancing */
+function sampleMelee(atkLv,tgtLv,n){
+  const counts={};
+  let i=0;
+  const rng=()=>{i++;return((i*1103515245+12345)&0x7fffffff)/0x7fffffff;};
+  for(let k=0;k<n;k++){
+    const r=rollMeleeAttack(
+      {level:atkLv,critPct:15,apDmgMul:1,dmgMul:1},
+      {level:tgtLv,dodgePct:5,armor:100},
+      {base:100,rng}
+    );
+    counts[r.outcome]=(counts[r.outcome]|0)+1;
+  }
+  return counts;
+}
+const same=sampleMelee(10,10,20000);
+assert((same.hit|0)+(same.crit|0)>same.miss,"同级 hit+crit 多于 miss");
+const bossLike=sampleMelee(10,13,20000);
+assert((bossLike.miss|0)+(bossLike.glancing|0)>(same.miss|0)+(same.glancing|0),"+3 等级差 miss+glancing 上升");
+
+/* 法术暴击倍率（含 rebalance 乘区） */
+{
+  const r=rollSpellAttack({level:1,critPct:100,dmgMul:1,apDmgMul:1},{level:1},{base:100,rng:()=>0});
+  assert(r.outcome==="crit","法术高暴击率 → crit");
+  const reb=(SIM_CONTENT.rebalance&&SIM_CONTENT.rebalance.outgoingMul)||1;
+  assert(r.damage===Math.round(100*reb*1.5),"法术暴击 = base×rebalance×1.5");
+}
+
+/* 资源 */
+assert(rageConstant(1)>0&&rageConstant(60)>rageConstant(1),"怒气常数随等级上升");
+assert(rageFromDamage(1000,1,"deal")>rageFromDamage(1000,60,"deal"),"同伤害低等级获怒更多");
+assert(gcdDuration("rage")===1.5&&gcdDuration("energy")===1.0,"GCD 1.5 / 能量 1.0");
+const rs=createResourceState();
+const p={rage:0,rageMax:100};
+addComboPoints(rs,2);
+addComboPoints(rs,2);
+assert(rs.combo===4,"连击点累加");
+addComboPoints(rs,10);
+assert(rs.combo===5,"连击点上限 5");
+/* 能量 tick：2 秒 +20 */
+rs.energyAcc=0;
+tickResources(p,rs,{dt:2.0,resKind:"energy"});
+assert(p.rage===20,"能量 2 秒 tick +20");
+
+/* settleDamage god */
+const god=settleDamage({base:10,god:true,godDmg:5000});
+assert(god.damage===5000&&god.outcome==="hit","上帝模式固定伤害");
+
+const atk=buildAttackerCtx({level:5,dmgMul:1,debugMul:1},"warrior",der);
+const tgt=buildTargetCtx({level:5,armor:80});
+assert(atk.level===5&&tgt.armor===80,"attacker/target ctx");
+
+/* 冒烟：源文件挂接 */
+const combatSrc=fs.readFileSync(path.join(root,"combat.js"),"utf8");
+const html=fs.readFileSync(path.join(root,"game.html"),"utf8");
+assert(combatSrc.includes("settleDamage")&&combatSrc.includes("playerResKind"),"combat 接线 settleDamage");
+assert(html.includes('src="js/sim/formulas.js"')&&html.includes('src="js/sim/resources.js"'),"game.html 加载 sim");
+assert(fs.existsSync(path.join(root,"js/sim/content.js")),"content.js 存在");
+
+console.log(failed?`\n失败 ${failed} 项`:"\n全部通过 · plan-V3 C3–C5 formulas");
+process.exitCode=failed?1:0;
+if(failed)process.exit(1);

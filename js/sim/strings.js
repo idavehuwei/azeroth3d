@@ -100,7 +100,14 @@ const TEXTS={
     target_oor:"目标超出射程！",
     cancel_target:"取消目标。",
     nameplates_on:"姓名板 · 全显",
-    nameplates_off:"姓名板 · 常规"
+    nameplates_off:"姓名板 · 常规",
+    miss:"未命中",
+    dodge:"被躲闪",
+    parry:"被招架",
+    glancing:"偏斜",
+    block:"格挡",
+    too_close:"目标太近，无法射击。",
+    gcd:"公共冷却中。"
   },
   save:{
     wake_narache:"赤蹄草甸 · 岩蹄营地",
