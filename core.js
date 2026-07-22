@@ -251,6 +251,7 @@ const BALANCE={
     attackDecay:4,
     deathRollSpd:6,
     bobAmp:.22,
+    blendDur:.15,
     wingFlap:{freq:1.4, amp:.35},
   },
   /* 烈焰之子 */

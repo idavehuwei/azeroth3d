@@ -177,6 +177,7 @@ function applySkillBarIcons(){
 
 function setClass(key){
   CLS=CLASSES[key];
+  CLS.key=key;
   const pos=player.position.clone(),rot=player.rotation.y;
   clearShieldVisual();
   if(typeof clearAllTotems==="function")clearAllTotems();
@@ -1028,6 +1029,7 @@ function playerHit(amount,source){
   if(amount<=0)return;
   if(BAL.stealth&&BAL.stealth.breakOnHit!==false)breakStealth("hit");
   S.p.hp-=amount; hurtFlash(); SFX.play("hit");
+  S.p.animHitT=1;
   fct(player.position.clone().setY(3),`-${amount}`,"#ff6a5a",18);
   log(`${source} 对你造成 ${amount} 点伤害！`,"lg-dmg");
   if(S.p.hp<=0){S.p.hp=0;playerDie();}

@@ -19,6 +19,7 @@
           weather.js 运行时（updateWeather）
           props.js 运行时（updateProps）
           sky.js 运行时（updateSky · render-only 昼夜/阴影跟随）
+          rig.js 运行时（updateHumanoidAnim）
           items.js（updateDrops nearestDrop removeDropOf cancelConsume）
           vfx.js（VFX spawnBurst fireProjectile disposeVfxMesh）
           raid.js 运行时（bossAI distToBoss bossTargetable DUNGEON）
@@ -477,22 +478,37 @@ function tick(){
       &&typeof heightAt==="function"){
       player.position.y=heightAt(player.position.x,player.position.z);
     }
-    /* 走路摆腿 & 披风 */
-    const U=player.userData,sw=Math.sin(S.p.walkPhase)*.55;
-    if(S.p.alive){
-      U.legR.rotation.x=sw; U.legL.rotation.x=-sw;
-      U.cape.rotation.x=.12+Math.abs(sw)*.25+Math.sin(S.t*3)*.04;
-      /* 攻击挥剑动画 */
-      if(S.p.attackAnim>0){S.p.attackAnim-=dt*4;
-        U.armR.rotation.x=-2.4*Math.sin(Math.min(1,S.p.attackAnim)*Math.PI);}
-      else U.armR.rotation.x=Math.sin(S.p.walkPhase)*.3;
-      U.armL.rotation.x=-Math.sin(S.p.walkPhase)*.3;
+    /* 人形 Anim 状态机（plan-V2 · R5） */
+    if(S.p.alive&&typeof updateHumanoidAnim==="function"){
+      if(S.p.attackAnim>0)S.p.attackAnim=Math.max(0,S.p.attackAnim-dt*(BAL.anim.attackDecay||4));
+      const style=(player.userData.anim&&player.userData.anim.style)
+        ||(typeof CLASS_LOOK_META!=="undefined"&&CLS&&CLS.key&&CLASS_LOOK_META[CLS.key]&&CLASS_LOOK_META[CLS.key].animStyle)
+        ||"melee1h";
+      updateHumanoidAnim(player,dt,{
+        moving:ml>.1||!!S.p.fear,
+        speedMul:S.p.sprintT>0?1.4:1,
+        attackAnim:S.p.attackAnim||0,
+        hitT:S.p.animHitT||0,
+        alive:true,
+        phase:S.p.walkPhase,
+        style,
+      });
+      if(S.p.animHitT>0)S.p.animHitT=Math.max(0,S.p.animHitT-dt*6);
       /* V1-A5：脚步（walkPhase 过零） */
       const sFoot=Math.sin(S.p.walkPhase);
       if(ml>.1&&S.p._prevFootSin!=null&&S.p._prevFootSin<0&&sFoot>=0){
         if(typeof SFX!=="undefined"&&SFX.playFoot)SFX.playFoot(zoneFootSurface());
       }
       S.p._prevFootSin=sFoot;
+    }else if(S.p.alive){
+      /* 无 rig.js 回退 */
+      const U=player.userData,sw=Math.sin(S.p.walkPhase)*.55;
+      U.legR.rotation.x=sw; U.legL.rotation.x=-sw;
+      U.cape.rotation.x=.12+Math.abs(sw)*.25+Math.sin(S.t*3)*.04;
+      if(S.p.attackAnim>0){S.p.attackAnim-=dt*4;
+        U.armR.rotation.x=-2.4*Math.sin(Math.min(1,S.p.attackAnim)*Math.PI);}
+      else U.armR.rotation.x=Math.sin(S.p.walkPhase)*.3;
+      U.armL.rotation.x=-Math.sin(S.p.walkPhase)*.3;
     }
     /* 萨弗拉斯之柄火焰摇曳（STEP 4：仅装备橙锤时遍历） */
     if(S.eq.mainhand==="sulfuras_haft")

@@ -662,8 +662,43 @@ assert(!/shadow\.camera\.left=-220/.test(worldSrc),"莫高雷不再用 ±220 全
 assert(mainSrc.includes("updateSky"),"main.js 驱动 updateSky");
 assert(!mainSrc.includes("scn.background=skyCol"),"main 不再直接写 background Color 昼夜");
 
+/* plan-V2 · R5 人形骨架 · Anim */
+assert(html.includes('src="rig.js"'),"game.html 加载 rig.js");
+assert(coreSrc.includes("blendDur:"),"BALANCE.anim 含 blendDur");
+const rigSrc=fs.readFileSync(path.join(__dirname,"rig.js"),"utf8");
+assert(rigSrc.includes("createRigSkeleton")&&rigSrc.includes("assembleHumanoidRig"),"rig.js 含骨架装配");
+assert(rigSrc.includes("updateHumanoidAnim")&&rigSrc.includes("Anim"),"rig.js 含 Anim 状态机");
+assert(rigSrc.includes("handR")&&rigSrc.includes("forearmR")&&rigSrc.includes("thighL"),"rig 含手肘膝层级");
+assert(modelsSrc.includes("assembleHumanoidRig")||modelsSrc.includes("CLASS_LOOK"),"models 走 CLASS_LOOK / rig");
+assert(modelsSrc.includes("buildFromClassLook"),"models 导出 buildFromClassLook");
+assert(mainSrc.includes("updateHumanoidAnim"),"main.js 驱动人形 Anim");
+(function testRigSkeleton(){
+  const THREE={
+    Group:function(){
+      this.children=[];
+      this.position={x:0,y:0,z:0,set(x,y,z){this.x=x;this.y=y;this.z=z;}};
+      this.rotation={x:0,y:0,z:0};
+      this.userData={}; this.name="";
+      this.add=function(c){this.children.push(c);c.parent=this;};
+    },
+  };
+  const BAL={anim:{walkFreq:9,walkAmp:.55,blendDur:.15}};
+  const api=new Function("THREE","BAL",rigSrc+"\nreturn {createRigSkeleton,Anim,blendPose};")(THREE,BAL);
+  const sk=api.createRigSkeleton({arm:{x:.55,y:2.1},leg:{x:.25,y:.9},build:{height:1}});
+  assert(!!sk.hips&&!!sk.chest&&!!sk.head,"骨架含 hips/chest/head");
+  assert(!!sk.upperArmR&&!!sk.forearmR&&!!sk.handR,"骨架含右臂三段");
+  assert(!!sk.thighL&&!!sk.shinL&&!!sk.footL,"骨架含左腿三段");
+  assert(typeof api.Anim.walk==="function"&&typeof api.Anim.idle==="function","Anim.walk/idle 为函数");
+  const p0=api.Anim.idle(sk,0,{});
+  const p1=api.Anim.walk(sk,1,{phase:1.2,amp:.55});
+  assert(p1.thighR&&p1.thighL,"walk 产出大腿姿态");
+  assert(p0.head&&p1.upperArmR,"idle/walk 产出上身姿态");
+  const blended=api.blendPose(p0,p1,.5);
+  assert(blended.thighR&&Number.isFinite(blended.thighR.x),"blendPose 可混合姿态");
+})();
+
 if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–29 … / V1 · plan-V2 R0–R4 冒烟");
+console.log("\n全部通过 · STEP 17–29 … / V1 · plan-V2 R0–R5 冒烟");

@@ -2,7 +2,7 @@
    熔火之心 · models.js
    ------------------------------------------------------------
    [依赖] THREE · core.js（rand）· palette.js（PALETTE · MAT）
-   [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS
+   [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS CLASS_LOOK buildFromClassLook
           buildQuadruped buildScorpion buildElemental buildHumanoidMob buildMeleeHumanoid buildCentaur QUADS MOB_HUMANOIDS MELEE_HUMANOIDS（STEP 5/18 族群工厂）
           buildPlayer buildMage buildArcher buildPriest buildShaman buildRogue buildBoss buildOnyxia buildElder buildVendor buildSpiritHealer
           tintNpcCloth
@@ -11,12 +11,10 @@
           BUILD_PAL placeProp（plan-v1 · V1-A1；R3 升级 tent/totem/campfire）
    ------------------------------------------------------------
     3D 模型库（全部程序化几何体，零模型文件）
-   STEP 4：人形基座 buildHumanoid(config)——躯干/四肢/头/披风 + 动画挂点，
-   五职业收敛为 HUMANOIDS 数据配置；武器独立为 WEAPONS 配方表，
-   武器组打 userData.weapon 标，换装时 setWeapon 只换武器组。
-   加新职业 = 加一条 HUMANOIDS 配置；加新武器 = 加一条 WEAPONS 配方。
+   STEP 4：人形基座走 rig.js 骨架；职业 = HUMANOIDS / CLASS_LOOK 一条配置。
+   武器独立为 WEAPONS 配方表，换装时 setWeapon 只换武器组。
    城镇建筑（V1-A1）：工厂纯几何无随机；摆放由调用方用固定坐标或 srand。
-   生物动画（V1-A3）：四足腿枢轴 / 人形肢挂点 / 奥妮翼挂点，由 anim.js 驱动。
+   生物动画（V1-A3）：四足腿枢轴 / 人形肢挂点 / 奥妮翼挂点，由 anim.js / rig.js 驱动。
    ============================================================ */
 "use strict";
 /* ============================================================
@@ -299,28 +297,42 @@ const HUMANOIDS={
 };
 
 /* ============================================================
-   人形基座：躯干/四肢/头/披风 + 动画挂点（armR/armL/legR/legL/cape）
+   人形基座：rig.js 真骨架层级 + 兼容 userData.armR/legR/cape
+   CLASS_LOOK = HUMANOIDS 键 + CLASS_LOOK_META（新增职业只加一条配置）
    ============================================================ */
+const CLASS_LOOK=(function(){
+  const o={};
+  for(const k in HUMANOIDS){
+    o[k]=Object.assign({id:k, humanoid:k}, (typeof CLASS_LOOK_META!=="undefined"&&CLASS_LOOK_META[k])||{});
+  }
+  return o;
+})();
+
 function buildHumanoid(cfg){
+  const lookKey=cfg&&cfg._look;
+  const meta=(typeof CLASS_LOOK_META!=="undefined"&&lookKey&&CLASS_LOOK_META[lookKey])||cfg.meta||null;
+  const c=meta?Object.assign({},cfg,{meta:meta}):cfg;
+  if(typeof assembleHumanoidRig==="function"){
+    return assembleHumanoidRig(c,{
+      makeMats, prim, addParts, buildWeapon, GEO,
+    });
+  }
+  /* 无 rig.js 时的旧平铺回退 */
   const g=new THREE.Group();
   const M=makeMats(cfg.mats);
   addParts(g,cfg.parts,M);
-  /* 手臂挂点 */
   const armR=new THREE.Group(); armR.position.set(cfg.arm.x,cfg.arm.y,0);
   const armL=new THREE.Group(); armL.position.set(-cfg.arm.x,cfg.arm.y,0);
   if(cfg.arm.mesh){armR.add(prim(cfg.arm.mesh,M));armL.add(prim(cfg.arm.mesh,M));}
   if(cfg.armExtraR)addParts(armR,cfg.armExtraR,M);
   if(cfg.armExtraL)addParts(armL,cfg.armExtraL,M);
   g.add(armR); g.add(armL);
-  /* 腿部挂点（mesh 为 null 时是长袍遮腿的空组占位） */
   const legR=new THREE.Group(); legR.position.set(cfg.leg.x,cfg.leg.y,0);
   const legL=new THREE.Group(); legL.position.set(-cfg.leg.x,cfg.leg.y,0);
   if(cfg.leg.mesh){legR.add(prim(cfg.leg.mesh,M));legL.add(prim(cfg.leg.mesh,M));}
   g.add(legR); g.add(legL);
-  /* 披风 */
   const cape=new THREE.Mesh(GEO.plane(cfg.cape.a),M[cfg.cape.m]);
   cape.position.set(...cfg.cape.p); cape.rotation.x=cfg.cape.rx; g.add(cape);
-  /* 武器组：userData.weapon 标记，换装时 setWeapon 只换这一组 */
   const mount=cfg.weaponMount==='armL'?armL:armR;
   const w=buildWeapon(cfg.weapon); w.position.set(...cfg.weaponPos); mount.add(w);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
@@ -337,13 +349,18 @@ function setWeapon(hum,type){
   const w=buildWeapon(type); w.position.set(...U.weaponPos); mount.add(w);
 }
 
-/* 职业构建：一条配置一职业（CLASSES.build 消费） */
-function buildPlayer(){return buildHumanoid(HUMANOIDS.warrior);}
-function buildMage(){return buildHumanoid(HUMANOIDS.mage);}
-function buildArcher(){return buildHumanoid(HUMANOIDS.archer);}
-function buildPriest(){return buildHumanoid(HUMANOIDS.priest);}
-function buildShaman(){return buildHumanoid(HUMANOIDS.shaman);}
-function buildRogue(){return buildHumanoid(HUMANOIDS.rogue);}
+/* 职业构建：CLASS_LOOK / HUMANOIDS 一条配置一职业 */
+function buildFromClassLook(id){
+  const cfg=HUMANOIDS[id];
+  if(!cfg)throw new Error("buildFromClassLook: unknown "+id);
+  return buildHumanoid(Object.assign({},cfg,{_look:id}));
+}
+function buildPlayer(){return buildFromClassLook("warrior");}
+function buildMage(){return buildFromClassLook("mage");}
+function buildArcher(){return buildFromClassLook("archer");}
+function buildPriest(){return buildFromClassLook("priest");}
+function buildShaman(){return buildFromClassLook("shaman");}
+function buildRogue(){return buildFromClassLook("rogue");}
 
 /* ============================================================
    Boss 模型：炎魔领主（岩浆巨人，程序化原创低模）

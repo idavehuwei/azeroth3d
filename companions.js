@@ -468,14 +468,25 @@ function tickOneCompanion(c,dt){
 
   const U=c.mesh.userData;
   if(c.moving)c.walkPhase+=dt*9;
-  if(U.legR&&U.legL){
-    const swing=c.moving?Math.sin(c.walkPhase)*.55:0;
-    U.legR.rotation.x=swing; U.legL.rotation.x=-swing;
-  }
-  if(U.armR&&U.armL){
-    if(c.attackAnim>0)U.armR.rotation.x=-2.2*Math.sin(Math.min(1,c.attackAnim)*Math.PI);
-    else U.armR.rotation.x=c.moving?Math.sin(c.walkPhase)*.3:0;
-    U.armL.rotation.x=c.moving?-Math.sin(c.walkPhase)*.3:0;
+  if(typeof updateHumanoidAnim==="function"&&U.rig){
+    if(c.attackAnim>0)c.attackAnim=Math.max(0,c.attackAnim-dt*4);
+    updateHumanoidAnim(c.mesh,dt,{
+      moving:!!c.moving,
+      attackAnim:c.attackAnim||0,
+      alive:!!c.alive,
+      phase:c.walkPhase,
+      style:(U.anim&&U.anim.style)||"melee1h",
+    });
+  }else{
+    if(U.legR&&U.legL){
+      const swing=c.moving?Math.sin(c.walkPhase)*.55:0;
+      U.legR.rotation.x=swing; U.legL.rotation.x=-swing;
+    }
+    if(U.armR&&U.armL){
+      if(c.attackAnim>0)U.armR.rotation.x=-2.2*Math.sin(Math.min(1,c.attackAnim)*Math.PI);
+      else U.armR.rotation.x=c.moving?Math.sin(c.walkPhase)*.3:0;
+      U.armL.rotation.x=c.moving?-Math.sin(c.walkPhase)*.3:0;
+    }
   }
   const gy=(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="mulgore"&&typeof heightAt==="function")
     ?heightAt(c.mesh.position.x,c.mesh.position.z):0;
