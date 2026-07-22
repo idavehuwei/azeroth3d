@@ -1233,6 +1233,10 @@ function tickFrame(){
     }else{
       camera.lookAt(anchor.x,anchor.y,anchor.z);
     }
+    /* A 线：相机穿墙自动隐藏挡住视线的建筑 */
+    if(typeof ASSETS!=="undefined"&&typeof ASSETS.updateCamGhosts==="function"){
+      ASSETS.updateCamGhosts(anchor,camera.position);
+    }
   }
 
   /* ---- UI 刷新 ---- */

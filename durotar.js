@@ -86,6 +86,18 @@ function buildDurotarZone(scn){
     rk.castShadow=true; root.add(rk);
   }
 
+  /* 赭岩谷：峡谷旱树 + 稀疏矮松 / 枯木 */
+  if(typeof placeZoneTrees==="function"){
+    placeZoneTrees(root,{
+      count:110, radius:DUROTAR_R-10, minR:12, cx:0, cz:0,
+      avoid:[{x:0,z:0,r:18}],
+      weights:{pine:.18,oak:.12,dead:.48,twisted:.22},
+      baseScale:4.6, leafTint:0xc0aa74, barkTint:0xe8d4b0,
+      heightFn:()=>0, seed:0xD0410A^WORLD_SEED,
+      bush:true, bushCount:140, fern:false, clusters:4,
+    });
+  }
+
   const P=BUILD_PAL.durotar;
   /* 赭岩哨站：扩大街区 · 长屋 · 双塔 · 市集 · 围栏 · 村门 */
   placeProp(root,buildVillageGate({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),6,-22,.2);

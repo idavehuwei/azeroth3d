@@ -1,3 +1,9 @@
 .serena/
 .DS_Store
 *.log
+node_modules/
+tmp/
+woc-ref/
+assets/ref/
+*.tmp.glb
+LICENSING-HOWTO.md

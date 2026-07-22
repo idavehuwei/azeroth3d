@@ -1102,6 +1102,7 @@
 <div id="corpseHint">按 F 在尸体处复活</div>
  
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="vendor/GLTFLoader.js"></script>
 <script src="js/sim/strings.js"></script>
 <script src="js/sim/content.js"></script>
 <script src="js/sim/stats.js"></script>
@@ -1122,6 +1123,7 @@
 <script src="icons.js"></script>
 <script src="items.js"></script>
 <script src="rig.js"></script>
+<script src="assets.js"></script>
 <script src="models.js"></script>
 <script src="creatures.js"></script>
 <script src="props.js"></script>
@@ -1158,9 +1160,20 @@
 <script src="save.js"></script>
 <script src="debug.js"></script>
 <script>
-ensureAllZonesBuilt();
-if(typeof refreshSunShadows==="function")refreshSunShadows();
-if(typeof setWeather==="function")setWeather(typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore");
+(function bootAfterAssets(){
+  function go(){
+    if(typeof ensureAllZonesBuilt==="function")ensureAllZonesBuilt();
+    if(typeof refreshSunShadows==="function")refreshSunShadows();
+    if(typeof setWeather==="function")setWeather(typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore");
+  }
+  /* 必须等 GLB 就绪再摆区建筑/树，禁止程序化回退 */
+  if(typeof ASSETS!=="undefined"&&ASSETS.whenReady){
+    ASSETS.whenReady(go);
+  }else{
+    console.warn("[boot] ASSETS 不可用");
+    go();
+  }
+})();
 </script>
 </body>
 </html>

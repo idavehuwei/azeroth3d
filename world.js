@@ -5,6 +5,7 @@
    [依赖] THREE · core.js（$ rand srand worldRng BAL makeLabel scene camera setZoneSeed）
           palette.js（PALETTE · MAT）· terrain.js（heightAt · buildMulgoreTerrain）
           props.js（spawnMulgoreProps · updateProps）
+          assets.js（可选 ASSETS · GLB 建筑就绪后再摆营地）
           sky.js（initZoneSky · updateSky）
           zones.js（registerZone enterZone）
           models.js（buildPlayer buildBoss buildElder buildVendor buildSpiritHealer
@@ -721,8 +722,10 @@ function spiritDist(){return Math.hypot(player.position.x-spiritHealer.position.
   if(BAL.death)BAL.death.worldSpawn={x:sx,z:sz};
 })();
 
-/* ---------------- 赤蹄村 + 岩蹄 + 雷岩台建筑（V3 放大丰富版） ---------------- */
-(function placeMulgoreCampBuildings(){
+/* ---------------- 赤蹄村 + 岩蹄 + 雷岩台建筑（V3；A 线等 GLB 就绪） ---------------- */
+function placeMulgoreCampBuildings(){
+  if(placeMulgoreCampBuildings._done)return;
+  placeMulgoreCampBuildings._done=true;
   const P=BUILD_PAL.mulgore;
   const B=BLOODHOOF, N=CAMP_NARACHE, T=MULGORE.thunderBluff;
   /* ===== 赤蹄村（主城，约 18 栋建筑 + 装饰） ===== */
@@ -810,7 +813,14 @@ function spiritDist(){return Math.hypot(player.position.x-spiritHealer.position.
   placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:20,posts:9}),T.x+4,T.z-22,0);
   const tcf=placeProp(sceneWorld,buildCampfire({flame:0xffa030,light:0xff8a30,size:1}),T.x+2,T.z+4,0);
   if(tcf&&tcf.userData.flame)worldFlames.push(tcf.userData.flame);
-})();
+}
+if(typeof ASSETS!=="undefined"&&!ASSETS.isReady()){
+  ASSETS.whenReady(placeMulgoreCampBuildings);
+}else if(typeof ASSETS!=="undefined"&&ASSETS.isReady()){
+  placeMulgoreCampBuildings();
+}else{
+  console.warn("[world] ASSETS 缺失，跳过营地建筑");
+}
 
 /* ============================================================
    野怪类型表（STEP 5）：模型配方 + 数值 + 掉落表 + 名字标签

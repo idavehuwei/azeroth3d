@@ -2,13 +2,14 @@
    炽心 · models.js
    ------------------------------------------------------------
    [依赖] THREE · core.js（rand）· palette.js（PALETTE · MAT）· rig.js（assembleHumanoidRig）
+          assets.js（可选 ASSETS · GLB 房子/帐篷 A 线）
    [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS CLASS_LOOK buildFromClassLook
           buildPlayer buildMage buildArcher buildPriest buildShaman buildRogue buildWarlock buildDruid buildPaladin buildBoss buildOnyxia
           buildElder buildVendor buildSpiritHealer buildGraveyard tintNpcCloth
           buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem buildMarketStall buildCratePile
           buildLonghouse buildWell buildVillageGate buildSignpost buildLanternPole buildHaystack buildTrainingDummy buildWindmill
           BUILD_PAL placeProp GRAVEYARDS registerGraveyard nearestGraveyardSpawn
-          （plan-v1 · V1-A1；R3 升级 tent/totem/campfire；STEP 17 墓地）
+          （plan-v1 · V1-A1；R3 升级 tent/totem/campfire；STEP 17 墓地；beautify A 线 GLB 房）
    ------------------------------------------------------------
    配方表：职业 HUMANOIDS / 武器 WEAPONS / NPC · Boss · 建筑。
    野怪族群工厂见 creatures.js（plan-V2 · R6）。
@@ -856,13 +857,37 @@ function placeProp(root,mesh,x,z,rotY){
   return mesh;
 }
 
-/** 木屋 V3：大型木屋 — 放大 8×6.5 + 门廊 + 花箱 + 双窗 + 烟囱粒子 + 茅草加厚 */
+/** 木屋：优先 CC0 GLB（A 线），否则程序化木桁架 */
 function buildHut(cfg){
   const c=Object.assign({
     wood:BUILD_PAL.mulgore.wood, woodD:BUILD_PAL.mulgore.woodD,
     roof:BUILD_PAL.mulgore.roof, w:8.0, d:6.5, h:4.5, size:1, door:true,
     stone:0x6a5a50,
   },cfg||{});
+  /* 仅 GLB，不回退程序化 */
+  if(typeof ASSETS==="undefined"||!ASSETS.isReady()){
+    console.warn("[buildHut] ASSETS 未就绪，跳过（应在 whenReady 后摆建筑）");
+    return new THREE.Group();
+  }
+  const seed=(c.seed!=null?c.seed:((c.w*1009)^(c.d*9176)^(Math.floor((c.roof||0)*10))))>>>0;
+  let kind=c.glbKind||(c.inn?"inn":(c.blacksmith?"blacksmith":null));
+  if(!kind){
+    const roll=seed%11;
+    kind=roll===0?"blacksmith":(roll===1?"inn":"house");
+  }
+  const glb=ASSETS.cloneBuilding(kind,{
+    seed,
+    size:c.size,
+    targetH:c.h!=null?c.h*1.45:(kind==="inn"?7.8:kind==="blacksmith"?6.6:6.8),
+    targetW:c.w!=null?c.w:(kind==="inn"?12:8.5),
+    targetD:c.d!=null?c.d:(kind==="inn"?8:7.2),
+  });
+  if(glb)return glb;
+  console.warn("[buildHut] GLB 缺失",kind);
+  return new THREE.Group();
+}
+
+function buildHutProcedural(c){
   const g=new THREE.Group();
   const wood=MAT.get("wood.build",{color:c.wood,roughness:.92,flatShading:true});
   const woodD=MAT.get("wood.buildD",{color:c.woodD,roughness:.95,flatShading:true});
@@ -968,12 +993,30 @@ function buildHut(cfg){
   return g;
 }
 
-/** 兽皮帐篷 V3：大型部落帐篷 — 半径×2 + 三重门帘 + 地毡 + 顶冠 + 旗 */
+/** 帐篷：优先 CC0 GLB（A 线），否则程序化兽皮帐篷 */
 function buildTent(cfg){
   const c=Object.assign({
     hide:BUILD_PAL.mulgore.hide, stake:BUILD_PAL.mulgore.stake,
     r:8.0, h:10.0, stakes:12, size:1,
   },cfg||{});
+  if(typeof ASSETS==="undefined"||!ASSETS.isReady()){
+    console.warn("[buildTent] ASSETS 未就绪");
+    return new THREE.Group();
+  }
+  const seed=(c.seed!=null?c.seed:((c.r*7919)^(c.h*3343)))>>>0;
+  const glb=ASSETS.cloneBuilding("tent",{
+    seed,
+    size:c.size,
+    targetH:Math.min(6.2,(c.h||10)*.55),
+    targetW:Math.max(5.5,(c.r||8)*1.1),
+    targetD:Math.max(5.5,(c.r||8)*1.1),
+  });
+  if(glb)return glb;
+  console.warn("[buildTent] GLB 缺失");
+  return new THREE.Group();
+}
+
+function buildTentProcedural(c){
   const g=new THREE.Group();
   const hide=MAT.get("fur.tent",{color:c.hide,roughness:.95,flatShading:true});
   const hideD=MAT.get("fur.hideDark",{color:c.hide,roughness:.98,flatShading:true});
@@ -1095,6 +1138,21 @@ function buildWatchtower(cfg){
     wood:BUILD_PAL.barrens.wood, woodD:BUILD_PAL.barrens.woodD,
     flag:BUILD_PAL.barrens.flag, size:1,
   },cfg||{});
+  if(typeof ASSETS==="undefined"||!ASSETS.isReady()){
+    console.warn("[buildWatchtower] ASSETS 未就绪");
+    return new THREE.Group();
+  }
+  const seed=(c.seed!=null?c.seed:0x707070)^0xBE11;
+  const glb=ASSETS.cloneBuilding("tower",{
+    seed:seed>>>0, size:c.size,
+    targetH:11, targetW:5.2, targetD:5.2,
+  });
+  if(glb){glb.userData.building="watchtower";return glb;}
+  console.warn("[buildWatchtower] GLB 缺失");
+  return new THREE.Group();
+}
+
+function buildWatchtowerProcedural(c){
   const g=new THREE.Group();
   const wood=MAT.get("wood.build",{color:c.wood,roughness:.9,flatShading:true});
   const woodD=MAT.get("wood.buildD",{color:c.woodD,roughness:.92,flatShading:true});
@@ -1400,13 +1458,30 @@ function buildCratePile(cfg){
    新增装饰建筑：村落气派补齐
    ============================================================ */
 
-/** 长屋（部落风格大建筑：木骨架 + 茅草顶 + 两侧门洞） */
+/** 长屋：优先 inn GLB（A 线），否则程序化木骨架大屋 */
 function buildLonghouse(cfg){
   const c=Object.assign({
     wood:0x6a4a28, woodD:0x3a2810, roof:0x8a5a30,
     w:12, d:6.5, h:4.8, size:1, stone:0x6a5a50,
     pillars:7,
   },cfg||{});
+  if(typeof ASSETS==="undefined"||!ASSETS.isReady()){
+    console.warn("[buildLonghouse] ASSETS 未就绪");
+    return new THREE.Group();
+  }
+  const seed=(c.seed!=null?c.seed:((c.w*1301)^(c.d*7907)))>>>0;
+  const glb=ASSETS.cloneBuilding("inn",{
+    seed, size:c.size,
+    targetH:c.h!=null?c.h*1.6:7.8,
+    targetW:c.w!=null?c.w*1.15:14,
+    targetD:c.d!=null?c.d*1.2:8.5,
+  });
+  if(glb){glb.userData.building="longhouse";return glb;}
+  console.warn("[buildLonghouse] GLB 缺失");
+  return new THREE.Group();
+}
+
+function buildLonghouseProcedural(c){
   const g=new THREE.Group();
   const wood=MAT.get("wood.build",{color:c.wood,roughness:.92,flatShading:true});
   const woodD=MAT.get("wood.buildD",{color:c.woodD,roughness:.95,flatShading:true});

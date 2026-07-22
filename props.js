@@ -5,9 +5,10 @@
    [依赖] THREE · core.js（BAL SeededRng WORLD_SEED hashZoneId）
           palette.js（PALETTE · MAT）· textures.js（Tex）
           terrain.js（heightAt · TERRAIN.slopeAt / roadWeight / lakeBlend / flowerSeed）
+          assets.js（可选 ASSETS · GLB 树 InstancedMesh A 线）
    [导出] buildPine buildOak getTreeVariants buildRockGroup
           buildGrassField buildMirrorLake buildCloudField
-          spawnMulgoreProps updateProps disposeProps
+          spawnMulgoreProps placeZoneTrees updateProps disposeProps
           PROPS（内部状态：uniforms / clouds / lakes）
    ============================================================ */
 "use strict";
@@ -347,13 +348,47 @@ const PROPS=(function(){
     return{pine:_pineVars,oak:_oakVars};
   }
 
-  function placeTrees(scene,ctx){
-    const vars=getTreeVariants();
-    const n=(BAL.props&&BAL.props.treeCount)||80;
+  /* —— A 线：GLB InstancedMesh 分桶树木 —— */
+  const BUCKET_DEPTH=200;
+  const _tmpColor=new THREE.Color();
+  const _tmpWhite=new THREE.Color(0xffffff);
+  const _dummy=new THREE.Object3D();
+
+  function hashAt(a,b,k){
+    const s=Math.sin(a*127.1+b*311.7+k*74.7)*43758.5453123;
+    return s-Math.floor(s);
+  }
+  function softTint(x,z,hex,soften){
+    _tmpColor.setHex(hex).lerp(_tmpWhite,soften);
+    _tmpColor.offsetHSL(
+      (hashAt(x,z,1)-.5)*.04,
+      (hashAt(x,z,2)-.5)*.1,
+      (hashAt(x,z,3)-.5)*.08
+    );
+    return _tmpColor;
+  }
+  function bucketKey(x,z){
+    const col=x>=0?1:0;
+    const band=Math.floor(z/BUCKET_DEPTH);
+    return col+"_"+band;
+  }
+
+  /**
+   * r128 InstancedMesh 视锥剔除只用「原点处几何包围球」，
+   * 不含 instanceMatrix → 镜头转到某些角度整批树消失。
+   * 分桶后 draw call 已有限，直接关闭 frustumCulled。
+   */
+  function fitInstanceBounds(mesh){
+    if(mesh)mesh.frustumCulled=false;
+  }
+
+  function collectTreeSpots(ctx){
+    const n=(BAL.props&&BAL.props.treeCount)||160;
     const camps=ctx.avoid||[];
     const worldR=ctx.worldR||320;
-    let placed=0,guard=0;
-    while(placed<n&&guard++<n*12){
+    const spots=[];
+    let guard=0;
+    while(spots.length<n&&guard++<n*14){
       const a=prand()*Math.PI*2;
       const r=psrand(18,worldR-12);
       const x=Math.cos(a)*r,z=Math.sin(a)*r;
@@ -369,18 +404,307 @@ const PROPS=(function(){
         if(TERRAIN.lakeBlend(x,z).w>(bp.treeLakeMax!=null?bp.treeLakeMax:.4))continue;
         if(TERRAIN.slopeAt(x,z)>(bp.treeSlopeMax!=null?bp.treeSlopeMax:.55))continue;
       }
-      const pool=prand()<(P().pineChance!=null?P().pineChance:.55)?vars.pine:vars.oak;
+      const pineChance=P().pineChance!=null?P().pineChance:.48;
+      const deadChance=P().deadChance!=null?P().deadChance:.05;
+      const twistedChance=P().twistedChance!=null?P().twistedChance:.04;
+      let kind="oak";
+      const roll=prand();
+      if(roll<deadChance)kind="dead";
+      else if(roll<deadChance+twistedChance)kind="twisted";
+      else if(roll<deadChance+twistedChance+pineChance*(1-deadChance-twistedChance))kind="pine";
+      const gy=typeof heightAt==="function"?heightAt(x,z):0;
+      spots.push({
+        x,z,y:gy,
+        kind,
+        yaw:prand()*Math.PI*2,
+        scale:psrand(.8,1.45),
+        tilt:(prand()-.5)*.14,
+      });
+    }
+    return spots;
+  }
+
+  function placeTreesGlb(scene,ctx){
+    if(typeof ASSETS==="undefined"||!ASSETS.isReady())return false;
+    const pineSets=ASSETS.getTreeParts("pine");
+    const oakSets=ASSETS.getTreeParts("oak");
+    const deadSets=ASSETS.getTreeParts("dead");
+    const twistedSets=ASSETS.getTreeParts("twisted");
+    const bushSets=ASSETS.getTreeParts("bush");
+    const fernSets=ASSETS.getTreeParts("fern");
+    const mushSets=ASSETS.getTreeParts("mushroom");
+    if(!pineSets.length&&!oakSets.length&&!deadSets.length&&!twistedSets.length)return false;
+
+    const spots=ctx.spots||collectTreeSpots(ctx);
+    const baseScale=ctx.baseScale!=null?ctx.baseScale:(P().treeBaseScale!=null?P().treeBaseScale:5.2);
+    const leafTint=ctx.leafTint!=null?ctx.leafTint:(P().treeLeafTint!=null?P().treeLeafTint:0xa7b886);
+    const barkTint=ctx.barkTint!=null?ctx.barkTint:(P().treeBarkTint!=null?P().treeBarkTint:0xffffff);
+    const leafSoft=P().treeLeafSoft!=null?P().treeLeafSoft:.62;
+    const barkSoft=P().treeBarkSoft!=null?P().treeBarkSoft:.88;
+    /* 显式 bush:true 或莫高雷默认路径才撒灌木/蕨 */
+    const doBush=ctx.bush===true||(ctx.bush!==false&&!ctx.spots);
+    const doFern=ctx.fern===true||(ctx.fern!==false&&!ctx.spots&&doBush);
+
+    /* 按桶 × 物种 × 变体收集实例 */
+    const buckets=new Map();
+    function ensureBucket(key){
+      let b=buckets.get(key);
+      if(!b){b={pine:[],oak:[],dead:[],twisted:[],bush:[]};buckets.set(key,b);}
+      return b;
+    }
+    for(let i=0;i<spots.length;i++){
+      const s=spots[i];
+      const b=ensureBucket(bucketKey(s.x,s.z));
+      const k=s.kind||"oak";
+      (b[k]||b.oak).push(s);
+    }
+
+    function emitSpecies(species,sets,list,tintLeaf,tintBark){
+      if(!sets.length||!list.length)return;
+      /* 每桶最多用 2 个变体 */
+      const nVar=Math.min(sets.length,2);
+      const groups=[];
+      for(let v=0;v<nVar;v++)groups.push([]);
+      for(let i=0;i<list.length;i++){
+        groups[i%nVar].push(list[i]);
+      }
+      for(let v=0;v<nVar;v++){
+        const items=groups[v];
+        if(!items.length)continue;
+        const parts=sets[v%sets.length];
+        for(let p=0;p<parts.length;p++){
+          const part=parts[p];
+          const mesh=new THREE.InstancedMesh(part.geometry,part.material,items.length);
+          mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+          mesh.count=items.length;
+          mesh.castShadow=!!part.isLeaf||species==="dead"||species==="twisted";
+          mesh.receiveShadow=false;
+          mesh.name="tree_"+species+"_"+v+"_"+p;
+          mesh.userData.noCamCollide=true;
+          const colors=new Float32Array(items.length*3);
+          for(let i=0;i<items.length;i++){
+            const s=items[i];
+            const sc=s.scale*baseScale*(species==="dead"?.85:1);
+            _dummy.position.set(s.x,s.y,s.z);
+            _dummy.rotation.set(s.tilt,s.yaw,s.tilt*.4);
+            _dummy.scale.setScalar(sc);
+            _dummy.updateMatrix();
+            mesh.setMatrixAt(i,_dummy.matrix);
+            const col=softTint(s.x,s.z,part.isLeaf?tintLeaf:tintBark,part.isLeaf?leafSoft:barkSoft);
+            colors[i*3]=col.r; colors[i*3+1]=col.g; colors[i*3+2]=col.b;
+          }
+          mesh.instanceMatrix.needsUpdate=true;
+          if(typeof mesh.setColorAt==="function"){
+            for(let i=0;i<items.length;i++){
+              _tmpColor.setRGB(colors[i*3],colors[i*3+1],colors[i*3+2]);
+              mesh.setColorAt(i,_tmpColor);
+            }
+            if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+          }
+          if(part.material&&!part.material.userData._instColorOn){
+            part.material.vertexColors=false;
+            part.material.userData._instColorOn=true;
+          }
+          fitInstanceBounds(mesh);
+          scene.add(mesh);
+          track(mesh,false);
+        }
+      }
+    }
+
+    buckets.forEach(b=>{
+      emitSpecies("pine",pineSets,b.pine,leafTint,barkTint);
+      emitSpecies("oak",oakSets,b.oak,leafTint,barkTint);
+      emitSpecies("dead",deadSets,b.dead,0x9a8a70,0xc8b8a0);
+      emitSpecies("twisted",twistedSets,b.twisted,0x7e8b58,0xb8a894);
+    });
+
+    /* 地面装饰：灌木 / 蕨 / 蘑菇 */
+    function scatterDress(sets,count,scaleMul,name,tint){
+      if(!sets.length||count<=0)return;
+      const camps=ctx.avoid||[];
+      const cx=ctx.bushCx!=null?ctx.bushCx:0;
+      const cz=ctx.bushCz!=null?ctx.bushCz:0;
+      const rad=ctx.bushRadius!=null?ctx.bushRadius:(ctx.worldR||320);
+      const minR=ctx.bushMinR!=null?ctx.bushMinR:14;
+      const hFn=ctx.heightFn;
+      const list=[];
+      let g2=0;
+      while(list.length<count&&g2++<count*12){
+        const a=prand()*Math.PI*2;
+        const r=minR+Math.sqrt(prand())*(rad-minR);
+        const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
+        let near=false;
+        for(let i=0;i<camps.length;i++){
+          if(Math.hypot(x-camps[i].x,z-camps[i].z)<(camps[i].r||36)){near=true;break;}
+        }
+        if(near)continue;
+        if(!hFn&&typeof TERRAIN!=="undefined"&&TERRAIN.cfg&&TERRAIN.cfg.ready){
+          if(TERRAIN.roadWeight(x,z)>.22)continue;
+          if(TERRAIN.lakeBlend(x,z).w>.3)continue;
+        }
+        const gy=typeof hFn==="function"?hFn(x,z)
+          :(typeof heightAt==="function"?heightAt(x,z):0);
+        list.push({x,z,y:gy,yaw:prand()*Math.PI*2,scale:psrand(.65,1.4)});
+      }
+      if(!list.length)return;
+      const byBucket=new Map();
+      for(let i=0;i<list.length;i++){
+        const k=bucketKey(list[i].x,list[i].z);
+        if(!byBucket.has(k))byBucket.set(k,[]);
+        byBucket.get(k).push(list[i]);
+      }
+      byBucket.forEach(items=>{
+        const parts=sets[(hashAt(items[0].x,items[0].z,11)*sets.length)|0];
+        for(let p=0;p<parts.length;p++){
+          const part=parts[p];
+          const mesh=new THREE.InstancedMesh(part.geometry,part.material,items.length);
+          mesh.count=items.length;
+          mesh.castShadow=!!part.isLeaf;
+          mesh.receiveShadow=false;
+          mesh.name=name+"_"+p;
+          mesh.userData.noCamCollide=true;
+          for(let i=0;i<items.length;i++){
+            const s=items[i];
+            _dummy.position.set(s.x,s.y,s.z);
+            _dummy.rotation.set(0,s.yaw,0);
+            _dummy.scale.setScalar(s.scale*baseScale*scaleMul);
+            _dummy.updateMatrix();
+            mesh.setMatrixAt(i,_dummy.matrix);
+            if(typeof mesh.setColorAt==="function"){
+              mesh.setColorAt(i,softTint(s.x,s.z,tint!=null?tint:leafTint,.5));
+            }
+          }
+          mesh.instanceMatrix.needsUpdate=true;
+          if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+          fitInstanceBounds(mesh);
+          scene.add(mesh);
+          track(mesh,false);
+        }
+      });
+    }
+    if(doBush){
+      const bushN=ctx.bushCount!=null?ctx.bushCount:((P().bushCount!=null?P().bushCount:260)|0);
+      scatterDress(bushSets,bushN,.32,"bush",leafTint);
+    }
+    if(doFern){
+      const fernN=ctx.fernCount!=null?ctx.fernCount:((P().fernCount!=null?P().fernCount:140)|0);
+      scatterDress(fernSets,fernN,.22,"fern",leafTint);
+      const mushN=ctx.mushCount!=null?ctx.mushCount:Math.floor(fernN*.35);
+      scatterDress(mushSets,mushN,.18,"mush",0xc8b898);
+    }
+    return true;
+  }
+
+  function placeTreesProcedural(scene,ctx){
+    const vars=getTreeVariants();
+    const spots=collectTreeSpots(ctx);
+    for(let i=0;i<spots.length;i++){
+      const s=spots[i];
+      const pool=s.kind==="pine"?vars.pine:vars.oak;
       const src=pool[(prand()*pool.length)|0];
       const tree=src.clone(true);
-      const gy=typeof heightAt==="function"?heightAt(x,z):0;
-      const sc=psrand(.85,1.35);
-      tree.position.set(x,gy,z);
-      tree.rotation.y=prand()*Math.PI*2;
-      tree.scale.setScalar(sc);
+      tree.position.set(s.x,s.y,s.z);
+      tree.rotation.y=s.yaw;
+      tree.rotation.x=s.tilt;
+      tree.scale.setScalar(s.scale);
       scene.add(tree);
       track(tree,false);
-      placed++;
     }
+  }
+
+  function placeTrees(scene,ctx){
+    const C=ctx||{};
+    /* 仅 GLB，不回退程序化 */
+    if(typeof ASSETS==="undefined"){
+      console.warn("[placeTrees] ASSETS 不可用");
+      return;
+    }
+    if(ASSETS.isReady()){
+      placeTreesGlb(scene,C);
+      return;
+    }
+    ASSETS.whenReady(()=>{placeTreesGlb(scene,C);});
+  }
+
+  /**
+   * 任意分区种树（平坦 zone 用 heightFn=()=>0）
+   * cfg: count/radius/weights/bush/bushCount/fern/fernCount …
+   */
+  function placeZoneTrees(scene,cfg){
+    const c=Object.assign({
+      count:80, radius:90, cx:0, cz:0, minR:14,
+      avoid:[{x:0,z:0,r:14}],
+      baseScale:5.0,
+      weights:{pine:.35,oak:.35,dead:.2,twisted:.1},
+      heightFn:null,
+      bush:true, bushCount:100,
+      fern:false, fernCount:0, mushCount:0,
+      clusters:3,
+    },cfg||{});
+    const run=()=>{
+      if(typeof ASSETS==="undefined"||!ASSETS.isReady())return false;
+      const rng=SeededRng(((c.seed!=null?c.seed:(WORLD_SEED^hashZoneId("zone_trees_"+c.cx+"_"+c.cz)))>>>0)||1);
+      const rr=()=>rng();
+      const rs=(a,b)=>a+rr()*(b-a);
+      const spots=[];
+      const w=c.weights||{};
+      const wPine=w.pine||0,wOak=w.oak||0,wDead=w.dead||0,wTw=w.twisted||0;
+      const wSum=wPine+wOak+wDead+wTw||1;
+      function pickKind(){
+        const roll=rr()*wSum;
+        if(roll<wDead)return "dead";
+        if(roll<wDead+wTw)return "twisted";
+        if(roll<wDead+wTw+wPine)return "pine";
+        return "oak";
+      }
+      function trySpot(x,z,scaleBias){
+        const camps=c.avoid||[];
+        for(let i=0;i<camps.length;i++){
+          if(Math.hypot(x-camps[i].x,z-camps[i].z)<(camps[i].r||20))return;
+        }
+        const gy=typeof c.heightFn==="function"?c.heightFn(x,z)
+          :(typeof heightAt==="function"?heightAt(x,z):0);
+        spots.push({
+          x,z,y:gy,kind:pickKind(),
+          yaw:rr()*Math.PI*2,
+          scale:rs(.75,1.4)*(scaleBias||1),
+          tilt:(rr()-.5)*.16,
+        });
+      }
+      /* 均匀铺一层 */
+      let guard=0;
+      while(spots.length<c.count&&guard++<c.count*18){
+        const a=rr()*Math.PI*2;
+        const r=c.minR+Math.sqrt(rr())*(c.radius-c.minR);
+        trySpot(c.cx+Math.cos(a)*r,c.cz+Math.sin(a)*r,1);
+      }
+      /* 再加几处密林簇（地图特色密度） */
+      const nCl=c.clusters|0;
+      for(let k=0;k<nCl;k++){
+        const a=rr()*Math.PI*2;
+        const r=c.minR+rr()*(c.radius-c.minR)*.85;
+        const ox=c.cx+Math.cos(a)*r, oz=c.cz+Math.sin(a)*r;
+        const nIn=8+((rr()*14)|0);
+        for(let j=0;j<nIn;j++){
+          const ja=rr()*Math.PI*2, jr=rr()*12;
+          trySpot(ox+Math.cos(ja)*jr,oz+Math.sin(ja)*jr,.9+rr()*.4);
+        }
+      }
+      return placeTreesGlb(scene,{
+        spots, baseScale:c.baseScale,
+        bush:!!c.bush, bushCount:c.bushCount|0,
+        fern:!!c.fern, fernCount:c.fernCount|0, mushCount:c.mushCount|0,
+        bushCx:c.cx, bushCz:c.cz, bushRadius:c.radius, bushMinR:c.minR,
+        avoid:c.avoid, heightFn:c.heightFn,
+        leafTint:c.leafTint, barkTint:c.barkTint,
+      });
+    };
+    if(typeof ASSETS!=="undefined"&&!ASSETS.isReady()){
+      ASSETS.whenReady(()=>{run();});
+      return true;
+    }
+    return run();
   }
 
   /* —— 岩石组 —— */
@@ -596,8 +920,14 @@ const PROPS=(function(){
     });
     for(let i=0;i<flowers.length;i++)scene.add(flowers[i]);
 
-    /* 树木 */
-    placeTrees(scene,{worldR:C.worldR||320,avoid:avoid});
+    /* 树木 · 灌木 · 蕨（莫高雷丰茂草原 · 全图散布） */
+    placeTrees(scene,{
+      worldR:C.worldR||320, avoid:avoid,
+      bush:true, fern:true,
+      bushCx:0, bushCz:0,
+      bushRadius:C.worldR||320,
+      bushMinR:16,
+    });
 
     /* 岩石 */
     placeRockGroups(scene,{worldR:C.worldR||320,avoid:avoid});
@@ -610,6 +940,7 @@ const PROPS=(function(){
 
   function updateProps(t,dt){
     if(state.disposed)return;
+    if(typeof ASSETS!=="undefined"&&ASSETS.sharedTime)ASSETS.sharedTime.value=t;
     if(state.grassUni)state.grassUni.uTime.value=t;
     for(let i=0;i<state.lakeUnis.length;i++)state.lakeUnis[i].uTime.value=t;
     const d=dt||0.016;
@@ -679,7 +1010,7 @@ const PROPS=(function(){
   return{
     buildPine,buildOak,getTreeVariants,buildRockGroup,
     buildGrassField,buildMirrorLake,buildCloudField,
-    spawnMulgoreProps,updateProps,disposeProps,attachCampfireEmbers,
+    spawnMulgoreProps,placeZoneTrees,updateProps,disposeProps,attachCampfireEmbers,
     get state(){return state;},
   };
 })();
@@ -692,5 +1023,6 @@ const buildGrassField=(c)=>PROPS.buildGrassField(c);
 const buildMirrorLake=(l)=>PROPS.buildMirrorLake(l);
 const buildCloudField=(c)=>PROPS.buildCloudField(c);
 const spawnMulgoreProps=(sc,ctx)=>PROPS.spawnMulgoreProps(sc,ctx);
+const placeZoneTrees=(sc,ctx)=>PROPS.placeZoneTrees(sc,ctx);
 const updateProps=(t,dt)=>PROPS.updateProps(t,dt);
 const disposeProps=()=>PROPS.disposeProps();

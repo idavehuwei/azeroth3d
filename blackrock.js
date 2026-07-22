@@ -81,6 +81,17 @@ function buildBlackrockZone(scn){
   const P=BUILD_PAL.blackrock||BUILD_PAL.ashen||BUILD_PAL.durotar;
   placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag||0xc02810,size:.9}),-14,8,0);
   placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:.9}),16,6,-.3);
+  /* 黑石前哨：火山灰焦木 */
+  if(typeof placeZoneTrees==="function"){
+    placeZoneTrees(root,{
+      count:70, radius:90, minR:14, cx:0, cz:0,
+      avoid:[{x:0,z:0,r:14}],
+      weights:{pine:0,oak:0,dead:.65,twisted:.35},
+      baseScale:4.4, leafTint:0x5a5048, barkTint:0xa09080,
+      heightFn:()=>0, seed:0xB1AC^WORLD_SEED,
+      bush:true, bushCount:50, fern:false, clusters:3,
+    });
+  }
   placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:12,posts:6}),-20,-4,Math.PI/2);
   [[-6,4],[8,-6]].forEach(([x,z],i)=>{
     const cf=placeProp(root,buildCampfire({flame:0xff5020,light:0xff3010,size:.85}),x,z,0);

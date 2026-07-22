@@ -74,15 +74,16 @@ function buildAshenZone(scn){
     seg.receiveShadow=true; root.add(seg);
   }
 
-  /* 枯木桩 + 焦岩 */
-  const stumpMat=MAT.get("wood.stump",{color:0x2a1a12,roughness:.95,flatShading:true});
-  for(let i=0;i<18;i++){
-    const a=srand(0,6.28),r=srand(18,ASHEN_R-16);
-    const x=Math.cos(a)*r,z=Math.sin(a)*r;
-    if(Math.hypot(x,z)<14)continue;
-    const stump=new THREE.Mesh(new THREE.CylinderGeometry(srand(.25,.55),srand(.35,.7),srand(1.2,2.4),6),stumpMat);
-    stump.position.set(x,srand(.5,1.1),z); stump.rotation.z=srand(-.2,.2);
-    stump.castShadow=true; root.add(stump);
+  /* 灰烬峡谷：焦林 —— 枯木 + 扭曲树成片 */
+  if(typeof placeZoneTrees==="function"){
+    placeZoneTrees(root,{
+      count:130, radius:ASHEN_R-10, minR:14, cx:0, cz:0,
+      avoid:[{x:0,z:0,r:16}],
+      weights:{pine:0,oak:.04,dead:.5,twisted:.46},
+      baseScale:5.0, leafTint:0x6a5f52, barkTint:0x9a8070,
+      heightFn:()=>0, seed:0xA54E41^WORLD_SEED,
+      bush:true, bushCount:90, fern:false, clusters:6,
+    });
   }
   const rockMat=MAT.get("rock.ashen",{color:0x4a3028,emissive:0x501808,emissiveIntensity:.12});
   for(let i=0;i<20;i++){

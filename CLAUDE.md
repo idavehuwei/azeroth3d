@@ -14,7 +14,7 @@
 
 ## 硬性约束（必须遵守）
 
-1. **零美术资源。** 不提交 .png/.glb/.mp3 文件。所有模型/图标/特效由代码生成。
+1. **资源纪律。** 默认程序化；树木/建筑可走 A 线 CC0 GLB（`models/foliage/` · `models/props/`，见 `CREDITS.md`）。不引入付费/非 CC0 美术，不提交 .mp3。
 2. **数值外置。** 所有游戏数值写在 `BALANCE` 表（`core.js`），不散落在逻辑代码中。
 3. **世界确定性。** `world.js` / `models.js` 的摆放类随机走 `srand()`（SeededRng），不走 `rand()`（Math.random）。分区种子为 `WORLD_SEED ^ hash(zoneId)`（见 `zones.js` / `setZoneSeed`）。
 4. **Entity 统一受击。** 所有实体通过 `hitEntity` 入口，死亡挂接 `onDeath` 回调。
@@ -39,7 +39,9 @@
 | `js/ui/tooltip.js` | 金边浮层 tip | showTipHtml, hideTip, bindTipHtml |
 | `rig.js` | 人形骨架 / Anim | createRigSkeleton, assembleHumanoidRig, updateHumanoidAnim, CLASS_LOOK_META |
 | `creatures.js` | 生物族群工厂 | buildQuadruped, buildElemental, buildHumanoidMob, buildFlameSpawn, QUADS, MOB_LOOK |
-| `models.js` | 职业 / NPC / Boss / 建筑 | buildPlayer…, buildBoss, buildHut/Tent/Fence/Watchtower |
+| `assets.js` | CC0 GLB 加载 / 风摆 / camera-ghost | ASSETS |
+| `models.js` | 职业 / NPC / Boss / 建筑 | buildPlayer…, buildBoss, buildHut/Tent（优先 GLB）… |
+| `props.js` | 植被 / 水体 / 云 | spawnMulgoreProps（树 = GLB InstancedMesh 分桶） |
 | `anim.js` | 生物动画挂点 | updateMobAnim, beginDeathRoll, updateBossHammerAnim, updateBossWingAnim |
 | `vfx.js` | 战斗表现层 | VFX.spawn, tickVfx, pulseHitFlash, ground_warn / 粒子池 / fakeBloom |
 | `weather.js` | 天气层（render-only） | setWeather, updateWeather, clearWeather |

@@ -919,12 +919,37 @@ assert(!/CircleGeometry\(WORLD_R\+50/.test(worldSrc),"莫高雷不再用大圆�
 
 /* plan-V2 · R3 植被 · 水体 · 场景道具 */
 assert(html.includes('src="props.js"'),"game.html 加载 props.js");
+assert(html.includes('src="assets.js"'),"game.html 加载 assets.js");
+assert(html.includes('src="vendor/GLTFLoader.js"'),"game.html 加载 GLTFLoader");
 assert(coreSrc.includes("props:{")&&coreSrc.includes("grassCount:"),"BALANCE.props 草数量");
+assert(coreSrc.includes("treeCount:")&&coreSrc.includes("treeBaseScale:"),"BALANCE.props 含 A 线树参数");
 const propsSrc=fs.readFileSync(path.join(__dirname,"props.js"),"utf8");
 assert(propsSrc.includes("InstancedMesh")||propsSrc.includes("buildGrassField"),"props.js 含草丛 InstancedMesh 工厂");
 assert(propsSrc.includes("buildPine")&&propsSrc.includes("buildOak"),"props.js 含松/橡工厂");
+assert(propsSrc.includes("placeTreesGlb")&&propsSrc.includes("BUCKET_DEPTH"),"props.js 含 GLB 分桶树木");
+assert(propsSrc.includes("placeZoneTrees"),"props.js 导出分区种树");
 assert(propsSrc.includes("buildMirrorLake")&&propsSrc.includes("buildCloudField"),"props.js 含镜湖/云");
 assert(propsSrc.includes("spawnMulgoreProps")&&propsSrc.includes("updateProps"),"props.js 导出 spawn/update");
+assert(fs.existsSync(path.join(__dirname,"assets.js")),"assets.js 存在");
+assert(fs.existsSync(path.join(__dirname,"models/foliage/pine_1.glb")),"入库 pine_1.glb");
+assert(fs.existsSync(path.join(__dirname,"models/foliage/dead_2.glb")),"入库 dead_2.glb");
+assert(fs.existsSync(path.join(__dirname,"models/props/house_1.glb")),"入库 house_1.glb");
+assert(fs.existsSync(path.join(__dirname,"models/props/bell_tower.glb")),"入库 bell_tower.glb");
+assert(fs.existsSync(path.join(__dirname,"vendor/GLTFLoader.js")),"vendor/GLTFLoader.js 存在");
+const assetsSrc=fs.readFileSync(path.join(__dirname,"assets.js"),"utf8");
+assert(assetsSrc.includes("updateCamGhosts")&&assetsSrc.includes("addWind"),"assets.js 含风摆与 camera-ghost");
+assert(assetsSrc.includes("twisted")&&assetsSrc.includes("tower:"),"assets 含扭曲树与钟楼");
+const modelsSrcA=fs.readFileSync(path.join(__dirname,"models.js"),"utf8");
+assert(modelsSrcA.includes("cloneBuilding")&&modelsSrcA.includes('cloneBuilding("house"')||modelsSrcA.includes('kind==="house"')||modelsSrcA.includes('kind=roll'),"models.js 木屋走 GLB");
+assert(modelsSrcA.includes('cloneBuilding("inn"'),"长屋走 inn GLB");
+assert(modelsSrcA.includes('cloneBuilding("tower"'),"瞭望塔走 bell_tower");
+assert(modelsSrcA.includes("仅 GLB")||modelsSrcA.includes("ASSETS 未就绪"),"建筑禁止程序化回退");
+const barrensSrc2=fs.readFileSync(path.join(__dirname,"barrens.js"),"utf8");
+assert(barrensSrc2.includes("placeZoneTrees")&&!/CylinderGeometry\(\.45,\.7/.test(barrensSrc2),"barrens 枯树已换 GLB");
+const ashenSrc2=fs.readFileSync(path.join(__dirname,"ashen_canyon.js"),"utf8");
+assert(ashenSrc2.includes("placeZoneTrees"),"ashen 树木走 GLB");
+const durotarSrc2=fs.readFileSync(path.join(__dirname,"durotar.js"),"utf8");
+assert(durotarSrc2.includes("placeZoneTrees"),"durotar 树木走 GLB");
 assert(worldSrc.includes("spawnMulgoreProps"),"world.js 调用 spawnMulgoreProps");
 assert(!worldSrc.includes('MAT.get("water.pond")'),"莫高雷不再用静态 water.pond 圆盘");
 assert(modelsSrc.includes("柴堆")||modelsSrc.includes("多层火焰")||modelsSrc.includes("layers"),"营火已升级多层火焰");

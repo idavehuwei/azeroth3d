@@ -5,6 +5,7 @@
    [依赖] THREE · core.js（$ srand worldRng BAL makeLabel setZoneSeed）
           zones.js（registerZone）· sky.js（initZoneSky）
           models.js（buildVendor buildSpiritHealer buildElder tintNpcCloth
+            props.js（placeZoneTrees）
             buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem
             buildMarketStall buildCratePile
             buildLonghouse buildWell buildVillageGate buildSignpost buildLanternPole buildHaystack buildTrainingDummy BUILD_PAL placeProp）
@@ -140,24 +141,21 @@ function buildBarrensZone(scn){
     seg.receiveShadow=true; root.add(seg);
   }
 
-  const trunkMat=MAT.get("wood.dead");
-  const deadLeaf=MAT.get("leaf.dead",{color:0x8a6a3a,roughness:1});
-  for(let i=0;i<12;i++){
-    const a=srand(0,6.28),r=srand(18,BARRENS_R-12);
-    const x=Math.cos(a)*r,z=Math.sin(a)*r;
-    if(Math.abs(x)<10&&Math.abs(z)<BARRENS_R)continue;
-    const th=srand(8,14);
-    const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.45,.7,th,7),trunkMat);
-    trunk.position.set(x,th/2,z); trunk.castShadow=true; root.add(trunk);
-    for(let k=0;k<3;k++){
-      const br=new THREE.Mesh(new THREE.CylinderGeometry(.08,.12,srand(2.5,4),5),trunkMat);
-      br.position.set(x+srand(-.8,.8),th*.55+k*.6,z+srand(-.8,.8));
-      br.rotation.set(srand(-.8,.8),0,srand(-.8,.8)); root.add(br);
-    }
-    if(worldRng()<.45){
-      const blob=new THREE.Mesh(new THREE.SphereGeometry(srand(1.2,2),6,5),deadLeaf);
-      blob.position.set(x,th*.85,z); blob.scale.y=.5; root.add(blob);
-    }
+  /* 贫瘠之地：干旱灌丛 + 枯木 / 扭曲树密簇 */
+  if(typeof placeZoneTrees==="function"){
+    placeZoneTrees(root,{
+      count:140, radius:BARRENS_R-8, minR:16, cx:0, cz:0,
+      avoid:[
+        {x:0,z:0,r:18},
+        {x:CROSSROADS.x,z:CROSSROADS.z,r:26},
+        {x:BARRENS.bristleback.x,z:BARRENS.bristleback.z,r:18},
+        {x:BARRENS.centaur.x,z:BARRENS.centaur.z,r:18},
+      ],
+      weights:{pine:.05,oak:.12,dead:.55,twisted:.28},
+      baseScale:5.8, leafTint:0xb0a468, barkTint:0xe6d2ac,
+      heightFn:()=>0, seed:0xBA11EE5^WORLD_SEED,
+      bush:true, bushCount:180, fern:false, clusters:5,
+    });
   }
 
   const P=BUILD_PAL.barrens;
