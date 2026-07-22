@@ -192,8 +192,19 @@ function updateFps(dt){
   });
 })();
 
+let _tickErrLogged=false;
 function tick(){
   requestAnimationFrame(tick);
+  try{
+    tickFrame();
+  }catch(err){
+    if(!_tickErrLogged){
+      _tickErrLogged=true;
+      console.error("[tick] 主循环异常（仅报一次）:", err);
+    }
+  }
+}
+function tickFrame(){
   let dt=Math.min(clock.getDelta(),.05);
   /* C4：暴击轻微顿帧 */
   if(S._hitStopT>0){
@@ -202,28 +213,28 @@ function tick(){
     dt=Math.max(0,dt-hs*.85);
   }
   S.t+=dt;
-  if(typeof lavaUniforms!=="undefined"&&lavaUniforms)lavaUniforms.uTime.value=S.t;
-  if(typeof portalUni!=="undefined"&&portalUni)portalUni.uTime.value=S.t;
+  if(lavaUniforms&&lavaUniforms.uTime)lavaUniforms.uTime.value=S.t;
+  if(portalUni&&portalUni.uTime)portalUni.uTime.value=S.t;
   if(typeof updateProps==="function")updateProps(S.t,dt);
   updateFps(dt);
 
   /* 出口传送门动画 */
   if(exitPortal){exitPortal.discUni.value=S.t;exitPortal.glowPts.rotation.y+=dt*.8;}
 
-  if(typeof portalLabel!=="undefined"&&portalLabel){
+  if(portalLabel){
     const pg=(typeof heightAt==="function"&&typeof PORTAL_POS!=="undefined")
       ?heightAt(PORTAL_POS.x,PORTAL_POS.z):0;
     portalLabel.position.y=pg+13.6+Math.sin(S.t*1.5)*.25;
   }
-  if(typeof southPortalUni!=="undefined"&&southPortalUni)southPortalUni.uTime.value=S.t;
-  if(typeof southPortalLabel!=="undefined"&&southPortalLabel){
+  if(southPortalUni&&southPortalUni.uTime)southPortalUni.uTime.value=S.t;
+  if(southPortalLabel){
     const bg=(typeof heightAt==="function"&&typeof PORTAL_BARRENS!=="undefined")
       ?heightAt(PORTAL_BARRENS.x,PORTAL_BARRENS.z):0;
     southPortalLabel.position.y=bg+12.2+Math.sin(S.t*1.4)*.2;
   }
-  if(typeof barrensPortalUni!=="undefined"&&barrensPortalUni)barrensPortalUni.uTime.value=S.t;
-  if(typeof durotarPortalUni!=="undefined"&&durotarPortalUni)durotarPortalUni.uTime.value=S.t;
-  if(typeof durotarRagefirePortalUni!=="undefined"&&durotarRagefirePortalUni)durotarRagefirePortalUni.uTime.value=S.t;
+  if(barrensPortalUni&&barrensPortalUni.uTime)barrensPortalUni.uTime.value=S.t;
+  if(durotarPortalUni&&durotarPortalUni.uTime)durotarPortalUni.uTime.value=S.t;
+  if(durotarRagefirePortalUni&&durotarRagefirePortalUni.uTime)durotarRagefirePortalUni.uTime.value=S.t;
 
   /* 火星上升 */
   const pp=embers.geometry.attributes.position.array;
@@ -771,6 +782,25 @@ function tick(){
     /* 熔渊之柄之柄火焰摇曳（STEP 4：仅装备橙锤时遍历） */
     if(S.eq.mainhand==="sulfuras_haft")
       player.traverse(o=>{if(o.userData.flame)o.scale.y=1+Math.sin(S.t*7+o.position.x*5)*.25;});
+
+    /* 武器发光脉冲：所有武器 glow 层呼吸 */
+    if(S.p.alive&&player){
+      player.traverse(o=>{
+        if(o.isMesh&&o.userData&&o.userData.glow){
+          const phase=o.userData.glowPhase||0;
+          o.material.opacity=.08+.12*Math.abs(Math.sin(S.t*2.2+phase));
+        }
+      });
+      /* 法杖水晶球自转（标记 orb 的 mesh） */
+      player.traverse(o=>{
+        if(o.isMesh&&o.geometry&&o.geometry.type==="IcosahedronGeometry"){
+          o.rotation.y=S.t*.5;
+          o.rotation.x=Math.sin(S.t*.3)*.2;
+          const s=1+Math.sin(S.t*1.8)*.06;
+          o.scale.setScalar(s);
+        }
+      });
+    }
 
     /* ---- 自动普攻：贴身一律武器挥砍；远处仅远程职业射击（与技能 CD 无关） ---- */
     S.p.atkTimer-=dt;

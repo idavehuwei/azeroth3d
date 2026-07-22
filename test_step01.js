@@ -321,7 +321,7 @@ assert(coreSrc.includes("activeMax:10")&&questsSrc.includes("countActiveQuests")
 assert(questsSrc.includes('kind==="giver"')&&questsSrc.includes('kind==="turnin"')&&questsSrc.includes("resolveKillMobMapPos"),"任务地图可标记发起者/交还/怪物");
 assert(html.includes("mapTabs")&&html.includes('data-map-tab="zone"')&&html.includes('data-map-tab="world"'),"地图面板区域/世界 Tab");
 assert(fs.readFileSync(path.join(__dirname,"map.js"),"utf8").includes("setMapPanelTab")&&fs.readFileSync(path.join(__dirname,"map.js"),"utf8").includes("drawZoneMapPanel"),"区域地图绘制 API");
-assert(coreSrc.includes("miniSize:200")||balSrc.includes("miniSize:200"),"小地图放大 200");
+assert(coreSrc.includes("miniSize:260")||balSrc.includes("miniSize:260"),"小地图放大 260");
 assert(questsSrc.includes("normalizeObjectiveType")&&questsSrc.includes("interact"),"C9 目标别名/interact");
 assert(questsSrc.includes("npcHasQuestOfferLowLevel")&&questsSrc.includes("applyNpcQuestMarkerVisual"),"C9 灰色感叹号");
 assert(questsSrc.includes("tryQuestGroundInteract")&&questsSrc.includes("spawnQuestGroundForQuest"),"C9 地面闪光物");

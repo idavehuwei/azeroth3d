@@ -61,7 +61,9 @@ const WEAPONS={
       {g:'cyl',a:[.05,.05,.3,6],m:'gold'},                       /* 剑柄 */
       {g:'box',a:[.3,.06,.1],p:[0,.16,0],m:'gold'},              /* 护手 */
       {g:'box',a:[.1,1.5,.03],p:[0,.95,0],m:'blade'},            /* 剑身 */
-    ]},
+    ],
+    glow:{c:0x88bbff,o:.12,phase:0,
+      parts:[{g:'box',a:[.12,1.55,.01],p:[0,.95,0],s:1}]}},
   /* 奥术法杖（法师默认） */
   staff:{mats:{wood:{c:0x5a3a1a,r:.9},orb:{c:0x66ccff,basic:true},
                trim:{c:0xd9a441,r:.3,mt:.9}},
@@ -69,7 +71,9 @@ const WEAPONS={
       {g:'cyl',a:[.05,.07,3,7],p:[0,.6,0],m:'wood'},             /* 杖杆 */
       {g:'ico',a:[.22,0],p:[0,2.2,0],m:'orb'},                   /* 奥术水晶 */
       {g:'tor',a:[.32,.03,6,14],p:[0,2.2,0],m:'trim'},           /* 金环 */
-    ]},
+    ],
+    glow:{c:0x66ccff,o:.25,phase:1,
+      parts:[{g:'sph',a:[.28,10,8],p:[0,2.2,0],s:1.3}]}},
   /* 长弓（弓箭手默认，挂左手） */
   bow:{mats:{wood:{c:0x6a4520,r:.85},feather:{c:0xd8d0b0,r:.9}},
     parts:[
@@ -122,13 +126,34 @@ const WEAPONS={
       {g:'box',a:[.22,.05,.08],p:[0,.12,0],m:'gold'},
       {g:'box',a:[.07,.95,.025],p:[0,.62,0],m:'blade'},
       {g:'cone',a:[.05,.18,4],p:[0,1.18,0],m:'blade'},
-    ]},
+    ],
+    glow:{c:0x8899bb,o:.1,phase:0,
+      parts:[{g:'box',a:[.09,1.05,.01],p:[0,.62,0],s:1}]}},
 };
 function buildWeapon(type){
   const cfg=WEAPONS[type]||WEAPONS.sword;
   const M=makeMats(cfg.mats);
   const w=new THREE.Group();
   addParts(w,cfg.parts,M);
+
+  /* 发光层：为剑刃/匕首加一层半透明光晕 mesh */
+  if(cfg.glow){
+    const glowMat=new THREE.MeshBasicMaterial({
+      color:cfg.glow.c||0x88bbff,
+      transparent:true,opacity:cfg.glow.o||.18,
+      depthWrite:false,
+    });
+    cfg.glow.parts.forEach(spec=>{
+      const mesh=new THREE.Mesh(GEO[spec.g](spec.a),glowMat);
+      if(spec.p)mesh.position.set(...spec.p);
+      if(spec.r)mesh.rotation.set(...spec.r);
+      if(spec.s)mesh.scale.setScalar(spec.s);
+      mesh.userData.glow=true;
+      mesh.userData.glowPhase=cfg.glow.phase||0;
+      w.add(mesh);
+    });
+  }
+
   if(cfg.light){
     const l=new THREE.PointLight(cfg.light.c,cfg.light.i,cfg.light.d,1.8);
     l.position.set(...cfg.light.p); w.add(l);

@@ -118,7 +118,8 @@ const Anim=(function(){
     set(out,"upperArmL",.08+Math.sin(t*1.2+.5)*.04,0,-.06);
     set(out,"forearmR",.15,0,0);
     set(out,"forearmL",.15,0,0);
-    if(rig&&rig.cape)set(out,"cape",.12+Math.sin(t*3)*.04,0,0);
+    /* 披风 idle 微飘：轻柔呼吸 + 微风横向摆动 */
+    if(rig&&rig.cape)set(out,"cape",.15+Math.sin(t*2.2)*.06,Math.sin(t*.7)*.08,0);
     return out;
   }
 
@@ -141,7 +142,8 @@ const Anim=(function(){
     set(out,"forearmR",.25+Math.abs(sw)*.2,0,0);
     set(out,"forearmL",.25+Math.abs(sw)*.2,0,0);
     set(out,"head",0,Math.sin(ph)*.03,0);
-    if(rig&&rig.cape)set(out,"cape",.12+Math.abs(sw)*.28+Math.sin(t*3)*.03,0,0);
+    /* 披风随行走摆动：速度越快飘得越高，横向随风摆动 */
+    if(rig&&rig.cape)set(out,"cape",.12+Math.abs(sw)*.35+Math.sin(t*3.5)*.04,Math.sin(ph*.7)*.12,0);
     return out;
   }
 
@@ -158,6 +160,8 @@ const Anim=(function(){
     set(out,"upperArmR",-2.2*swing,0,.2);
     set(out,"forearmR",.1+.8*swing,0,0);
     set(out,"upperArmL",.2*swing,0,-.15);
+    /* 披风随攻击甩动 */
+    if(rig&&rig.cape)set(out,"cape",.15+.35*swing,Math.sin(a*2.5)*.2,0);
     return out;
   }
 
@@ -171,6 +175,7 @@ const Anim=(function(){
     set(out,"forearmR",.05+.9*swing,0,0);
     set(out,"upperArmL",-1.2*swing,0,0);
     set(out,"forearmL",.3*swing,0,0);
+    if(rig&&rig.cape)set(out,"cape",.15+.4*swing,Math.sin(a*2.5)*.25,0);
     return out;
   }
 
@@ -183,6 +188,7 @@ const Anim=(function(){
     set(out,"forearmR",.2+.6*a,0,0);
     set(out,"forearmL",.2+.6*a,0,0);
     set(out,"head",-.1*a,0,0);
+    if(rig&&rig.cape)set(out,"cape",.15+.2*Math.sin(a*Math.PI),Math.sin(t*2.5)*.06,0);
     return out;
   }
 
@@ -196,6 +202,7 @@ const Anim=(function(){
     set(out,"forearmR",1.1*pull,0,0);
     set(out,"chest",0,.2*pull,0);
     set(out,"head",0,.15*pull,0);
+    if(rig&&rig.cape)set(out,"cape",.15+.25*pull,Math.sin(t*2.5)*.06,0);
     return out;
   }
 
@@ -205,6 +212,7 @@ const Anim=(function(){
     set(out,"spine",.25*a,0,0);
     set(out,"chest",.2*a,0,0);
     set(out,"head",.15*a,0,0);
+    if(rig&&rig.cape)set(out,"cape",.15+.2*a,Math.sin(t*3)*.08,0);
     return out;
   }
 
@@ -219,6 +227,7 @@ const Anim=(function(){
     set(out,"shinL",.9*a,0,0);
     set(out,"upperArmR",.5*a,0,.4*a);
     set(out,"upperArmL",.4*a,0,-.3*a);
+    if(rig&&rig.cape)set(out,"cape",.15+.5*a,Math.sin(t*4)*.1,0);
     return out;
   }
 
@@ -389,6 +398,32 @@ function assembleHumanoidRig(cfg,hooks){
     if(spec.r)mesh.rotation.set(spec.r[0]||0,spec.r[1]||0,spec.r[2]||0);
     parent.add(mesh);
   });
+
+  /* 面部特征：眼睛/嘴/眉毛（挂 head joint，所有职业共用） */
+  {
+    const skinM=new THREE.MeshBasicMaterial({color:0xd8a37a});
+    const whiteM=new THREE.MeshBasicMaterial({color:0xf0eee8});
+    const blackM=new THREE.MeshBasicMaterial({color:0x080810});
+    const pinkM=new THREE.MeshBasicMaterial({color:0xc06050});
+    /* 双眼白 */
+    const eL=new THREE.Mesh(new THREE.SphereGeometry(.055,8,8),whiteM);
+    eL.position.set(.12,.18,.26);rig.head.add(eL);
+    const eR=new THREE.Mesh(new THREE.SphereGeometry(.055,8,8),whiteM);
+    eR.position.set(-.12,.18,.26);rig.head.add(eR);
+    /* 瞳孔 */
+    const pL=new THREE.Mesh(new THREE.SphereGeometry(.03,6,6),blackM);
+    pL.position.set(.12,.16,.31);rig.head.add(pL);
+    const pR=new THREE.Mesh(new THREE.SphereGeometry(.03,6,6),blackM);
+    pR.position.set(-.12,.16,.31);rig.head.add(pR);
+    /* 眉毛 */
+    const bL=new THREE.Mesh(new THREE.BoxGeometry(.1,.015,.02),skinM);
+    bL.position.set(.12,.28,.26);rig.head.add(bL);
+    const bR=new THREE.Mesh(new THREE.BoxGeometry(.1,.015,.02),skinM);
+    bR.position.set(-.12,.28,.26);rig.head.add(bR);
+    /* 嘴 */
+    const mouth=new THREE.Mesh(new THREE.BoxGeometry(.12,.018,.02),pinkM);
+    mouth.position.set(0,-.02,.26);rig.head.add(mouth);
+  }
 
   /* 上臂 mesh → upperArm；小臂为空关节（动画用） */
   if(cfg.arm&&cfg.arm.mesh){

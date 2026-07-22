@@ -1,11 +1,12 @@
 /* ============================================================
    炽心 · panels.js
    HUD 面板（STEP 14）：角色(C) / 法术书(P) / 任务日志(L)
-   纯 DOM 覆盖层，不碰 Three.js；数值读自 S.p / CLS / ITEMS / getSkillCd
+   DOM 覆盖层；角色纸娃娃用独立小 WebGL 预览（buildFromClassLook）
    ------------------------------------------------------------
-   [依赖] core.js（$ BAL）· combat.js（S CLS SKILLS formatCopperText）
+   [依赖] core.js（$ BAL）· THREE · combat.js（S CLS SKILLS formatCopperText）
           items.js（ITEMS QUALITY EQUIP_SLOTS EQUIP_SLOT_LABEL bagOpen bindItemTip
             equipItem unequipItem applyEquipStats beginItemDrag endItemDrag getItemDrag itemFitsEqSlot）· talents.js（getSkillCd talentOpen）
+          models.js（buildFromClassLook setWeapon）· frames.js（portraitIconForClass）
           world.js（QUEST updateQuest）· icons.js（Icons）
           quests.js 运行时（getQuestLogEntries abandonQuest canAbandonQuest getQuestDef questNpcLabel）
           map.js 运行时（worldMapOpen；关闭世界地图）
@@ -260,6 +261,123 @@ function pdSlotHtml(slot){
     `<span class="pd-tag">${label}</span></div>`;
 }
 
+let _charDoll={
+  yaw:18, drag:null, scene:null, cam:null, ren:null, canvas:null,
+  hum:null, classKey:null, weaponType:null, pedestal:null
+};
+
+function disposeCharDollObject(obj){
+  if(!obj)return;
+  obj.traverse(o=>{
+    if(o.geometry)o.geometry.dispose();
+    const mats=o.material?(Array.isArray(o.material)?o.material:[o.material]):[];
+    for(const m of mats){
+      if(!m||typeof m.dispose!=="function")continue;
+      /* 不释放 MAT 共享材质 */
+      if(typeof MAT!=="undefined"&&MAT&&MAT._cache){
+        let shared=false;
+        for(const k in MAT._cache)if(MAT._cache[k]===m){shared=true;break;}
+        if(shared)continue;
+      }
+      m.dispose();
+    }
+  });
+}
+
+function paintCharDoll(){
+  const D=_charDoll;
+  if(!D.ren||!D.scene||!D.cam||!D.hum)return;
+  D.hum.rotation.y=(D.yaw|0)*Math.PI/180;
+  const host=D.canvas&&D.canvas.parentElement;
+  if(host){
+    const w=Math.max(120,host.clientWidth|0), h=Math.max(200,host.clientHeight|0);
+    if(D.canvas.width!==w||D.canvas.height!==h){
+      D.canvas.width=w; D.canvas.height=h;
+      D.ren.setSize(w,h,false);
+      D.cam.aspect=w/Math.max(1,h);
+      D.cam.updateProjectionMatrix();
+    }
+  }
+  D.ren.render(D.scene,D.cam);
+}
+
+function syncCharDollModel(){
+  const D=_charDoll;
+  if(!D.scene||typeof buildFromClassLook!=="function")return;
+  const key=(CLS&&CLS.key)||"warrior";
+  if(!D.hum||D.classKey!==key){
+    if(D.hum){
+      D.scene.remove(D.hum);
+      disposeCharDollObject(D.hum);
+      D.hum=null;
+    }
+    try{
+      D.hum=buildFromClassLook(key);
+      D.hum.position.set(0,0,0);
+      D.hum.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
+      D.scene.add(D.hum);
+      D.classKey=key;
+      D.weaponType=null;
+    }catch(err){
+      console.warn("[panels] 纸娃娃构建失败",err);
+      return;
+    }
+  }
+  const mid=S.eq&&S.eq.mainhand;
+  const def=D.hum.userData&&D.hum.userData.defaultWeapon;
+  const type=(mid&&ITEMS[mid]&&ITEMS[mid].model)||def||"sword";
+  if(D.weaponType!==type&&typeof setWeapon==="function"){
+    setWeapon(D.hum,type);
+    D.weaponType=type;
+  }
+}
+
+function ensureCharDoll(host){
+  if(!host||typeof THREE==="undefined")return;
+  const D=_charDoll;
+  if(!D.ren){
+    const canvas=document.createElement("canvas");
+    canvas.className="ph-doll-canvas";
+    canvas.setAttribute("aria-hidden","true");
+    let ren=null;
+    try{
+      ren=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:"low-power"});
+    }catch(err){
+      console.warn("[panels] 纸娃娃 WebGL 不可用",err);
+      return;
+    }
+    ren.setClearColor(0x000000,0);
+    ren.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
+    const scene=new THREE.Scene();
+    const cam=new THREE.PerspectiveCamera(30,1,.1,40);
+    cam.position.set(0,1.55,5.4);
+    cam.lookAt(0,1.25,0);
+    scene.add(new THREE.AmbientLight(0xffe2c0,.85));
+    const key=new THREE.DirectionalLight(0xffc090,1.05);
+    key.position.set(2.2,4.5,3.2);
+    scene.add(key);
+    const fill=new THREE.DirectionalLight(0x88aacc,.35);
+    fill.position.set(-2.5,2,-1.5);
+    scene.add(fill);
+    const ped=new THREE.Mesh(
+      new THREE.CylinderGeometry(.95,1.15,.12,24),
+      new THREE.MeshBasicMaterial({color:0x4a2e18})
+    );
+    ped.position.y=.06;
+    scene.add(ped);
+    const ring=new THREE.Mesh(
+      new THREE.CylinderGeometry(1.05,1.18,.04,24),
+      new THREE.MeshBasicMaterial({color:0xc9a06a,transparent:true,opacity:.55})
+    );
+    ring.position.y=.12;
+    scene.add(ring);
+    D.scene=scene; D.cam=cam; D.ren=ren; D.canvas=canvas; D.pedestal=ped;
+  }
+  if(D.canvas.parentElement!==host)host.appendChild(D.canvas);
+  syncCharDollModel();
+  paintCharDoll();
+}
+
 function renderCharPanel(){
   if(!panelOpen("#charPanel"))return;
   const P=S.p, body=$("#charBody");
@@ -282,19 +400,25 @@ function renderCharPanel(){
   const left=["head","neck","shoulder","back","chest","wrist","hands"];
   const right=["waist","legs","feet","finger","offhand","ranged"];
   const bottom=["mainhand"];
-  const yaw=(_charDollYaw|0)%360;
   const clsIcon=CLS.key==="mage"?"✦":CLS.key==="archer"?"➶":CLS.key==="priest"?"✚":CLS.key==="shaman"?"⚡":CLS.key==="rogue"?"🗡":CLS.key==="warlock"?"💀":CLS.key==="druid"?"🌿":CLS.key==="paladin"?"✝":"⚔";
+  const avName=typeof portraitIconForClass==="function"?portraitIconForClass(CLS.key):"portrait_companion";
+  const avSrc=typeof Icons!=="undefined"?Icons.get(avName,"#e8b34a"):"";
 
   body.innerHTML=
     `<div class="ph-layout">`+
       `<div class="ph-doll" aria-label="装备">`+
-        `<div class="ph-doll-head">${CLS.title} · Lv.${P.level}</div>`+
+        `<div class="ph-doll-head">`+
+          `<div class="ph-name">`+
+            (avSrc?`<img class="ph-av" src="${avSrc}" alt="">`:"")+
+            `<div><div class="ph-ttl">${CLS.title}</div><div class="ph-sub">Lv.${P.level}</div></div>`+
+          `</div>`+
+          `<div class="ph-doll-gs">装等 ${gs}</div>`+
+        `</div>`+
         `<div class="ph-doll-grid">`+
           `<div class="ph-doll-col">${left.map(pdSlotHtml).join("")}</div>`+
-          `<div class="ph-doll-mid" id="charDollPreview" title="拖动旋转预览">`+
-            `<div class="ph-doll-sil" style="transform:rotateY(${yaw}deg)">${clsIcon}</div>`+
-            `<div class="ph-doll-gs">装等 ${gs}</div>`+
-            `<div class="ph-doll-drag">拖动旋转</div>`+
+          `<div class="ph-doll-mid" id="charDollPreview" title="拖动旋转纸娃娃">`+
+            `<div class="ph-doll-fallback" aria-hidden="true">${clsIcon}</div>`+
+            `<div class="ph-doll-drag">⟷ 拖动旋转</div>`+
           `</div>`+
           `<div class="ph-doll-col">${right.map(pdSlotHtml).join("")}</div>`+
           `<div class="ph-doll-bot">${bottom.map(pdSlotHtml).join("")}</div>`+
@@ -428,25 +552,27 @@ function renderCharPanel(){
       }
     });
   });
-  wireCharDollRotate(body.querySelector("#charDollPreview"));
+  const mid=body.querySelector("#charDollPreview");
+  ensureCharDoll(mid);
+  wireCharDollRotate(mid);
+  requestAnimationFrame(()=>paintCharDoll());
 }
 
-let _charDollYaw=15,_charDollDrag=null;
 function wireCharDollRotate(el){
-  if(!el)return;
+  if(!el||el.dataset.dollWired)return;
+  el.dataset.dollWired="1";
   el.addEventListener("pointerdown",e=>{
     e.preventDefault();
-    _charDollDrag={x:e.clientX,yaw:_charDollYaw,id:e.pointerId};
+    _charDoll.drag={x:e.clientX,yaw:_charDoll.yaw,id:e.pointerId};
     try{el.setPointerCapture(e.pointerId);}catch(_){}
   });
   el.addEventListener("pointermove",e=>{
-    if(!_charDollDrag||_charDollDrag.id!==e.pointerId)return;
-    _charDollYaw=_charDollDrag.yaw+(e.clientX-_charDollDrag.x)*.6;
-    const sil=el.querySelector(".ph-doll-sil");
-    if(sil)sil.style.transform=`rotateY(${_charDollYaw}deg)`;
+    if(!_charDoll.drag||_charDoll.drag.id!==e.pointerId)return;
+    _charDoll.yaw=_charDoll.drag.yaw+(e.clientX-_charDoll.drag.x)*.55;
+    paintCharDoll();
   });
   const end=e=>{
-    if(_charDollDrag&&e.pointerId===_charDollDrag.id)_charDollDrag=null;
+    if(_charDoll.drag&&e.pointerId===_charDoll.drag.id)_charDoll.drag=null;
   };
   el.addEventListener("pointerup",end);
   el.addEventListener("pointercancel",end);
@@ -519,12 +645,14 @@ function renderQuestDetail(e){
   const rewards=questRewardLines(q);
   const abandonable=typeof canAbandonQuest==="function"?canAbandonQuest(e.id):(st==="active"||st==="ready");
   const objOk=st==="ready"||st==="done";
-  let html=`<div class="ql-d-title">${e.title}</div>`;
+  const stCls=st==="ready"?"ready":st==="done"?"done":"active";
+  let html=`<div class="ql-d-head"><div class="ql-d-title">${e.title}</div>`;
+  html+=`<span class="ql-st ${stCls}">${stLabel}</span></div>`;
   html+=`<div class="ql-d-sub">${questChapterLabel(e.chapter)} · ${QUEST_ZONE_NAME[e.zone]||e.zone||""}${q&&q.subtitle?" · "+q.subtitle:""}</div>`;
-  html+=`<div class="ql-d-meta">状态：<b>${stLabel}</b><br>`;
-  if(giver)html+=`接取：<b>${giverNm}</b><br>`;
-  if(turnIn)html+=`交还：<b>${turnNm}</b>`;
-  else if(q&&q.autoComplete)html+=`交还：<b>自动完成</b>`;
+  html+=`<div class="ql-d-meta">`;
+  if(giver)html+=`<div class="ql-meta-row"><span class="k">发起</span><span class="v">${giverNm}</span></div>`;
+  if(turnIn)html+=`<div class="ql-meta-row"><span class="k">交还</span><span class="v">${turnNm}</span></div>`;
+  else if(q&&q.autoComplete)html+=`<div class="ql-meta-row"><span class="k">交还</span><span class="v">自动完成</span></div>`;
   html+=`</div>`;
   html+=`<div class="ql-d-sec">目标</div>`;
   html+=`<div class="ql-d-obj${objOk?" ok":""}">${objOk?"✔ ":""}${e.obj||"—"}</div>`;
@@ -601,12 +729,14 @@ function renderQuestLog(){
         html+=`<div class="ql-zone-sub">${QUEST_ZONE_NAME[e.zone]||e.zone}</div>`;
       }
       const ic=e.status==="done"?"✔":e.status==="ready"?"❓":"❗";
+      const ch=questChapterLabel(e.chapter);
       const cls=["ql-row"];
       if(e.id===_questLogSel)cls.push("sel");
       if(e.status==="ready")cls.push("ready");
       if(e.status==="done")cls.push("done-row");
       html+=`<div class="${cls.join(" ")}" data-qid="${e.id}" role="button" tabindex="0">`+
-        `<span class="ql-ic">${ic}</span><span class="ql-nm">${e.title}</span></div>`;
+        `<span class="ql-ic">${ic}</span><span class="ql-nm">${e.title}</span>`+
+        `<span class="ql-ch">${ch}</span></div>`;
     }
   };
   renderGroup(cap>0?`进行中（${nActive}/${cap}）`:`进行中（${active.length}）`,active);

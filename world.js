@@ -34,6 +34,16 @@
           openHawkwindDialogue openGrullDialogue openNpcQuestDialogue placeTalkNpc registerNpcInteract
    ============================================================ */
 "use strict";
+/* 主循环/跨文件会读到的绑定：文件顶部即初始化，避免中途抛错落入 TDZ */
+let portalUni=null;
+let southPortalUni=null;
+let portalLabel=null;
+let southPortalLabel=null;
+let exitPortal=null;
+const MOBS=[];
+let fireflies=null;
+let ffPhases=null;
+let FIREFLIES=0;
 /* 赤蹄草甸分区种子：地形 / 野怪摆放全部走此流（STEP 17） */
 setZoneSeed("mulgore");
 
@@ -259,7 +269,7 @@ pPlat.position.set(PORTAL_POS.x,_pg+.5,PORTAL_POS.z); pPlat.receiveShadow=true; 
 const lintel=new THREE.Mesh(new THREE.BoxGeometry(10.4,1.7,1.9),obsidian);
 lintel.position.set(PORTAL_POS.x,_pg+10.4,PORTAL_POS.z); lintel.castShadow=true; sceneWorld.add(lintel);
 /* 旋涡传送门（Shader 动画） */
-const portalUni={uTime:{value:0}};
+portalUni={uTime:{value:0}};
 const portalDisc=new THREE.Mesh(new THREE.CircleGeometry(3.1,40),new THREE.ShaderMaterial({
   uniforms:portalUni,transparent:true,side:THREE.DoubleSide,depthWrite:false,
   vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
@@ -286,7 +296,7 @@ portalDisc.position.set(PORTAL_POS.x,_pg+5.2,PORTAL_POS.z); sceneWorld.add(porta
   worldFlames.push({fl,li});
 });
 /* 门楣悬浮文字（makeLabel 已迁入 core.js，供掉落系统等全局复用） */
-const portalLabel=makeLabel(T("zone.molten_core"),14);
+portalLabel=makeLabel(T("zone.molten_core"),14);
 portalLabel.position.set(PORTAL_POS.x,_pg+13.6,PORTAL_POS.z); sceneWorld.add(portalLabel);
 const portalLabel2=makeLabel("· 副本入口 ·",8);
 portalLabel2.position.set(PORTAL_POS.x,_pg+12,PORTAL_POS.z); sceneWorld.add(portalLabel2);
@@ -304,7 +314,7 @@ bPlat.position.set(PORTAL_BARRENS.x,_bg+.5,PORTAL_BARRENS.z); bPlat.receiveShado
 });
 const bLintel=new THREE.Mesh(new THREE.BoxGeometry(9.2,1.4,1.6),barrensGateMat);
 bLintel.position.set(PORTAL_BARRENS.x,_bg+9.2,PORTAL_BARRENS.z); bLintel.castShadow=true; sceneWorld.add(bLintel);
-const southPortalUni={uTime:{value:0}};
+southPortalUni={uTime:{value:0}};
 const barrensPortalDisc=new THREE.Mesh(new THREE.CircleGeometry(2.8,36),new THREE.ShaderMaterial({
   uniforms:southPortalUni,transparent:true,side:THREE.DoubleSide,depthWrite:false,
   vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
@@ -318,7 +328,7 @@ const barrensPortalDisc=new THREE.Mesh(new THREE.CircleGeometry(2.8,36),new THRE
       gl_FragColor=vec4(c*1.1,smoothstep(1.,.88,r));
     }`}));
 barrensPortalDisc.position.set(PORTAL_BARRENS.x,_bg+4.6,PORTAL_BARRENS.z); sceneWorld.add(barrensPortalDisc);
-const southPortalLabel=makeLabel(T("zone.barrens"),12,"#e8c898","rgba(160,100,40,.9)");
+southPortalLabel=makeLabel(T("zone.barrens"),12,"#e8c898","rgba(160,100,40,.9)");
 southPortalLabel.position.set(PORTAL_BARRENS.x,_bg+12.2,PORTAL_BARRENS.z); sceneWorld.add(southPortalLabel);
 const southPortalLabel2=makeLabel(`${T("poi.crossroads")} · 需要 Lv.${BAL.barrens.minLevel}+`,7,"#ffb060","rgba(160,80,20,.9)");
 southPortalLabel2.position.set(PORTAL_BARRENS.x,_bg+10.8,PORTAL_BARRENS.z); sceneWorld.add(southPortalLabel2);
@@ -342,7 +352,7 @@ const aMouth=new THREE.Mesh(new THREE.PlaneGeometry(7.5,9),
 aMouth.position.set(PORTAL_ASHEN.x+.2,_ag+5.2,PORTAL_ASHEN.z); aMouth.rotation.y=Math.PI/2; sceneWorld.add(aMouth);
 const westPassLabel=makeLabel(T("zone.ashen_canyon"),12,"#ffb080","rgba(100,40,15,.9)");
 westPassLabel.position.set(PORTAL_ASHEN.x,_ag+13.4,PORTAL_ASHEN.z); sceneWorld.add(westPassLabel);
-const westPassLabel2=makeLabel(`山口通道 · Lv.${BAL.ashenCanyon.minLevel}+`,7,"#e09060","rgba(80,30,10,.9)");
+const westPassLabel2=makeLabel(`山口通道 · Lv.${(BAL.ashenCanyon&&BAL.ashenCanyon.minLevel)||6}+`,7,"#e09060","rgba(80,30,10,.9)");
 westPassLabel2.position.set(PORTAL_ASHEN.x,_ag+12,PORTAL_ASHEN.z); sceneWorld.add(westPassLabel2);
 
 /* STEP 23：营地制作台 + 赤蹄草甸采集点（在传送门坐标定义之后） */
@@ -356,16 +366,17 @@ if(typeof spawnGatherNodesForZone==="function"){
 }
 
 /* ---------------- 萤火虫粒子（STEP 7 / R4 昼夜）：夜晚浮现，白天透明 ---------------- */
-const FIREFLIES=(BAL.sky&&BAL.sky.fireflies)||100;
+FIREFLIES=(BAL.sky&&BAL.sky.fireflies)||100;
 const fireflyGeo=new THREE.BufferGeometry();
-const ffPos=new Float32Array(FIREFLIES*3), ffPhases=new Float32Array(FIREFLIES);
+const ffPos=new Float32Array(FIREFLIES*3);
+ffPhases=new Float32Array(FIREFLIES);
 for(let i=0;i<FIREFLIES;i++){
   const a=srand(0,6.28),r=srand(5,WORLD_R-8);
   ffPos[i*3]=Math.cos(a)*r; ffPos[i*3+1]=_gy(Math.cos(a)*r,Math.sin(a)*r)+srand(1,4); ffPos[i*3+2]=Math.sin(a)*r;
   ffPhases[i]=srand(0,6.28);
 }
 fireflyGeo.setAttribute("position",new THREE.BufferAttribute(ffPos,3));
-const fireflies=new THREE.Points(fireflyGeo,new THREE.PointsMaterial({
+fireflies=new THREE.Points(fireflyGeo,new THREE.PointsMaterial({
   color:0xd0ffa0,size:.35,transparent:true,opacity:0,
   blending:THREE.AdditiveBlending,depthWrite:false}));
 sceneWorld.add(fireflies);
@@ -472,7 +483,6 @@ registerZone({
 });
 
 /* ---------------- 出口传送门（击杀 Boss 后出现在副本入口） ---------------- */
-let exitPortal=null;
 const EXIT_PORTAL_POS=new THREE.Vector3(0,0,15);
 function spawnExitPortal(){
   if(exitPortal)return;
@@ -530,7 +540,6 @@ function removeExitPortal(){
 /* ============================================================
    野怪（草原野猪）与 NPC 任务系统
    ============================================================ */
-const MOBS=[];
 const QUEST={state:0,kills:0};   /* 0未接 1猎杀野猪 2讨伐卡尔戈 3完成 */
 
 /* NPC 头顶标记 / F 键对话注册表 */

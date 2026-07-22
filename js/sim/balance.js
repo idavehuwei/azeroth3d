@@ -939,12 +939,12 @@ const BALANCE={
   },
   /* 小地图 / 世界地图（STEP 16 / plan-V3 C13） */
   map:{
-    miniSize:200,           /* canvas 边长（外框约 212） */
+    miniSize:260,           /* canvas 边长（外框约 272） */
     worldSize:520,          /* 世界地图 canvas 边长 */
     padding:10,
     worldPad:18,            /* 世界地图内边距（留标签） */
     showInRaid:true,        /* 副本内显示局部小地图 */
-    miniRadius:120,         /* 小地图本地视野半宽（世界单位） */
+    miniRadius:140,         /* 小地图本地视野半宽（世界单位） */
     miniMobR:110,           /* 显示附近野怪的距离 */
     miniLabelR:72,          /* 近距地标短标签 */
     miniParty:true,
