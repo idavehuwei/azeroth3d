@@ -448,6 +448,9 @@ assert(itemsSrc.includes("warbringer_spear")&&itemsSrc.includes("warbringer_plat
 assert(worldSrc.includes("centaurHerald")&&worldSrc.includes("worldBoss"),"world.js 支持世界 Boss 类型");
 assert(barrensSrc.includes("spawnRaresForZone"),"barrens.js 挂接稀有表");
 const mapSrc=fs.readFileSync(path.join(__dirname,"map.js"),"utf8");
+assert(mapSrc.includes("tryWorldMapFly")&&mapSrc.includes("hitContinentalZone"),"世界地图点击飞区");
+assert(mapSrc.includes("zoneTravelMinLevel")&&mapSrc.includes("zoneTravelGate"),"飞区等级锁与落点门");
+assert(mapSrc.includes("!S.god")||mapSrc.includes("S.god&&")||/S\.god/.test(mapSrc)&&mapSrc.includes("zoneTravelMinLevel"),"上帝模式绕过飞区等级锁");
 assert(mapSrc.includes("getRareMapEntries")||mapSrc.includes("m.rare"),"map.js 稀有点走 rare 标记");
 
 /* plan-V3 · C13 第二区域 + 小地图 + 世界地图 */
@@ -666,8 +669,15 @@ assert(ashenSrc.includes('id:"ashen_canyon"')&&ashenSrc.includes("buildAshenZone
 const orgSrc=fs.readFileSync(path.join(__dirname,"orgrimmar.js"),"utf8");
 const brSrc=fs.readFileSync(path.join(__dirname,"blackrock.js"),"utf8");
 assert(html.includes('src="orgrimmar.js"')&&html.includes('src="blackrock.js"'),"game.html 加载奥格瑞玛与黑石山");
+assert(mapSrc.includes("orgrimmar:")&&mapSrc.includes("blackrock:"),"MAP_ZONES 含奥格瑞玛与黑石山");
+assert(mapSrc.includes("ORG_PORTAL_N")&&mapSrc.includes("BR_PORTAL_MC")&&mapSrc.includes("portal_mc"),"liveLandmarkPos 接线奥格/黑石门");
+assert(mapSrc.includes("_mapPaintZoneId")&&mapSrc.includes("DUROTAR_PORTAL_N"),"门坐标按绘制区解析");
+assert(mapSrc.includes("continentalLinks")||coreSrc.includes("continentalLinks"),"大陆拼贴邻接连线");
 assert(orgSrc.includes('id:"orgrimmar"')&&orgSrc.includes("buildOrgrimmarZone"),"orgrimmar.js 注册并建造");
+assert(orgSrc.includes("updateOrgrimmarMarkers")&&orgSrc.includes("orgMarkerExcl"),"奥格瑞玛任务叹号");
 assert(brSrc.includes('id:"blackrock"')&&brSrc.includes("to_molten_core"),"blackrock.js 注册并含熔火入口");
+assert(brSrc.includes("updateBlackrockMarkers")&&brSrc.includes("brMarkerExcl"),"黑石山任务叹号");
+assert(worldSrc.includes("updateOrgrimmarMarkers")&&worldSrc.includes("updateBlackrockMarkers"),"updateNpcQuestMarkers 含奥格/黑石");
 assert(!worldSrc.includes('id:"to_molten_core"'),"莫高雷已移除熔火传送门");
 assert(raidSrc.includes('exitZone:"blackrock"'),"熔火团本出口回黑石山");
 const questSrc2=fs.readFileSync(path.join(__dirname,"quests.js"),"utf8");

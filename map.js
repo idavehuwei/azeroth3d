@@ -9,7 +9,7 @@
           rares.js 运行时（getRareMapEntries）· professions.js 运行时（GATHER_NODES）
           zones.js 运行时（getCurrentZoneId showZoneSplash）· terrain.js 运行时（heightAt）
    [导出] updateMinimap toggleWorldMap worldMapOpen closeWorldMap drawWorldMap
-          setMapPanelTab getMapPanelTab
+          setMapPanelTab getMapPanelTab tryWorldMapFly
           MAP_ZONES getActiveMapZone setMapZone mapWorldToCanvas playerMapFace
           ensureTerrainThumb
    ============================================================ */
@@ -92,7 +92,7 @@ const MAP_ZONES={
       {id:"valley",label:"石拳谷",x:0,z:0,color:"#ff9060",kind:"camp"},
       {id:"portal_s",label:T("zone.durotar"),x:0,z:290,color:"#ffb070",kind:"portal"},
       {id:"portal_n",label:T("zone.blackrock"),x:0,z:-290,color:"#ff6030",kind:"portal"},
-      {id:"thrall",label:"大酋长",x:2,z:-4,color:"#ffd9a0",kind:"npc"},
+      {id:"org_thrall",label:"大酋长",x:2,z:-4,color:"#ffd9a0",kind:"npc"},
       {id:"org_vendor",label:"军需官",x:-12,z:-8,color:"#8aff9a",kind:"npc"},
       {id:"spirit",label:"灵魂医者",x:10,z:10,color:"#a8d8ff",kind:"npc"},
     ],
@@ -104,7 +104,7 @@ const MAP_ZONES={
       bg:"#1a0804",
       fill:"rgba(160,50,30,.45)",
       stroke:"rgba(220,100,50,.55)",
-      road:[["valley","portal_s"],["valley","portal_n"]],
+      road:[["valley","portal_s"],["valley","portal_n"],["valley","org_thrall"]],
     },
   },
   blackrock:{
@@ -114,7 +114,7 @@ const MAP_ZONES={
     landmarks:[
       {id:"ridge",label:"黑曜山脊",x:0,z:0,color:"#c07040",kind:"camp"},
       {id:"portal_s",label:T("zone.orgrimmar"),x:0,z:270,color:"#ffb070",kind:"portal"},
-      {id:"portal",label:T("zone.molten_core"),x:0,z:-268,color:"#ff8a4a",kind:"portal"},
+      {id:"portal_mc",label:T("zone.molten_core"),x:0,z:-268,color:"#ff8a4a",kind:"portal"},
       {id:"br_scout",label:"黑牙",x:4,z:6,color:"#ff9060",kind:"npc"},
       {id:"spirit",label:"灵魂医者",x:-8,z:12,color:"#a8d8ff",kind:"npc"},
       {id:"slagking",label:"熔渣领主",x:-95,z:-55,color:"#ffd700",kind:"elite"},
@@ -127,7 +127,7 @@ const MAP_ZONES={
       bg:"#0c0604",
       fill:"rgba(80,30,20,.5)",
       stroke:"rgba(200,80,40,.55)",
-      road:[["ridge","portal_s"],["ridge","portal"]],
+      road:[["ridge","portal_s"],["ridge","portal_mc"],["ridge","br_scout"]],
     },
   },
   barrens:{
@@ -290,6 +290,8 @@ const _mm={cv:null,ctx:null,size:0};
 const _terrainThumbs={};
 const _wmapTiles={}; /* zoneId → canvas 缓存（大陆拼贴） */
 let _mapPanelTab="zone"; /* zone=当前区域 · world=大陆拼贴 */
+let _continentalHits=[]; /* 世界地图可点击区：{id,ox,oy,side} */
+let _continentalHoverId=null;
 
 function getMapPanelTab(){return _mapPanelTab==="world"?"world":"zone";}
 function setMapPanelTab(tab,opts){
@@ -357,6 +359,10 @@ function playerMapFace(){
   return(S.p&&S.p.face!=null)?S.p.face:0;
 }
 
+function _mapPaintZoneId(){
+  return _mapZoneId||(typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore");
+}
+
 function liveLandmarkPos(lm){
   if(lm.id==="elder"&&typeof elder!=="undefined")return {x:elder.position.x,z:elder.position.z};
   if(lm.id==="baine"&&typeof baine!=="undefined")return {x:baine.position.x,z:baine.position.z};
@@ -415,14 +421,33 @@ function liveLandmarkPos(lm){
     return {x:ochreVendor.position.x,z:ochreVendor.position.z};
   if(lm.id==="ochre_guard"&&typeof ochreGuard!=="undefined"&&ochreGuard)
     return {x:ochreGuard.position.x,z:ochreGuard.position.z};
+  if(lm.id==="org_thrall"&&typeof orgThrall!=="undefined"&&orgThrall)
+    return {x:orgThrall.position.x,z:orgThrall.position.z};
+  if(lm.id==="org_vendor"&&typeof orgVendor!=="undefined"&&orgVendor)
+    return {x:orgVendor.position.x,z:orgVendor.position.z};
+  if(lm.id==="br_scout"&&typeof brScout!=="undefined"&&brScout)
+    return {x:brScout.position.x,z:brScout.position.z};
   if(lm.id==="spirit"){
-    if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="barrens"&&typeof barrensSpirit!=="undefined"&&barrensSpirit)
+    const zid=_mapPaintZoneId();
+    if(zid==="barrens"&&typeof barrensSpirit!=="undefined"&&barrensSpirit)
       return {x:barrensSpirit.position.x,z:barrensSpirit.position.z};
-    if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="durotar"&&typeof durotarSpirit!=="undefined"&&durotarSpirit)
+    if(zid==="durotar"&&typeof durotarSpirit!=="undefined"&&durotarSpirit)
       return {x:durotarSpirit.position.x,z:durotarSpirit.position.z};
+    if(zid==="ashen_canyon"&&typeof ashenSpirit!=="undefined"&&ashenSpirit)
+      return {x:ashenSpirit.position.x,z:ashenSpirit.position.z};
+    if(zid==="orgrimmar"&&typeof orgSpirit!=="undefined"&&orgSpirit)
+      return {x:orgSpirit.position.x,z:orgSpirit.position.z};
+    if(zid==="blackrock"&&typeof brSpirit!=="undefined"&&brSpirit)
+      return {x:brSpirit.position.x,z:brSpirit.position.z};
     if(typeof spiritHealer!=="undefined")return {x:spiritHealer.position.x,z:spiritHealer.position.z};
   }
-  if(lm.id==="portal"&&typeof PORTAL_POS!=="undefined")return {x:PORTAL_POS.x,z:PORTAL_POS.z};
+  /* 团本门：勿与 mulgore PORTAL_POS 共用 id「portal」 */
+  if(lm.id==="portal_mc"&&typeof BR_PORTAL_MC!=="undefined")
+    return {x:BR_PORTAL_MC.x,z:BR_PORTAL_MC.z};
+  if(lm.id==="portal"){
+    const zid=_mapPaintZoneId();
+    if(zid==="mulgore"&&typeof PORTAL_POS!=="undefined")return {x:PORTAL_POS.x,z:PORTAL_POS.z};
+  }
   if(lm.id==="barrens"&&typeof PORTAL_BARRENS!=="undefined")return {x:PORTAL_BARRENS.x,z:PORTAL_BARRENS.z};
   if(lm.id==="camp"&&typeof BLOODHOOF!=="undefined")return {x:BLOODHOOF.x,z:BLOODHOOF.z};
   if(lm.id==="narache"&&typeof CAMP_NARACHE!=="undefined")return {x:CAMP_NARACHE.x,z:CAMP_NARACHE.z};
@@ -438,16 +463,28 @@ function liveLandmarkPos(lm){
     if(lm.id==="baeldun")return {x:MULGORE.baeldun.x,z:MULGORE.baeldun.z};
     if(lm.id==="venture")return {x:MULGORE.venture.x,z:MULGORE.venture.z};
   }
-  if(lm.id==="portal_n"&&typeof BARRENS_PORTAL_N!=="undefined")return {x:BARRENS_PORTAL_N.x,z:BARRENS_PORTAL_N.z};
-  if(lm.id==="portal_s"&&typeof BARRENS_PORTAL_S!=="undefined")return {x:BARRENS_PORTAL_S.x,z:BARRENS_PORTAL_S.z};
+  if(lm.id==="portal_n"){
+    const zid=_mapPaintZoneId();
+    if(zid==="orgrimmar"&&typeof ORG_PORTAL_N!=="undefined")return {x:ORG_PORTAL_N.x,z:ORG_PORTAL_N.z};
+    if(zid==="durotar"&&typeof DUROTAR_PORTAL_N!=="undefined")return {x:DUROTAR_PORTAL_N.x,z:DUROTAR_PORTAL_N.z};
+    if(typeof BARRENS_PORTAL_N!=="undefined")return {x:BARRENS_PORTAL_N.x,z:BARRENS_PORTAL_N.z};
+  }
+  if(lm.id==="portal_s"){
+    const zid=_mapPaintZoneId();
+    if(zid==="orgrimmar"&&typeof ORG_PORTAL_S!=="undefined")return {x:ORG_PORTAL_S.x,z:ORG_PORTAL_S.z};
+    if(zid==="blackrock"&&typeof BR_PORTAL_S!=="undefined")return {x:BR_PORTAL_S.x,z:BR_PORTAL_S.z};
+    if(typeof BARRENS_PORTAL_S!=="undefined")return {x:BARRENS_PORTAL_S.x,z:BARRENS_PORTAL_S.z};
+  }
   if(lm.id==="portal_e"){
-    if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="durotar"&&typeof DUROTAR_PORTAL_E!=="undefined")
-      return {x:DUROTAR_PORTAL_E.x,z:DUROTAR_PORTAL_E.z};
+    const zid=_mapPaintZoneId();
+    if(zid==="durotar"&&typeof DUROTAR_PORTAL_E!=="undefined")return {x:DUROTAR_PORTAL_E.x,z:DUROTAR_PORTAL_E.z};
+    if(zid==="ashen_canyon"&&typeof ASHEN_PORTAL_E!=="undefined")return {x:ASHEN_PORTAL_E.x,z:ASHEN_PORTAL_E.z};
     if(typeof BARRENS_PORTAL_E!=="undefined")return {x:BARRENS_PORTAL_E.x,z:BARRENS_PORTAL_E.z};
   }
   if(lm.id==="portal_w"){
-    if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="durotar"&&typeof DUROTAR_PORTAL_W!=="undefined")
-      return {x:DUROTAR_PORTAL_W.x,z:DUROTAR_PORTAL_W.z};
+    const zid=_mapPaintZoneId();
+    if(zid==="durotar"&&typeof DUROTAR_PORTAL_W!=="undefined")return {x:DUROTAR_PORTAL_W.x,z:DUROTAR_PORTAL_W.z};
+    if(zid==="ashen_canyon"&&typeof ASHEN_PORTAL_W!=="undefined")return {x:ASHEN_PORTAL_W.x,z:ASHEN_PORTAL_W.z};
     if(typeof BARRENS_PORTAL_W!=="undefined")return {x:BARRENS_PORTAL_W.x,z:BARRENS_PORTAL_W.z};
   }
   if(lm.id==="crossroads"&&typeof crossroadsSentinel!=="undefined"&&crossroadsSentinel)
@@ -493,6 +530,12 @@ function drawTerrain(ctx,size,pad,zone,view){
       g.addColorStop(0,"#3a2a14"); g.addColorStop(.55,"#241808"); g.addColorStop(1,"#120e06");
     }else if(zone.id==="durotar"){
       g.addColorStop(0,"#4a2010"); g.addColorStop(.55,"#2a1208"); g.addColorStop(1,"#140806");
+    }else if(zone.id==="orgrimmar"){
+      g.addColorStop(0,"#5a2010"); g.addColorStop(.5,"#2a1008"); g.addColorStop(1,"#120604");
+    }else if(zone.id==="blackrock"){
+      g.addColorStop(0,"#3a1008"); g.addColorStop(.45,"#1a0804"); g.addColorStop(1,"#080402");
+    }else if(zone.id==="ashen_canyon"){
+      g.addColorStop(0,"#3a1810"); g.addColorStop(.55,"#1a0c08"); g.addColorStop(1,"#0c0604");
     }else{
       g.addColorStop(0,"#2a3a1a"); g.addColorStop(.55,"#1a2810"); g.addColorStop(1,"#0c1008");
     }
@@ -932,7 +975,85 @@ function zoneMapFocusId(){
   return"mulgore";
 }
 
+function zoneTravelMinLevel(zid){
+  if(zid==="barrens")return (BAL.barrens&&BAL.barrens.minLevel)|0||6;
+  if(zid==="durotar")return (BAL.durotar&&BAL.durotar.minLevel)|0||12;
+  if(zid==="orgrimmar")return (BAL.orgrimmar&&BAL.orgrimmar.minLevel)|0||12;
+  if(zid==="blackrock")return (BAL.blackrock&&BAL.blackrock.minLevel)|0||14;
+  if(zid==="ashen_canyon")return (BAL.ashenCanyon&&BAL.ashenCanyon.minLevel)|0||6;
+  return 1;
+}
+function zoneTravelGate(zid){
+  const z=typeof ZONES!=="undefined"?ZONES[zid]:null;
+  if(!z||!z.gates)return"default";
+  if(z.gates.camp)return"camp";
+  if(z.gates.valley)return"valley";
+  if(z.gates.ridge)return"ridge";
+  if(z.gates.default)return"default";
+  return Object.keys(z.gates)[0]||"default";
+}
+/** 世界地图点击飞往目标区（受等级锁；副本中禁用） */
+function tryWorldMapFly(zoneId){
+  if(!zoneId)return false;
+  if(typeof ZONES==="undefined"||!ZONES[zoneId]){
+    if(typeof announce==="function")announce("未知区域");
+    return false;
+  }
+  if(typeof S==="undefined"||!S.started)return false;
+  if(S.mode==="transition")return false;
+  if(S.mode==="raid"){
+    if(typeof announce==="function")announce("副本中请先走出出口传送门");
+    return false;
+  }
+  if(S.p&&S.p.ghost){
+    if(typeof announce==="function")announce("灵魂状态无法远行");
+    return false;
+  }
+  if(S.p&&!S.p.alive){
+    if(typeof announce==="function")announce("倒下时无法飞往他处");
+    return false;
+  }
+  const cur=typeof getCurrentZoneId==="function"?getCurrentZoneId():null;
+  if(zoneId===cur){
+    closeWorldMap();
+    return true;
+  }
+  const need=zoneTravelMinLevel(zoneId)|0;
+  const lv=(S.p&&S.p.level)|0;
+  if(!S.god&&lv<need){
+    if(typeof announce==="function")announce(`等级不足！需要 Lv.${need}`);
+    if(typeof log==="function")log(`世界地图纹丝不动……（Lv.${lv} / 需要 Lv.${need}）`,"lg-sys");
+    return false;
+  }
+  if(typeof enterZone!=="function")return false;
+  const name=(MAP_ZONES[zoneId]&&MAP_ZONES[zoneId].name)
+    ||(typeof T==="function"?T("zone."+zoneId):zoneId);
+  closeWorldMap();
+  if(typeof log==="function")log("你借助地图的指引，飞往"+name+"……","lg-sys");
+  if(typeof announce==="function")announce("飞往 · "+name);
+  return !!enterZone(zoneId,zoneTravelGate(zoneId));
+}
+function worldMapCanvasPos(cv,e){
+  const r=cv.getBoundingClientRect();
+  if(!r.width||!r.height)return null;
+  return{
+    x:(e.clientX-r.left)*(cv.width/r.width),
+    y:(e.clientY-r.top)*(cv.height/r.height),
+  };
+}
+function hitContinentalZone(mx,my){
+  for(let i=_continentalHits.length-1;i>=0;i--){
+    const h=_continentalHits[i];
+    if(mx>=h.ox&&my>=h.oy&&mx<=h.ox+h.side&&my<=h.oy+h.side)return h.id;
+  }
+  return null;
+}
+
 function drawZoneMapPanel(ctx,sz){
+  _continentalHits=[];
+  _continentalHoverId=null;
+  const cv=$("#worldMap");
+  if(cv)cv.style.cursor="default";
   const zid=zoneMapFocusId();
   const zone=MAP_ZONES[zid]||MAP_ZONES.mulgore;
   const titleEl=$("#worldMapTitle");
@@ -965,9 +1086,30 @@ function drawContinentalMapPanel(ctx,sz){
   const cur=typeof getCurrentZoneId==="function"?getCurrentZoneId():(_mapZoneId||"mulgore");
   const qf=typeof getQuestMapFocus==="function"?getQuestMapFocus():null;
   const qZone=qf&&qf.zone?qf.zone:null;
+  const lv=(typeof S!=="undefined"&&S.p&&S.p.level)|0;
+  _continentalHits=[];
 
   ctx.fillStyle="#080a06";
   ctx.fillRect(0,0,sz,sz);
+
+  /* 邻接连线（画在缩略格之下） */
+  const links=(BAL.map&&BAL.map.continentalLinks)||[
+    ["mulgore","barrens"],["barrens","durotar"],["durotar","orgrimmar"],["orgrimmar","blackrock"],
+  ];
+  const cellCenter=id=>{
+    const c=layout.find(x=>x.id===id); if(!c)return null;
+    return {u:(c.x+c.w*.5)*sz, v:(c.y+c.h*.5)*sz};
+  };
+  ctx.save();
+  ctx.strokeStyle="rgba(255,160,80,.35)";
+  ctx.lineWidth=2;
+  ctx.setLineDash([6,5]);
+  for(const [a,b] of links){
+    const pa=cellCenter(a), pb=cellCenter(b);
+    if(!pa||!pb)continue;
+    ctx.beginPath(); ctx.moveTo(pa.u,pa.v); ctx.lineTo(pb.u,pb.v); ctx.stroke();
+  }
+  ctx.restore();
 
   for(const cell of layout){
     const zone=MAP_ZONES[cell.id];
@@ -975,25 +1117,48 @@ function drawContinentalMapPanel(ctx,sz){
     const x=cell.x*sz, y=cell.y*sz, w=cell.w*sz, h=cell.h*sz;
     const side=Math.max(8,Math.floor(Math.min(w,h)));
     const ox=x+(w-side)/2, oy=y+(h-side)/2;
+    _continentalHits.push({id:cell.id,ox,oy,side});
     ctx.drawImage(getContinentalTile(cell.id,side),ox,oy);
 
+    const need=zoneTravelMinLevel(cell.id)|0;
+    const locked=!(typeof S!=="undefined"&&S.god)&&lv<need;
     const isCur=cell.id===cur||(cur==="molten_core"&&cell.id==="blackrock");
     const isQuest=qZone&&qZone===cell.id;
-    ctx.strokeStyle=isQuest?"#ffe9a0":(isCur?"#ff9a55":"rgba(180,140,80,.45)");
-    ctx.lineWidth=isQuest||isCur?3:1.5;
+    const isHover=_continentalHoverId===cell.id;
+
+    if(locked){
+      ctx.fillStyle="rgba(6,4,2,.52)";
+      ctx.fillRect(ox,oy,side,side);
+    }
+    if(isHover&&!locked){
+      ctx.fillStyle="rgba(255,180,80,.12)";
+      ctx.fillRect(ox,oy,side,side);
+    }
+
+    ctx.strokeStyle=isHover?"#ffe0a0":(isQuest?"#ffe9a0":(isCur?"#ff9a55":"rgba(180,140,80,.45)"));
+    ctx.lineWidth=isHover||isQuest||isCur?3:1.5;
     ctx.strokeRect(ox+.5,oy+.5,side-1,side-1);
     if(isQuest){
       ctx.fillStyle="rgba(255,230,140,.12)";
       ctx.fillRect(ox,oy,side,side);
     }
-    ctx.fillStyle=isCur?"#ffcf98":"#c9a06a";
+    ctx.fillStyle=locked?"#9a8070":(isCur?"#ffcf98":"#c9a06a");
     ctx.font="bold 12px 'Noto Sans SC','Microsoft YaHei',sans-serif";
     ctx.textAlign="left";
     ctx.fillText(zone.name||cell.id,ox+8,oy+16);
-    if(isQuest){
+    if(locked){
+      ctx.fillStyle="#ff9060";
+      ctx.font="bold 11px 'Noto Sans SC','Microsoft YaHei',sans-serif";
+      ctx.fillText("Lv."+need+"+",ox+8,oy+32);
+    }else if(isQuest){
       ctx.fillStyle="#ffe9a0";
       ctx.font="10px 'Noto Sans SC','Microsoft YaHei',sans-serif";
       ctx.fillText("✦ 任务",ox+8,oy+30);
+    }
+    if(cell.id==="blackrock"){
+      ctx.fillStyle=locked?"#a06040":"#ff8a4a";
+      ctx.font="10px 'Noto Sans SC','Microsoft YaHei',sans-serif";
+      ctx.fillText("↑ "+((typeof T==="function"?T("zone.molten_core"):null)||"炽心熔窟"),ox+8,oy+side-10);
     }
   }
 
@@ -1032,7 +1197,8 @@ function drawContinentalMapPanel(ctx,sz){
       `<span><i style="background:#ff9a55"></i>当前区</span>`+
       `<span><i style="background:#ffe9a0"></i>任务区</span>`+
       `<span><i style="background:#7ab8ff"></i>你的位置</span>`+
-      `<span>点「当前区域」查看单区详图</span>`;
+      `<span><i style="background:#ff9060"></i>等级不足</span>`+
+      `<span>点击区域格飞往（受等级限制）</span>`;
   }
 }
 
@@ -1073,5 +1239,35 @@ if(_mapTabsEl){
     setMapPanelTab(btn.getAttribute("data-map-tab"));
   });
 }
+(function bindWorldMapFly(){
+  const cv=$("#worldMap");
+  if(!cv)return;
+  cv.addEventListener("mousemove",e=>{
+    if(!worldMapOpen()||getMapPanelTab()!=="world"){
+      cv.style.cursor="default";
+      if(_continentalHoverId){_continentalHoverId=null;drawWorldMap();}
+      return;
+    }
+    const p=worldMapCanvasPos(cv,e);
+    if(!p)return;
+    const id=hitContinentalZone(p.x,p.y);
+    cv.style.cursor=id?"pointer":"default";
+    if(id!==_continentalHoverId){
+      _continentalHoverId=id;
+      drawWorldMap();
+    }
+  });
+  cv.addEventListener("mouseleave",()=>{
+    cv.style.cursor="default";
+    if(_continentalHoverId){_continentalHoverId=null;if(worldMapOpen())drawWorldMap();}
+  });
+  cv.addEventListener("click",e=>{
+    if(!worldMapOpen()||getMapPanelTab()!=="world")return;
+    const p=worldMapCanvasPos(cv,e);
+    if(!p)return;
+    const id=hitContinentalZone(p.x,p.y);
+    if(id)tryWorldMapFly(id);
+  });
+})();
 
-console.info("[map] 小地图=当前区局部 · M/点击打开区域地图（Tab 切世界地图）");
+console.info("[map] 小地图=当前区局部 · M 开地图 · 世界地图点击飞区");

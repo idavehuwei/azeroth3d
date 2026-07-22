@@ -11,7 +11,9 @@
           combat.js 运行时（S log announce）
    [导出] sceneBlackrock BLACKROCK_R BR_PORTAL_S BR_PORTAL_MC
           buildBlackrockZone tryInteractBlackrock
+          updateBlackrockMarkers brScoutDist brSpiritDist
           brHeli brSun brFlames blackrockPortalUni
+          brMarkerExcl brMarkerExclGrey brMarkerQ
    ============================================================ */
 "use strict";
 
@@ -24,6 +26,7 @@ let brHeli=null,brSun=null;
 const brFlames=[];
 let brScout=null,brSpirit=null;
 let blackrockPortalUni=null;
+let brMarkerExcl=null,brMarkerExclGrey=null,brMarkerQ=null;
 
 function buildBlackrockZone(scn){
   const root=scn||sceneBlackrock;
@@ -151,7 +154,9 @@ function buildBlackrockZone(scn){
   const mcLab2=makeLabel("· 团队副本入口 ·",7,"#ffb060","rgba(120,30,8,.9)");
   mcLab2.position.set(BR_PORTAL_MC.x,12.1,BR_PORTAL_MC.z); root.add(mcLab2);
 
-  const _npcLy=(BAL.npc&&BAL.npc.labelY)||3.85, _npcLw=(BAL.npc&&BAL.npc.labelW)||3.6;
+  const _npcLy=(BAL.npc&&BAL.npc.labelY)||3.85;
+  const _npcMy=(BAL.npc&&BAL.npc.markerY)||6.55;
+  const _npcLw=(BAL.npc&&BAL.npc.labelW)||3.6;
   brScout=typeof tintNpcCloth==="function"?tintNpcCloth(buildVendor(),0x4a1810):buildVendor();
   brScout.position.set(4,0,6); brScout.rotation.y=Math.PI; root.add(brScout);
   const scoutLab=makeNameplate("斥候 · 黑牙",BAL.npcLevel.br_scout||22,{w:_npcLw,friendly:true,color:"#ff9060"});
@@ -163,6 +168,13 @@ function buildBlackrockZone(scn){
   const spLab=makeNameplate("灵魂医者 · 岩烬",BAL.npcLevel.spirit,{w:_npcLw+.2,friendly:true,color:"#a8d8ff",glow:"rgba(40,80,120,.9)"});
   spLab.position.set(-8,_npcLy,12); root.add(spLab);
   updateNameplateHp(spLab,1,1);
+
+  brMarkerExcl=makeQuestMark("offer");
+  brMarkerExcl.position.set(4,_npcMy,6); root.add(brMarkerExcl);
+  brMarkerExclGrey=makeQuestMark("low");
+  brMarkerExclGrey.position.copy(brMarkerExcl.position); brMarkerExclGrey.visible=false; root.add(brMarkerExclGrey);
+  brMarkerQ=makeQuestMark("turnin");
+  brMarkerQ.position.copy(brMarkerExcl.position); brMarkerQ.visible=false; root.add(brMarkerQ);
 
   placeProp(root,buildGraveyard({size:.95}),-6,14,Math.PI*.2);
   if(typeof registerGraveyard==="function"){
@@ -188,6 +200,28 @@ function buildBlackrockZone(scn){
       portals:[{x:BR_PORTAL_S.x,z:BR_PORTAL_S.z},{x:BR_PORTAL_MC.x,z:BR_PORTAL_MC.z}],
     });
   }
+  updateBlackrockMarkers();
+}
+
+function updateBlackrockMarkers(){
+  if(!brMarkerExcl)return;
+  const m={npcId:"br_scout",excl:brMarkerExcl,exclGrey:brMarkerExclGrey,q:brMarkerQ};
+  if(typeof applyNpcQuestMarkerVisual==="function"){applyNpcQuestMarkerVisual(m);return;}
+  if(typeof npcHasQuestOffer==="function"){
+    brMarkerExcl.visible=npcHasQuestOffer("br_scout");
+    brMarkerQ.visible=npcHasQuestTurnIn("br_scout");
+    return;
+  }
+  brMarkerExcl.visible=false;
+  brMarkerQ.visible=false;
+}
+function brScoutDist(){
+  if(!brScout)return 999;
+  return Math.hypot(player.position.x-brScout.position.x,player.position.z-brScout.position.z);
+}
+function brSpiritDist(){
+  if(!brSpirit)return 999;
+  return Math.hypot(player.position.x-brSpirit.position.x,player.position.z-brSpirit.position.z);
 }
 
 function openBlackrockScoutDialogue(){
@@ -280,6 +314,7 @@ registerZone({
     if(opts&&opts.silent)return;
     if(fromId==="orgrimmar")log("黑曜山脊与熔岩裂隙——你已踏入"+T("zone.blackrock")+"。","lg-sys");
     if(fromId==="molten_core")log(typeof T==="function"?T("zone.leave_molten_roar"):"你退出炽心熔窟，黑石山的热风扑面而来。","lg-sys");
+    updateBlackrockMarkers();
     if(typeof updateQuest==="function")updateQuest();
   },
   onLeave(){},

@@ -13,7 +13,9 @@
           save.js 运行时（saveGame）
    [导出] sceneOrgrimmar ORGRIMMAR_R ORG_PORTAL_S ORG_PORTAL_N
           buildOrgrimmarZone tryInteractOrgrimmar
+          updateOrgrimmarMarkers orgThrallDist orgSpiritDist orgVendorDist
           orgHeli orgSun orgFlames
+          orgMarkerExcl orgMarkerExclGrey orgMarkerQ
    ============================================================ */
 "use strict";
 
@@ -26,6 +28,7 @@ let orgHeli=null,orgSun=null;
 const orgFlames=[];
 let orgThrall=null,orgVendor=null,orgSpirit=null;
 let orgPortalUniS=null,orgPortalUniN=null;
+let orgMarkerExcl=null,orgMarkerExclGrey=null,orgMarkerQ=null;
 
 function _orgGate(root,pos,label,sub,uniRef,colorA,colorB){
   const mat=MAT.get("wood.org_gate",{color:0x5a2810,roughness:.9,flatShading:true,
@@ -133,7 +136,9 @@ function buildOrgrimmarZone(scn){
   orgPortalUniN=_orgGate(root,ORG_PORTAL_N,T("zone.blackrock"),`黑石山 · Lv.${(BAL.blackrock&&BAL.blackrock.minLevel)||14}+`,null,
     "1.,.45,.15",".55,.08,.02");
 
-  const _npcLy=(BAL.npc&&BAL.npc.labelY)||3.85, _npcLw=(BAL.npc&&BAL.npc.labelW)||3.6;
+  const _npcLy=(BAL.npc&&BAL.npc.labelY)||3.85;
+  const _npcMy=(BAL.npc&&BAL.npc.markerY)||6.55;
+  const _npcLw=(BAL.npc&&BAL.npc.labelW)||3.6;
 
   orgThrall=buildElder();
   if(typeof tintNpcCloth==="function")tintNpcCloth(orgThrall,0x8a2010);
@@ -154,6 +159,13 @@ function buildOrgrimmarZone(scn){
   spLab.position.set(10,_npcLy,10); root.add(spLab);
   updateNameplateHp(spLab,1,1);
 
+  orgMarkerExcl=makeQuestMark("offer");
+  orgMarkerExcl.position.set(2,_npcMy,-4); root.add(orgMarkerExcl);
+  orgMarkerExclGrey=makeQuestMark("low");
+  orgMarkerExclGrey.position.copy(orgMarkerExcl.position); orgMarkerExclGrey.visible=false; root.add(orgMarkerExclGrey);
+  orgMarkerQ=makeQuestMark("turnin");
+  orgMarkerQ.position.copy(orgMarkerExcl.position); orgMarkerQ.visible=false; root.add(orgMarkerQ);
+
   placeProp(root,buildGraveyard({size:1}),8,14,Math.PI*.1);
   if(typeof registerGraveyard==="function")registerGraveyard("orgrimmar",8,14,"camp");
   if(BAL.death&&BAL.death.spawns)BAL.death.spawns.orgrimmar={x:8,z:14};
@@ -165,6 +177,32 @@ function buildOrgrimmarZone(scn){
       portals:[{x:ORG_PORTAL_S.x,z:ORG_PORTAL_S.z},{x:ORG_PORTAL_N.x,z:ORG_PORTAL_N.z}],
     });
   }
+  updateOrgrimmarMarkers();
+}
+
+function updateOrgrimmarMarkers(){
+  if(!orgMarkerExcl)return;
+  const m={npcId:"org_thrall",excl:orgMarkerExcl,exclGrey:orgMarkerExclGrey,q:orgMarkerQ};
+  if(typeof applyNpcQuestMarkerVisual==="function"){applyNpcQuestMarkerVisual(m);return;}
+  if(typeof npcHasQuestOffer==="function"){
+    orgMarkerExcl.visible=npcHasQuestOffer("org_thrall");
+    orgMarkerQ.visible=npcHasQuestTurnIn("org_thrall");
+    return;
+  }
+  orgMarkerExcl.visible=false;
+  orgMarkerQ.visible=false;
+}
+function orgThrallDist(){
+  if(!orgThrall)return 999;
+  return Math.hypot(player.position.x-orgThrall.position.x,player.position.z-orgThrall.position.z);
+}
+function orgSpiritDist(){
+  if(!orgSpirit)return 999;
+  return Math.hypot(player.position.x-orgSpirit.position.x,player.position.z-orgSpirit.position.z);
+}
+function orgVendorDist(){
+  if(!orgVendor)return 999;
+  return Math.hypot(player.position.x-orgVendor.position.x,player.position.z-orgVendor.position.z);
 }
 
 function openOrgrimmarThrallDialogue(){
@@ -259,6 +297,7 @@ registerZone({
     if(opts&&opts.silent)return;
     if(fromId==="durotar")log("鼓声与铁甲碰撞——你踏入"+T("zone.orgrimmar")+"。","lg-sys");
     if(fromId==="blackrock")log("你离开黑石山的硫磺味，重回兽人主城。","lg-sys");
+    updateOrgrimmarMarkers();
     if(typeof updateQuest==="function")updateQuest();
   },
   onLeave(){},

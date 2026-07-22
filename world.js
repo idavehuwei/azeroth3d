@@ -698,6 +698,9 @@ function updateNpcQuestMarkers(){
   setMarker();
   if(typeof updateBarrensMarkers==="function")updateBarrensMarkers();
   if(typeof updateDurotarMarkers==="function")updateDurotarMarkers();
+  if(typeof updateAshenMarkers==="function")updateAshenMarkers();
+  if(typeof updateOrgrimmarMarkers==="function")updateOrgrimmarMarkers();
+  if(typeof updateBlackrockMarkers==="function")updateBlackrockMarkers();
 }
 /* 灵魂医者（STEP 15） */
 const spiritHealer=buildSpiritHealer();

@@ -236,6 +236,8 @@ function tickFrame(){
   if(durotarPortalUni&&durotarPortalUni.uTime)durotarPortalUni.uTime.value=S.t;
   if(durotarRagefirePortalUni&&durotarRagefirePortalUni.uTime)durotarRagefirePortalUni.uTime.value=S.t;
   if(typeof durotarOrgPortalUni!=="undefined"&&durotarOrgPortalUni&&durotarOrgPortalUni.uTime)durotarOrgPortalUni.uTime.value=S.t;
+  if(typeof orgPortalUniS!=="undefined"&&orgPortalUniS&&orgPortalUniS.uTime)orgPortalUniS.uTime.value=S.t;
+  if(typeof orgPortalUniN!=="undefined"&&orgPortalUniN&&orgPortalUniN.uTime)orgPortalUniN.uTime.value=S.t;
   if(typeof blackrockPortalUni!=="undefined"&&blackrockPortalUni&&blackrockPortalUni.uTime)blackrockPortalUni.uTime.value=S.t;
 
   /* 火星上升 */
@@ -539,6 +541,48 @@ function tickFrame(){
         $("#interactBtn").style.display=(nearNpc&&!dlgOpen&&!vendOpen)?"block":"none";
         if(emberScoutDist()>8&&ashenSpiritDist()>8
           &&!(typeof emberVendorDist==="function"&&emberVendorDist()<=8)&&!nearGather)closeDialogue();
+      }else if(zid==="orgrimmar"&&typeof orgThrallDist==="function"){
+        if(orgThrall){
+          orgThrall.rotation.y=Math.PI+Math.sin(S.t*.7)*.08;
+          orgThrall.position.y=Math.sin(S.t*1.5)*.04;
+        }
+        {
+          const base=(BAL.npc&&BAL.npc.markerY)||6.55;
+          const y=typeof questMarkBobY==="function"?questMarkBobY(base,S.t,.25):base+Math.sin(S.t*2.65)*.42;
+          if(orgMarkerExcl)orgMarkerExcl.position.y=y;
+          if(orgMarkerExclGrey)orgMarkerExclGrey.position.y=y;
+          if(orgMarkerQ)orgMarkerQ.position.y=y;
+        }
+        const nearR=BAL.economy.interactR;
+        const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||nearR);
+        const nearNpc=(S.p.alive||S.p.ghost)&&(orgThrallDist()<nearR||orgSpiritDist()<nearR
+          ||(typeof orgVendorDist==="function"&&orgVendorDist()<nearR)||nearGather
+          ||(S.p.ghost&&typeof nearPlayerCorpse==="function"&&nearPlayerCorpse()));
+        const dlgOpen=$("#dlg").style.display==="block";
+        const vendOpen=$("#vendorPanel")&&$("#vendorPanel").style.display==="block";
+        $("#interactBtn").style.display=(nearNpc&&!dlgOpen&&!vendOpen)?"block":"none";
+        if(orgThrallDist()>8&&orgSpiritDist()>8
+          &&!(typeof orgVendorDist==="function"&&orgVendorDist()<=8)&&!nearGather)closeDialogue();
+      }else if(zid==="blackrock"&&typeof brScoutDist==="function"){
+        if(brScout){
+          brScout.rotation.y=Math.PI+Math.sin(S.t*.7)*.08;
+          brScout.position.y=Math.sin(S.t*1.5)*.04;
+        }
+        {
+          const base=(BAL.npc&&BAL.npc.markerY)||6.55;
+          const y=typeof questMarkBobY==="function"?questMarkBobY(base,S.t,.3):base+Math.sin(S.t*2.65)*.42;
+          if(brMarkerExcl)brMarkerExcl.position.y=y;
+          if(brMarkerExclGrey)brMarkerExclGrey.position.y=y;
+          if(brMarkerQ)brMarkerQ.position.y=y;
+        }
+        const nearR=BAL.economy.interactR;
+        const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||nearR);
+        const nearNpc=(S.p.alive||S.p.ghost)&&(brScoutDist()<nearR||brSpiritDist()<nearR||nearGather
+          ||(S.p.ghost&&typeof nearPlayerCorpse==="function"&&nearPlayerCorpse()));
+        const dlgOpen=$("#dlg").style.display==="block";
+        const vendOpen=$("#vendorPanel")&&$("#vendorPanel").style.display==="block";
+        $("#interactBtn").style.display=(nearNpc&&!dlgOpen&&!vendOpen)?"block":"none";
+        if(brScoutDist()>8&&brSpiritDist()>8&&!nearGather)closeDialogue();
       }
     }
     /* ---- 掉落动画 & 拾取按钮（世界/副本通用，STEP 2） ---- */
@@ -561,14 +605,21 @@ function tickFrame(){
           ?durotarSpiritDist()<R
           :(zid==="ashen_canyon"&&typeof ashenSpiritDist==="function"
             ?ashenSpiritDist()<R
-            :spiritDist()<R));
+            :(zid==="orgrimmar"&&typeof orgSpiritDist==="function"
+              ?orgSpiritDist()<R
+              :(zid==="blackrock"&&typeof brSpiritDist==="function"
+                ?brSpiritDist()<R
+                :spiritDist()<R))));
       const nearV=(zid==="mulgore"&&vendorDist()<R)
         ||(zid==="barrens"&&typeof barrensVendorDist==="function"&&barrensVendorDist()<R)
         ||(zid==="durotar"&&typeof ochreVendorDist==="function"&&ochreVendorDist()<R)
-        ||(zid==="ashen_canyon"&&typeof emberVendorDist==="function"&&emberVendorDist()<R);
+        ||(zid==="ashen_canyon"&&typeof emberVendorDist==="function"&&emberVendorDist()<R)
+        ||(zid==="orgrimmar"&&typeof orgVendorDist==="function"&&orgVendorDist()<R);
       const nearC=(zid==="barrens"&&typeof nearBarrensNpc==="function"&&nearBarrensNpc(R))
         ||(zid==="durotar"&&typeof ochreOutpostDist==="function"&&ochreOutpostDist()<R)
         ||(zid==="ashen_canyon"&&typeof emberScoutDist==="function"&&emberScoutDist()<R)
+        ||(zid==="orgrimmar"&&typeof orgThrallDist==="function"&&orgThrallDist()<R)
+        ||(zid==="blackrock"&&typeof brScoutDist==="function"&&brScoutDist()<R)
         ||(zid==="mulgore"&&typeof hunterDist==="function"&&hunterDist()<R)
         ||(zid==="durotar"&&typeof ochreGuardDist==="function"&&ochreGuardDist()<R)
         ||(zid==="mulgore"&&elderDist()<R);

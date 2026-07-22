@@ -988,12 +988,17 @@ const BALANCE={
     terrainThumbN:72,       /* C13：mulgore 高度场降采样边长 */
     /* C13：大陆拼贴布局（归一化 0–1 相对世界地图画布） */
     continental:[
-      {id:"mulgore",  x:.04,y:.08,w:.36,h:.50},
-      {id:"ashen_canyon", x:.40,y:.06,w:.24,h:.28},
-      {id:"barrens",  x:.42,y:.28,w:.36,h:.36},
-      {id:"durotar",  x:.42,y:.66,w:.28,h:.20},
-      {id:"orgrimmar", x:.70,y:.58,w:.26,h:.22},
-      {id:"blackrock", x:.72,y:.28,w:.24,h:.28},
+      {id:"mulgore",  x:.02,y:.10,w:.34,h:.48},
+      {id:"ashen_canyon", x:.36,y:.06,w:.22,h:.26},
+      {id:"barrens",  x:.38,y:.30,w:.32,h:.34},
+      {id:"durotar",  x:.38,y:.66,w:.26,h:.22},
+      {id:"orgrimmar", x:.64,y:.56,w:.30,h:.26},
+      {id:"blackrock", x:.66,y:.22,w:.30,h:.32},
+    ],
+    /* 大陆拼贴邻接示意（中心连线） */
+    continentalLinks:[
+      ["mulgore","barrens"],["mulgore","ashen_canyon"],
+      ["barrens","durotar"],["durotar","orgrimmar"],["orgrimmar","blackrock"],
     ],
     splashMs:2800,          /* 区域名淡入停留 */
   },
