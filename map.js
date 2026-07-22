@@ -6,9 +6,11 @@
    [依赖] core.js（$ BAL）· combat.js（S）· world.js（player WORLD_R PORTAL_POS
           elder vendor spiritHealer MOBS）· panels.js（closeAllHudPanels）
           zones.js 运行时（getCurrentZoneId）· raid.js 运行时（ARENA_R）
-          rares.js 运行时（getRareMapEntries）
+          rares.js 运行时（getRareMapEntries）· professions.js 运行时（GATHER_NODES）
+          zones.js 运行时（getCurrentZoneId showZoneSplash）· terrain.js 运行时（heightAt）
    [导出] updateMinimap toggleWorldMap worldMapOpen closeWorldMap drawWorldMap
           MAP_ZONES getActiveMapZone setMapZone mapWorldToCanvas playerMapFace
+          ensureTerrainThumb
    ============================================================ */
 "use strict";
 
@@ -209,6 +211,39 @@ function getActiveMapZone(){return MAP_ZONES[_mapZoneId]||MAP_ZONES.mulgore;}
 function setMapZone(id){if(MAP_ZONES[id])_mapZoneId=id;}
 
 const _mm={cv:null,ctx:null,size:0};
+const _terrainThumbs={};
+const _wmapTiles={}; /* zoneId → canvas 缓存（大陆拼贴） */
+
+/** C13：mulgore 高度场降采样成俯视缩略图（其它区返回 null，走渐变） */
+function ensureTerrainThumb(zoneId){
+  if(_terrainThumbs[zoneId])return _terrainThumbs[zoneId];
+  if(zoneId!=="mulgore"||typeof heightAt!=="function")return null;
+  const N=(BAL.map&&BAL.map.terrainThumbN)|0||72;
+  const R=typeof WORLD_R==="number"?WORLD_R:352;
+  const cv=document.createElement("canvas");
+  cv.width=N; cv.height=N;
+  const ctx=cv.getContext("2d");
+  const img=ctx.createImageData(N,N);
+  const d=img.data;
+  for(let j=0;j<N;j++){
+    for(let i=0;i<N;i++){
+      const x=(i/(N-1)*2-1)*R;
+      const z=(j/(N-1)*2-1)*R;
+      const h=heightAt(x,z);
+      const o=(j*N+i)*4;
+      let r,g,b;
+      if(h<-1.2){r=40;g=90;b=140;}
+      else if(h<0.4){r=55;g=95;b=40;}
+      else if(h<3.5){r=70;g=110;b=45;}
+      else if(h<8){r=110;g=95;b=55;}
+      else{r=150;g=140;b=120;}
+      d[o]=r; d[o+1]=g; d[o+2]=b; d[o+3]=255;
+    }
+  }
+  ctx.putImageData(img,0,0);
+  _terrainThumbs[zoneId]=cv;
+  return cv;
+}
 
 /**
  * 世界 XZ → 画布 UV
@@ -334,15 +369,36 @@ function drawTerrain(ctx,size,pad,zone,view){
   const to=(x,z)=>mapWorldToCanvas(x,z,size,pad,R,view);
   ctx.fillStyle=T.bg||"#0c1208";
   ctx.fillRect(0,0,size,size);
-  const g=ctx.createRadialGradient(size/2,size/2,size*.08,size/2,size/2,size*.72);
-  if(zone.id==="barrens"){
-    g.addColorStop(0,"#3a2a14"); g.addColorStop(.55,"#241808"); g.addColorStop(1,"#120e06");
-  }else if(zone.id==="durotar"){
-    g.addColorStop(0,"#4a2010"); g.addColorStop(.55,"#2a1208"); g.addColorStop(1,"#140806");
+
+  /* C13：mulgore 用高度场缩略图作底 */
+  const thumb=ensureTerrainThumb(zone.id);
+  if(thumb){
+    if(view&&view.half>0){
+      const half=view.half;
+      const worldL=view.cx-half, worldT=view.cz-half, worldS=half*2;
+      const sx=((worldL+R)/(R*2))*thumb.width;
+      const sy=((worldT+R)/(R*2))*thumb.height;
+      const sw=(worldS/(R*2))*thumb.width;
+      const sh=(worldS/(R*2))*thumb.height;
+      try{
+        ctx.drawImage(thumb,sx,sy,sw,sh,pad,pad,size-pad*2,size-pad*2);
+      }catch(e){/* 越界时退回渐变 */}
+    }else{
+      ctx.drawImage(thumb,pad,pad,size-pad*2,size-pad*2);
+    }
+    ctx.fillStyle="rgba(8,12,6,.22)";
+    ctx.fillRect(0,0,size,size);
   }else{
-    g.addColorStop(0,"#2a3a1a"); g.addColorStop(.55,"#1a2810"); g.addColorStop(1,"#0c1008");
+    const g=ctx.createRadialGradient(size/2,size/2,size*.08,size/2,size/2,size*.72);
+    if(zone.id==="barrens"){
+      g.addColorStop(0,"#3a2a14"); g.addColorStop(.55,"#241808"); g.addColorStop(1,"#120e06");
+    }else if(zone.id==="durotar"){
+      g.addColorStop(0,"#4a2010"); g.addColorStop(.55,"#2a1208"); g.addColorStop(1,"#140806");
+    }else{
+      g.addColorStop(0,"#2a3a1a"); g.addColorStop(.55,"#1a2810"); g.addColorStop(1,"#0c1008");
+    }
+    ctx.fillStyle=g; ctx.fillRect(0,0,size,size);
   }
-  ctx.fillStyle=g; ctx.fillRect(0,0,size,size);
 
   /* 水域 POI 软斑 */
   (zone.landmarks||[]).forEach(lm=>{
@@ -372,7 +428,7 @@ function drawTerrain(ctx,size,pad,zone,view){
     ctx.beginPath(); ctx.arc(p.u,p.v,rad,0,Math.PI*2); ctx.fill();
   });
 
-  if(!view){
+  if(!view&&zone.outline){
     ctx.beginPath();
     zone.outline.forEach((p,i)=>{
       const pt=to(p[0]*R,p[1]*R);
@@ -380,7 +436,7 @@ function drawTerrain(ctx,size,pad,zone,view){
     });
     ctx.closePath();
     ctx.fillStyle=T.fill||"rgba(60,90,35,.35)";
-    ctx.fill();
+    if(!thumb)ctx.fill();
     ctx.strokeStyle=T.stroke||"rgba(200,160,80,.45)";
     ctx.lineWidth=1.5;
     ctx.stroke();
@@ -520,6 +576,26 @@ function collectDynamicElites(){
   return list;
 }
 
+/** C13：当前区采集点（草药/矿） */
+function collectGatherBlips(zoneId){
+  const list=[];
+  if(BAL.map&&BAL.map.miniGather===false)return list;
+  if(typeof GATHER_NODES==="undefined"||!GATHER_NODES.length)return list;
+  const zid=zoneId||(typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore");
+  const herb=(BAL.map&&BAL.map.gatherHerb)||"#6aff9a";
+  const ore=(BAL.map&&BAL.map.gatherOre)||"#c0c8d0";
+  for(const n of GATHER_NODES){
+    if(!n||(n.zone||"mulgore")!==zid)continue;
+    if(n.ready===false)continue;
+    list.push({
+      x:n.x, z:n.z,
+      color:n.kind==="ore"?ore:herb,
+      shape:n.kind==="ore"?"square":"diamond",
+    });
+  }
+  return list;
+}
+
 function paintMap(ctx,size,opts){
   const zone=getActiveMapZone();
   const pad=opts.pad!=null?opts.pad:BAL.map.padding;
@@ -547,6 +623,11 @@ function paintMap(ctx,size,opts){
       const p=to(c.x,c.z);
       const col=c.role==="tank"?"#6a9cff":c.role==="healer"?"#6aff9a":"#ffc060";
       drawBlip(ctx,p.u,p.v,col,3.4,"square");
+    }
+    const gathers=collectGatherBlips(zone.id);
+    for(const g of gathers){
+      const p=to(g.x,g.z);
+      drawBlip(ctx,p.u,p.v,g.color,3.0,g.shape||"diamond");
     }
   }
 
@@ -724,13 +805,98 @@ function worldMapOpen(){
   const ov=$("#worldMapOv");
   return !!(ov&&ov.classList.contains("show"));
 }
+function getContinentalTile(zoneId,side){
+  const key=zoneId+"_"+side;
+  if(_wmapTiles[key])return _wmapTiles[key];
+  const off=document.createElement("canvas");
+  off.width=side; off.height=side;
+  const octx=off.getContext("2d");
+  const prev=_mapZoneId;
+  _mapZoneId=zoneId;
+  paintMap(octx,side,{pad:6,labels:false,enrich:false,compass:false});
+  _mapZoneId=prev;
+  _wmapTiles[key]=off;
+  return off;
+}
+
 function drawWorldMap(){
   const cv=$("#worldMap");
   if(!cv)return;
   const sz=BAL.map.worldSize|0;
   if(cv.width!==sz){cv.width=sz;cv.height=sz;}
   const ctx=cv.getContext("2d");
-  paintMap(ctx,sz,{pad:BAL.map.worldPad,labels:true});
+  const titleEl=$("#worldMapTitle");
+  if(titleEl)titleEl.textContent=(typeof T==="function"?T("ui.world_map"):null)||"🗺 卡利姆多 · 世界地图";
+
+  const layout=(BAL.map&&BAL.map.continental)||[
+    {id:"mulgore",x:.06,y:.08,w:.48,h:.55},
+    {id:"barrens",x:.52,y:.18,w:.42,h:.48},
+    {id:"durotar",x:.52,y:.68,w:.42,h:.26},
+  ];
+  const cur=typeof getCurrentZoneId==="function"?getCurrentZoneId():(_mapZoneId||"mulgore");
+  const qf=typeof getQuestMapFocus==="function"?getQuestMapFocus():null;
+  const qZone=qf&&qf.zone?qf.zone:null;
+
+  ctx.fillStyle="#080a06";
+  ctx.fillRect(0,0,sz,sz);
+
+  for(const cell of layout){
+    const zone=MAP_ZONES[cell.id];
+    if(!zone)continue;
+    const x=cell.x*sz, y=cell.y*sz, w=cell.w*sz, h=cell.h*sz;
+    const side=Math.max(8,Math.floor(Math.min(w,h)));
+    const ox=x+(w-side)/2, oy=y+(h-side)/2;
+    ctx.drawImage(getContinentalTile(cell.id,side),ox,oy);
+
+    const isCur=cell.id===cur||(cur==="molten_core"&&cell.id==="mulgore");
+    const isQuest=qZone&&qZone===cell.id;
+    ctx.strokeStyle=isQuest?"#ffe9a0":(isCur?"#ff9a55":"rgba(180,140,80,.45)");
+    ctx.lineWidth=isQuest||isCur?3:1.5;
+    ctx.strokeRect(ox+.5,oy+.5,side-1,side-1);
+    if(isQuest){
+      ctx.fillStyle="rgba(255,230,140,.12)";
+      ctx.fillRect(ox,oy,side,side);
+    }
+    ctx.fillStyle=isCur?"#ffcf98":"#c9a06a";
+    ctx.font="bold 12px 'Noto Sans SC','Microsoft YaHei',sans-serif";
+    ctx.textAlign="left";
+    ctx.fillText(zone.name||cell.id,ox+8,oy+16);
+    if(isQuest){
+      ctx.fillStyle="#ffe9a0";
+      ctx.font="10px 'Noto Sans SC','Microsoft YaHei',sans-serif";
+      ctx.fillText("✦ 任务",ox+8,oy+30);
+    }
+  }
+
+  const cell=layout.find(c=>c.id===cur);
+  if(cell&&typeof player!=="undefined"&&player&&MAP_ZONES[cur]){
+    const zone=MAP_ZONES[cur];
+    const R=zone.radius();
+    const x=cell.x*sz, y=cell.y*sz, w=cell.w*sz, h=cell.h*sz;
+    const side=Math.max(8,Math.floor(Math.min(w,h)));
+    const ox=x+(w-side)/2, oy=y+(h-side)/2;
+    const local=mapWorldToCanvas(player.position.x,player.position.z,side,6,R,null);
+    drawPlayerArrow(ctx,ox+local.u,oy+local.v,playerMapFace(),"#7ab8ff");
+  }
+
+  if(qf&&qZone&&MAP_ZONES[qZone]){
+    const qc=layout.find(c=>c.id===qZone);
+    if(qc){
+      const zone=MAP_ZONES[qZone];
+      const R=zone.radius();
+      const x=qc.x*sz, y=qc.y*sz, w=qc.w*sz, h=qc.h*sz;
+      const side=Math.max(8,Math.floor(Math.min(w,h)));
+      const ox=x+(w-side)/2, oy=y+(h-side)/2;
+      const local=mapWorldToCanvas(qf.x,qf.z,side,6,R,null);
+      ctx.save();
+      ctx.strokeStyle="#ffd76a";
+      ctx.fillStyle="rgba(255,215,100,.3)";
+      ctx.lineWidth=2;
+      const pulse=5+Math.sin(((typeof S!=="undefined"&&S.t)||0)*4)*2;
+      ctx.beginPath(); ctx.arc(ox+local.u,oy+local.v,pulse,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
+  }
 }
 function toggleWorldMap(force){
   if(!S.started)return;

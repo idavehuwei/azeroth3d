@@ -13,6 +13,7 @@
    [导出] ZONES registerZone getZone getCurrentZone getCurrentZoneId
           ensureZoneBuilt ensureAllZonesBuilt enterZone getActivePortals
           resolvePortalPos portalMinLevel portalLevelLocked
+          showZoneSplash
    ============================================================ */
 "use strict";
 
@@ -82,6 +83,38 @@ function resolveGate(zone,gateId){
   const g=zone.gates[gateId]||zone.gates.default||zone.gates.camp||zone.gates.entrance;
   if(!g)return {x:0,z:0};
   return {x:g.x,z:g.z};
+}
+
+let _zoneSplashT=null;
+/** C13：换区后区域名淡入（skipFade / silent 时跳过） */
+function showZoneSplash(zoneOrId){
+  const el=typeof $==="function"?$("#zoneSplash"):null;
+  if(!el)return;
+  const z=typeof zoneOrId==="string"?(ZONES[zoneOrId]||null):zoneOrId;
+  const id=(z&&z.id)||(typeof zoneOrId==="string"?zoneOrId:"mulgore");
+  const nameEl=$("#zoneSplashName"), subEl=$("#zoneSplashSub");
+  const name=(z&&z.name)||(typeof T==="function"?T("zone."+id):id);
+  let sub="";
+  if(typeof T==="function"){
+    const key="ui.zone_sub_"+id;
+    const t=T(key);
+    if(t&&t!==key)sub=t;
+    else if((z&&z.mode)==="raid")sub=T("ui.zone_sub_raid");
+  }
+  if(nameEl)nameEl.textContent=name;
+  if(subEl){subEl.textContent=sub;subEl.style.display=sub?"block":"none";}
+  el.classList.add("show");
+  el.setAttribute("aria-hidden","false");
+  if(_zoneSplashT)clearTimeout(_zoneSplashT);
+  const hold=(BAL.zoneSplash&&BAL.zoneSplash.durationMs!=null)
+    ?BAL.zoneSplash.durationMs
+    :((BAL.map&&BAL.map.splashMs)||2800);
+  const fade=(BAL.zoneSplash&&BAL.zoneSplash.fadeMs!=null)?BAL.zoneSplash.fadeMs:700;
+  _zoneSplashT=setTimeout(()=>{
+    el.classList.remove("show");
+    el.setAttribute("aria-hidden","true");
+    _zoneSplashT=null;
+  },hold+fade*.15);
 }
 
 /**
@@ -163,6 +196,7 @@ function enterZone(id,gateId,opts){
     if(typeof opts.afterEnter==="function")opts.afterEnter(fromId,id,gateId);
     if(typeof onQuestZoneEnter==="function"&&!(opts&&opts.silent))onQuestZoneEnter(id);
     if(typeof onDeedZoneEnter==="function"&&!(opts&&opts.silent))onDeedZoneEnter(id);
+    if(!(opts&&(opts.silent||opts.skipFade))&&fromId!==id)showZoneSplash(to);
 
     if(from&&to&&from.id!==to.id&&!opts.skipSave){
       if(typeof saveGame==="function")saveGame(true);

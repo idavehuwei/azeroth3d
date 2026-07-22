@@ -89,8 +89,16 @@ const TEXTS={
     ui:{
     boss_name:"🔥 熔渊之王 · 卡尔戈",
     boss_title:"炽心熔窟 · 最终首领",
+    world_map:"🗺 卡利姆多 · 世界地图",
     world_map_mulgore:"🗺 世界地图 · 赤蹄草甸",
     minimap_spaced:"赤 蹄 草 甸",
+    zone_splash_mulgore:"赤蹄草甸",
+    zone_splash_barrens:"枯原荒地",
+    zone_splash_durotar:"赭岩谷",
+    zone_sub_mulgore:"圣山草原 · 蹄人之家",
+    zone_sub_barrens:"岔路镇 · 尘土与刺背",
+    zone_sub_durotar:"赭岩哨站 · 焦土谷地",
+    zone_sub_raid:"地下城",
     submerged:"—— 潜入岩浆 ·先消灭火裔 ——",
     death_raid:"在炽心熔窟中倒下了……",
     death_world:"灵魂将前往营地的灵魂医者处"

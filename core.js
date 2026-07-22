@@ -476,7 +476,7 @@ const BALANCE={
   /* 枯原荒地（STEP 18）· V2 半径再×2（相对 V1-B2） */
   barrens:{
     radius:368,
-    minLevel:10,
+    minLevel:6,             /* C13：第二区域 6–13 入口 */
     wailingMinLevel:15,
     onyxiaMinLevel:16,
     durotarMinLevel:12,
@@ -808,7 +808,7 @@ const BALANCE={
     dmgMul:200,   /* (dmgMul-1) × 此系数 */
     hpMax:.05,    /* hpMax × 此系数 */
   },
-  /* 小地图 / 世界地图（STEP 16） */
+  /* 小地图 / 世界地图（STEP 16 / plan-V3 C13） */
   map:{
     miniSize:140,           /* canvas 边长（外框含 padding 约 148） */
     worldSize:520,          /* 世界地图 canvas 边长 */
@@ -821,6 +821,22 @@ const BALANCE={
     miniParty:true,
     miniMobs:true,
     miniQuest:true,
+    miniGather:true,        /* C13：采集点光点 */
+    gatherHerb:"#6aff9a",
+    gatherOre:"#c0c8d0",
+    terrainThumbN:72,       /* C13：mulgore 高度场降采样边长 */
+    /* C13：大陆拼贴布局（归一化 0–1 相对世界地图画布） */
+    continental:[
+      {id:"mulgore",  x:.06,y:.08,w:.48,h:.55},
+      {id:"barrens",  x:.52,y:.18,w:.42,h:.48},
+      {id:"durotar",  x:.52,y:.68,w:.42,h:.26},
+    ],
+    splashMs:2800,          /* 区域名淡入停留 */
+  },
+  /* 区域名淡入（C13） */
+  zoneSplash:{
+    durationMs:2800,
+    fadeMs:700,
   },
   /* 多场景注册表（STEP 17）：淡入淡出与传送门半径 */
   zones:{

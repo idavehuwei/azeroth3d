@@ -402,6 +402,16 @@
   #minimap{display:block;width:140px;height:140px;border:1px solid rgba(255,140,60,.35);
     border-radius:50%;background:rgba(8,12,6,.9);cursor:pointer;
     box-shadow:0 0 0 1px rgba(40,24,10,.8),0 4px 14px rgba(0,0,0,.45)}
+  /* C13：区域名淡入 */
+  #zoneSplash{position:fixed;inset:0;z-index:23;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;pointer-events:none;opacity:0;transition:opacity .7s ease;
+    background:radial-gradient(ellipse at center,rgba(8,6,4,.18) 0%,transparent 65%)}
+  #zoneSplash.show{opacity:1}
+  #zoneSplash .zs-name{font-size:clamp(28px,4.5vw,48px);font-weight:800;letter-spacing:.35em;
+    color:#f0e0c0;text-shadow:0 0 24px rgba(0,0,0,.9),0 2px 0 #3a2810;
+    font-family:Georgia,"Noto Serif SC","Songti SC",serif}
+  #zoneSplash .zs-sub{margin-top:14px;font-size:13px;letter-spacing:.28em;color:#c9a06a;
+    text-shadow:0 0 10px rgba(0,0,0,.8)}
   #worldMapOv{position:fixed;inset:0;z-index:24;display:none;align-items:center;justify-content:center;
     background:rgba(5,2,1,.72);padding:16px}
   #worldMapOv.show{display:flex}
@@ -647,10 +657,14 @@
   <div class="mm-title" data-t="ui.minimap_spaced">赤 蹄 草 甸</div>
   <canvas id="minimap" width="140" height="140" title="点击或按 M 打开世界地图"></canvas>
 </div>
+<div id="zoneSplash" aria-hidden="true">
+  <div class="zs-name" id="zoneSplashName"></div>
+  <div class="zs-sub" id="zoneSplashSub"></div>
+</div>
 <div id="quest"></div>
 <div id="worldMapOv">
   <div id="worldMapBox">
-    <div class="bag-title"><span data-t="ui.world_map_mulgore">🗺 世界地图 · 赤蹄草甸</span><span class="bag-close" id="worldMapClose">✕</span></div>
+    <div class="bag-title"><span id="worldMapTitle" data-t="ui.world_map">🗺 卡利姆多 · 世界地图</span><span class="bag-close" id="worldMapClose">✕</span></div>
     <canvas id="worldMap" width="520" height="520"></canvas>
     <div id="worldMapLeg">
       <span><i style="background:#7ab8ff"></i>你（面向）</span>
@@ -658,13 +672,15 @@
       <span><i style="background:#ffc060;border-radius:0"></i>队友</span>
       <span><i style="background:#ffe040"></i>任务 !?</span>
       <span><i style="background:#ffd9a0"></i>NPC</span>
-      <span><i style="background:#8aff9a"></i>商人</span>
+      <span><i style="background:#8aff9a"></i>商人 / 草药</span>
+      <span><i style="background:#c0c8d0;border-radius:0"></i>矿点</span>
       <span><i style="background:#a8d8ff"></i>灵魂医者</span>
       <span><i style="background:#ff8a4a"></i>传送门</span>
       <span><i style="background:#ffd700"></i>稀有精英</span>
       <span><i style="background:#ff9ad0"></i>精英</span>
+      <span><i style="background:#ffe9a0;outline:1px solid #c9a06a"></i>任务区域</span>
     </div>
-    <div class="ph-hint mm">M 键开关 · 小地图箭头=角色面向 · 本地视野缩放</div>
+    <div class="ph-hint mm">M 键开关 · 世界地图为多区拼贴 · 小地图箭头=角色面向</div>
   </div>
 </div>
 <div id="bag">

@@ -573,7 +573,7 @@ registerZone({
   build:buildBarrensZone,
   music:"barrens",
   mode:"world",
-  levelRange:[10,18],
+  levelRange:[6,13],
   boundsR:()=>BARRENS_R,
   dayNight:true,
   gates:{

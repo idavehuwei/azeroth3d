@@ -334,6 +334,17 @@ assert(worldSrc.includes("centaurHerald")&&worldSrc.includes("worldBoss"),"world
 assert(barrensSrc.includes("spawnRaresForZone"),"barrens.js 挂接稀有表");
 const mapSrc=fs.readFileSync(path.join(__dirname,"map.js"),"utf8");
 assert(mapSrc.includes("getRareMapEntries")||mapSrc.includes("m.rare"),"map.js 稀有点走 rare 标记");
+
+/* plan-V3 · C13 第二区域 + 小地图 + 世界地图 */
+assert(zonesSrc.includes("showZoneSplash")||fs.readFileSync(path.join(__dirname,"zones.js"),"utf8").includes("showZoneSplash"),"zones 含区域名淡入");
+assert(html.includes("zoneSplash")&&html.includes("zoneSplashName"),"game.html 含 #zoneSplash");
+assert(mapSrc.includes("continental")||coreSrc.includes("continental:"),"大陆拼贴布局");
+assert(mapSrc.includes("collectGatherBlips")&&mapSrc.includes("ensureTerrainThumb"),"小地图采集光点 + 地形缩略图");
+assert(mapSrc.includes("getContinentalTile")||mapSrc.includes("drawWorldMap"),"世界地图多区绘制");
+assert(html.includes("worldMapTitle")&&html.includes("ui.world_map"),"世界地图动态标题");
+assert(coreSrc.includes("minLevel:6")&&barrensSrc.includes("levelRange:[6,13]"),"C13 贫瘠 6–13 入口/等级带");
+assert(coreSrc.includes("miniGather")&&coreSrc.includes("zoneSplash"),"BALANCE.map/zoneSplash C13 参数");
+
 assert(mapSrc.includes("Math.PI-")&&mapSrc.includes("playerMapFace"),"小地图箭头对齐角色面向");
 assert(coreSrc.includes("miniRadius:")||mapSrc.includes("miniRadius"),"小地图本地视野半径");
 assert(mapSrc.includes("collectNearbyMobs")&&mapSrc.includes("drawQuestMark"),"小地图含野怪与任务标记");
