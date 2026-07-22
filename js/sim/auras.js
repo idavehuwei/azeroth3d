@@ -142,7 +142,7 @@ function syncLegacyCrowdFlags(ent){
   const root=getAura(ent,"rooted");
   if(root&&root.remaining>0)ent.rootT=root.remaining;
   else if(ent.rootT!=null&&!root){/* 若仅有 legacy rootT 而无 aura，保留 */}
-  const inv=getAura(ent,"ice_block")||getAura(ent,"evasion");
+  const inv=getAura(ent,"ice_block")||getAura(ent,"evasion")||getAura(ent,"divine_shield");
   if(inv&&inv.remaining>0)ent.invuln=inv.remaining;
 }
 

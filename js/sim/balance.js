@@ -166,6 +166,27 @@ const BALANCE={
       {minLevel:8, rootT:4.5, dmg:[188,260]},
       {minLevel:14, rootT:5, dmg:[218,300]}
     ]},
+    /* —— 圣骑士 —— */
+    crusaderStrike:{ranks:[
+      {minLevel:1, dmg:[540,700], addDmg:[520,670], reach:4.8, addReach:4.5, bossReach:10},
+      {minLevel:8, dmg:[637,826], addDmg:[614,791], reach:5.0, addReach:4.7, bossReach:10},
+      {minLevel:14, dmg:[734,952], addDmg:[707,912], reach:5.2, addReach:4.9, bossReach:10}
+    ]},
+    judgement:{ranks:[
+      {minLevel:1, dmg:[720,920], range:18},
+      {minLevel:8, dmg:[850,1086], range:18},
+      {minLevel:14, dmg:[979,1251], range:20}
+    ]},
+    holyLight:{ranks:[
+      {minLevel:1, heal:[1100,1400]},
+      {minLevel:8, heal:[1298,1652]},
+      {minLevel:14, heal:[1496,1904]}
+    ]},
+    divineShield:{ranks:[
+      {minLevel:1, invuln:3},
+      {minLevel:8, invuln:3.5},
+      {minLevel:14, invuln:4}
+    ]},
     /* —— V1-C5 嘲讽 / 打断 —— */
     taunt:{ranks:[
       {minLevel:1, dur:4, range:16, margin:50000},
@@ -817,6 +838,15 @@ const BALANCE={
       improved_rejuv :{skillCd:{i:2,mul:.90}},
       natural_spirit :{fx:{healMul:.05},hpMaxMul:.04},
     },
+    /* —— 圣骑士 —— */
+    paladin:{
+      crusade        :{dmgMul:.05},
+      improved_judge :{skillCd:{i:1,mul:.90}},
+      holy_power     :{dmgMul:.04,skillCd:{i:0,mul:.95}},
+      divine_strength:{fx:{healMul:.06}},
+      improved_light :{skillCd:{i:2,mul:.90}},
+      sacred_shield  :{fx:{healMul:.05},hpMaxMul:.05},
+    },
   },
   /* 存档（STEP 11）：localStorage 键与 schema 版本；改键会与旧存档隔离 */
   save:{key:"azeroth3d_save_v1",version:1},
@@ -945,6 +975,7 @@ const BALANCE={
       rogue:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
       warlock:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
       druid:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
+      paladin:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
     },
     roleLabel:{tank:"坦克",healer:"治疗",dps:"输出"},
   },
@@ -972,7 +1003,7 @@ const BALANCE={
   /* 仇恨与职责（STEP 27） */
   threat:{
     perDmg:1,
-    flat:{heroicStrike:120, whirlwind:50, charge:80, taunt:200, companionAuto:0, shadowBolt:90, corruption:40, drainLife:25, wrath:85, moonfire:35},
+    flat:{heroicStrike:120, whirlwind:50, charge:80, taunt:200, companionAuto:0, shadowBolt:90, corruption:40, drainLife:25, wrath:85, moonfire:35, crusaderStrike:110, judgement:95},
     roleMul:{player:1, playerTank:1.55, tank:1.6, dps:1, healer:.75},
     tauntDur:4,
     tauntMargin:50000,

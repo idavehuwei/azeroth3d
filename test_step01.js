@@ -217,6 +217,22 @@ assert(iconsSrc.includes("portrait_druid"),"icons.js 有德鲁伊肖像");
 assert(sfxSrc.includes("nature"),"sfx.js 有 nature 音效");
 assert(html.includes('data-cls="druid"'),"启程界面有德鲁伊职业卡");
 
+/* 圣骑士冒烟 */
+assert(combatSrc.includes("paladin:{"),"combat.js 有 CLASSES.paladin");
+assert(combatSrc.includes("function crusaderStrike")&&combatSrc.includes("function judgement"),"combat.js 有十字军打击/审判");
+assert(combatSrc.includes("function holyLight")&&combatSrc.includes("function divineShield"),"combat.js 有圣光术/圣盾术");
+assert(combatSrc.includes("bindPaladinSkills"),"combat 圣骑士技能惰性挂接");
+assert(modelsSrc.includes("function buildPaladin"),"models.js 导出 buildPaladin");
+assert(modelsSrc.includes("paladin:")||modelsSrc.includes("paladin:{"),"models.js 有 paladin 人形配方");
+assert(talentsSrc.includes("paladin:{"),"talents.js 有 TALENTS.paladin");
+assert(talentsSrc.includes('id:"retribution"')&&talentsSrc.includes('id:"holy"'),"圣骑士天赋双枝 惩戒/神圣");
+assert(coreSrc.includes("crusaderStrike")&&coreSrc.includes("judgement")&&coreSrc.includes("holyLight")&&coreSrc.includes("divineShield"),"BALANCE.skills 含圣骑士技能");
+assert(coreSrc.includes("paladin:")&&coreSrc.includes("improved_judge"),"BALANCE.talents 含 paladin");
+assert(/fill:[\s\S]*paladin:/.test(coreSrc),"BAL.party.fill 含 paladin");
+assert(iconsSrc.includes("crusader(cx)")&&iconsSrc.includes("judgement(cx)")&&iconsSrc.includes("divine_shield(cx)"),"icons.js 有圣骑士图标");
+assert(iconsSrc.includes("portrait_paladin"),"icons.js 有圣骑士肖像");
+assert(html.includes('data-cls="paladin"'),"启程界面有圣骑士职业卡");
+
 /* V1-C3 Buff / Debuff 条冒烟 */
 const buffsSrc=fs.readFileSync(path.join(__dirname,"buffs.js"),"utf8");
 assert(buffsSrc.includes("function applyBuff"),"buffs.js 有 applyBuff");
@@ -249,6 +265,7 @@ assert(cmpSrc.includes('shaman:"同伴')||cmpSrc.includes('shaman:"同伴 ·'),"
 assert(cmpSrc.includes('rogue:"同伴')||cmpSrc.includes("rogue:\"同伴"),"companions.js 有盗贼同伴名");
 assert(cmpSrc.includes('warlock:"同伴')||cmpSrc.includes("warlock:\"同伴"),"companions.js 有术士同伴名");
 assert(cmpSrc.includes('druid:"同伴')||cmpSrc.includes("druid:\"同伴"),"companions.js 有德鲁伊同伴名");
+assert(cmpSrc.includes('paladin:"同伴')||cmpSrc.includes("paladin:\"同伴"),"companions.js 有圣骑士同伴名");
 assert(cmpSrc.includes("function recruitCompanion"),"companions.js 有 recruitCompanion");
 assert(cmpSrc.includes("function dismissCompanion"),"companions.js 有 dismissCompanion");
 assert(cmpSrc.includes("function tickCompanion"),"companions.js 有 tickCompanion");

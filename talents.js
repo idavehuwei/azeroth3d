@@ -131,6 +131,21 @@ const TALENTS={
       ]},
     ],
   },
+  /* 圣骑士 */
+  paladin:{
+    branches:[
+      {id:"retribution",name:"惩戒",nodes:[
+        {id:"crusade",tier:1,name:"征伐",maxRank:3,icon:"crusader",desc:"攻击伤害提高"},
+        {id:"improved_judge",tier:2,name:"强化审判",maxRank:3,icon:"judgement",req:"crusade",reqRank:1,desc:"审判冷却缩短"},
+        {id:"holy_power",tier:3,name:"神圣之力",maxRank:3,icon:"crusader",req:"improved_judge",reqRank:1,desc:"伤害提高，十字军打击冷却缩短"},
+      ]},
+      {id:"holy",name:"神圣",nodes:[
+        {id:"divine_strength",tier:1,name:"神圣之力",maxRank:3,icon:"holy_light",desc:"治疗量提高"},
+        {id:"improved_light",tier:2,name:"强化圣光",maxRank:3,icon:"holy_light",req:"divine_strength",reqRank:1,desc:"圣光术冷却缩短"},
+        {id:"sacred_shield",tier:3,name:"神圣护盾",maxRank:3,icon:"divine_shield",req:"improved_light",reqRank:1,desc:"治疗量与生命上限提高"},
+      ]},
+    ],
+  },
 };
 
 /* 运行时态（挂在 S 上，便于存档 STEP 11） */

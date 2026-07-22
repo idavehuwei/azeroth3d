@@ -13,7 +13,7 @@ function portraitIconForClass(key){
   const m={
     warrior:"portrait_warrior", mage:"portrait_mage", archer:"portrait_archer",
     priest:"portrait_priest", shaman:"portrait_shaman", rogue:"portrait_rogue",
-    warlock:"portrait_warlock", druid:"portrait_druid"
+    warlock:"portrait_warlock", druid:"portrait_druid", paladin:"portrait_paladin"
   };
   return m[key]||"portrait_companion";
 }

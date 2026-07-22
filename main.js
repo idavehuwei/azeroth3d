@@ -791,7 +791,7 @@ function tick(){
         onExpire(ent,aura){
           if(!aura)return;
           if(aura.id==="power_word_shield"&&typeof clearShieldVisual==="function")clearShieldVisual();
-          if((aura.id==="ice_block"||aura.id==="evasion")&&typeof log==="function")
+          if((aura.id==="ice_block"||aura.id==="evasion"||aura.id==="divine_shield")&&typeof log==="function")
             log(`${aura.name}结束。`,"lg-sys");
         }
       });

@@ -21,6 +21,7 @@ const CLASS_LOOK_META={
   rogue  :{armor:"leather",animStyle:"melee1h"},
   warlock:{armor:"robe",   animStyle:"cast"},
   druid  :{armor:"robe",   animStyle:"cast"},
+  paladin:{armor:"plate",  animStyle:"melee2h"},
 };
 
 function _j(name,x,y,z){

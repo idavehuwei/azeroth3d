@@ -82,10 +82,10 @@ const QUESTS=[
       byClass:{
         warrior:["frayed_cloth"], mage:["frayed_cloth"], archer:["frayed_cloth"],
         priest:["frayed_cloth"], shaman:["frayed_cloth"], rogue:["frayed_cloth"],
-        warlock:["frayed_cloth"], druid:["frayed_cloth"]
+        warlock:["frayed_cloth"], druid:["frayed_cloth"], paladin:["frayed_cloth"]
       },
       choice:[
-      {id:"plains_boots", prefer:["warrior","rogue","shaman"]},
+      {id:"plains_boots", prefer:["warrior","rogue","shaman","paladin"]},
       {id:"plains_cloak", prefer:["mage","priest","archer","warlock","druid"]},
       {id:"plains_band"}
     ]},

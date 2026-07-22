@@ -5,7 +5,7 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ clamp rand R BAL scene camera ARENA_R）
           icons.js（Icons）
-          models.js（buildPlayer buildMage buildArcher buildPriest buildShaman buildRogue buildWarlock buildDruid）
+          models.js（buildPlayer … buildWarlock buildDruid buildPaladin）
           creatures.js 运行时（buildFlameSpawn；raid/world 调用）
           items.js（ITEMS DROPS removeDrop dropLoot）
           world.js（player boss MOBS QUEST mobDamage updateQuest tryInteract）
@@ -210,6 +210,25 @@ const CLASSES={
        desc:"为自己施加自然愈合，持续恢复生命。"},
       {name:"纠缠根须",  icon:"entangling", cd:12, rage:20,fn:null, bal:"entanglingRoots",school:"spell",unlock:8,
        desc:"根须缠绕目标，短暂定身。",range:26}]},
+  paladin:{title:"✝️ 你 · 人类圣骑士",hp:4800,resMax:100,resStart:100,resName:"法力",resKind:"mana",
+    regen:6,hitGain:0,speed:10.2,ranged:false,range:8,sfx:"holy",
+    autoMin:155,autoMax:210,autoSpd:1.55,shotColor:0xffe080,
+    build:function(){
+      if(typeof buildPaladin==="function")return buildPaladin();
+      if(typeof buildFromClassLook==="function")return buildFromClassLook("paladin");
+      return buildPlayer();
+    },
+    barCss:"linear-gradient(180deg,#ffe9a0,#d4af37 60%,#8a6020)",
+    tip:"提示：法力自动恢复；近战【十字军打击】输出，【圣光术】自疗，危急时开【圣盾术】。",
+    skills:[
+      {name:"十字军打击",icon:"crusader", cd:5,  rage:22,fn:null, bal:"crusaderStrike",school:"physical",unlock:1,
+       desc:"以圣光祝福武器，对近战目标造成伤害。",range:5},
+      {name:"审判",      icon:"judgement", cd:7,  rage:28,fn:null, bal:"judgement",school:"spell",unlock:4,
+       desc:"降下神圣审判，对目标造成神圣伤害。",range:18},
+      {name:"圣光术",    icon:"holy_light", cd:8,  rage:35,fn:null, bal:"holyLight",unlock:6,
+       desc:"引导圣光，恢复大量生命。",cast:2.5},
+      {name:"圣盾术",    icon:"divine_shield", cd:30, rage:0, fn:null, bal:"divineShield",unlock:10,
+       desc:"圣光护体，短时间内免疫伤害。"}]},
 };
 CLS=CLASSES.warrior;
 
@@ -1719,6 +1738,60 @@ function entanglingRoots(){
   sk[1].fn=castMoonfire;
   sk[2].fn=castRejuvenation;
   sk[3].fn=entanglingRoots;
+})();
+
+/* ---------------- 圣骑士技能 ---------------- */
+function crusaderStrike(){
+  const bal=getSkillBal("crusaderStrike");
+  const thr={skillId:"crusaderStrike",school:"physical"};
+  const tgt=resolveSkillTarget(bal.reach||5);
+  if(!tgt)return false;
+  setCurrentTarget(tgt);
+  if(tgt.type==="mob")mobDamage(tgt.m,R(bal.dmg),"十字军打击",thr);
+  else if(tgt.type==="boss"){
+    if(distToBoss()>(bal.bossReach||bal.reach||5)){log(typeof T==="function"?T("combat.target_oor"):"目标超出射程！");return false;}
+    dmgBoss(R(bal.dmg),"十字军打击",thr);
+  }else if(tgt.type==="add")addDamage(tgt.a,R(bal.addDmg||bal.dmg),thr);
+  S.p.attackAnim=1;
+  if(typeof SFX!=="undefined")SFX.play(CLS.sfx||"holy");
+  log("十字军打击！","lg-me");
+  return true;
+}
+function judgement(){
+  const bal=getSkillBal("judgement");
+  const range=bal.range!=null?bal.range:18;
+  const t=resolveSkillTarget(range);
+  if(!t)return false;
+  S.p.attackAnim=1;
+  firePlayerShot(t,R(bal.dmg),"审判",1.35,{school:"spell",skillId:"judgement"});
+  tryInterrupt(range,"审判");
+  if(typeof SFX!=="undefined")SFX.play("holy");
+  log("你降下神圣审判！","lg-me");
+  return true;
+}
+function holyLight(){
+  return applyHeal(R(getSkillBal("holyLight").heal),"圣光术");
+}
+function divineShield(){
+  const bal=getSkillBal("divineShield");
+  const dur=bal.invuln!=null?bal.invuln:3;
+  if(typeof applyAura==="function")applyAura(S.p,"divine_shield",{duration:dur});
+  else S.p.invuln=dur;
+  const p=player;
+  const aura=new THREE.Mesh(new THREE.IcosahedronGeometry(1.95,0),MAT.get("emissive.holy"));
+  aura.position.y=1.8; p.add(aura);
+  setTimeout(()=>{if(aura.parent)p.remove(aura);},Math.round(dur*1000));
+  if(typeof SFX!=="undefined")SFX.play("holy");
+  log(`圣盾术！${dur} 秒内免疫所有伤害。`,"lg-heal");
+  return true;
+}
+(function bindPaladinSkills(){
+  const sk=CLASSES.paladin&&CLASSES.paladin.skills;
+  if(!sk||sk.length<4)return;
+  sk[0].fn=crusaderStrike;
+  sk[1].fn=judgement;
+  sk[2].fn=holyLight;
+  sk[3].fn=divineShield;
 })();
 
 /* ---- V1-C1 萨满技能 / 图腾 ---- */

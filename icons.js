@@ -547,6 +547,38 @@ const RECIPES={
     cx.beginPath();cx.moveTo(48,48);cx.quadraticCurveTo(40,20,32,12);cx.stroke();
     cx.beginPath();cx.moveTo(24,48);cx.quadraticCurveTo(32,28,40,48);cx.stroke();
   },
+  crusader(cx){
+    P.bg(cx,"#282018","#100c08");
+    P.glow(cx,32,28,18,"rgba(255,200,80,.5)");
+    cx.fillStyle="#e8e0d0";
+    cx.save();cx.translate(32,34);cx.rotate(-.4);
+    cx.fillRect(-4,-22,8,36);cx.fillRect(-12,-6,24,6);
+    cx.restore();
+    cx.fillStyle="#d4af37";cx.fillRect(28,44,8,8);
+  },
+  judgement(cx){
+    P.bg(cx,"#282410","#100c04");
+    P.glow(cx,32,26,18,"rgba(255,220,100,.55)");
+    cx.fillStyle="#ffe080";
+    cx.beginPath();cx.moveTo(32,8);cx.lineTo(40,28);cx.lineTo(24,28);cx.closePath();cx.fill();
+    cx.fillRect(28,28,8,22);
+  },
+  holy_light(cx){
+    P.bg(cx,"#282418","#100c08");
+    P.glow(cx,32,32,22,"rgba(255,230,140,.6)");
+    cx.fillStyle="#fff8d0";
+    cx.fillRect(28,12,8,40);cx.fillRect(14,28,36,8);
+    cx.fillStyle="#d4af37";
+    cx.beginPath();cx.arc(32,32,6,0,6.283);cx.fill();
+  },
+  divine_shield(cx){
+    P.bg(cx,"#282018","#100808");
+    P.glow(cx,32,30,20,"rgba(255,220,120,.5)");
+    cx.strokeStyle="#ffe080";cx.lineWidth=3;
+    cx.beginPath();cx.arc(32,32,16,0,6.283);cx.stroke();
+    cx.fillStyle="#fff0c0";
+    cx.fillRect(29,18,6,20);cx.fillRect(22,27,20,6);
+  },
   /* STEP 20：单位框架肖像（程序化，零外部图） */
   portrait_warrior(cx){
     P.bg(cx,"#3a2818","#140a06");
@@ -621,6 +653,15 @@ const RECIPES={
     cx.fillStyle="#c0a060";
     cx.beginPath();cx.moveTo(22,18);cx.lineTo(18,8);cx.lineTo(28,16);cx.closePath();cx.fill();
     cx.beginPath();cx.moveTo(42,18);cx.lineTo(46,8);cx.lineTo(36,16);cx.closePath();cx.fill();
+  },
+  portrait_paladin(cx){
+    P.bg(cx,"#282418","#100c08");
+    P.glow(cx,32,28,16,"rgba(255,220,120,.45)");
+    cx.fillStyle="#e8d0b0";
+    cx.beginPath();cx.arc(32,22,10,0,6.283);cx.fill();
+    cx.fillStyle="#e0d8c8";cx.fillRect(18,32,28,20);
+    cx.fillStyle="#d4af37";
+    cx.fillRect(28,12,8,22);cx.fillRect(20,20,24,8);
   },
   portrait_enemy(cx){
     P.bg(cx,"#2a1810","#100806");
