@@ -114,6 +114,7 @@ function enterZone(id,gateId,opts){
       }
       if(S.p)S.p.knock=null;
       if(typeof clearAllTotems==="function")clearAllTotems();
+      if(typeof breakStealth==="function")breakStealth("zone",true);
     }
     if(typeof closeDialogue==="function")closeDialogue();
     const ib=typeof $==="function"?$("#interactBtn"):null;

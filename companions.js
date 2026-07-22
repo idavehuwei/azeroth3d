@@ -30,6 +30,7 @@ const CMP_NAMES={
   archer:"同伴 · 疾羽",
   priest:"同伴 · 晨光",
   shaman:"同伴 · 风暴",
+  rogue:"同伴 · 影刃",
 };
 const ROLE_ICON={tank:"🛡",healer:"✚",dps:"⚔"};
 
@@ -555,6 +556,7 @@ function openRecruitDialogue(){
       btn("🌀 补招萨满（治疗）",()=>{recruitCompanion("shaman",{role:"healer"});closeDialogue();});
       btn("🔮 补招法师（输出）",()=>{recruitCompanion("mage",{role:"dps"});closeDialogue();});
       btn("🏹 补招弓箭手（输出）",()=>{recruitCompanion("archer",{role:"dps"});closeDialogue();});
+      btn("🗡 补招盗贼（输出）",()=>{recruitCompanion("rogue",{role:"dps"});closeDialogue();});
     }
     btn("解散小队",()=>{dismissAllCompanions();closeDialogue();});
     btn("返回",()=>{closeDialogue();if(typeof openDialogue==="function")openDialogue();});
@@ -568,6 +570,7 @@ function openRecruitDialogue(){
   btn("🏹 招募弓箭手",()=>{recruitCompanion("archer",{role:"dps"});closeDialogue();});
   btn("✨ 招募牧师",()=>{recruitCompanion("priest",{role:"healer"});closeDialogue();});
   btn("🌀 招募萨满",()=>{recruitCompanion("shaman",{role:"healer"});closeDialogue();});
+  btn("🗡 招募盗贼",()=>{recruitCompanion("rogue",{role:"dps"});closeDialogue();});
   btn("返回",()=>{closeDialogue();if(typeof openDialogue==="function")openDialogue();});
 }
 

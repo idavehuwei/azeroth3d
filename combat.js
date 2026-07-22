@@ -5,7 +5,7 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ clamp rand R BAL scene camera ARENA_R）
           icons.js（Icons）
-          models.js（buildPlayer buildMage buildArcher buildPriest buildShaman buildFlameSpawn）
+          models.js（buildPlayer buildMage buildArcher buildPriest buildShaman buildRogue buildFlameSpawn）
           items.js（ITEMS DROPS removeDrop dropLoot）
           world.js（player boss MOBS QUEST mobDamage updateQuest tryInteract）
           main.js 运行时（clampArena）
@@ -23,6 +23,7 @@
           isTargetAlive setCurrentTarget getFocusTarget clearCurrentTargetIf
           gainXP updateLevelUI gainCopper spendCopper formatCopperText updateGoldUI
           clearShieldVisual applyHeal clearAllTotems tickTotems
+          breakStealth enterStealth getPlayerAggroMul isBehindTarget
           （S.quests · STEP 22 任务运行时）
    ============================================================ */
 "use strict";
@@ -40,6 +41,7 @@ const S={
   p:{hp:5200,hpMax:5200,rage:20,rageMax:100,speed:10.5,alive:true,dmgMul:1,
      atkTimer:0,attackAnim:0,walkPhase:0,face:0,invuln:0,
      absorb:0,absorbT:0,shieldMesh:null,   /* STEP 19 真言术：盾 */
+     stealth:false,sprintT:0,              /* V1-C2 潜行 / 疾步 */
      level:1,xp:0,xpMax:BAL.levels.xpMax[0],gold:0,   /* 经验与等级（STEP 3）· 金币铜（STEP 13） */
      eating:null,bandaging:null,gathering:null,weaknessT:0,
      whetstoneT:0,whetstoneAdd:0},
@@ -134,6 +136,20 @@ const CLASSES={
        desc:"引导水流，恢复自身生命。"},
       {name:"治疗图腾",  icon:"totem", cd:18, rage:35,fn:placeHealingTotem,bal:"healingTotem",
        desc:"在脚下放置图腾，持续治疗范围内的自己。"}]},
+  rogue:{title:"🗡 你 · 人类盗贼",hp:4100,resMax:100,resStart:100,resName:"能量",
+    regen:12,hitGain:0,speed:11.2,ranged:false,range:8,sfx:"swing",
+    autoMin:145,autoMax:195,autoSpd:1.35,shotColor:0xc0c8d8,build:buildRogue,
+    barCss:"linear-gradient(180deg,#d0d8e8,#5a6a88 60%,#2a3448)",
+    tip:"提示：能量自动恢复；脱战可【潜行】缩小被发现距离；从背后【背刺】造成高额伤害。",
+    skills:[
+      {name:"影袭",  icon:"sinister_strike", cd:5,  rage:25,fn:sinisterStrike, bal:"sinisterStrike",
+       desc:"迅捷一击，对近战目标造成物理伤害。"},
+      {name:"背刺",  icon:"backstab", cd:8,  rage:35,fn:backstab,        bal:"backstab",
+       desc:"必须位于目标背后；潜行中伤害更高。"},
+      {name:"潜行",  icon:"stealth", cd:10, rage:0, fn:stealth,         bal:"stealth",
+       desc:"脱战后进入隐身，大幅缩小野怪主动仇恨半径。"},
+      {name:"疾步",  icon:"sprint", cd:20, rage:20,fn:sprint,          bal:"sprint",
+       desc:"短时间内大幅提高移动速度。"}]},
 };
 let CLS=CLASSES.warrior;
 
@@ -163,11 +179,13 @@ function setClass(key){
   const pos=player.position.clone(),rot=player.rotation.y;
   clearShieldVisual();
   if(typeof clearAllTotems==="function")clearAllTotems();
+  if(typeof breakStealth==="function")breakStealth("class",true);
   scene.remove(player);
   player=CLS.build(); player.position.copy(pos); player.rotation.y=rot; scene.add(player);
   S.p.hpMax=CLS.hp; S.p.hp=CLS.hp;
   S.p.rageMax=CLS.resMax; S.p.rage=CLS.resStart; S.p.speed=CLS.speed;
   S.p.absorb=0; S.p.absorbT=0;
+  S.p.stealth=false; S.p.sprintT=0;
   SKILLS=CLS.skills;
   if(typeof initTalentsForClass==="function")initTalentsForClass(key);
   else updateLevelUI();
@@ -728,6 +746,156 @@ function tickTotems(dt){
   }
 }
 
+/* ---- V1-C2 盗贼：潜行 / 背刺 ---- */
+function isPlayerOutOfCombat(){
+  if(S.mode==="raid")return false;
+  if(!MOBS||!MOBS.length)return true;
+  const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore";
+  for(const m of MOBS){
+    if((m.zoneId||"mulgore")!==zid)continue;
+    if(m.state==="aggro")return false;
+  }
+  return true;
+}
+function getPlayerAggroMul(){
+  if(!S.p.stealth||!BAL.stealth)return 1;
+  let mul=BAL.stealth.aggroMul!=null?BAL.stealth.aggroMul:.35;
+  const fx=S.p.talentFx&&S.p.talentFx.stealthAggro;
+  if(fx)mul=Math.max(.12,mul-fx);
+  return mul;
+}
+function applyStealthVisual(on){
+  if(typeof player==="undefined"||!player)return;
+  const alpha=(BAL.stealth&&BAL.stealth.alpha!=null)?BAL.stealth.alpha:.42;
+  player.traverse(o=>{
+    if(!o.isMesh||!o.material)return;
+    const mats=Array.isArray(o.material)?o.material:[o.material];
+    for(const m of mats){
+      if(!m)continue;
+      if(on){
+        if(m.userData._stealthSaved==null)
+          m.userData._stealthSaved={transparent:!!m.transparent,opacity:m.opacity!=null?m.opacity:1};
+        m.transparent=true;
+        m.opacity=Math.min(m.userData._stealthSaved.opacity,alpha);
+        m.needsUpdate=true;
+      }else if(m.userData._stealthSaved){
+        m.transparent=m.userData._stealthSaved.transparent;
+        m.opacity=m.userData._stealthSaved.opacity;
+        delete m.userData._stealthSaved;
+        m.needsUpdate=true;
+      }
+    }
+  });
+}
+function breakStealth(reason,silent){
+  if(!S.p.stealth)return;
+  S.p.stealth=false;
+  applyStealthVisual(false);
+  if(!silent)log("潜行解除。","lg-sys");
+}
+function enterStealth(){
+  if(S.p.stealth){breakStealth("toggle");return true;}
+  if(!isPlayerOutOfCombat()){log("战斗中无法潜行。","lg-sys");return false;}
+  S.p.stealth=true;
+  applyStealthVisual(true);
+  if(typeof SFX!=="undefined")SFX.play("stealth");
+  log("你隐入阴影，野怪更难发现你。","lg-me");
+  return true;
+}
+function stealth(){return enterStealth();}
+/** 目标背后判定：攻击者相对目标朝向接近正后方 */
+function isBehindTarget(targetPos,targetRotY,attackerPos,arc){
+  const half=(arc!=null?arc:(BAL.skills.backstab&&BAL.skills.backstab.behindArc)||1.35)*.5;
+  const toAtk=Math.atan2(attackerPos.x-targetPos.x,attackerPos.z-targetPos.z);
+  let d=toAtk-targetRotY;
+  while(d>Math.PI)d-=Math.PI*2;
+  while(d<-Math.PI)d+=Math.PI*2;
+  return Math.abs(d)>Math.PI-half;
+}
+function sinisterStrike(){
+  let hit=false;
+  const thr={skillId:"sinisterStrike"};
+  const bal=BAL.skills.sinisterStrike;
+  if(S.mode==="world"){
+    for(const m of MOBS){
+      if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<bal.reach){
+        mobDamage(m,R(bal.dmg),"影袭",thr);hit=true;break;
+      }
+    }
+  }else{
+    if(distToBoss()<=bal.bossReach){dmgBoss(R(bal.dmg),"影袭",thr);hit=true;}
+    S.adds.forEach(a=>{
+      if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<bal.addReach){
+        addDamage(a,R(bal.addDmg),thr);hit=true;
+      }
+    });
+  }
+  if(!hit){log("没有目标在近战范围内。");return false;}
+  breakStealth("attack");
+  S.p.attackAnim=1;
+  SFX.play("swing");
+  return true;
+}
+function backstab(){
+  const bal=BAL.skills.backstab;
+  let targetMesh=null, deal=null;
+  if(S.mode==="world"){
+    let best=1e9,pick=null;
+    for(const m of MOBS){
+      if(!mobTargetable(m))continue;
+      const d=player.position.distanceTo(m.mesh.position);
+      if(d<bal.reach&&d<best){best=d;pick=m;}
+    }
+    if(!pick){log("没有目标在近战范围内。");return false;}
+    targetMesh=pick.mesh;
+    deal=()=>{
+      let dmg=R(bal.dmg);
+      if(S.p.stealth)dmg=Math.round(dmg*(bal.stealthMul||1.25)*(1+((S.p.talentFx&&S.p.talentFx.stealthDmg)||0)));
+      mobDamage(pick,dmg,"背刺",{skillId:"backstab"});
+    };
+  }else{
+    if(bossTargetable()&&distToBoss()<=bal.bossReach){
+      targetMesh=boss;
+      deal=()=>{
+        let dmg=R(bal.dmg);
+        if(S.p.stealth)dmg=Math.round(dmg*(bal.stealthMul||1.25)*(1+((S.p.talentFx&&S.p.talentFx.stealthDmg)||0)));
+        dmgBoss(dmg,"背刺",{skillId:"backstab"});
+      };
+    }else{
+      for(const a of S.adds){
+        if(!addTargetable(a))continue;
+        if(player.position.distanceTo(a.mesh.position)<bal.addReach){
+          targetMesh=a.mesh;
+          deal=()=>{
+            let dmg=R(bal.addDmg);
+            if(S.p.stealth)dmg=Math.round(dmg*(bal.stealthMul||1.25)*(1+((S.p.talentFx&&S.p.talentFx.stealthDmg)||0)));
+            addDamage(a,dmg,{skillId:"backstab"});
+          };
+          break;
+        }
+      }
+    }
+  }
+  if(!targetMesh||!deal){log("没有目标在近战范围内。");return false;}
+  if(!isBehindTarget(targetMesh.position,targetMesh.rotation.y,player.position,bal.behindArc)){
+    log("背刺必须位于目标背后！","lg-sys");return false;
+  }
+  deal();
+  breakStealth("attack");
+  S.p.attackAnim=1;
+  SFX.play("swing");
+  log("背刺！","lg-me");
+  return true;
+}
+function sprint(){
+  const bal=BAL.skills.sprint;
+  S.p.sprintT=bal.duration;
+  spawnBurst(player.position.clone().setY(.5),0xa0c0ff,12,1.1);
+  if(typeof SFX!=="undefined")SFX.play("stealth");
+  log(`疾步！移动速度提高，持续 ${bal.duration} 秒。`,"lg-me");
+  return true;
+}
+
 function playerHit(amount,source){
   if(!S.p.alive||S.p.invuln>0)return;
   amount=Math.round(amount*R(BAL.variance.player));
@@ -743,6 +911,7 @@ function playerHit(amount,source){
     if(S.p.absorb<=0){S.p.absorb=0;S.p.absorbT=0;clearShieldVisual();}
   }
   if(amount<=0)return;
+  if(BAL.stealth&&BAL.stealth.breakOnHit!==false)breakStealth("hit");
   S.p.hp-=amount; hurtFlash(); SFX.play("hit");
   fct(player.position.clone().setY(3),`-${amount}`,"#ff6a5a",18);
   log(`${source} 对你造成 ${amount} 点伤害！`,"lg-dmg");

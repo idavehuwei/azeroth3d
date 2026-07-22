@@ -1195,6 +1195,7 @@ function playerDie(){
   S.over=false;          /* STEP 15：不再锁死整局 */
   S.deathUi=false;
   S.p.knock=null; S.p.fear=null;
+  if(typeof breakStealth==="function")breakStealth("death",true);
   if(typeof cancelConsume==="function")cancelConsume();
   clearBossCast();
   announce("你被击败了……");

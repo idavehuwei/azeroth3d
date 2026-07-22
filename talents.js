@@ -86,6 +86,21 @@ const TALENTS={
       ]},
     ],
   },
+  /* V1-C2 盗贼 */
+  rogue:{
+    branches:[
+      {id:"assassination",name:"刺杀",nodes:[
+        {id:"improved_sinister",tier:1,name:"强化影袭",maxRank:3,icon:"sinister_strike",desc:"影袭冷却缩短"},
+        {id:"backstab_master",tier:2,name:"背刺专精",maxRank:3,icon:"backstab",req:"improved_sinister",reqRank:1,desc:"背刺冷却缩短，伤害提高"},
+        {id:"lethality",tier:3,name:"致命",maxRank:3,icon:"backstab",req:"backstab_master",reqRank:1,desc:"攻击伤害提高"},
+      ]},
+      {id:"subtlety",name:"敏锐",nodes:[
+        {id:"shadow_focus",tier:1,name:"暗影专注",maxRank:3,icon:"stealth",desc:"潜行时更难被发现"},
+        {id:"fleet_footed",tier:2,name:"疾足",maxRank:3,icon:"sprint",req:"shadow_focus",reqRank:1,desc:"疾步冷却缩短"},
+        {id:"master_subtlety",tier:3,name:"敏锐大师",maxRank:3,icon:"stealth",req:"fleet_footed",reqRank:1,desc:"伤害提高，潜行开场更狠"},
+      ]},
+    ],
+  },
 };
 
 /* 运行时态（挂在 S 上，便于存档 STEP 11） */

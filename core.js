@@ -48,7 +48,14 @@ const BALANCE={
     earthShock      :{dmg:[520,680]},
     healingWave     :{heal:[1100,1400]},
     healingTotem    :{healPerTick:[90,130], radius:9, duration:14, tick:1.0, max:1},
+    /* —— V1-C2 盗贼 —— */
+    sinisterStrike  :{dmg:[500,660], addDmg:[480,620], reach:4.6, addReach:4.5, bossReach:10},
+    backstab        :{dmg:[920,1180], addDmg:[880,1120], reach:4.4, addReach:4.3, bossReach:9.5, behindArc:1.35, stealthMul:1.25},
+    stealth         :{},
+    sprint          :{speedMul:1.55, duration:6},
   },
+  /* V1-C2：潜行（脱战隐身 · 缩小主动 aggro） */
+  stealth:{aggroMul:.35, alpha:.42, breakOnAttack:true, breakOnHit:true},
   /* 野怪族群数值表（STEP 5）：加新怪 = 加一条；aggroR:0 = 中立被动（只反击） */
   mobs:{
     boar    :{level:3, hp:650, dmg:[55,85],  atkCd:2.2, meleeR:2.4, aggroR:7,  leashR:34, wanderSpd:3,  chaseSpd:5.5, respawnT:25,  xp:80,  copper:[8,18]},
@@ -433,6 +440,15 @@ const BALANCE={
       totemic_call  :{skillCd:{i:3,mul:.88}},
       ancestral    :{fx:{healMul:.05},hpMaxMul:.04},
     },
+    /* —— V1-C2 盗贼 —— */
+    rogue:{
+      improved_sinister:{skillCd:{i:0,mul:.90}},
+      backstab_master  :{skillCd:{i:1,mul:.90},dmgMul:.03},
+      lethality        :{dmgMul:.05},
+      shadow_focus     :{fx:{stealthAggro:.08}},
+      fleet_footed     :{skillCd:{i:3,mul:.88}},
+      master_subtlety  :{dmgMul:.04,fx:{stealthDmg:.06}},
+    },
   },
   /* 存档（STEP 11）：localStorage 键与 schema 版本；改键会与旧存档隔离 */
   save:{key:"azeroth3d_save_v1",version:1},
@@ -499,6 +515,7 @@ const BALANCE={
       archer:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
       priest:[{role:"tank",classKey:"warrior"},{role:"dps",classKey:"archer"}],
       shaman:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
+      rogue:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
     },
     roleLabel:{tank:"坦克",healer:"治疗",dps:"输出"},
   },

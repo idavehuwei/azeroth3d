@@ -4,7 +4,7 @@
    [依赖] THREE · core.js（rand）
    [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS
           buildQuadruped buildScorpion buildHumanoidMob buildCentaur QUADS MOB_HUMANOIDS（STEP 5/18 族群工厂）
-          buildPlayer buildMage buildArcher buildPriest buildShaman buildBoss buildOnyxia buildElder buildVendor buildSpiritHealer
+          buildPlayer buildMage buildArcher buildPriest buildShaman buildRogue buildBoss buildOnyxia buildElder buildVendor buildSpiritHealer
           tintNpcCloth
           buildBoar buildFlameSpawn
           buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem buildMarketStall buildCratePile
@@ -120,6 +120,15 @@ const WEAPONS={
       {g:'cone',a:[.08,.35,5],p:[-.18,2.55,0],r:[0,0,.6],m:'feather'},
     ],
     light:{c:0x44e0c0,i:.5,d:5,p:[0,2.3,0]}},
+  /* 匕首（V1-C2 盗贼默认） */
+  dagger:{mats:{gold:{c:0xa09070,r:.35,mt:.85},
+               blade:{c:0xb8c4d4,mt:.95,r:.12,e:0x445566,ei:.15}},
+    parts:[
+      {g:'cyl',a:[.04,.045,.22,6],m:'gold'},
+      {g:'box',a:[.22,.05,.08],p:[0,.12,0],m:'gold'},
+      {g:'box',a:[.07,.95,.025],p:[0,.62,0],m:'blade'},
+      {g:'cone',a:[.05,.18,4],p:[0,1.18,0],m:'blade'},
+    ]},
 };
 function buildWeapon(type){
   const cfg=WEAPONS[type]||WEAPONS.sword;
@@ -264,6 +273,29 @@ const HUMANOIDS={
     cape:{a:[.9,1.45],p:[0,1.7,-.32],rx:.12,m:'capeM'},
     weapon:'shaman_staff', weaponMount:'armR', weaponPos:[.05,-.85,.12],
   },
+  /* 🗡 人类盗贼（V1-C2）：深色皮甲 + 兜帽 + 匕首 */
+  rogue:{
+    mats:{
+      leather:{c:0x2a3038,r:.85}, leatherD:{c:0x1a1e24,r:.9},
+      trim:{c:0x6a7080,r:.4,mt:.5}, skin:{c:0xd0a078,r:.8},
+      cloth:{c:0x3a2030,r:.9}, capeM:{c:0x1a1218,r:.9,ds:true},
+    },
+    parts:[
+      {g:'box',a:[.82,1.05,.46],p:[0,1.65,0],m:'leather'},
+      {g:'box',a:[.14,1.05,.5],p:[0,1.65,0],r:[0,0,.45],m:'leatherD'},
+      {g:'box',a:[.86,.14,.5],p:[0,1.12,0],m:'trim'},
+      {g:'box',a:[.76,.3,.42],p:[0,.92,0],m:'leatherD'},
+      {g:'box',a:[.44,.44,.42],p:[0,2.42,0],m:'skin'},
+      {g:'cone',a:[.4,.7,8],p:[0,2.68,0],r:[-.2,0,0],m:'leather'},
+      {g:'sph',a:[.26,8,6,0,6.28,0,1.7],p:[.54,2.15,0],m:'leatherD'},
+      {g:'sph',a:[.26,8,6,0,6.28,0,1.7],p:[-.54,2.15,0],m:'leatherD'},
+    ],
+    arm:{x:.54,y:2.08,mesh:{g:'box',a:[.22,.78,.22],p:[0,-.38,0],m:'leather'}},
+    armExtraL:[{g:'box',a:[.06,.55,.02],p:[-.08,-.75,.12],m:'trim'}], /* 副手短刃 */
+    leg:{x:.24,y:.9,mesh:{g:'box',a:[.26,.88,.26],p:[0,-.44,0],m:'leatherD'}},
+    cape:{a:[.82,1.25],p:[0,1.65,-.28],rx:.14,m:'capeM'},
+    weapon:'dagger', weaponMount:'armR', weaponPos:[0,-.7,.08],
+  },
 };
 
 /* ============================================================
@@ -311,6 +343,7 @@ function buildMage(){return buildHumanoid(HUMANOIDS.mage);}
 function buildArcher(){return buildHumanoid(HUMANOIDS.archer);}
 function buildPriest(){return buildHumanoid(HUMANOIDS.priest);}
 function buildShaman(){return buildHumanoid(HUMANOIDS.shaman);}
+function buildRogue(){return buildHumanoid(HUMANOIDS.rogue);}
 
 /* ============================================================
    Boss 模型：炎魔领主（岩浆巨人，程序化原创低模）

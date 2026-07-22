@@ -243,6 +243,48 @@ const RECIPES={
     cx.strokeStyle="#7aeeaa";cx.lineWidth=2;
     cx.beginPath();cx.arc(32,42,14,0,Math.PI,true);cx.stroke();
   },
+  /* 🗡 影袭（V1-C2） */
+  sinister_strike(cx){
+    P.bg(cx,"#1a1e28","#080a10");
+    P.glow(cx,34,30,20,"rgba(160,180,220,.55)");
+    cx.fillStyle="#c8d0e0";
+    cx.beginPath();cx.moveTo(22,48);cx.lineTo(28,18);cx.lineTo(34,18);cx.lineTo(40,48);cx.closePath();cx.fill();
+    cx.fillStyle="#8a90a0";cx.fillRect(24,40,16,6);
+    cx.strokeStyle="#e8f0ff";cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(40,16);cx.lineTo(50,24);cx.stroke();
+  },
+  /* 背刺 */
+  backstab(cx){
+    P.bg(cx,"#201018","#0c0608");
+    P.glow(cx,32,32,22,"rgba(200,80,100,.5)");
+    cx.fillStyle="#d0d8e8";
+    cx.beginPath();cx.moveTo(18,42);cx.lineTo(32,12);cx.lineTo(36,14);cx.lineTo(28,46);cx.closePath();cx.fill();
+    cx.fillStyle="#a03040";
+    cx.beginPath();cx.arc(44,28,8,0,6.283);cx.fill();
+    cx.fillStyle="#fff0f0";cx.font="bold 14px sans-serif";cx.fillText("!",42,33);
+  },
+  /* 潜行 */
+  stealth(cx){
+    P.bg(cx,"#101418","#040608");
+    P.glow(cx,32,32,22,"rgba(80,100,140,.55)");
+    cx.fillStyle="rgba(160,180,220,.35)";
+    cx.beginPath();cx.ellipse(32,34,18,12,0,0,6.283);cx.fill();
+    cx.strokeStyle="#a0b8d8";cx.lineWidth=2;
+    cx.beginPath();cx.arc(32,28,10,0,Math.PI*2);cx.stroke();
+    cx.fillStyle="#c8d8f0";
+    cx.beginPath();cx.arc(28,26,2.5,0,6.283);cx.fill();
+    cx.beginPath();cx.arc(36,26,2.5,0,6.283);cx.fill();
+  },
+  /* 疾步 */
+  sprint(cx){
+    P.bg(cx,"#182028","#081018");
+    P.glow(cx,32,32,20,"rgba(120,200,255,.55)");
+    cx.strokeStyle="#b0e0ff";cx.lineWidth=3;
+    cx.beginPath();cx.moveTo(14,40);cx.lineTo(26,20);cx.lineTo(34,34);cx.lineTo(48,14);cx.stroke();
+    cx.strokeStyle="#6080a0";cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(12,48);cx.lineTo(22,32);cx.stroke();
+    cx.beginPath();cx.moveTo(30,48);cx.lineTo(40,28);cx.stroke();
+  },
   /* 🌿 草药（STEP 23） */
   herb(cx){
     P.bg(cx,"#1a3a18","#081208");

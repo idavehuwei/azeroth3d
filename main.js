@@ -262,7 +262,7 @@ function tick(){
         const dH=Math.hypot(m.home.x-m.mesh.position.x,m.home.z-m.mesh.position.z);
         if(m.state==="wander"){
           /* 主动仇恨：被动怪（陆行鸟 aggroR:0）永不主动 */
-          if(st.aggroR>0&&dP<st.aggroR&&S.p.alive)aggroMob(m);
+          if(st.aggroR>0&&dP<st.aggroR*(typeof getPlayerAggroMul==="function"?getPlayerAggroMul():1)&&S.p.alive)aggroMob(m);
           m.wanderT-=dt;
           if(m.wanderT<=0){
             m.wanderT=rand(2.5,5.5);
@@ -448,6 +448,12 @@ function tick(){
     }
     /* 虚弱计时（STEP 15） */
     let moveSpd=S.p.speed;
+    if(S.p.sprintT>0){
+      S.p.sprintT=Math.max(0,S.p.sprintT-dt);
+      const sm=(BAL.skills.sprint&&BAL.skills.sprint.speedMul)||1.55;
+      moveSpd*=sm;
+      if(S.p.sprintT<=0)log("疾步结束。","lg-sys");
+    }
     if(S.p.weaknessT>0){
       S.p.weaknessT=Math.max(0,S.p.weaknessT-dt);
       moveSpd*=BAL.death.moveSpeedMul;
@@ -548,6 +554,7 @@ function tick(){
       }
       if(did&&!CLS.ranged)SFX.play("swing");   /* 近战普攻音效（远程在 firePlayerShot 里） */
       if(did&&CLS.hitGain)S.p.rage=Math.min(S.p.rageMax,S.p.rage+CLS.hitGain);
+      if(did&&BAL.stealth&&BAL.stealth.breakOnAttack!==false&&typeof breakStealth==="function")breakStealth("attack");
       S.p.atkTimer=did?CLS.autoSpd:.3;
     }
 

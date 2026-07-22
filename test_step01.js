@@ -124,9 +124,27 @@ assert(iconsSrc.includes("lightning(cx)")&&iconsSrc.includes("totem(cx)")&&icons
 assert(sfxSrc.includes("lightning"),"sfx.js 有 lightning 音效");
 assert(html.includes('data-cls="shaman"'),"启程界面有萨满职业卡");
 
+/* V1-C2 盗贼冒烟 */
+assert(combatSrc.includes("rogue:{"),"combat.js 有 CLASSES.rogue");
+assert(combatSrc.includes("function stealth")||combatSrc.includes("function enterStealth"),"combat.js 有潜行");
+assert(combatSrc.includes("function backstab"),"combat.js 有背刺");
+assert(combatSrc.includes("function getPlayerAggroMul"),"combat.js 有 getPlayerAggroMul");
+assert(combatSrc.includes("function isBehindTarget"),"combat.js 有背后判定");
+assert(modelsSrc.includes("function buildRogue"),"models.js 导出 buildRogue");
+assert(modelsSrc.includes("rogue:")||modelsSrc.includes("rogue:{"),"models.js 有 rogue 人形配方");
+assert(talentsSrc.includes("rogue:{"),"talents.js 有 TALENTS.rogue");
+assert(talentsSrc.includes('id:"assassination"')&&talentsSrc.includes('id:"subtlety"'),"盗贼天赋双枝 刺杀/敏锐");
+assert(coreSrc.includes("backstab")&&coreSrc.includes("sinisterStrike"),"BALANCE.skills 含盗贼技能");
+assert(coreSrc.includes("stealth:{aggroMul")||coreSrc.includes("aggroMul:"),"BALANCE.stealth 含 aggroMul");
+assert(/fill:[\s\S]*rogue:/.test(coreSrc),"BAL.party.fill 含 rogue");
+assert(iconsSrc.includes("backstab(cx)")&&iconsSrc.includes("stealth(cx)")&&iconsSrc.includes("sprint(cx)"),"icons.js 有盗贼图标");
+assert(sfxSrc.includes("stealth"),"sfx.js 有 stealth 音效");
+assert(html.includes('data-cls="rogue"'),"启程界面有盗贼职业卡");
+
 /* STEP 20 AI 队友冒烟 */
 const cmpSrc=fs.readFileSync(path.join(__dirname,"companions.js"),"utf8");
 assert(cmpSrc.includes('shaman:"同伴')||cmpSrc.includes('shaman:"同伴 ·'),"companions.js 有萨满同伴名");
+assert(cmpSrc.includes('rogue:"同伴')||cmpSrc.includes("rogue:\"同伴"),"companions.js 有盗贼同伴名");
 assert(cmpSrc.includes("function recruitCompanion"),"companions.js 有 recruitCompanion");
 assert(cmpSrc.includes("function dismissCompanion"),"companions.js 有 dismissCompanion");
 assert(cmpSrc.includes("function tickCompanion"),"companions.js 有 tickCompanion");
@@ -232,6 +250,7 @@ assert(DEEDS_COUNT_OK(deedsSrc),"DEEDS 条目不少于 15");
 /* STEP 27 仇恨与职责冒烟 */
 const threatSrc=fs.readFileSync(path.join(__dirname,"threat.js"),"utf8");
 const mainSrc=fs.readFileSync(path.join(__dirname,"main.js"),"utf8");
+assert(mainSrc.includes("getPlayerAggroMul"),"main.js aggro 挂接潜行倍率");
 assert(mainSrc.includes("mouselook")&&mainSrc.includes("strafe")&&mainSrc.includes("keys.q"),"魔兽式 A/D 转向 · Q/E 平移");
 assert(mainSrc.includes("recenterSpd")||mainSrc.includes("yawOff"),"前进回正视角");
 assert(combatSrc.includes("camApplyDrag")||combatSrc.includes("S.cam.lmb"),"左键环绕 / 右键转向");
