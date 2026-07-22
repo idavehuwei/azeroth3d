@@ -212,14 +212,20 @@ function getSkillCd(i){
 
 function updateSkillBarStats(){
   if(!SKILLS||!SKILLS.length)return;
-  document.querySelectorAll(".skill").forEach((el,i)=>{
-    if(!SKILLS[i])return;
-    const cd=getSkillCd(i);
-    const base=SKILLS[i].cd;
-    el.querySelector(".nm").textContent=SKILLS[i].name;
+  document.querySelectorAll(".skill").forEach((el,slot)=>{
+    const sk=typeof getBarSkill==="function"?getBarSkill(slot):SKILLS[slot];
+    if(!sk){
+      el.title="空槽 · 从法术书（P）拖入技能";
+      return;
+    }
+    const idx=typeof getBarSkillIndex==="function"?getBarSkillIndex(slot):slot;
+    const cd=typeof getSkillCd==="function"?getSkillCd(idx):sk.cd;
+    const base=sk.cd;
+    const nm=el.querySelector(".nm");
+    if(nm)nm.textContent=sk.name;
     el.title=cd<base-0.01
-      ?`${SKILLS[i].name} · CD ${cd}s（天赋 ${base}s→${cd}s）`
-      :`${SKILLS[i].name} · CD ${cd}s`;
+      ?`${sk.name} · CD ${cd}s（天赋 ${base}s→${cd}s）`
+      :`${sk.name} · CD ${cd}s`;
   });
 }
 

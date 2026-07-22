@@ -79,6 +79,7 @@ function collectSaveData(){
     mats:typeof collectMatsSave==="function"?collectMatsSave():{},
     deeds:typeof collectDeedsSave==="function"?collectDeedsSave():{},
     savedAt:Date.now(),
+    actionBar:(S.actionBar||[]).map(v=>v==null?null:(v|0)),
   };
 }
 
@@ -199,6 +200,7 @@ function validateSave(raw){
       pos:{x,z},
       companion,
       savedAt:raw.savedAt|0,
+      actionBar:Array.isArray(raw.actionBar)?raw.actionBar.map(v=>v==null?null:Math.max(0,Math.min(3,v|0))):null,
     },
   };
 }
@@ -209,13 +211,22 @@ function rebuildLevelStats(level){
   S.p.level=1; S.p.xp=0;
   S.p.xpMax=(typeof xpToNext==="function"?xpToNext(1):null)||L.xpMax[0];
   S.p.dmgMul=1; S.p.hpMax=CLS.hp; S.p.hp=CLS.hp;
+  /* 读开局属性；等级成长叠在 baseStats 上 */
+  if(typeof initPlayerStats==="function")initPlayerStats(CLS.key);
   for(let lv=2;lv<=level;lv++){
     S.p.level=lv;
     const hpGain=Math.round(CLS.hp*L.perLevel.hpMax);
     S.p.hpMax+=hpGain;
     S.p.dmgMul+=L.perLevel.dmgMul;
     S.p.xpMax=(typeof xpToNext==="function"?xpToNext(lv):null)||L.xpMax[lv-1]||S.p.xpMax;
+    if(S.p.baseStats){
+      S.p.baseStats.str=(S.p.baseStats.str|0)+2;
+      S.p.baseStats.sta=(S.p.baseStats.sta|0)+2;
+      S.p.baseStats.agi=(S.p.baseStats.agi|0)+1;
+    }
   }
+  if(typeof rebuildPlayerStatsFromEquip==="function")rebuildPlayerStatsFromEquip();
+  else if(typeof refreshPlayerDerived==="function")refreshPlayerDerived();
 }
 
 function applySaveData(data){
@@ -261,6 +272,19 @@ function applySaveData(data){
   S.p.lastSeenAt=data.lastSeenAt|0;
   if(typeof applyOfflineRestXp==="function")applyOfflineRestXp();
   S.p.lastSeenAt=Date.now();
+  if(Array.isArray(data.actionBar)&&typeof bindSkillToBar==="function"){
+    S.actionBar=[null,null,null,null];
+    for(let s=0;s<4;s++){
+      const idx=data.actionBar[s];
+      if(idx==null)continue;
+      if(SKILLS[idx]&&typeof isSkillKnown==="function"&&isSkillKnown(SKILLS[idx]))
+        S.actionBar[s]=idx;
+    }
+    /* 若全空则回退默认 */
+    if(S.actionBar.every(v=>v==null)&&typeof defaultActionBar==="function")
+      S.actionBar=defaultActionBar();
+    if(typeof refreshActionBarUI==="function")refreshActionBarUI();
+  }
 
   if(typeof applyQuestSave==="function"){
     applyQuestSave(data.quests,{quest:data.quest,barrensQuest:data.barrensQuest});

@@ -35,7 +35,8 @@
 | `js/ui/frames.js` | 目标框 HUD（C2） | refreshTargetFrame, hideTargetFrame |
 | `js/ui/target.js` | 点击/右键选取（C2） | pickTargetAtScreen, tryTargetClick, tryTargetContext |
 | `icons.js` | 图标画布工厂 | Icons.canvas, Icons.get |
-| `items.js` | 物品与掉落 | QUALITY, ITEMS, LOOT, EQUIP_SLOTS, dropLoot, tryLoot, useItem, sellItem, equipItem |
+| `items.js` | 物品与掉落 | QUALITY, ITEMS, LOOT, EQUIP_SLOTS, dropLoot, tryLoot, useItem, sellItem, equipItem, applyEquipStats, getPlayerWeaponRange |
+| `js/ui/tooltip.js` | 金边浮层 tip | showTipHtml, hideTip, bindTipHtml |
 | `rig.js` | 人形骨架 / Anim | createRigSkeleton, assembleHumanoidRig, updateHumanoidAnim, CLASS_LOOK_META |
 | `creatures.js` | 生物族群工厂 | buildQuadruped, buildElemental, buildHumanoidMob, buildFlameSpawn, QUADS, MOB_LOOK |
 | `models.js` | 职业 / NPC / Boss / 建筑 | buildPlayer…, buildBoss, buildHut/Tent/Fence/Watchtower |
@@ -76,7 +77,7 @@
 
 - 已执行账本：`plan-merged.md`（STEP 0–29 / v4.0 完成）
 - **plan-V2 已完成：R0–R8 + G1–G7（M1–M5）**（见 `plan-V2.md`）
-- **plan-V3：C0–C6 已完成**；下一步 C7 法术书（见 `plan-V3.md`）
+- **plan-V3：C0–C8 已完成**；下一步 C9 任务数据化（见 `plan-V3.md`）
 - 公式单测：`node test_formulas.js`
 - 后续可对照 `plan-v1.md` 打磨内容；默认不做联机
 

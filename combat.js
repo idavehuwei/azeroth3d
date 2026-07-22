@@ -21,6 +21,7 @@
           threat.js 运行时（addThreat）
    [导出] S SKILLS CLASSES CLS setClass applySkillBarIcons log announce fct hurtFlash keys joy
           getMoveIntent clearMoveTarget camApplyDrag
+          initPlayerStats refreshPlayerDerived rebuildPlayerStatsFromEquip
           hitEntity playerHit gainXP updateLevelUI useSkill pickTarget setCurrentTarget getFocusTarget
           resolveSkillTarget cycleHostileTargets listHostileTargets targetDisplayInfo
           firePlayerShot
@@ -63,6 +64,7 @@ const S={
   adds:[],projectiles:[],pShots:[],telegraphs:[],bursts:[],auras:[],
   totems:[], /* V1-C1：玩家图腾地面 aura */
   cds:[0,0,0,0],gcd:0,
+  actionBar:[null,null,null,null], /* C7：动作条槽 → CLS.skills 下标 */
   inv:[],      /* 背包（STEP 2 起：拾取的物品 id 列表） */
   eq:emptyEquipment(), /* 纸娃娃装备位（items.js · EQUIP_SLOTS） */
   god:false,   /* 上帝模式：启程时由首页勾选决定（hitEntity 消费） */
@@ -85,27 +87,27 @@ const CLASSES={
     barCss:"linear-gradient(180deg,#ffd76a,#c98a1f 60%,#7a4d0c)",
     tip:"提示：近身积攒怒气；【冲锋】贴近并可打断读条；【嘲讽】强制拉住目标仇恨。",
     skills:[
-      {name:"英勇打击",icon:"sword",cd:5, rage:20,fn:heroicStrike,bal:"heroicStrike",school:"physical",
-       desc:"奋力一击，对面前敌人造成物理伤害。"},
-      {name:"旋风斩",  icon:"whirlwind",cd:9, rage:30,fn:whirlwind,bal:"whirlwind",school:"physical",
-       desc:"旋转兵器，对周围敌人造成范围物理伤害。"},
-      {name:"冲锋",    icon:"charge",cd:12,rage:0, fn:charge,bal:"charge",
-       desc:"向目标冲锋并贴近；若目标正在读条则可打断。"},
-      {name:"嘲讽",    icon:"taunt",cd:8, rage:0, fn:taunt,bal:"taunt",
-       desc:"强制目标攻击你一段时间，并大幅拉高仇恨。"}]},
+      {name:"英勇打击",icon:"sword",cd:5, rage:20,fn:heroicStrike,bal:"heroicStrike",school:"physical",unlock:1,
+       desc:"奋力一击，对面前敌人造成物理伤害。",range:5},
+      {name:"旋风斩",  icon:"whirlwind",cd:9, rage:30,fn:whirlwind,bal:"whirlwind",school:"physical",unlock:6,
+       desc:"旋转兵器，对周围敌人造成范围物理伤害。",range:8},
+      {name:"冲锋",    icon:"charge",cd:12,rage:0, fn:charge,bal:"charge",unlock:4,
+       desc:"向目标冲锋并贴近；若目标正在读条则可打断。",range:40},
+      {name:"嘲讽",    icon:"taunt",cd:8, rage:0, fn:taunt,bal:"taunt",unlock:8,
+       desc:"强制目标攻击你一段时间，并大幅拉高仇恨。",range:30}]},
   mage:{title:"🔮 你 · 人类法师",hp:3800,resMax:100,resStart:100,resName:"法力",resKind:"mana",
     regen:7,hitGain:0,speed:10,ranged:true,range:30,sfx:"fireball",
     autoMin:175,autoMax:235,autoSpd:1.8,shotColor:0xff8a30,build:buildMage,
     barCss:"linear-gradient(180deg,#7ab8ff,#2a5ec9 60%,#123a7a)",
     tip:"提示：法力随时间恢复；远程自动施放火球，【闪现】拉开距离，危急时开【寒冰屏障】免疫伤害。",
     skills:[
-      {name:"炎爆术",  icon:"fireball",cd:7, rage:30,fn:pyroblast,bal:"pyroblast",school:"spell",
-       desc:"蓄力投出巨大火球，造成高额火焰伤害。"},
-      {name:"冰霜新星",icon:"frost",cd:11,rage:25,fn:frostNova,bal:"frostNova",school:"spell",
-       desc:"冻结周围敌人并造成冰霜伤害，短暂定身。"},
-      {name:"闪现",    icon:"blink",cd:12,rage:15,fn:blink,bal:"blink",
+      {name:"炎爆术",  icon:"fireball",cd:7, rage:30,fn:pyroblast,bal:"pyroblast",school:"spell",unlock:1,
+       desc:"蓄力投出巨大火球，造成高额火焰伤害。",range:30,cast:2.5},
+      {name:"冰霜新星",icon:"frost",cd:11,rage:25,fn:frostNova,bal:"frostNova",school:"spell",unlock:4,
+       desc:"冻结周围敌人并造成冰霜伤害，短暂定身。",range:12},
+      {name:"闪现",    icon:"blink",cd:12,rage:15,fn:blink,bal:"blink",unlock:6,
        desc:"瞬间向前传送一段距离。"},
-      {name:"寒冰屏障",icon:"ice_block",cd:25,rage:0, fn:iceBlock,bal:"iceBlock",
+      {name:"寒冰屏障",icon:"ice_block",cd:25,rage:0, fn:iceBlock,bal:"iceBlock",unlock:10,
        desc:"把自己封进寒冰，短时间内免疫伤害。"}]},
   archer:{title:"🏹 你 · 精灵弓箭手",hp:4300,resMax:100,resStart:100,resName:"能量",resKind:"energy",
     regen:11,hitGain:0,speed:11.5,ranged:true,range:32,sfx:"arrow",minRange:5,
@@ -113,13 +115,13 @@ const CLASSES={
     barCss:"linear-gradient(180deg,#d8ff7a,#7fb32a 60%,#3d6a0c)",
     tip:"提示：能量随时间恢复；边走边射保持距离，【翻滚】可位移并短暂闪避一切伤害。",
     skills:[
-      {name:"瞄准射击",icon:"aimed",cd:6, rage:30,fn:aimedShot,bal:"aimedShot",school:"physical",
-       desc:"精确瞄准，射出高伤害箭矢。"},
-      {name:"多重射击",icon:"multi_shot",cd:10,rage:35,fn:multiShot,bal:"multiShot",school:"physical",
-       desc:"同时射出多支箭，打击多个目标。"},
-      {name:"翻滚",    icon:"roll",cd:9, rage:20,fn:roll,bal:"roll",
+      {name:"瞄准射击",icon:"aimed",cd:6, rage:30,fn:aimedShot,bal:"aimedShot",school:"physical",unlock:1,
+       desc:"精确瞄准，射出高伤害箭矢。",range:32},
+      {name:"多重射击",icon:"multi_shot",cd:10,rage:35,fn:multiShot,bal:"multiShot",school:"physical",unlock:4,
+       desc:"同时射出多支箭，打击多个目标。",range:32},
+      {name:"翻滚",    icon:"roll",cd:9, rage:20,fn:roll,bal:"roll",unlock:6,
        desc:"向前翻滚位移，短暂闪避一切伤害。"},
-      {name:"治疗药水",icon:"potion",cd:22,rage:0, fn:potion,bal:"potion",
+      {name:"治疗药水",icon:"potion",cd:22,rage:0, fn:potion,bal:"potion",unlock:8,
        desc:"喝下药水，立即回复生命。"}]},
   priest:{title:"✨ 你 · 人类牧师",hp:4000,resMax:100,resStart:100,resName:"法力",resKind:"mana",
     regen:8,hitGain:0,speed:10,ranged:true,range:28,sfx:"holy",
@@ -127,13 +129,13 @@ const CLASSES={
     barCss:"linear-gradient(180deg,#fff8d0,#d4af37 60%,#8a7020)",
     tip:"提示：法力随时间恢复；远程自动施放神圣惩击；【治疗术】续航，【真言术：盾】先吸收伤害。",
     skills:[
-      {name:"治疗术",    icon:"heal", cd:8,  rage:35,fn:heal,           bal:"heal",
-       desc:"施放圣光，恢复大量生命。"},
-      {name:"快速治疗",  icon:"flash_heal", cd:4,  rage:20,fn:flashHeal,     bal:"flashHeal",
-       desc:"迅速施法，立即恢复中等生命。"},
-      {name:"神圣惩击",  icon:"holy", cd:6,  rage:25,fn:smite,         bal:"smite",school:"spell",
-       desc:"对目标造成神圣伤害。"},
-      {name:"真言术：盾",icon:"holy_shield", cd:12, rage:30,fn:powerWordShield,bal:"powerWordShield",
+      {name:"治疗术",    icon:"heal", cd:8,  rage:35,fn:heal,           bal:"heal",unlock:1,
+       desc:"施放圣光，恢复大量生命。",cast:2.5},
+      {name:"快速治疗",  icon:"flash_heal", cd:4,  rage:20,fn:flashHeal,     bal:"flashHeal",unlock:4,
+       desc:"迅速施法，立即恢复中等生命。",cast:1.2},
+      {name:"神圣惩击",  icon:"holy", cd:6,  rage:25,fn:smite,         bal:"smite",school:"spell",unlock:6,
+       desc:"对目标造成神圣伤害。",range:28,cast:2},
+      {name:"真言术：盾",icon:"holy_shield", cd:12, rage:30,fn:powerWordShield,bal:"powerWordShield",unlock:8,
        desc:"为自己施加吸收护盾，持续一段时间。"}]},
   shaman:{title:"🌀 你 · 兽人萨满",hp:4200,resMax:100,resStart:100,resName:"法力",resKind:"mana",
     regen:8,hitGain:0,speed:10.2,ranged:true,range:26,sfx:"lightning",
@@ -141,13 +143,13 @@ const CLASSES={
     barCss:"linear-gradient(180deg,#7ad0ff,#2a8a9a 60%,#104858)",
     tip:"提示：法力自动恢复；闪电箭远程输出；【治疗图腾】落地持续回血。",
     skills:[
-      {name:"闪电箭",    icon:"lightning", cd:6,  rage:28,fn:lightningBolt, bal:"lightningBolt",school:"spell",
-       desc:"投出闪电，对目标造成自然伤害。"},
-      {name:"大地震击",  icon:"earth_shock", cd:7,  rage:25,fn:earthShock,    bal:"earthShock",school:"spell",
-       desc:"以大地之力震击目标。"},
-      {name:"治疗波",    icon:"heal", cd:8,  rage:32,fn:healingWave,   bal:"healingWave",
-       desc:"引导水流，恢复自身生命。"},
-      {name:"治疗图腾",  icon:"totem", cd:18, rage:35,fn:placeHealingTotem,bal:"healingTotem",
+      {name:"闪电箭",    icon:"lightning", cd:6,  rage:28,fn:lightningBolt, bal:"lightningBolt",school:"spell",unlock:1,
+       desc:"投出闪电，对目标造成自然伤害。",range:26,cast:2},
+      {name:"大地震击",  icon:"earth_shock", cd:7,  rage:25,fn:earthShock,    bal:"earthShock",school:"spell",unlock:4,
+       desc:"以大地之力震击目标。",range:20},
+      {name:"治疗波",    icon:"heal", cd:8,  rage:32,fn:healingWave,   bal:"healingWave",unlock:6,
+       desc:"引导水流，恢复自身生命。",cast:2.5},
+      {name:"治疗图腾",  icon:"totem", cd:18, rage:35,fn:placeHealingTotem,bal:"healingTotem",unlock:10,
        desc:"在脚下放置图腾，持续治疗范围内的自己。"}]},
   rogue:{title:"🗡 你 · 人类盗贼",hp:4100,resMax:100,resStart:100,resName:"能量",resKind:"energy",
     regen:12,hitGain:0,speed:11.2,ranged:false,range:8,sfx:"swing",
@@ -155,24 +157,103 @@ const CLASSES={
     barCss:"linear-gradient(180deg,#d0d8e8,#5a6a88 60%,#2a3448)",
     tip:"提示：能量自动恢复；脱战可【潜行】缩小被发现距离；从背后【背刺】造成高额伤害。",
     skills:[
-      {name:"影袭",  icon:"sinister_strike", cd:5,  rage:25,fn:sinisterStrike, bal:"sinisterStrike",school:"physical",combo:1,
-       desc:"迅捷一击，对近战目标造成物理伤害。"},
-      {name:"背刺",  icon:"backstab", cd:8,  rage:35,fn:backstab,        bal:"backstab",school:"physical",combo:1,
-       desc:"必须位于目标背后；潜行中伤害更高。"},
-      {name:"潜行",  icon:"stealth", cd:10, rage:0, fn:stealth,         bal:"stealth",
+      {name:"影袭",  icon:"sinister_strike", cd:5,  rage:25,fn:sinisterStrike, bal:"sinisterStrike",school:"physical",combo:1,unlock:1,
+       desc:"迅捷一击，对近战目标造成物理伤害。",range:5},
+      {name:"背刺",  icon:"backstab", cd:8,  rage:35,fn:backstab,        bal:"backstab",school:"physical",combo:1,unlock:4,
+       desc:"必须位于目标背后；潜行中伤害更高。",range:5},
+      {name:"潜行",  icon:"stealth", cd:10, rage:0, fn:stealth,         bal:"stealth",unlock:6,
        desc:"脱战后进入隐身，大幅缩小野怪主动仇恨半径。"},
-      {name:"疾步",  icon:"sprint", cd:20, rage:20,fn:sprint,          bal:"sprint",
+      {name:"疾步",  icon:"sprint", cd:20, rage:20,fn:sprint,          bal:"sprint",unlock:8,
        desc:"短时间内大幅提高移动速度。"}]},
 };
 let CLS=CLASSES.warrior;
 
-/** V1-A2：技能栏 / 法术书用 Icons 画布，不再写 emoji（须在 setClass 调用前初始化） */
+/** V1-A2 / C7：技能栏按 actionBar 绑定刷新图标 */
 const SKILL_ICON_BORDER="#e8b34a";
+function isSkillKnown(sk,level){
+  if(!sk)return false;
+  const lv=level!=null?level:((S.p&&S.p.level)|0||1);
+  const need=sk.unlock!=null?sk.unlock:1;
+  return lv>=need;
+}
+function getBarSkillIndex(slot){
+  if(!S.actionBar)return null;
+  const idx=S.actionBar[slot];
+  if(idx==null||idx<0)return null;
+  if(!SKILLS[idx]||!isSkillKnown(SKILLS[idx]))return null;
+  return idx;
+}
+function getBarSkill(slot){
+  const i=getBarSkillIndex(slot);
+  return i==null?null:SKILLS[i];
+}
+function defaultActionBar(){
+  const bar=[null,null,null,null];
+  const known=[];
+  for(let i=0;i<SKILLS.length;i++){
+    if(isSkillKnown(SKILLS[i]))known.push(i);
+  }
+  known.sort((a,b)=>(SKILLS[a].unlock|0)-(SKILLS[b].unlock|0)||a-b);
+  for(let s=0;s<4&&s<known.length;s++)bar[s]=known[s];
+  return bar;
+}
+function bindSkillToBar(slot,skillIdx){
+  slot=slot|0;
+  if(slot<0||slot>3)return false;
+  if(skillIdx==null){S.actionBar[slot]=null;refreshActionBarUI();return true;}
+  skillIdx=skillIdx|0;
+  if(!SKILLS[skillIdx]||!isSkillKnown(SKILLS[skillIdx]))return false;
+  /* 同一技能从其他槽移除 */
+  for(let i=0;i<4;i++)if(S.actionBar[i]===skillIdx)S.actionBar[i]=null;
+  S.actionBar[slot]=skillIdx;
+  refreshActionBarUI();
+  return true;
+}
+function skillsLearnedAtLevel(level){
+  const out=[];
+  for(let i=0;i<SKILLS.length;i++){
+    const sk=SKILLS[i];
+    if((sk.unlock|0)===level)out.push(sk);
+  }
+  return out;
+}
+function notifyNewSpells(level){
+  const learned=skillsLearnedAtLevel(level);
+  if(!learned.length)return;
+  for(const sk of learned){
+    announce(`学会了新法术 · ${sk.name}`);
+    log(`你学会了【${sk.name}】！（P 打开法术书，可拖到动作条）`,"lg-heal");
+  }
+  /* 自动填入空槽 */
+  for(let i=0;i<SKILLS.length;i++){
+    if((SKILLS[i].unlock|0)!==level)continue;
+    let has=false;
+    for(let s=0;s<4;s++)if(S.actionBar[s]===i){has=true;break;}
+    if(has)continue;
+    for(let s=0;s<4;s++){
+      if(S.actionBar[s]==null){S.actionBar[s]=i;break;}
+    }
+  }
+  refreshActionBarUI();
+  if(typeof renderSpellPanel==="function")renderSpellPanel();
+}
+function refreshActionBarUI(){
+  applySkillBarIcons();
+  if(typeof updateSkillBarStats==="function")updateSkillBarStats();
+}
 function applySkillBarIcons(){
-  document.querySelectorAll(".skill").forEach((el,i)=>{
-    const sk=SKILLS[i]; if(!sk)return;
-    const nm=el.querySelector(".nm"); if(nm)nm.textContent=sk.name;
+  document.querySelectorAll(".skill").forEach((el,slot)=>{
+    const sk=getBarSkill(slot);
+    const nm=el.querySelector(".nm");
     let ic=el.querySelector(".ic");
+    el.classList.toggle("empty",!sk);
+    if(!sk){
+      if(nm)nm.textContent="";
+      if(ic&&ic.tagName==="IMG"){ic.removeAttribute("src");ic.alt="";}
+      el.title="空槽 · 从法术书拖入技能";
+      return;
+    }
+    if(nm)nm.textContent=sk.name;
     if(!ic)return;
     if(ic.tagName!=="IMG"){
       const img=document.createElement("img");
@@ -205,12 +286,13 @@ function setClass(key){
   else S.res={inCombat:false,combatT:0,manaFsr:0,energyAcc:0,combo:0};
   initPlayerStats(key);
   SKILLS=CLS.skills;
+  S.actionBar=defaultActionBar();
+  S.cds=[0,0,0,0];
   if(typeof initTalentsForClass==="function")initTalentsForClass(key);
   else updateLevelUI();
   updateLevelUI();
   $("#pRage").style.background=CLS.barCss;
-  applySkillBarIcons();
-  if(typeof updateSkillBarStats==="function")updateSkillBarStats();
+  refreshActionBarUI();
   if(typeof renderCharPanel==="function")renderCharPanel();
   if(typeof renderSpellPanel==="function")renderSpellPanel();
 }
@@ -221,8 +303,28 @@ function initPlayerStats(clsKey){
   const base=(BAL.sim&&BAL.sim.baseStats&&BAL.sim.baseStats[key])||
     (typeof SIM_CONTENT!=="undefined"&&SIM_CONTENT.baseStats&&SIM_CONTENT.baseStats[key])||
     {str:20,agi:20,sta:20,int:20,spi:20,armor:50};
-  S.p.stats=typeof cloneStats==="function"?cloneStats(base):Object.assign({level:S.p.level},base);
-  S.p.stats.level=S.p.level|0||1;
+  S.p.baseStats=typeof cloneStats==="function"?cloneStats(base):Object.assign({},base,{level:S.p.level});
+  S.p.baseStats.level=S.p.level|0||1;
+  S.p.equipStats=typeof emptyStats==="function"?emptyStats(S.p.level):{str:0,agi:0,sta:0,int:0,spi:0,armor:0,level:S.p.level|1};
+  rebuildPlayerStatsFromEquip();
+}
+/** C8：baseStats + equipStats → stats → derived（攻击强度/暴击等） */
+function rebuildPlayerStatsFromEquip(){
+  const lv=S.p.level|0||1;
+  if(!S.p.baseStats){
+    const key=(CLS&&CLS.key)||"warrior";
+    const base=(BAL.sim&&BAL.sim.baseStats&&BAL.sim.baseStats[key])||{str:20,agi:20,sta:20,int:20,spi:20,armor:50};
+    S.p.baseStats=typeof cloneStats==="function"?cloneStats(base):Object.assign({},base);
+  }
+  S.p.baseStats.level=lv;
+  if(!S.p.equipStats){
+    S.p.equipStats=typeof emptyStats==="function"?emptyStats(lv):{str:0,agi:0,sta:0,int:0,spi:0,armor:0,level:lv};
+  }
+  S.p.equipStats.level=lv;
+  S.p.stats=typeof mergeStats==="function"
+    ?mergeStats(S.p.baseStats,S.p.equipStats)
+    :Object.assign({},S.p.baseStats);
+  S.p.stats.level=lv;
   refreshPlayerDerived();
 }
 function refreshPlayerDerived(){
@@ -231,10 +333,7 @@ function refreshPlayerDerived(){
   if(typeof deriveStats==="function")
     S.p.derived=deriveStats(S.p.stats,CLS.key||"warrior");
   else S.p.derived={ap:0,critPct:5,dodgePct:5,armor:S.p.stats.armor|0,apDmgMul:1};
-  /* 耐力加成叠在职业基础生命上（装备 hpMax 仍走 applyEquipStats） */
-  if(S.p.derived&&S.p.derived.hpBonus!=null&&CLS){
-    /* 不在此重写 hpMax，避免冲掉装备；仅暴露 derived 给面板 */
-  }
+  /* 耐力加成暴露在 derived；装备 hpMax 仍走 applyEquipStats legacy */
 }
 function playerResKind(){
   return(CLS&&CLS.resKind)||(CLS&&CLS.resName==="法力"?"mana":CLS&&CLS.resName==="能量"?"energy":"rage");
@@ -515,17 +614,19 @@ function getSkillBal(balKey){
 }
 function useSkill(i){
   if(!S.started||S.over||!S.p.alive)return;
-  const sk=SKILLS[i]; if(!sk)return;
+  const skillIdx=getBarSkillIndex(i);
+  if(skillIdx==null)return;
+  const sk=SKILLS[skillIdx]; if(!sk)return;
   const qWin=(BAL.sim&&BAL.sim.resources&&BAL.sim.resources.gcd&&BAL.sim.resources.gcd.queueWindow)||.2;
   if(S.gcd>0){
     if(S.gcd<=qWin&&S.res){S.res.queuedSkill=i;return;}
     return;
   }
-  if(S.cds[i]>0)return;
+  if(S.cds[skillIdx]>0)return;
   if(S.p.rage<sk.rage){log(`${CLS.resName}不足！（${sk.name} 需要 ${sk.rage} ${CLS.resName}）`,"lg-sys");return;}
   if(sk.fn()){
     S.p.rage-=sk.rage;
-    S.cds[i]=typeof getSkillCd==="function"?getSkillCd(i):sk.cd;
+    S.cds[skillIdx]=typeof getSkillCd==="function"?getSkillCd(skillIdx):sk.cd;
     const g=typeof gcdDuration==="function"?gcdDuration(playerResKind()):1.5;
     S.gcd=g;
     if(playerResKind()==="mana"&&typeof applyManaSpend==="function")applyManaSpend(S.res);
@@ -1450,7 +1551,13 @@ function gainXP(amount,opts){
     P.hp=P.hpMax;
     P.rage=P.rageMax;
     P.dmgMul+=L.perLevel.dmgMul;
-    if(P.stats){
+    if(P.baseStats){
+      P.baseStats.str=(P.baseStats.str|0)+2;
+      P.baseStats.sta=(P.baseStats.sta|0)+2;
+      P.baseStats.agi=(P.baseStats.agi|0)+1;
+      if(typeof rebuildPlayerStatsFromEquip==="function")rebuildPlayerStatsFromEquip();
+      else if(typeof refreshPlayerDerived==="function")refreshPlayerDerived();
+    }else if(P.stats){
       P.stats.str=(P.stats.str|0)+2;
       P.stats.sta=(P.stats.sta|0)+2;
       P.stats.agi=(P.stats.agi|0)+1;
@@ -1485,6 +1592,7 @@ function gainXP(amount,opts){
     }
     if(typeof grantTalentPointOnLevel==="function")grantTalentPointOnLevel(P.level);
     if(typeof onDeedLevelUp==="function")onDeedLevelUp(P.level);
+    if(typeof notifyNewSpells==="function")notifyNewSpells(P.level);
     if(typeof renderSpellPanel==="function")renderSpellPanel();
     if(typeof updateSkillBarStats==="function")updateSkillBarStats();
   }

@@ -103,17 +103,27 @@
   #skillBar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:10px;z-index:10}
   .skill{width:58px;height:58px;border:1px solid var(--panel-border-hi);background:var(--slot-bg);position:relative;
     cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    box-shadow:0 0 14px rgba(255,90,0,.18),inset 0 0 12px rgba(0,0,0,.75);transition:transform .08s}
+    box-shadow:0 0 14px rgba(255,90,0,.18),inset 0 0 12px rgba(0,0,0,.75);transition:transform .08s,box-shadow .12s,border-color .12s;
+    --cd:0}
   .skill:active{transform:scale(.93)}
+  .skill.empty{opacity:.45;border-style:dashed}
+  .skill.empty .nm{color:#6a5a48}
+  .skill.oor{box-shadow:0 0 14px rgba(220,40,40,.45),inset 0 0 12px rgba(0,0,0,.75);border-color:#e05050}
+  .skill.oor .nm{color:#ff9090}
+  .skill.nores{box-shadow:0 0 14px rgba(60,120,220,.45),inset 0 0 12px rgba(0,0,0,.75);border-color:#5a9ae0}
+  .skill.nores .nm{color:#9ec8ff}
+  .skill.drop-ok{outline:2px solid #ffd76a;outline-offset:2px}
   .skill .ic{width:28px;height:28px;display:block;margin:2px auto 0;border:1px solid rgba(232,179,74,.55);
     border-radius:2px;background:#0a0604;object-fit:contain;image-rendering:auto;
     box-shadow:0 0 8px rgba(255,140,40,.35)}
   .skill .nm{font-size:9px;margin-top:3px;color:#ffcf98;letter-spacing:1px}
   .skill .key{position:absolute;top:2px;left:4px;font-size:9px;color:#8b7a5e}
-  .skill .cd{position:absolute;inset:0;background:rgba(0,0,0,.78);display:flex;align-items:center;
-    justify-content:center;font-size:18px;font-weight:800;color:#ffe;visibility:hidden}
+  .skill .cd{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;
+    justify-content:center;font-size:18px;font-weight:800;color:#ffe;visibility:hidden;z-index:2}
   .skill.oncd .cd{visibility:visible}
-  .skill.gcd::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.4)}
+  .skill.oncd::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:conic-gradient(rgba(0,0,0,.82) calc(var(--cd)*1%), transparent 0)}
+  .skill.gcd::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.4);z-index:1}
  
   /* ---------- 战斗日志 ---------- */
   #log{position:fixed;right:14px;bottom:16px;width:min(310px,46vw);max-height:180px;overflow:hidden;
@@ -240,7 +250,7 @@
   /* ---------- 角色 / 法术书 / 任务 / 功绩 / 查找器（可并存，锚点分区） ---------- */
   .hudPanel{position:fixed;z-index:24;display:none;padding:14px 16px;
     max-height:min(80vh,600px);overflow:auto}
-  #charPanel{left:14px;top:70px;width:min(520px,46vw);transform:none}
+  #charPanel{left:14px;top:70px;width:min(560px,52vw);transform:none}
   #spellPanel{left:min(540px,50vw);top:70px;width:min(360px,40vw);transform:none}
   #questLog{right:14px;top:70px;left:auto;width:min(560px,48vw);transform:none;
     overflow:hidden;max-height:min(86vh,640px);padding-bottom:10px}
@@ -254,21 +264,25 @@
   }
   .ph-layout{display:flex;gap:14px;align-items:flex-start}
   .ph-doll{display:grid;grid-template-columns:44px minmax(64px,1fr) 44px;gap:5px 8px;
-    flex:0 0 auto;width:190px;padding:8px;background:rgba(0,0,0,.28);
+    flex:0 0 auto;width:200px;padding:8px;background:rgba(0,0,0,.28);
     border:1px solid rgba(232,179,74,.22);box-shadow:inset 0 0 18px rgba(0,0,0,.4)}
   .ph-doll-col{display:flex;flex-direction:column;gap:4px}
   .ph-doll-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;
-    min-height:168px;border:1px dashed rgba(232,179,74,.2);
+    min-height:168px;border:1px dashed rgba(232,179,74,.2);cursor:ew-resize;user-select:none;touch-action:none;
+    perspective:420px;
     background:radial-gradient(ellipse at 50% 40%,rgba(120,55,15,.35),rgba(8,5,3,.15));
     color:var(--parchment-muted)}
-  .ph-doll-sil{font-size:48px;line-height:1;opacity:.4;filter:grayscale(.2)}
+  .ph-doll-sil{font-size:48px;line-height:1;opacity:.5;filter:grayscale(.15);
+    transform-style:preserve-3d;transition:transform .05s linear}
   .ph-doll-lv{font-size:11px;letter-spacing:2px;color:var(--gold-bright);margin-top:8px;font-weight:800}
+  .ph-doll-drag{font-size:9px;color:var(--parchment-muted);margin-top:4px;letter-spacing:1px}
   .ph-doll-bot{grid-column:1/-1;display:flex;justify-content:center;gap:10px;margin-top:2px}
   .pd-slot{width:42px;height:42px;border:1px solid var(--panel-border);position:relative;cursor:pointer;
     display:flex;align-items:center;justify-content:center;background:var(--slot-bg);
     box-shadow:inset 0 0 10px rgba(0,0,0,.65)}
   .pd-slot:hover{border-color:var(--gold-bright);box-shadow:inset 0 0 10px rgba(0,0,0,.5),0 0 8px rgba(255,160,40,.2)}
   .pd-slot.empty{opacity:.72}
+  .pd-slot.filled{border-color:rgba(232,179,74,.45)}
   .pd-slot img{width:34px;height:34px;border:1px solid #888}
   .pd-slot .pd-tag{position:absolute;bottom:1px;right:2px;font-size:8px;color:var(--parchment-muted);
     pointer-events:none;letter-spacing:0;text-shadow:0 1px 2px #000;line-height:1}
@@ -336,17 +350,23 @@
     background:linear-gradient(90deg,rgba(120,60,20,.2),transparent)}
   .ph-stats .ph-sec:first-child{margin-top:0}
   .spell-card{display:flex;gap:10px;align-items:flex-start;padding:10px 8px;margin-bottom:8px;
-    border:1px solid rgba(232,179,74,.25);background:rgba(0,0,0,.32);
-    box-shadow:inset 0 0 12px rgba(0,0,0,.35)}
+    border:1px solid rgba(120,80,40,.35);background:rgba(0,0,0,.25);cursor:grab}
   .spell-card:hover{border-color:rgba(232,179,74,.5)}
+  .spell-card.locked{opacity:.55;cursor:not-allowed;filter:grayscale(.4)}
+  .spell-card.dragging{opacity:.7}
   .spell-card .ic{width:36px;height:36px;flex-shrink:0;border:1px solid rgba(232,179,74,.5);border-radius:2px;
-    background:#0a0604;object-fit:contain;box-shadow:0 0 6px rgba(255,140,40,.3)}
+    background:#0a0604}
   .spell-card .body{flex:1;min-width:0}
   .spell-card .nm{font-size:13px;font-weight:800;color:var(--gold-bright);letter-spacing:1px}
-  .spell-card .nm .rank{font-size:10px;font-weight:700;color:#9ec9ff;margin-left:6px;
-    letter-spacing:1px;opacity:.9}
+  .spell-card .nm .rank{font-size:10px;font-weight:700;color:#9ec9ff;margin-left:6px}
+  .spell-card .nm .lock{font-size:10px;color:#c08060;margin-left:6px}
   .spell-card .meta{font-size:10px;color:#ffcf98;margin-top:2px;letter-spacing:1px}
   .spell-card .desc{font-size:11px;color:#b09a7a;line-height:1.6;margin-top:4px}
+  .spell-tabs{display:flex;gap:8px;margin-bottom:10px}
+  .spell-tab{font:inherit;font-size:11px;letter-spacing:1px;padding:4px 10px;cursor:pointer;
+    color:#b09a7a;background:rgba(0,0,0,.35);border:1px solid rgba(120,80,40,.45)}
+  .spell-tab.on{color:#ffd76a;border-color:rgba(232,179,74,.55);background:rgba(80,45,18,.35)}
+  .spell-list{max-height:min(52vh,420px);overflow:auto}
   .ql-item,.deed-item,.finder-item{padding:10px 11px;border:1px solid rgba(232,179,74,.25);
     background:rgba(0,0,0,.32);margin-bottom:8px;box-shadow:inset 0 0 12px rgba(0,0,0,.3)}
   .ql-item:hover,.deed-item:hover,.finder-item:hover{border-color:rgba(232,179,74,.5)}
@@ -600,10 +620,10 @@
 </div>
  
 <div id="skillBar">
-  <div class="skill" data-sk="0"><span class="key">1</span><img class="ic" alt=""><span class="nm">英勇打击</span><div class="cd"></div></div>
-  <div class="skill" data-sk="1"><span class="key">2</span><img class="ic" alt=""><span class="nm">旋风斩</span><div class="cd"></div></div>
-  <div class="skill" data-sk="2"><span class="key">3</span><img class="ic" alt=""><span class="nm">冲锋</span><div class="cd"></div></div>
-  <div class="skill" data-sk="3"><span class="key">4</span><img class="ic" alt=""><span class="nm">嘲讽</span><div class="cd"></div></div>
+  <div class="skill empty" data-sk="0"><span class="key">1</span><img class="ic" alt=""><span class="nm"></span><div class="cd"></div></div>
+  <div class="skill empty" data-sk="1"><span class="key">2</span><img class="ic" alt=""><span class="nm"></span><div class="cd"></div></div>
+  <div class="skill empty" data-sk="2"><span class="key">3</span><img class="ic" alt=""><span class="nm"></span><div class="cd"></div></div>
+  <div class="skill empty" data-sk="3"><span class="key">4</span><img class="ic" alt=""><span class="nm"></span><div class="cd"></div></div>
 </div>
  
 <div id="log"></div>
@@ -636,7 +656,7 @@
 <div id="bag">
   <div class="bag-title">🎒 背包<span class="bag-close" id="bagClose">✕</span></div>
   <div id="bagGrid"></div>
-  <div class="bag-hint">悬停详情 · 左键装备/使用 · 交易时右键出售 · 装备见 C · B 开关 · Esc 全关</div>
+  <div class="bag-hint">悬停详情 · 左键/右键装备 · 消耗品左键使用 · 交易时右键出售 · 装备见 C · B 开关</div>
 </div>
 <div id="itemTip" aria-hidden="true"></div>
 <div id="talent">
@@ -751,7 +771,7 @@
     </div>
   </div>
   <div class="hint">W/S 进退 · A/D 转向（右键时横移）· Q/E 平移 · 右键视角 · 左键环绕 · 滚轮远近 · Space 跳跃 · R 自动跑<br>
-  Tab 选目标 · 左键点击选敌 · Esc 取消目标 · V 姓名板全显 · 1-4 技能 · F 交互 · B 背包 · N 天赋 · C 角色 · P 法术 · L 任务 · M 地图<br>
+  Tab 选目标 · 左键点击选敌 · Esc 取消目标 · V 姓名板全显 · 1-4 技能 · P 法术书（可拖到动作条） · F 交互 · B 背包 · N 天赋 · C 角色 · L 任务 · M 地图<br>
        <span data-t="start.hint">在赤蹄草甸沿土路北行，走进传送门旋涡即进入副本 · 副本内走出地面红圈躲避熔岩喷发</span></div>
 </div>
  
@@ -801,6 +821,7 @@
   <script src="combat.js"></script>
   <script src="js/ui/frames.js"></script>
   <script src="js/ui/target.js"></script>
+  <script src="js/ui/tooltip.js"></script>
   <script src="buffs.js"></script>
   <script src="quests.js"></script>
 <script src="companions.js"></script>

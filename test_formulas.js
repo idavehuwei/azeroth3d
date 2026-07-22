@@ -41,6 +41,15 @@ assert(armorFromAgi(10)===20,"armorFromAgi = agi×2");
 assert(attackPower({str:45,agi:0,level:1},"warrior")>0,"战士 AP > 0");
 const der=deriveStats({str:45,agi:25,sta:40,int:10,spi:15,armor:120,level:1},"warrior");
 assert(der.ap>0&&der.critPct>5&&der.apDmgMul>=1,"deriveStats 产出 AP/暴击/伤害乘区");
+{
+  const {cloneStats,mergeStats}=ctx;
+  const base=cloneStats(SIM_CONTENT.baseStats.warrior); base.level=1;
+  const bare=deriveStats(base,"warrior");
+  const gear=emptyStats(1); gear.str=12; gear.agi=8;
+  const withG=deriveStats(mergeStats(base,gear),"warrior");
+  assert(withG.ap>bare.ap,"C8 装备力量/敏捷提升 AP");
+  assert(withG.critPct>bare.critPct,"C8 装备敏捷提升暴击");
+}
 
 /* 护甲 */
 assert(armorReduction(0,60)===0,"护甲 0 → 减伤 0");

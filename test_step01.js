@@ -819,8 +819,15 @@ assert(worldSrc.includes("requestCorpseDissolve(m)")||worldSrc.includes("()=>req
 assert(animSrc.includes("awaitLoot")&&animSrc.includes("requestCorpseDissolve"),"anim 有掉落时不抢先溶解");
 assert(raidSrc.includes("awaitLoot")&&raidSrc.includes("requestCorpseDissolve"),"副本小怪同样延迟溶解");
 
-/* plan-V2 · G2 经验与等级 */
+/* plan-V2 · G2 经验与等级 / plan-V3 C6–C7 */
 assert(coreSrc.includes("levels:{max:20")||coreSrc.includes("max:20")||coreSrc.includes("maxLevel:20"),"BALANCE.levels.max=20（C6）");
+assert(combatSrc.includes("unlock:1")&&combatSrc.includes("isSkillKnown")&&combatSrc.includes("actionBar"),"C7 技能解锁 + actionBar");
+assert(combatSrc.includes("notifyNewSpells")&&combatSrc.includes("学会了新法术"),"C7 学会新法术提示");
+assert(panelsSrc.includes("draggable")||panelsSrc.includes("spell-tab"),"C7 法术书拖拽/分页");
+assert(html.includes(".skill.oor"),"C7 动作条射程着色");
+assert(html.includes(".skill.nores"),"C7 动作条资源着色");
+assert(html.includes("conic-gradient")&&html.includes("--cd"),"C7 CD 扫描动画");
+
 assert(coreSrc.includes("xpMax:[")&&coreSrc.includes("perLevel:"),"含 xpMax 曲线与 perLevel 成长");
 assert(combatSrc.includes("gainMobXP")&&combatSrc.includes("tickRestXp"),"C6 gainMobXP / 休息经验");
 assert(html.includes("pXpRest")||html.includes("xpRest"),"经验条休息蓝段");
@@ -846,6 +853,18 @@ assert(rigSrc.includes("handR")&&rigSrc.includes("weaponMount"),"R5 武器挂 ha
 assert(combatSrc.includes('==="b"')||combatSrc.includes("toggleBag()"),"B 键打开背包");
 assert(panelsSrc.includes("unequipItem")||panelsSrc.includes("S.eq"),"C 面板可卸装");
 assert(coreSrc.includes("bag:{size:")||coreSrc.includes("bag:{"),"BALANCE.bag 背包容量");
+
+/* plan-V3 · C8 装备属性 → 派生 / 纸娃娃 / tip */
+assert(itemsSrc.includes('poor')&&itemsSrc.includes('QUALITY')&&itemsSrc.includes("#9d9d9d"),"C8 品质含灰 poor");
+assert(itemsSrc.includes('"waist"')&&itemsSrc.includes('"wrist"')&&itemsSrc.includes('"offhand"')&&itemsSrc.includes('"ranged"'),"C8 装备槽含腰腕副手远程");
+assert(itemsSrc.includes("equipStats")&&combatSrc.includes("rebuildPlayerStatsFromEquip"),"装备汇入 equipStats → rebuild");
+assert(itemsSrc.includes("dmgRange")&&itemsSrc.includes("getPlayerWeaponRange"),"武器 dmgRange / 普攻区间");
+assert(itemsSrc.includes("itemTipHtml")&&itemsSrc.includes("力量"),"物品 tip 含属性行");
+assert(fs.existsSync(path.join(__dirname,"js/ui/tooltip.js")),"js/ui/tooltip.js 存在");
+assert(html.includes('src="js/ui/tooltip.js"'),"game.html 加载 tooltip.js");
+assert(panelsSrc.includes("攻击强度")&&panelsSrc.includes("wireCharDollRotate"),"纸娃娃显示 AP + 可旋转");
+assert(itemsSrc.includes("右键装备")||itemsSrc.includes("contextmenu"),"背包右键装备");
+assert(coreSrc.includes("poor:8")||coreSrc.includes("poor:"),"掉落权重含 poor");
 
 /* plan-V2 · G4 野怪 AI / 新怪 / 稀有 */
 assert(worldSrc.includes("function aggroMob")&&worldSrc.includes("socialR"),"社群仇恨 aggroMob/socialR");

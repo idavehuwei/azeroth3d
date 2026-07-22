@@ -49,6 +49,10 @@ function itemScore(it){
   const st=it.stats||{};
   if(st.dmgMul)s+=(st.dmgMul-1)*G.dmgMul;
   if(st.hpMax)s+=st.hpMax*G.hpMax;
+  if(st.str)s+=st.str*2; if(st.agi)s+=st.agi*2;
+  if(st.sta)s+=st.sta*1.5; if(st.int)s+=st.int*1.5; if(st.spi)s+=st.spi;
+  if(it.armor)s+=it.armor*.15;
+  if(it.ilvl)s+=it.ilvl*3;
   return Math.round(s);
 }
 function equipScore(){
@@ -67,27 +71,154 @@ function scaledRange(arr){
 }
 function spellStatLine(sk){
   const bal=sk.bal?(typeof getSkillBal==="function"?getSkillBal(sk.bal):(BAL.skills[sk.bal])):null;
-  if(!bal)return "";
+  if(!bal&&!sk)return "";
   const bits=[];
-  if(bal.dmg){
+  if(bal&&bal.dmg){
     const r=scaledRange(bal.dmg);
     bits.push(`伤害 ${r[0]}–${r[1]}`);
   }
-  if(bal.heal)bits.push(`治疗 ${bal.heal[0]}–${bal.heal[1]}`);
-  if(bal.healPerTick)bits.push(`每跳 ${bal.healPerTick[0]}–${bal.healPerTick[1]}`);
-  if(bal.absorb){
+  if(bal&&bal.heal)bits.push(`治疗 ${bal.heal[0]}–${bal.heal[1]}`);
+  if(bal&&bal.healPerTick)bits.push(`每跳 ${bal.healPerTick[0]}–${bal.healPerTick[1]}`);
+  if(bal&&bal.absorb){
     const a=Array.isArray(bal.absorb)?bal.absorb:[bal.absorb,bal.absorb];
     bits.push(`吸收 ${a[0]}–${a[1]}`);
   }
-  if(bal.duration)bits.push(`持续 ${bal.duration}s`);
-  if(bal.radius)bits.push(`半径 ${bal.radius}m`);
-  if(bal.dist)bits.push(`位移 ${bal.dist}m`);
-  if(bal.invuln)bits.push(`免疫 ${bal.invuln}s`);
-  if(bal.rootT)bits.push(`定身 ${bal.rootT}s`);
-  if(bal.rageGain)bits.push(`怒气 +${bal.rageGain}`);
-  if(bal.speedMul)bits.push(`移速 ×${bal.speedMul}`);
+  if(bal&&bal.duration)bits.push(`持续 ${bal.duration}s`);
+  if(bal&&bal.radius)bits.push(`半径 ${bal.radius}m`);
+  if(bal&&bal.dist)bits.push(`位移 ${bal.dist}m`);
+  if(bal&&bal.invuln)bits.push(`免疫 ${bal.invuln}s`);
+  if(bal&&bal.rootT)bits.push(`定身 ${bal.rootT}s`);
+  if(bal&&bal.rageGain)bits.push(`怒气 +${bal.rageGain}`);
+  if(bal&&bal.speedMul)bits.push(`移速 ×${bal.speedMul}`);
+  if(sk.range!=null)bits.push(`射程 ${sk.range}m`);
+  else if(bal&&bal.reach)bits.push(`射程 ${bal.reach}m`);
+  if(sk.cast!=null)bits.push(`施法 ${sk.cast}s`);
   return bits.join(" · ");
 }
+
+function spellTipHtml(sk,locked){
+  const rk=sk.bal&&typeof skillRank==="function"?skillRank(sk.bal):1;
+  const cd=sk.cd;
+  const cost=sk.rage>0?`${CLS.resName} ${sk.rage}`:"无消耗";
+  const stats=spellStatLine(sk);
+  let h=`<div class="it-name" style="color:#ffd76a">${sk.name} <span style="opacity:.75;font-size:11px">Rank ${rk}</span></div>`;
+  if(locked)h+=`<div class="it-meta">Lv.${sk.unlock|1} 解锁</div>`;
+  else h+=`<div class="it-meta">CD ${cd}s · ${cost}</div>`;
+  if(sk.desc)h+=`<div class="it-line">${sk.desc}</div>`;
+  if(stats)h+=`<div class="it-line it-stat">${stats}</div>`;
+  if(!locked)h+=`<div class="it-hint">拖到动作条绑定 · 右键槽位可清空</div>`;
+  return h;
+}
+
+function showSpellTip(html,x,y){
+  const tip=$("#itemTip"); if(!tip)return;
+  tip.innerHTML=html;
+  tip.style.display="block";
+  tip.setAttribute("aria-hidden","false");
+  const pad=14, tw=tip.offsetWidth||200, th=tip.offsetHeight||120;
+  let left=x+pad, top=y+pad;
+  if(left+tw>innerWidth-8)left=x-tw-pad;
+  if(top+th>innerHeight-8)top=y-th-pad;
+  tip.style.left=Math.max(8,left)+"px";
+  tip.style.top=Math.max(8,top)+"px";
+}
+function hideSpellTip(){
+  if(typeof hideItemTip==="function")hideItemTip();
+  else{
+    const tip=$("#itemTip"); if(!tip)return;
+    tip.style.display="none";
+    tip.setAttribute("aria-hidden","true");
+  }
+}
+
+function renderSpellPanel(){
+  if(!panelOpen("#spellPanel"))return;
+  const body=$("#spellBody");
+  body.innerHTML="";
+  const tabs=document.createElement("div");
+  tabs.className="spell-tabs";
+  tabs.innerHTML=`<button type="button" class="spell-tab on" data-tab="known">已学会</button>`+
+    `<button type="button" class="spell-tab" data-tab="all">全部</button>`;
+  body.appendChild(tabs);
+  const list=document.createElement("div");
+  list.className="spell-list";
+  body.appendChild(list);
+
+  function paint(mode){
+    list.innerHTML="";
+    SKILLS.forEach((sk,i)=>{
+      const known=typeof isSkillKnown==="function"?isSkillKnown(sk):true;
+      if(mode==="known"&&!known)return;
+      const cd=typeof getSkillCd==="function"?getSkillCd(i):sk.cd;
+      const base=sk.cd;
+      const cdTx=cd<base-0.01?`CD ${cd}s（基础 ${base}s）`:`CD ${cd}s`;
+      const cost=sk.rage>0?`${CLS.resName} ${sk.rage}`:"无消耗";
+      const rk=sk.bal&&typeof skillRank==="function"?skillRank(sk.bal):1;
+      const card=document.createElement("div");
+      card.className="spell-card"+(known?"":" locked");
+      card.dataset.skillIdx=String(i);
+      if(known)card.draggable=true;
+      card.innerHTML=
+        `<img class="ic" src="${Icons.get(sk.icon||"sword",typeof SKILL_ICON_BORDER!=="undefined"?SKILL_ICON_BORDER:"#e8b34a")}" alt="">`+
+        `<div class="body">`+
+          `<div class="nm">${sk.name} <span class="rank">Rank ${rk}</span>`+
+            (known?"":` <span class="lock">Lv.${sk.unlock|1}</span>`)+`</div>`+
+          `<div class="meta">${known?`${cdTx} · ${cost}`:`${sk.unlock|1} 级解锁`}</div>`+
+          `<div class="desc">${sk.desc||""}${spellStatLine(sk)?`<br>${spellStatLine(sk)}`:""}</div>`+
+        `</div>`;
+      card.addEventListener("mouseenter",e=>showSpellTip(spellTipHtml(sk,!known),e.clientX,e.clientY));
+      card.addEventListener("mousemove",e=>showSpellTip(spellTipHtml(sk,!known),e.clientX,e.clientY));
+      card.addEventListener("mouseleave",hideSpellTip);
+      if(known){
+        card.addEventListener("dragstart",e=>{
+          e.dataTransfer.setData("text/skill-idx",String(i));
+          e.dataTransfer.effectAllowed="copy";
+          card.classList.add("dragging");
+        });
+        card.addEventListener("dragend",()=>card.classList.remove("dragging"));
+      }
+      list.appendChild(card);
+    });
+  }
+  paint("known");
+  tabs.querySelectorAll(".spell-tab").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      tabs.querySelectorAll(".spell-tab").forEach(b=>b.classList.toggle("on",b===btn));
+      paint(btn.dataset.tab);
+    });
+  });
+}
+
+/* C7：动作条接受法术书拖放 */
+(function bindActionBarDrop(){
+  function ready(){
+    document.querySelectorAll("#skillBar .skill").forEach(el=>{
+      el.addEventListener("dragover",e=>{e.preventDefault();el.classList.add("drop-ok");});
+      el.addEventListener("dragleave",()=>el.classList.remove("drop-ok"));
+      el.addEventListener("drop",e=>{
+        e.preventDefault();
+        el.classList.remove("drop-ok");
+        const raw=e.dataTransfer.getData("text/skill-idx");
+        if(raw==="")return;
+        const slot=+el.dataset.sk;
+        if(typeof bindSkillToBar==="function"){
+          bindSkillToBar(slot,+raw);
+          log(`已将【${SKILLS[+raw].name}】绑定到快捷键 ${slot+1}`,"lg-sys");
+        }
+      });
+      /* 右键清空槽 */
+      el.addEventListener("contextmenu",e=>{
+        if(!S.started)return;
+        e.preventDefault();
+        const slot=+el.dataset.sk;
+        if(typeof bindSkillToBar==="function")bindSkillToBar(slot,null);
+      });
+    });
+  }
+  if(document.readyState==="loading")addEventListener("DOMContentLoaded",ready);
+  else ready();
+})();
+
 
 function pdSlotHtml(slot){
   const label=EQUIP_SLOT_LABEL[slot]||slot;
@@ -98,7 +229,7 @@ function pdSlotHtml(slot){
       `<span class="pd-tag">${label}</span></div>`;
   }
   const q=QUALITY[it.quality];
-  return `<div class="pd-slot filled" data-slot="${slot}" data-item="${it.id}" title="${it.name}">`+
+  return `<div class="pd-slot filled" data-slot="${slot}" data-item="${it.id}" title="${it.name}" style="border-color:${q.color}">`+
     `<img src="${Icons.get(it.icon,q.color)}" style="border-color:${q.color}" alt="">`+
     `<span class="pd-tag">${label}</span></div>`;
 }
@@ -106,8 +237,12 @@ function pdSlotHtml(slot){
 function renderCharPanel(){
   if(!panelOpen("#charPanel"))return;
   const P=S.p, body=$("#charBody");
-  const autoLo=Math.round(CLS.autoMin*(P.dmgMul||1));
-  const autoHi=Math.round(CLS.autoMax*(P.dmgMul||1));
+  if(!P.derived&&typeof refreshPlayerDerived==="function")refreshPlayerDerived();
+  const der=P.derived||{};
+  const st=P.stats||{};
+  const wr=typeof getPlayerWeaponRange==="function"?getPlayerWeaponRange():[CLS.autoMin,CLS.autoMax];
+  const autoLo=Math.round(wr[0]*(P.dmgMul||1)*(der.apDmgMul||1));
+  const autoHi=Math.round(wr[1]*(P.dmgMul||1)*(der.apDmgMul||1));
   const gs=equipScore();
   const fx=P.talentFx||{};
   const fxBits=[];
@@ -118,15 +253,20 @@ function renderCharPanel(){
   if(fx.shieldMul)fxBits.push(`盾吸收 +${Math.round(fx.shieldMul*100)}%`);
 
   const row=(k,v)=>`<div class="ph-row"><span class="k">${k}</span><span class="v">${v}</span></div>`;
-  const left=["head","neck","shoulder","back","chest"];
-  const right=["hands","legs","feet","finger"];
+  const left=["head","neck","shoulder","back","chest","wrist","hands"];
+  const right=["waist","legs","feet","finger","offhand","ranged"];
   const bottom=["mainhand"];
+  const yaw=(_charDollYaw|0)%360;
 
   body.innerHTML=
     `<div class="ph-layout">`+
       `<div class="ph-doll" aria-label="装备">`+
         `<div class="ph-doll-col">${left.map(pdSlotHtml).join("")}</div>`+
-        `<div class="ph-doll-mid"><div class="ph-doll-sil">⚔</div><div class="ph-doll-lv">Lv.${P.level}</div></div>`+
+        `<div class="ph-doll-mid" id="charDollPreview" title="拖动旋转预览">`+
+          `<div class="ph-doll-sil" style="transform:rotateY(${yaw}deg)">${CLS.key==="mage"?"✦":CLS.key==="archer"?"➶":CLS.key==="priest"?"✚":CLS.key==="shaman"?"⚡":CLS.key==="rogue"?"🗡":"⚔"}</div>`+
+          `<div class="ph-doll-lv">Lv.${P.level}</div>`+
+          `<div class="ph-doll-drag">拖动旋转</div>`+
+        `</div>`+
         `<div class="ph-doll-col">${right.map(pdSlotHtml).join("")}</div>`+
         `<div class="ph-doll-bot">${bottom.map(pdSlotHtml).join("")}</div>`+
       `</div>`+
@@ -137,13 +277,23 @@ function renderCharPanel(){
         row("经验",P.level>=BAL.levels.max?"满级":`${Math.floor(P.xp)} / ${P.xpMax}`)+
         row("金币",formatCopperText(P.gold|0))+
         row("装备评分",String(gs))+
+        `<div class="ph-sec">基础属性</div>`+
+        row("力量",String(st.str|0))+
+        row("敏捷",String(st.agi|0))+
+        row("耐力",String(st.sta|0))+
+        row("智力",String(st.int|0))+
+        row("精神",String(st.spi|0))+
         `<div class="ph-sec">战斗属性</div>`+
         row("生命",`${Math.ceil(P.hp)} / ${P.hpMax}`)+
         row(CLS.resName,`${Math.floor(P.rage)} / ${P.rageMax}`)+
         (P.absorb>0?row("吸收盾",`${Math.ceil(P.absorb)}（${P.absorbT.toFixed(1)}s）`):"")+
+        row("攻击强度",String(der.ap|0))+
+        row("暴击",`${(der.critPct||0).toFixed(1)}%`)+
+        row("闪避",`${(der.dodgePct||0).toFixed(1)}%`)+
+        row("护甲",String(der.armor|0))+
         row("伤害加成",`×${(P.dmgMul||1).toFixed(2)}`)+
         row("自动攻击",`${autoLo}–${autoHi}`)+
-        row("攻击间隔",`${CLS.autoSpd}s`)+
+        row("攻击间隔",`${(typeof getPlayerAutoSpeed==="function"?getPlayerAutoSpeed():CLS.autoSpd).toFixed(2)}s`)+
         row("移速",String(P.speed))+
         row("射程",CLS.ranged?`${CLS.range}m`:"近战")+
         (fxBits.length?row("天赋效果",fxBits.join(" · ")):"")+
@@ -160,29 +310,28 @@ function renderCharPanel(){
       if(S.eq[slot]){hideItemTip();unequipItem(slot);}
     });
   });
+  wireCharDollRotate(body.querySelector("#charDollPreview"));
 }
 
-function renderSpellPanel(){
-  if(!panelOpen("#spellPanel"))return;
-  const body=$("#spellBody");
-  body.innerHTML="";
-  SKILLS.forEach((sk,i)=>{
-    const cd=typeof getSkillCd==="function"?getSkillCd(i):sk.cd;
-    const base=sk.cd;
-    const cdTx=cd<base-0.01?`CD ${cd}s（基础 ${base}s）`:`CD ${cd}s`;
-    const cost=sk.rage>0?`${CLS.resName} ${sk.rage}`:"无消耗";
-    const rk=sk.bal&&typeof skillRank==="function"?skillRank(sk.bal):1;
-    const card=document.createElement("div");
-    card.className="spell-card";
-    card.innerHTML=
-      `<img class="ic" src="${Icons.get(sk.icon||"sword",typeof SKILL_ICON_BORDER!=="undefined"?SKILL_ICON_BORDER:"#e8b34a")}" alt="">`+
-      `<div class="body">`+
-        `<div class="nm">${i+1}. ${sk.name} <span class="rank">Rank ${rk}</span></div>`+
-        `<div class="meta">${cdTx} · ${cost}</div>`+
-        `<div class="desc">${sk.desc||""}${spellStatLine(sk)?`<br>${spellStatLine(sk)}`:""}</div>`+
-      `</div>`;
-    body.appendChild(card);
+let _charDollYaw=15,_charDollDrag=null;
+function wireCharDollRotate(el){
+  if(!el)return;
+  el.addEventListener("pointerdown",e=>{
+    e.preventDefault();
+    _charDollDrag={x:e.clientX,yaw:_charDollYaw,id:e.pointerId};
+    try{el.setPointerCapture(e.pointerId);}catch(_){}
   });
+  el.addEventListener("pointermove",e=>{
+    if(!_charDollDrag||_charDollDrag.id!==e.pointerId)return;
+    _charDollYaw=_charDollDrag.yaw+(e.clientX-_charDollDrag.x)*.6;
+    const sil=el.querySelector(".ph-doll-sil");
+    if(sil)sil.style.transform=`rotateY(${_charDollYaw}deg)`;
+  });
+  const end=e=>{
+    if(_charDollDrag&&e.pointerId===_charDollDrag.id)_charDollDrag=null;
+  };
+  el.addEventListener("pointerup",end);
+  el.addEventListener("pointercancel",end);
 }
 
 function questEntries(){

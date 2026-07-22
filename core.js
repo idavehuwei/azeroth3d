@@ -475,7 +475,7 @@ const BALANCE={
     sunColor:0xffc880, sunIntensity:1.2,
   },
   /* 掉落与尸体拾取（STEP 2）：品质权重 70/25/5 · 尸体停留秒数 · 拾取距离 */
-  loot:{weights:{common:70,uncommon:25,rare:5}, corpseT:8, pickupR:3.5,
+  loot:{weights:{poor:8,common:62,uncommon:25,rare:5}, corpseT:8, pickupR:3.5,
         eliteWeights:{uncommon:72,rare:28},   /* 精英必掉优秀以上（STEP 5） */
         questDropChance:.95},                  /* 进行中交付任务物品的优先掉落率 */
   /* 背包（STEP 4）：格数 */
@@ -778,7 +778,7 @@ const BALANCE={
   },
   /* 装备评分权重（STEP 14 角色面板） */
   gearScore:{
-    quality:{common:10,uncommon:25,rare:55,epic:85,legendary:120},
+    quality:{poor:4,common:10,uncommon:25,rare:55,epic:85,legendary:120},
     dmgMul:200,   /* (dmgMul-1) × 此系数 */
     hpMax:.05,    /* hpMax × 此系数 */
   },

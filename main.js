@@ -641,7 +641,7 @@ function tick(){
         if(tgt){
           S.p.attackAnim=1;
           const school=CLS.resKind==="mana"?"spell":"physical";
-          firePlayerShot(tgt,rand(CLS.autoMin,CLS.autoMax),null,1,{school});
+          firePlayerShot(tgt,rand(...(typeof getPlayerWeaponRange==="function"?getPlayerWeaponRange():[CLS.autoMin,CLS.autoMax])),null,1,{school});
           did=true;
         }
       }else{
@@ -651,17 +651,18 @@ function tick(){
         if(tgt){
           setCurrentTarget(tgt);
           S.p.attackAnim=1;
+          const wr=typeof getPlayerWeaponRange==="function"?getPlayerWeaponRange():[CLS.autoMin,CLS.autoMax];
           const thr={school:"physical"};
-          if(tgt.type==="mob")mobDamage(tgt.m,rand(CLS.autoMin,CLS.autoMax),undefined,thr);
-          else if(tgt.type==="boss")dmgBoss(rand(CLS.autoMin,CLS.autoMax),undefined,thr);
-          else if(tgt.type==="add")addDamage(tgt.a,rand(CLS.autoMin,CLS.autoMax),thr);
+          if(tgt.type==="mob")mobDamage(tgt.m,rand(wr[0],wr[1]),undefined,thr);
+          else if(tgt.type==="boss")dmgBoss(rand(wr[0],wr[1]),undefined,thr);
+          else if(tgt.type==="add")addDamage(tgt.a,rand(wr[0],wr[1]),thr);
           did=true;
         }
       }
       if(did&&!CLS.ranged)SFX.play("swing");
       if(did&&CLS.hitGain)S.p.rage=Math.min(S.p.rageMax,S.p.rage+CLS.hitGain);
       if(did&&BAL.stealth&&BAL.stealth.breakOnAttack!==false&&typeof breakStealth==="function")breakStealth("attack");
-      S.p.atkTimer=did?CLS.autoSpd:.3;
+      S.p.atkTimer=did?(typeof getPlayerAutoSpeed==="function"?getPlayerAutoSpeed():CLS.autoSpd):.3;
     }
 
     /* ---- 资源恢复 & 冷却（C5） ---- */
@@ -693,11 +694,39 @@ function tick(){
       const qi=S.res.queuedSkill; S.res.queuedSkill=-1;
       if(typeof useSkill==="function")useSkill(qi);
     }
-    document.querySelectorAll(".skill").forEach((el,i)=>{
-      S.cds[i]=Math.max(0,S.cds[i]-dt);
-      el.classList.toggle("oncd",S.cds[i]>0);
-      el.classList.toggle("gcd",S.gcd>0&&S.cds[i]<=0);
-      if(S.cds[i]>0)el.querySelector(".cd").textContent=Math.ceil(S.cds[i]);
+    /* C7：按技能目录下标递减 CD；槽位显示 + 着色 */
+    for(let i=0;i<S.cds.length;i++)S.cds[i]=Math.max(0,S.cds[i]-dt);
+    document.querySelectorAll(".skill").forEach((el,slot)=>{
+      const skillIdx=typeof getBarSkillIndex==="function"?getBarSkillIndex(slot):slot;
+      const sk=typeof getBarSkill==="function"?getBarSkill(slot):SKILLS[slot];
+      const cdLeft=skillIdx!=null?S.cds[skillIdx]:0;
+      const cdMax=sk?(typeof getSkillCd==="function"?getSkillCd(skillIdx):sk.cd):1;
+      el.classList.toggle("oncd",cdLeft>0);
+      el.classList.toggle("gcd",S.gcd>0&&cdLeft<=0&&!!sk);
+      el.classList.toggle("empty",!sk);
+      const cdEl=el.querySelector(".cd");
+      if(cdEl){
+        if(cdLeft>0){
+          cdEl.textContent=Math.ceil(cdLeft);
+          const pct=cdMax>0?Math.min(1,cdLeft/cdMax):0;
+          el.style.setProperty("--cd",String(Math.round(pct*100)));
+        }else{
+          cdEl.textContent="";
+          el.style.setProperty("--cd","0");
+        }
+      }
+      /* 资源不足 · 蓝色；有目标且超出射程 · 红色 */
+      let nores=false, oor=false;
+      if(sk&&S.started&&S.p.alive){
+        nores=sk.rage>0&&S.p.rage<sk.rage;
+        if(sk.range!=null&&typeof isTargetAlive==="function"&&isTargetAlive(S.currentTarget)&&typeof targetDist==="function"){
+          const d=targetDist(S.currentTarget);
+          if(d>sk.range)oor=true;
+          if(CLS.minRange&&d<CLS.minRange&&sk.range>=CLS.minRange)oor=true;
+        }
+      }
+      el.classList.toggle("nores",!!nores&&!oor);
+      el.classList.toggle("oor",!!oor);
     });
 
     /* ---- AI 队友（STEP 20） ---- */

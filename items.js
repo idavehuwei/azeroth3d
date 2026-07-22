@@ -5,7 +5,8 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ rand BAL makeLabel；运行时读 scene）
           icons.js（Icons）· models.js 运行时（setWeapon）
-          combat.js 运行时（S log fct）· world.js 运行时（player）· vfx.js 运行时（VFX）
+          combat.js 运行时（S log fct rebuildPlayerStatsFromEquip）· world.js 运行时（player）· vfx.js 运行时（VFX）
+          js/ui/tooltip.js 运行时（showTipHtml hideTip bindTipHtml）
           talents.js 运行时（talentOpen closeTalentPanel；与背包互斥）
           save.js 运行时（saveGame；换装自动存）
    [导出] QUALITY ITEMS LOOT EQUIP_SLOTS EQUIP_SLOT_LABEL emptyEquipment
@@ -13,13 +14,15 @@
           normalizeEquipment reclaimUnequippedGear
           rollLoot rollMobLoot questLootNeedsFromTable dropLoot updateDrops nearestDrop
           tryLoot removeDropOf logLoot DROPS
-          equipItem unequipItem toggleBag ensureBagOpen renderBag applyEquipStats bagOpen
-          itemTitle showItemTip hideItemTip bindItemTip
+          equipItem unequipItem toggleBag ensureBagOpen renderBag applyEquipStats
+          getPlayerWeaponRange getPlayerAutoSpeed bagOpen
+          itemTitle showItemTip hideItemTip bindItemTip itemTipHtml
           useItem sellItem buyVendorItem cancelConsume（STEP 13）
    ============================================================ */
 "use strict";
 /* ---------------- 品质表：颜色即一切（描边/名字/方块光） ---------------- */
 const QUALITY={
+  poor     :{name:"粗糙",color:"#9d9d9d",hex:0x9d9d9d},
   common   :{name:"普通",color:"#e8e8e8",hex:0xe8e8e8},
   uncommon :{name:"优秀",color:"#1eff00",hex:0x1eff00},
   rare     :{name:"稀有",color:"#4aa8ff",hex:0x4aa8ff},
@@ -27,26 +30,26 @@ const QUALITY={
   legendary:{name:"传说",color:"#ff8000",hex:0xff8000},
 };
 
-/* ---------------- 精简纸娃娃：10 槽（头颈肩背胸 · 手腿脚戒 · 主手） ---------------- */
+/* C8：11+ 槽（头肩胸腰腿脚腕手 · 主副远程 · 保留颈/背/戒） */
 const EQUIP_SLOTS=[
-  "head","neck","shoulder","back","chest",
-  "hands","legs","feet","finger","mainhand",
+  "head","neck","shoulder","back","chest","waist",
+  "legs","feet","wrist","hands","finger","mainhand","offhand","ranged",
 ];
 const EQUIP_SLOT_LABEL={
-  head:"头部",neck:"颈部",shoulder:"肩部",back:"背部",chest:"胸部",
-  hands:"手部",legs:"腿部",feet:"脚部",finger:"手指",mainhand:"主手",
+  head:"头部",neck:"颈部",shoulder:"肩部",back:"背部",chest:"胸部",waist:"腰部",
+  legs:"腿部",feet:"脚部",wrist:"腕部",hands:"手部",finger:"手指",
+  mainhand:"主手",offhand:"副手",ranged:"远程",
 };
 function emptyEquipment(){
   const o={};
   for(const s of EQUIP_SLOTS)o[s]=null;
   return o;
 }
-/* 物品 slot → 规范种类；旧存档 / 已删槽位兼容 */
+/* 物品 slot → 规范种类；旧存档兼容 */
 function normalizeItemSlot(slot){
-  if(slot==="weapon"||slot==="offhand")return "mainhand";
+  if(slot==="weapon")return "mainhand";
   if(slot==="armor")return "chest";
-  if(slot==="wrists")return "hands";
-  if(slot==="waist")return "legs";
+  if(slot==="wrists")return "wrist";
   if(slot==="trinket")return "neck";
   if(slot==="finger1"||slot==="finger2")return "finger";
   return slot;
@@ -72,9 +75,9 @@ function normalizeEquipment(rawEq){
   const eq=emptyEquipment();
   const src=rawEq&&typeof rawEq==="object"?rawEq:{};
   const aliases={
-    weapon:"mainhand",armor:"chest",offhand:"mainhand",
+    weapon:"mainhand",armor:"chest",
     finger1:"finger",finger2:"finger",
-    wrists:"hands",waist:"legs",trinket:"neck",
+    wrists:"wrist",trinket:"neck",
   };
   const leftover=[];
   const used={};
@@ -140,66 +143,72 @@ const ITEMS={
   mutated_hide :{id:"mutated_hide", name:"变异皮革",    icon:"hide",   quality:"uncommon",slot:"misc",  stats:null, vendorSell:18},
   scorp_stinger:{id:"scorp_stinger",name:"蝎刺",        icon:"tusk",   quality:"common",  slot:"misc",  stats:null, vendorSell:8},
   /* —— 主手（含原副手武器） —— */
-  tusk_blade   :{id:"tusk_blade",   name:"獠牙短刃",    icon:"sword", quality:"uncommon", slot:"mainhand",stats:{dmgMul:1.05},model:"sword",vendorSell:45},
-  plains_blade :{id:"plains_blade", name:"草原猎手战刃",icon:"sword", quality:"rare",     slot:"mainhand",stats:{dmgMul:1.12},model:"sword",vendorSell:180},
-  sulf_blade   :{id:"sulf_blade",   name:"熔火利刃",    icon:"sword", quality:"rare",     slot:"mainhand",stats:{dmgMul:1.08},model:"sword",vendorSell:220},
-  sulfuras_haft:{id:"sulfuras_haft",name:T("item.sulfuras_haft"),icon:"hammer",quality:"legendary",slot:"mainhand",stats:{dmgMul:1.3},model:"sulfuras",vendorSell:2500},
-  wind_blade   :{id:"wind_blade",   name:"疾风之刃",    icon:"sword",  quality:"uncommon",slot:"mainhand",stats:{dmgMul:1.06},model:"sword",vendorSell:55},
-  greyjaw_tusk :{id:"greyjaw_tusk", name:"老灰鬃的獠牙刃",icon:"sword",quality:"rare",   slot:"mainhand",stats:{dmgMul:1.15},model:"sword",vendorSell:240},
-  serpent_fang :{id:"serpent_fang", name:"毒牙弯刃",    icon:"sword", quality:"rare",    slot:"mainhand",stats:{dmgMul:1.14},model:"sword",vendorSell:280},
-  onyxia_fang  :{id:"onyxia_fang",  name:T("item.onyxia_fang"),icon:"sword", quality:"epic",  slot:"mainhand",stats:{dmgMul:1.22},model:"sword",vendorSell:800},
-  warbringer_spear:{id:"warbringer_spear",name:"战争使者战矛",icon:"sword",quality:"rare",slot:"mainhand",stats:{dmgMul:1.16},model:"sword",vendorSell:320},
-  barrens_cleaver:{id:"barrens_cleaver",name:"贫瘠劈刀",icon:"sword",quality:"uncommon",slot:"mainhand",stats:{dmgMul:1.09},model:"sword",vendorSell:160},
-  ochre_fang   :{id:"ochre_fang",   name:"赭岩毒牙刃",  icon:"sword", quality:"rare",    slot:"mainhand",stats:{dmgMul:1.13},model:"sword",vendorSell:260},
-  whelp_claw   :{id:"whelp_claw",   name:"幼龙利爪",    icon:"sword", quality:"uncommon",slot:"mainhand",stats:{dmgMul:1.04},model:"sword",vendorSell:160},
+  tusk_blade   :{id:"tusk_blade",   name:"獠牙短刃",    icon:"sword", quality:"uncommon", slot:"mainhand",ilvl:8,dmgRange:[18,28],speed:2.2,stats:{str:6,agi:4,dmgMul:1.05},model:"sword",vendorSell:45},
+  plains_blade :{id:"plains_blade", name:"草原猎手战刃",icon:"sword", quality:"rare",     slot:"mainhand",ilvl:14,dmgRange:[28,42],speed:2.4,stats:{str:12,agi:8,dmgMul:1.12},model:"sword",vendorSell:180},
+  sulf_blade   :{id:"sulf_blade",   name:"熔火利刃",    icon:"sword", quality:"rare",     slot:"mainhand",ilvl:16,dmgRange:[32,48],speed:2.5,stats:{str:14,sta:6,dmgMul:1.08},model:"sword",vendorSell:220},
+  sulfuras_haft:{id:"sulfuras_haft",name:T("item.sulfuras_haft"),icon:"hammer",quality:"legendary",slot:"mainhand",ilvl:25,dmgRange:[55,78],speed:3.2,stats:{str:28,sta:14,armor:20,dmgMul:1.3},model:"sulfuras",vendorSell:2500},
+  wind_blade   :{id:"wind_blade",   name:"疾风之刃",    icon:"sword",  quality:"uncommon",slot:"mainhand",ilvl:9,dmgRange:[20,30],speed:2.0,stats:{agi:8,str:3,dmgMul:1.06},model:"sword",vendorSell:55},
+  greyjaw_tusk :{id:"greyjaw_tusk", name:"老灰鬃的獠牙刃",icon:"sword",quality:"rare",   slot:"mainhand",ilvl:15,dmgRange:[30,46],speed:2.3,stats:{str:14,agi:10,dmgMul:1.15},model:"sword",vendorSell:240},
+  serpent_fang :{id:"serpent_fang", name:"毒牙弯刃",    icon:"sword", quality:"rare",    slot:"mainhand",ilvl:16,dmgRange:[31,47],speed:2.1,stats:{agi:14,str:8,dmgMul:1.14},model:"sword",vendorSell:280},
+  onyxia_fang  :{id:"onyxia_fang",  name:T("item.onyxia_fang"),icon:"sword", quality:"epic",  slot:"mainhand",ilvl:22,dmgRange:[48,70],speed:2.6,stats:{str:20,agi:12,sta:8,dmgMul:1.22},model:"sword",vendorSell:800},
+  warbringer_spear:{id:"warbringer_spear",name:"战争使者战矛",icon:"sword",quality:"rare",slot:"mainhand",ilvl:17,dmgRange:[34,50],speed:2.8,stats:{str:16,sta:8,dmgMul:1.16},model:"sword",vendorSell:320},
+  barrens_cleaver:{id:"barrens_cleaver",name:"贫瘠劈刀",icon:"sword",quality:"uncommon",slot:"mainhand",ilvl:12,dmgRange:[24,36],speed:2.5,stats:{str:9,agi:5,dmgMul:1.09},model:"sword",vendorSell:160},
+  ochre_fang   :{id:"ochre_fang",   name:"赭岩毒牙刃",  icon:"sword", quality:"rare",    slot:"mainhand",ilvl:15,dmgRange:[29,44],speed:2.2,stats:{agi:12,str:8,dmgMul:1.13},model:"sword",vendorSell:260},
+  whelp_claw   :{id:"whelp_claw",   name:"幼龙利爪",    icon:"sword", quality:"uncommon",slot:"mainhand",ilvl:7,dmgRange:[16,24],speed:1.9,stats:{agi:6,str:2,dmgMul:1.04},model:"sword",vendorSell:160},
   /* —— 焰怒深渊 —— */
-  rage_blade   :{id:"rage_blade",   name:"怒焰短刃",    icon:"sword", quality:"uncommon",slot:"mainhand",stats:{dmgMul:1.08},model:"sword",vendorSell:140},
-  cinder_vest  :{id:"cinder_vest",  name:"燃烬皮甲",    icon:"armor", quality:"uncommon",slot:"chest",stats:{hpMax:380},vendorSell:150},
-  ember_band   :{id:"ember_band",   name:"余烬指环",    icon:"star",  quality:"rare",    slot:"finger",stats:{hpMax:240,dmgMul:1.03},vendorSell:220},
-  slag_helm    :{id:"slag_helm",    name:"炉渣战盔",    icon:"armor", quality:"rare",    slot:"head",stats:{hpMax:300},vendorSell:200},
+  rage_blade   :{id:"rage_blade",   name:"怒焰短刃",    icon:"sword", quality:"uncommon",slot:"mainhand",ilvl:11,dmgRange:[22,34],speed:2.0,stats:{str:8,agi:6,dmgMul:1.08},model:"sword",vendorSell:140},
+  cinder_vest  :{id:"cinder_vest",  name:"燃烬皮甲",    icon:"armor", quality:"uncommon",slot:"chest",ilvl:12,armor:95,stats:{sta:12,str:4,hpMax:380},vendorSell:150},
+  ember_band   :{id:"ember_band",   name:"余烬指环",    icon:"star",  quality:"rare",    slot:"finger",ilvl:14,stats:{sta:8,str:5,hpMax:240,dmgMul:1.03},vendorSell:220},
+  slag_helm    :{id:"slag_helm",    name:"炉渣战盔",    icon:"armor", quality:"rare",    slot:"head",ilvl:15,armor:110,stats:{sta:10,str:6,hpMax:300},vendorSell:200},
   /* —— 头部 —— */
-  plains_cap   :{id:"plains_cap",   name:"草原皮帽",    icon:"hide",  quality:"uncommon",slot:"head",stats:{hpMax:120},vendorSell:40},
-  mesa_helm    :{id:"mesa_helm",    name:"红岩战盔",    icon:"armor", quality:"rare",    slot:"head",stats:{hpMax:280},vendorSell:160},
-  dragon_helm  :{id:"dragon_helm",  name:"黑龙骨盔",    icon:"armor", quality:"epic",    slot:"head",stats:{hpMax:420},vendorSell:620},
+  plains_cap   :{id:"plains_cap",   name:"草原皮帽",    icon:"hide",  quality:"uncommon",slot:"head",ilvl:6,armor:40,stats:{sta:5,agi:3,hpMax:120},vendorSell:40},
+  mesa_helm    :{id:"mesa_helm",    name:"红岩战盔",    icon:"armor", quality:"rare",    slot:"head",ilvl:13,armor:100,stats:{sta:9,str:5,hpMax:280},vendorSell:160},
+  dragon_helm  :{id:"dragon_helm",  name:"黑龙骨盔",    icon:"armor", quality:"epic",    slot:"head",ilvl:20,armor:160,stats:{sta:16,str:10,hpMax:420},vendorSell:620},
   /* —— 颈部（含原饰品） —— */
-  harpy_charm  :{id:"harpy_charm",  name:"鹰羽护符",    icon:"feather",quality:"uncommon",slot:"neck",stats:{hpMax:220},vendorSell:60},
-  magma_fang   :{id:"magma_fang",   name:"熔岩犬牙项链",icon:"tusk",  quality:"uncommon",slot:"neck",stats:{hpMax:320},vendorSell:90},
-  magma_collar :{id:"magma_collar", name:"焚犬项圈",    icon:"armor", quality:"rare",    slot:"neck",stats:{hpMax:520},vendorSell:260},
-  ash_charm    :{id:"ash_charm",    name:"灰烬护符",    icon:"fireball",quality:"uncommon",slot:"neck",stats:{dmgMul:1.03},vendorSell:80},
-  onyx_ember   :{id:"onyx_ember",   name:"黑曜余烬",    icon:"star",  quality:"epic",    slot:"neck",stats:{dmgMul:1.06,hpMax:200},vendorSell:700},
+  harpy_charm  :{id:"harpy_charm",  name:"鹰羽护符",    icon:"feather",quality:"uncommon",slot:"neck",ilvl:8,stats:{agi:6,spi:4,hpMax:220},vendorSell:60},
+  magma_fang   :{id:"magma_fang",   name:"熔岩犬牙项链",icon:"tusk",  quality:"uncommon",slot:"neck",ilvl:10,stats:{sta:8,str:3,hpMax:320},vendorSell:90},
+  magma_collar :{id:"magma_collar", name:"焚犬项圈",    icon:"armor", quality:"rare",    slot:"neck",ilvl:14,stats:{sta:12,str:6,hpMax:520},vendorSell:260},
+  ash_charm    :{id:"ash_charm",    name:"灰烬护符",    icon:"fireball",quality:"uncommon",slot:"neck",ilvl:9,stats:{int:6,spi:4,dmgMul:1.03},vendorSell:80},
+  onyx_ember   :{id:"onyx_ember",   name:"黑曜余烬",    icon:"star",  quality:"epic",    slot:"neck",ilvl:20,stats:{str:10,sta:8,dmgMul:1.06,hpMax:200},vendorSell:700},
   /* —— 肩部 —— */
-  wind_pauldrons:{id:"wind_pauldrons",name:"疾风肩甲", icon:"feather",quality:"uncommon",slot:"shoulder",stats:{hpMax:160},vendorSell:50},
-  war_shoulders:{id:"war_shoulders",name:"督军肩铠",   icon:"armor", quality:"rare",    slot:"shoulder",stats:{hpMax:340},vendorSell:190},
+  wind_pauldrons:{id:"wind_pauldrons",name:"疾风肩甲", icon:"feather",quality:"uncommon",slot:"shoulder",ilvl:8,armor:55,stats:{agi:5,sta:4,hpMax:160},vendorSell:50},
+  war_shoulders:{id:"war_shoulders",name:"督军肩铠",   icon:"armor", quality:"rare",    slot:"shoulder",ilvl:14,armor:90,stats:{str:8,sta:7,hpMax:340},vendorSell:190},
   /* —— 背部 —— */
-  moss_mantle  :{id:"moss_mantle",  name:"苔藓披风",    icon:"hide",  quality:"rare",    slot:"back",stats:{hpMax:480},vendorSell:300},
-  scale_cloak  :{id:"scale_cloak",  name:"龙鳞披风",    icon:"armor", quality:"rare",    slot:"back",stats:{hpMax:680},vendorSell:420},
-  plains_cloak :{id:"plains_cloak", name:"草原斗篷",    icon:"hide",  quality:"uncommon",slot:"back",stats:{hpMax:150},vendorSell:45},
+  moss_mantle  :{id:"moss_mantle",  name:"苔藓披风",    icon:"hide",  quality:"rare",    slot:"back",ilvl:13,armor:45,stats:{sta:10,spi:6,hpMax:480},vendorSell:300},
+  scale_cloak  :{id:"scale_cloak",  name:"龙鳞披风",    icon:"armor", quality:"rare",    slot:"back",ilvl:16,armor:60,stats:{sta:12,agi:6,hpMax:680},vendorSell:420},
+  plains_cloak :{id:"plains_cloak", name:"草原斗篷",    icon:"hide",  quality:"uncommon",slot:"back",ilvl:5,armor:25,stats:{sta:4,agi:2,hpMax:150},vendorSell:45},
   /* —— 胸部 —— */
-  hide_vest    :{id:"hide_vest",    name:"硬化皮甲",    icon:"armor", quality:"uncommon", slot:"chest",stats:{hpMax:250},vendorSell:50},
-  mesa_guard   :{id:"mesa_guard",   name:"红岩守卫胸甲",icon:"armor", quality:"rare",     slot:"chest",stats:{hpMax:600},vendorSell:200},
-  dragonscale  :{id:"dragonscale",  name:"黑龙鳞胸甲",  icon:"armor", quality:"epic",     slot:"chest",stats:{hpMax:1100},vendorSell:850},
-  warbringer_plate:{id:"warbringer_plate",name:"半人马督军胸甲",icon:"armor",quality:"rare",slot:"chest",stats:{hpMax:780},vendorSell:340},
-  barrens_cuirass:{id:"barrens_cuirass",name:T("poi.crossroads")+"胸甲",icon:"armor",quality:"uncommon",slot:"chest",stats:{hpMax:420},vendorSell:170},
-  ochre_plate  :{id:"ochre_plate",  name:"哨站硬皮甲",  icon:"armor", quality:"uncommon",slot:"chest",stats:{hpMax:480},vendorSell:190},
+  hide_vest    :{id:"hide_vest",    name:"硬化皮甲",    icon:"armor", quality:"uncommon", slot:"chest",ilvl:7,armor:70,stats:{sta:8,str:3,hpMax:250},vendorSell:50},
+  mesa_guard   :{id:"mesa_guard",   name:"红岩守卫胸甲",icon:"armor", quality:"rare",     slot:"chest",ilvl:13,armor:130,stats:{sta:14,str:8,hpMax:600},vendorSell:200},
+  dragonscale  :{id:"dragonscale",  name:"黑龙鳞胸甲",  icon:"armor", quality:"epic",     slot:"chest",ilvl:20,armor:200,stats:{sta:20,str:12,hpMax:1100},vendorSell:850},
+  warbringer_plate:{id:"warbringer_plate",name:"半人马督军胸甲",icon:"armor",quality:"rare",slot:"chest",ilvl:16,armor:150,stats:{sta:16,str:10,hpMax:780},vendorSell:340},
+  barrens_cuirass:{id:"barrens_cuirass",name:T("poi.crossroads")+"胸甲",icon:"armor",quality:"uncommon",slot:"chest",ilvl:11,armor:100,stats:{sta:11,str:5,hpMax:420},vendorSell:170},
+  ochre_plate  :{id:"ochre_plate",  name:"哨站硬皮甲",  icon:"armor", quality:"uncommon",slot:"chest",ilvl:12,armor:105,stats:{sta:12,agi:4,hpMax:480},vendorSell:190},
   /* —— 手部（含原护腕 / 盾） —— */
-  wolf_gauntlets:{id:"wolf_gauntlets",name:"灰狼手套",icon:"hide", quality:"uncommon",slot:"hands",stats:{hpMax:110},vendorSell:42},
-  magma_gloves :{id:"magma_gloves", name:"焚爪手套",    icon:"armor", quality:"rare",    slot:"hands",stats:{hpMax:240},vendorSell:150},
-  hide_bracers :{id:"hide_bracers", name:"硬化护腕",    icon:"hide",  quality:"uncommon",slot:"hands",stats:{hpMax:90},vendorSell:35},
-  sulf_bracers :{id:"sulf_bracers", name:"灼壳护腕",    icon:"armor", quality:"rare",    slot:"hands",stats:{hpMax:200},vendorSell:140},
-  tusk_buckler :{id:"tusk_buckler", name:"獠牙圆盾",    icon:"armor", quality:"uncommon",slot:"hands",stats:{hpMax:200},vendorSell:55},
+  wolf_gauntlets:{id:"wolf_gauntlets",name:"灰狼手套",icon:"hide", quality:"uncommon",slot:"hands",ilvl:6,armor:35,stats:{agi:4,sta:3,hpMax:110},vendorSell:42},
+  magma_gloves :{id:"magma_gloves", name:"焚爪手套",    icon:"armor", quality:"rare",    slot:"hands",ilvl:12,armor:55,stats:{str:6,sta:5,hpMax:240},vendorSell:150},
+  hide_bracers :{id:"hide_bracers", name:"硬化护腕",    icon:"hide",  quality:"uncommon",slot:"wrist",ilvl:5,armor:28,stats:{sta:3,str:2,hpMax:90},vendorSell:35},
+  sulf_bracers :{id:"sulf_bracers", name:"灼壳护腕",    icon:"armor", quality:"rare",    slot:"wrist",ilvl:12,armor:50,stats:{sta:6,str:4,hpMax:200},vendorSell:140},
+  tusk_buckler :{id:"tusk_buckler", name:"獠牙圆盾",    icon:"armor", quality:"uncommon",slot:"offhand",ilvl:8,armor:120,stats:{sta:8,str:2,hpMax:200},vendorSell:55},
   /* —— 腿部（含原腰带） —— */
-  hide_leggings:{id:"hide_leggings",name:"硬化皮裤",   icon:"hide",  quality:"uncommon",slot:"legs",stats:{hpMax:180},vendorSell:48},
-  barrens_greaves:{id:"barrens_greaves",name:T("poi.crossroads")+"护腿",icon:"armor",quality:"rare",slot:"legs",stats:{hpMax:360},vendorSell:200},
-  boar_belt    :{id:"boar_belt",    name:"野猪皮带",    icon:"hide",  quality:"uncommon",slot:"legs",stats:{hpMax:100},vendorSell:38},
-  serpent_sash :{id:"serpent_sash", name:"毒牙腰带",    icon:"armor", quality:"rare",    slot:"legs",stats:{hpMax:260},vendorSell:170},
+  hide_leggings:{id:"hide_leggings",name:"硬化皮裤",   icon:"hide",  quality:"uncommon",slot:"legs",ilvl:7,armor:60,stats:{sta:6,agi:3,hpMax:180},vendorSell:48},
+  barrens_greaves:{id:"barrens_greaves",name:T("poi.crossroads")+"护腿",icon:"armor",quality:"rare",slot:"legs",ilvl:13,armor:95,stats:{sta:10,str:6,hpMax:360},vendorSell:200},
+  boar_belt    :{id:"boar_belt",    name:"野猪皮带",    icon:"hide",  quality:"uncommon",slot:"waist",ilvl:5,armor:30,stats:{sta:4,str:2,hpMax:100},vendorSell:38},
+  serpent_sash :{id:"serpent_sash", name:"毒牙腰带",    icon:"armor", quality:"rare",    slot:"waist",ilvl:12,armor:48,stats:{agi:7,sta:5,hpMax:260},vendorSell:170},
   /* —— 脚部 —— */
-  plains_boots :{id:"plains_boots", name:"草原皮靴",    icon:"hide",  quality:"uncommon",slot:"feet",stats:{hpMax:100},vendorSell:40},
-  ash_treads   :{id:"ash_treads",   name:"灰烬行靴",    icon:"armor", quality:"rare",    slot:"feet",stats:{hpMax:220},vendorSell:155},
+  plains_boots :{id:"plains_boots", name:"草原皮靴",    icon:"hide",  quality:"uncommon",slot:"feet",ilvl:5,armor:32,stats:{agi:3,sta:3,hpMax:100},vendorSell:40},
+  ash_treads   :{id:"ash_treads",   name:"灰烬行靴",    icon:"armor", quality:"rare",    slot:"feet",ilvl:12,armor:52,stats:{sta:6,str:4,hpMax:220},vendorSell:155},
   /* —— 手指（含原副手宝珠） —— */
-  sulf_ring    :{id:"sulf_ring",    name:"烈焰指环",    icon:"star",  quality:"uncommon",slot:"finger",stats:{hpMax:180},vendorSell:70},
-  plains_band  :{id:"plains_band",  name:"草原指环",    icon:"star",  quality:"uncommon",slot:"finger",stats:{hpMax:100},vendorSell:50},
-  dragon_signet:{id:"dragon_signet",name:"黑龙徽戒",    icon:"star",  quality:"rare",    slot:"finger",stats:{hpMax:300},vendorSell:280},
-  sulf_orb     :{id:"sulf_orb",     name:"熔核宝珠",    icon:"fireball",quality:"rare",  slot:"finger",stats:{dmgMul:1.05},vendorSell:210},
+  sulf_ring    :{id:"sulf_ring",    name:"烈焰指环",    icon:"star",  quality:"uncommon",slot:"finger",ilvl:8,stats:{sta:5,str:3,hpMax:180},vendorSell:70},
+  plains_band  :{id:"plains_band",  name:"草原指环",    icon:"star",  quality:"uncommon",slot:"finger",ilvl:5,stats:{agi:3,sta:2,hpMax:100},vendorSell:50},
+  dragon_signet:{id:"dragon_signet",name:"黑龙徽戒",    icon:"star",  quality:"rare",    slot:"finger",ilvl:16,stats:{str:8,sta:7,hpMax:300},vendorSell:280},
+  sulf_orb     :{id:"sulf_orb",     name:"熔核宝珠",    icon:"fireball",quality:"rare",  slot:"offhand",ilvl:14,stats:{int:10,spi:6,dmgMul:1.05},vendorSell:210},
+  /* —— C8 新槽位样例 —— */
+  hide_belt    :{id:"hide_belt",    name:"硬皮腰带",    icon:"hide",  quality:"uncommon",slot:"waist",ilvl:7,armor:35,stats:{sta:5,str:3},vendorSell:35},
+  iron_bracer  :{id:"iron_bracer",  name:"铁片护腕",    icon:"armor", quality:"uncommon",slot:"wrist",ilvl:8,armor:40,stats:{sta:4,str:4},vendorSell:40},
+  oak_buckler  :{id:"oak_buckler",  name:"橡木圆盾",    icon:"armor", quality:"uncommon",slot:"offhand",ilvl:9,armor:120,stats:{sta:8,str:2},vendorSell:55},
+  horn_bow     :{id:"horn_bow",     name:"角木短弓",    icon:"aimed", quality:"uncommon",slot:"ranged",ilvl:8,dmgRange:[14,22],speed:2.0,stats:{agi:7},vendorSell:50},
+  scrap_knife  :{id:"scrap_knife",  name:"锈蚀小刀",    icon:"sword", quality:"poor",    slot:"mainhand",ilvl:1,dmgRange:[3,6],speed:2.0,stats:{str:1},model:"sword",vendorSell:2},
   /* —— 商人消耗品 —— */
   plain_bread  :{id:"plain_bread",  name:"硬面饼",      icon:"bread",  quality:"common", slot:"consumable",use:"food",
                  stats:null, vendorBuy:25, vendorSell:5},
@@ -237,7 +246,8 @@ const ITEMS={
 const LOOT={
   boar:{
     common  :["boar_meat","boar_tusk","boar_hide"],
-    uncommon:["tusk_blade","hide_vest","boar_belt","plains_boots","tusk_buckler"],
+    uncommon:["tusk_blade","hide_vest","boar_belt","plains_boots","tusk_buckler","hide_belt","iron_bracer"],
+    poor    :["scrap_knife","boar_tusk"],
     rare    :["plains_blade","mesa_guard","mesa_helm"],
   },
   add:{
@@ -442,7 +452,7 @@ function questLootNeedsFromTable(table){
   const out=[];
   if(!table||typeof QUESTS==="undefined"||typeof questStatus!=="function")return out;
   const inTable=new Set();
-  for(const k of ["common","uncommon","rare","epic"]){
+  for(const k of ["poor","common","uncommon","rare","epic","legendary"]){
     const pool=table[k]; if(!pool)continue;
     for(const id of pool)inTable.add(id);
   }
@@ -555,16 +565,48 @@ function logLoot(item){
 
 /* ============================================================
    背包与装备栏：B 键开关；角色面板纸娃娃换装
-   主手换武器组 setWeapon；各部位叠加 dmgMul / hpMax
-   STEP 13：消耗品左键使用；商人打开时右键出售
+   主手换武器组 setWeapon；属性汇入 S.p.equipStats → C3 deriveStats
+   保留 legacy dmgMul / hpMax；STEP 13 消耗品 / 商人右键出售
    ============================================================ */
+const EQUIP_STAT_KEYS=["str","agi","sta","int","spi"];
+function ensureEquipStats(){
+  if(!S.p.equipStats){
+    S.p.equipStats=typeof emptyStats==="function"?emptyStats(S.p.level):{str:0,agi:0,sta:0,int:0,spi:0,armor:0,level:S.p.level|1};
+  }
+  return S.p.equipStats;
+}
 function applyEquipStats(it,sign){
+  if(!it)return;
   const st=it.stats||{};
+  /* legacy：直接叠伤害/生命（任务奖励与天赋仍走 dmgMul） */
   if(st.dmgMul)S.p.dmgMul+=(st.dmgMul-1)*sign;
   if(st.hpMax){
     S.p.hpMax+=st.hpMax*sign;
     S.p.hp=sign>0?Math.min(S.p.hpMax,S.p.hp+st.hpMax):Math.min(S.p.hp,S.p.hpMax);
   }
+  const eq=ensureEquipStats();
+  for(const k of EQUIP_STAT_KEYS){
+    const v=st[k]|0;
+    if(v)eq[k]=(eq[k]|0)+v*sign;
+  }
+  const arm=(it.armor|0)+(st.armor|0);
+  if(arm)eq.armor=(eq.armor|0)+arm*sign;
+  if(typeof rebuildPlayerStatsFromEquip==="function")rebuildPlayerStatsFromEquip();
+  else if(typeof refreshPlayerDerived==="function")refreshPlayerDerived();
+}
+/** 主手武器伤害区间（无装备则职业默认普攻） */
+function getPlayerWeaponRange(){
+  const id=S.eq&&S.eq.mainhand;
+  const it=id&&ITEMS[id];
+  if(it&&it.dmgRange&&it.dmgRange.length>=2)return [it.dmgRange[0],it.dmgRange[1]];
+  if(typeof CLS!=="undefined"&&CLS)return [CLS.autoMin,CLS.autoMax];
+  return [100,140];
+}
+function getPlayerAutoSpeed(){
+  const id=S.eq&&S.eq.mainhand;
+  const it=id&&ITEMS[id];
+  if(it&&it.speed>0)return it.speed;
+  return(typeof CLS!=="undefined"&&CLS&&CLS.autoSpd)||1.6;
 }
 function cancelConsume(){
   if(S.p.eating){
@@ -738,6 +780,9 @@ function toggleBag(){
 }
 function itemTitle(it){
   const st=it.stats||{}, parts=[];
+  for(const k of EQUIP_STAT_KEYS)if(st[k])parts.push(`${({str:"力量",agi:"敏捷",sta:"耐力",int:"智力",spi:"精神"})[k]} +${st[k]}`);
+  if(it.armor||st.armor)parts.push(`护甲 ${(it.armor|0)+(st.armor|0)}`);
+  if(it.dmgRange)parts.push(`伤害 ${it.dmgRange[0]}–${it.dmgRange[1]}`);
   if(st.dmgMul)parts.push(`伤害 +${Math.round((st.dmgMul-1)*100)}%`);
   if(st.hpMax)parts.push(`生命上限 +${st.hpMax}`);
   if(it.slot==="consumable"&&it.use==="food")parts.push("坐下回血");
@@ -747,19 +792,35 @@ function itemTitle(it){
   return `${it.name}（${QUALITY[it.quality].name}）${parts.length?" · "+parts.join(" · "):""}`;
 }
 const SLOT_NAME={
-  head:"头部",neck:"颈部",shoulder:"肩部",back:"背部",chest:"胸部",
-  hands:"手部",legs:"腿部",feet:"脚部",finger:"手指",mainhand:"主手",
-  wrists:"手部",waist:"腿部",trinket:"颈部",offhand:"主手",
-  weapon:"主手",armor:"胸部",consumable:"消耗品",misc:"杂物",
+  head:"头部",neck:"颈部",shoulder:"肩部",back:"背部",chest:"胸部",waist:"腰部",
+  legs:"腿部",feet:"脚部",wrist:"腕部",hands:"手部",finger:"手指",
+  mainhand:"主手",offhand:"副手",ranged:"远程",
+  wrists:"腕部",trinket:"颈部",weapon:"主手",armor:"胸部",consumable:"消耗品",misc:"杂物",
 };
+const STAT_LABEL={str:"力量",agi:"敏捷",sta:"耐力",int:"智力",spi:"精神"};
 const USE_NAME={food:"坐下进食回血",bandage:"引导包扎回血",potion:"立即回复生命",whetstone:"临时提升伤害",quest:"任务使用"};
 function itemTipHtml(it,extraHint){
   if(!it)return "";
   const q=QUALITY[it.quality]||QUALITY.common;
   const st=it.stats||{};
   let html=`<div class="it-name" style="color:${q.color}">${it.name}</div>`;
-  html+=`<div class="it-meta">${q.name} · ${SLOT_NAME[it.slot]||it.slot||"物品"}</div>`;
+  const meta=[];
+  if(it.ilvl)meta.push(`物品等级 ${it.ilvl}`);
+  meta.push(q.name);
+  meta.push(SLOT_NAME[normalizeItemSlot(it.slot)]||SLOT_NAME[it.slot]||it.slot||"物品");
+  html+=`<div class="it-meta">${meta.join(" · ")}</div>`;
   if(it.quest)html+=`<div class="it-line it-quest">任务物品</div>`;
+  if(it.dmgRange){
+    const spd=it.speed||2;
+    const dps=((it.dmgRange[0]+it.dmgRange[1])/2/spd).toFixed(1);
+    html+=`<div class="it-line">${it.dmgRange[0]} – ${it.dmgRange[1]} 伤害</div>`;
+    html+=`<div class="it-line">速度 ${spd.toFixed(2)}（${dps} DPS）</div>`;
+  }
+  const arm=(it.armor|0)+(st.armor|0);
+  if(arm)html+=`<div class="it-line">${arm} 点护甲</div>`;
+  for(const k of EQUIP_STAT_KEYS){
+    if(st[k])html+=`<div class="it-line it-stat">+${st[k]} ${STAT_LABEL[k]}</div>`;
+  }
   if(st.dmgMul)html+=`<div class="it-line it-stat">伤害 +${Math.round((st.dmgMul-1)*100)}%</div>`;
   if(st.hpMax)html+=`<div class="it-line it-stat">生命上限 +${st.hpMax}</div>`;
   if(it.use&&USE_NAME[it.use])html+=`<div class="it-line it-stat">${USE_NAME[it.use]}</div>`;
@@ -771,24 +832,35 @@ function itemTipHtml(it,extraHint){
   return html;
 }
 function showItemTip(it,clientX,clientY,extraHint){
-  const tip=$("#itemTip"); if(!tip||!it)return;
-  tip.innerHTML=itemTipHtml(it,extraHint);
-  tip.style.display="block";
-  tip.setAttribute("aria-hidden","false");
-  const pad=14, tw=tip.offsetWidth||200, th=tip.offsetHeight||120;
-  let x=clientX+pad, y=clientY+pad;
-  if(x+tw>innerWidth-8)x=clientX-tw-pad;
-  if(y+th>innerHeight-8)y=clientY-th-pad;
-  tip.style.left=Math.max(8,x)+"px";
-  tip.style.top=Math.max(8,y)+"px";
+  if(!it)return;
+  if(typeof showTipHtml==="function")showTipHtml(itemTipHtml(it,extraHint),clientX,clientY);
+  else{
+    const tip=$("#itemTip"); if(!tip)return;
+    tip.innerHTML=itemTipHtml(it,extraHint);
+    tip.style.display="block";
+    tip.setAttribute("aria-hidden","false");
+    const pad=14, tw=tip.offsetWidth||200, th=tip.offsetHeight||120;
+    let x=clientX+pad, y=clientY+pad;
+    if(x+tw>innerWidth-8)x=clientX-tw-pad;
+    if(y+th>innerHeight-8)y=clientY-th-pad;
+    tip.style.left=Math.max(8,x)+"px";
+    tip.style.top=Math.max(8,y)+"px";
+  }
 }
 function hideItemTip(){
-  const tip=$("#itemTip"); if(!tip)return;
-  tip.style.display="none";
-  tip.setAttribute("aria-hidden","true");
+  if(typeof hideTip==="function")hideTip();
+  else{
+    const tip=$("#itemTip"); if(!tip)return;
+    tip.style.display="none";
+    tip.setAttribute("aria-hidden","true");
+  }
 }
 function bindItemTip(el,it,extraHint){
   if(!el||!it)return;
+  if(typeof bindTipHtml==="function"){
+    bindTipHtml(el,()=>itemTipHtml(it,extraHint));
+    return;
+  }
   el.addEventListener("pointerenter",e=>showItemTip(it,e.clientX,e.clientY,extraHint));
   el.addEventListener("pointermove",e=>showItemTip(it,e.clientX,e.clientY,extraHint));
   el.addEventListener("pointerleave",hideItemTip);
@@ -808,15 +880,18 @@ function renderBag(){
       const img=document.createElement("img");
       img.src=Icons.get(it.icon,q.color); img.style.borderColor=q.color;
       let hint="";
-      if(isEquippable(it))hint="左键装备";
+      if(isEquippable(it))hint="左键/右键装备";
       else if(it.slot==="consumable")hint="左键使用";
-      if(S.vendorOpen&&it.vendorSell!=null)hint+=(hint?" · ":"")+"右键出售";
+      if(S.vendorOpen&&it.vendorSell!=null)hint=(hint?hint+" · ":"")+"右键出售";
+      cell.style.borderColor=q.color;
+      cell.style.boxShadow=`inset 0 0 0 1px ${q.color}55`;
       bindItemTip(img,it,hint||null);
       img.addEventListener("click",()=>{hideItemTip();onBagItemClick(id);});
       img.addEventListener("contextmenu",e=>{
         e.preventDefault();
         hideItemTip();
-        sellItem(id);
+        if(S.vendorOpen)sellItem(id);
+        else if(isEquippable(it))equipItem(id);
       });
       cell.appendChild(img);
     }
