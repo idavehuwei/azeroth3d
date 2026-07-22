@@ -28,7 +28,8 @@ const{
   SIM_CONTENT,hpFromStamina,manaFromInt,attackPower,critFromAgi,dodgeFromAgi,armorFromAgi,
   deriveStats,emptyStats,meleeTable,armorReduction,spellHitChance,rollMeleeAttack,rollSpellAttack,
   rageConstant,rageFromDamage,gcdDuration,createResourceState,tickResources,addComboPoints,
-  settleDamage,buildAttackerCtx,buildTargetCtx
+  settleDamage,buildAttackerCtx,buildTargetCtx,
+  applyAbsorbShield,applyEntityHpDamage,allocEntityId
 }=ctx;
 
 assert(!!SIM_CONTENT&&SIM_CONTENT.stats&&SIM_CONTENT.melee,"SIM_CONTENT 含 stats/melee");
@@ -111,6 +112,19 @@ assert(p.rage===20,"能量 2 秒 tick +20");
 /* settleDamage god */
 const god=settleDamage({base:10,god:true,godDmg:5000});
 assert(god.damage===5000&&god.outcome==="hit","上帝模式固定伤害");
+
+/* STEP 14 纯扣血 / 吸收 */
+{
+  const sh={absorb:50,absorbT:10};
+  const r=applyAbsorbShield(sh,30);
+  assert(r.absorbed===30&&r.amount===0&&sh.absorb===20,"吸收盾部分吸收");
+  const r2=applyAbsorbShield(sh,100);
+  assert(r2.absorbed===20&&r2.amount===80&&r2.shieldBroken,"吸收盾击破");
+  const ent={hp:100};
+  const d=applyEntityHpDamage(ent,40);
+  assert(d.hp===60&&!d.died&&ent.hp===60,"applyEntityHpDamage 扣血");
+  assert(allocEntityId("mob")!==allocEntityId("mob"),"allocEntityId 递增唯一");
+}
 
 const atk=buildAttackerCtx({level:5,dmgMul:1,debugMul:1},"warrior",der);
 const tgt=buildTargetCtx({level:5,armor:80});

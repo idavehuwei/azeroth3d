@@ -1,6 +1,6 @@
 /* ============================================================
    炽心 · js/sim/stats.js
-   plan-V3 C3：五属性派生（纯函数，零 DOM / THREE）
+   plan-V3 C3：五属性派生（纯函数，零 DOM / 零渲染库）
    依赖：SIM_CONTENT（可选；缺省用内嵌默认）
    导出：emptyStats cloneStats hpFromStamina manaFromInt attackPower
          critFromAgi dodgeFromAgi armorFromAgi deriveStats mergeStats

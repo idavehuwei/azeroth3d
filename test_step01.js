@@ -105,11 +105,11 @@ assert(combatSrc.includes("priest:{"),"combat.js 有 CLASSES.priest");
 assert(combatSrc.includes("function powerWordShield"),"combat.js 有 powerWordShield");
 assert(combatSrc.includes("function applyHeal"),"combat.js 有 applyHeal");
 assert(combatSrc.includes("S.p.absorb"),"combat.js 使用 S.p.absorb 吸收盾");
-assert(/if\s*\(\s*S\.p\.absorb\s*>\s*0\s*\)/.test(combatSrc)||/opts\.applyAbsorb&&S\.p\.absorb>0/.test(combatSrc),"hitEntity(incoming) 先扣吸收盾");
+assert(combatSrc.includes("applyAbsorbShield")||/S\.p\.absorb\s*>\s*0/.test(combatSrc),"hitEntity(incoming) 先扣吸收盾");
 assert(combatSrc.includes("incoming:true")||combatSrc.includes("opts.incoming"),"hitEntity 支持 incoming 受击");
 assert(combatSrc.includes("applyAbsorb:true"),"playerHit 经 hitEntity 走吸收盾");
 assert(!/S\.p\.hp\s*-=/.test(combatSrc),"玩家扣血不直接 S.p.hp-=");
-assert((combatSrc.match(/ent\.hp\s*=\s*Math\.max\(0,\s*ent\.hp\s*-\s*amount\)/g)||[]).length>=1,"扣血唯一形态在 hitEntity");
+assert(combatSrc.includes("applyEntityHpDamage"),"hitEntity 扣血走 applyEntityHpDamage");
 
 const modelsSrc=fs.readFileSync(path.join(__dirname,"models.js"),"utf8");
 assert(modelsSrc.includes("function buildPriest"),"models.js 导出 buildPriest");
@@ -119,9 +119,22 @@ const talentsSrc=fs.readFileSync(path.join(__dirname,"talents.js"),"utf8");
 assert(talentsSrc.includes("priest:{"),"talents.js 有 TALENTS.priest");
 assert(talentsSrc.includes('id:"holy"')&&talentsSrc.includes('id:"discipline"'),"牧师天赋双枝 神圣/戒律");
 
-const coreSrc=fs.readFileSync(path.join(__dirname,"core.js"),"utf8");
+const balSrc=fs.readFileSync(path.join(__dirname,"js/sim/balance.js"),"utf8");
+const coreSrc=fs.readFileSync(path.join(__dirname,"core.js"),"utf8")+balSrc;
 assert(coreSrc.includes("powerWordShield"),"BALANCE.skills 含 powerWordShield");
 assert(coreSrc.includes("flashHeal")&&coreSrc.includes("smite"),"BALANCE.skills 含 flashHeal/smite");
+assert(fs.existsSync(path.join(__dirname,"js/sim/balance.js")),"js/sim/balance.js 存在");
+assert(html.includes('src="js/sim/balance.js"'),"game.html 加载 balance.js");
+assert(html.includes('src="js/sim/rules.js"'),"game.html 加载 rules.js");
+assert(html.includes('src="js/ui/static-strings.js"'),"game.html 加载 static-strings.js");
+assert(fs.existsSync(path.join(__dirname,"scripts/lint-sim.sh")),"scripts/lint-sim.sh 存在");
+assert(fs.existsSync(path.join(__dirname,"package.json")),"package.json 存在");
+assert(balSrc.includes("const BAL=BALANCE")&&balSrc.includes("SIM_CONTENT"),"balance.js 导出 BAL 并合并 SIM_CONTENT");
+assert(worldSrc.includes("m.view")&&worldSrc.includes("simStats"),"spawnMob 含 view/simStats 分层");
+assert(fs.readFileSync(path.join(__dirname,"js/sim/entity.js"),"utf8").includes("function allocEntityId"),"entity.js 导出 allocEntityId");
+assert(fs.readFileSync(path.join(__dirname,"js/sim/entity.js"),"utf8").includes("function applyEntityHpDamage"),"entity.js 导出 applyEntityHpDamage");
+assert(fs.readFileSync(path.join(__dirname,"js/ui/static-strings.js"),"utf8").includes("function applyStaticUiStrings"),"static-strings 含 applyStaticUiStrings");
+assert(!fs.readFileSync(path.join(__dirname,"js/sim/strings.js"),"utf8").includes("document"),"strings.js 无 document");
 
 const iconsSrc=fs.readFileSync(path.join(__dirname,"icons.js"),"utf8");
 assert(iconsSrc.includes("holy(cx)")&&iconsSrc.includes("holy_shield(cx)")&&iconsSrc.includes("flash_heal(cx)"),"icons.js 有牧师图标配方");
@@ -402,7 +415,7 @@ assert(fs.existsSync(path.join(__dirname,"js/sim/content.js"))&&fs.existsSync(pa
 assert(fs.existsSync(path.join(__dirname,"js/sim/formulas.js"))&&fs.existsSync(path.join(__dirname,"js/sim/resources.js")),"C4/C5 formulas/resources");
 assert(fs.existsSync(path.join(__dirname,"js/sim/entity.js"))&&fs.existsSync(path.join(__dirname,"test_formulas.js")),"entity.js + test_formulas.js");
 assert(combatSrc.includes("settleDamage")&&combatSrc.includes("initPlayerStats")&&combatSrc.includes("playerResKind"),"combat 接线 C3–C5");
-assert(coreSrc.includes("BALANCE.sim")||coreSrc.includes("SIM_CONTENT"),"core 合并 SIM_CONTENT");
+assert(balSrc.includes("BALANCE.sim")||balSrc.includes("SIM_CONTENT")||coreSrc.includes("SIM_CONTENT"),"balance 合并 SIM_CONTENT");
 assert(html.includes('src="js/sim/formulas.js"')&&html.includes('src="js/sim/resources.js"'),"game.html 加载 sim 公式/资源");
 assert(mainSrc.includes("tickResources")&&mainSrc.includes("minRange"),"main 资源 tick + 远程死区");
 /* plan-V3 · C2 目标系统 + 姓名板 + 目标框 */

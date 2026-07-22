@@ -862,7 +862,9 @@ function spawnMob(type,x,z,group,opts){
   if(opts.respawnT!=null)respawnBase=opts.respawnT;
   else if(isWB)respawnBase=(BAL.rares&&BAL.rares.worldBossRespawnT)!=null?BAL.rares.worldBossRespawnT:7200;
   else if(isRare)respawnBase=(BAL.rares&&BAL.rares.respawnT)!=null?BAL.rares.respawnT:3600;
-  const m={type,name:dispName,level:mobLv,mesh,label,stats:st,loot:LOOT[T.loot],
+  const id=(typeof allocEntityId==="function"?allocEntityId("mob"):("mob_"+(MOBS.length+1)));
+  const armor=st.armor!=null?st.armor:(40+mobLv*12+(isElite?80:0));
+  const m={id,type,name:dispName,level:mobLv,mesh,label,stats:st,loot:LOOT[T.loot],
     elite:isElite,
     rare:isRare,
     worldBoss:isWB,
@@ -871,7 +873,8 @@ function spawnMob(type,x,z,group,opts){
     hp,hpMax:hp,state:"wander",home:{x,z},dest:null,wanderT:rand(0,3),
     atkT:0,rootT:0,respawnT:0,respawnBase,corpseT:0,castCd:0,casting:null,moving:false,aura:null,
     attackAnim:0,
-    armor:st.armor!=null?st.armor:(40+mobLv*12+(isElite?80:0)),
+    armor,
+    simStats:{level:mobLv,armor,elite:isElite},
     variance:BAL.variance.mob,
     dead(){return this.state==="dead"||this.state==="return";},
     fctPos(){return this.mesh.position.clone().setY(this.labelY-.4);},
@@ -882,6 +885,8 @@ function spawnMob(type,x,z,group,opts){
     },
     onDeath(){mobDie(this);},
   };
+  /* plan-v4 STEP 14：表现侧通过 id 关联；扁平字段保持兼容 */
+  m.view={id,mesh,label,labelY};
   if(m.elite){
     const auraCfg=m.worldBoss&&BAL.elite.worldBossAura?BAL.elite.worldBossAura:BAL.elite.aura;
     attachEliteAura(m,T.auraColor,auraCfg);

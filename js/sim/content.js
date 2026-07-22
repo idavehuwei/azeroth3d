@@ -1,7 +1,7 @@
 /* ============================================================
    炽心 · js/sim/content.js
    plan-V3 C3–C5：战斗数学 / 属性 / 资源常量（纯数据，可无头加载）
-   完整 BALANCE 仍在 core.js；本表经 core 合并为 BAL.sim
+   完整 BALANCE 在 js/sim/balance.js；本表经 balance.js 合并为 BAL.sim
    导出：SIM_CONTENT
    ============================================================ */
 "use strict";

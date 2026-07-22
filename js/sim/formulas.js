@@ -82,7 +82,9 @@ function spellHitChance(attackerLevel,targetLevel){
  */
 function rollMeleeAttack(attacker,target,opts){
   opts=opts||{};
-  const rng=typeof opts.rng==="function"?opts.rng:Math.random;
+  if(typeof opts.rng!=="function")
+    throw new Error("rollMeleeAttack: rng must be injected");
+  const rng=opts.rng;
   const table=meleeTable(attacker,target,opts);
   const roll=rng()*100;
   let acc=0;
@@ -111,7 +113,9 @@ function rollMeleeAttack(attacker,target,opts){
 
 function rollSpellAttack(attacker,target,opts){
   opts=opts||{};
-  const rng=typeof opts.rng==="function"?opts.rng:Math.random;
+  if(typeof opts.rng!=="function")
+    throw new Error("rollSpellAttack: rng must be injected");
+  const rng=opts.rng;
   const hitPct=spellHitChance(attacker.level,target.level);
   const Sp=_sim().spell||{};
   const critMul=Sp.critMul!=null?Sp.critMul:1.5;

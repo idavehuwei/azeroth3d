@@ -1,8 +1,9 @@
 /* ============================================================
    炽心 · js/sim/strings.js
    依赖：无（须在所有业务模块之前加载，含 core.js）
-   导出：NAMES, TEXTS, T, applyStaticUiStrings
+   导出：NAMES, TEXTS, T
    plan-V3 · C0：专有名词原创化 + 文本数据化
+   plan-v4 STEP 14：纯数据，零 DOM（静态文案填充见 js/ui/static-strings.js）
    ============================================================ */
 
 "use strict";
@@ -291,24 +292,4 @@ function T(key, vars){
     });
   }
   return v;
-}
-
-/** 将 [data-t] / [data-t-html] 填入静态 DOM（game.html 挂点） */
-function applyStaticUiStrings(){
-  if(typeof document==="undefined")return;
-  document.querySelectorAll("[data-t]").forEach(function(el){
-    const k=el.getAttribute("data-t");
-    if(!k)return;
-    el.textContent=T(k);
-  });
-  document.querySelectorAll("[data-t-html]").forEach(function(el){
-    const k=el.getAttribute("data-t-html");
-    if(!k)return;
-    el.innerHTML=T(k);
-  });
-}
-
-if(typeof document!=="undefined"){
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",applyStaticUiStrings);
-  else applyStaticUiStrings();
 }

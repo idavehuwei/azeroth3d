@@ -731,22 +731,24 @@ function hitEntity(ent,amount,label,opts){
   /* —— 受击方向：玩家 / 队友（plan-v4 基线 #1） —— */
   if(opts.incoming){
     if(typeof markCombat==="function")markCombat(S.res);
-    /* STEP 19：吸收盾先扣，溢出再扣血 */
-    if(opts.applyAbsorb&&S.p.absorb>0){
-      const absorbed=Math.min(S.p.absorb,amount);
-      S.p.absorb-=absorbed;
-      amount-=absorbed;
-      if(absorbed>0){
-        fct(player.position.clone().setY(3.2),`-${absorbed}(盾)`,"#ffe9a0",16);
-        log(`真言术：盾吸收了 ${absorbed} 点伤害。`,"lg-heal");
+    /* STEP 19 / STEP 14：吸收盾纯结算 → 表现层反馈 */
+    if(opts.applyAbsorb){
+      const sh=typeof applyAbsorbShield==="function"
+        ?applyAbsorbShield(S.p,amount)
+        :{amount,absorbed:0,shieldBroken:false};
+      if(sh.absorbed>0){
+        fct(player.position.clone().setY(3.2),`-${sh.absorbed}(盾)`,"#ffe9a0",16);
+        log(`真言术：盾吸收了 ${sh.absorbed} 点伤害。`,"lg-heal");
       }
-      if(S.p.absorb<=0){
+      if(sh.shieldBroken){
         if(typeof removeBuff==="function")removeBuff("power_word_shield","spent",true);
         else{S.p.absorb=0;S.p.absorbT=0;clearShieldVisual();}
       }
+      amount=sh.amount;
     }
     if(amount<=0)return;
-    ent.hp=Math.max(0,ent.hp-amount);
+    if(typeof applyEntityHpDamage==="function")applyEntityHpDamage(ent,amount);
+    else ent.hp=Math.max(0,ent.hp-amount);
     const col=opts.fctColor||"#ff6a5a";
     fct(ent.fctPos(),`-${amount}`,col,ent.fctSize?ent.fctSize(label):14);
     if(opts.hurtFlash)hurtFlash();
@@ -813,7 +815,8 @@ function hitEntity(ent,amount,label,opts){
     fct(ent.fctPos(),typeof T==="function"?T("combat.glancing"):"偏斜","#a0a0a0",12,{kind:"glancing"});
     return;
   }
-  ent.hp=Math.max(0,ent.hp-amount);
+  if(typeof applyEntityHpDamage==="function")applyEntityHpDamage(ent,amount);
+  else ent.hp=Math.max(0,ent.hp-amount);
   const crit=outcome==="crit";
   const glancing=outcome==="glancing";
   const col=glancing?"#a8a8a8":"#ffdf8a";
