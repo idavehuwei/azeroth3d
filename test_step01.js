@@ -200,6 +200,23 @@ assert(iconsSrc.includes("portrait_warlock"),"icons.js 有术士肖像");
 assert(sfxSrc.includes("shadow"),"sfx.js 有 shadow 音效");
 assert(html.includes('data-cls="warlock"'),"启程界面有术士职业卡");
 
+/* 德鲁伊冒烟 */
+assert(combatSrc.includes("druid:{"),"combat.js 有 CLASSES.druid");
+assert(combatSrc.includes("function wrath")&&combatSrc.includes("function castMoonfire"),"combat.js 有愤怒/月火");
+assert(combatSrc.includes("function castRejuvenation")&&combatSrc.includes("function entanglingRoots"),"combat.js 有回春/纠缠根须");
+assert(combatSrc.includes("bindDruidSkills"),"combat 德鲁伊技能惰性挂接");
+assert(modelsSrc.includes("function buildDruid"),"models.js 导出 buildDruid");
+assert(modelsSrc.includes("druid:")||modelsSrc.includes("druid:{"),"models.js 有 druid 人形配方");
+assert(talentsSrc.includes("druid:{"),"talents.js 有 TALENTS.druid");
+assert(talentsSrc.includes('id:"balance"')&&talentsSrc.includes('id:"restoration"'),"德鲁伊天赋双枝 平衡/恢复");
+assert(coreSrc.includes("wrath")&&coreSrc.includes("moonfire")&&coreSrc.includes("rejuvenation")&&coreSrc.includes("entanglingRoots"),"BALANCE.skills 含德鲁伊技能");
+assert(coreSrc.includes("druid:")&&coreSrc.includes("improved_moon"),"BALANCE.talents 含 druid");
+assert(/fill:[\s\S]*druid:/.test(coreSrc),"BAL.party.fill 含 druid");
+assert(iconsSrc.includes("wrath(cx)")&&iconsSrc.includes("moonfire(cx)")&&iconsSrc.includes("rejuvenation(cx)"),"icons.js 有德鲁伊图标");
+assert(iconsSrc.includes("portrait_druid"),"icons.js 有德鲁伊肖像");
+assert(sfxSrc.includes("nature"),"sfx.js 有 nature 音效");
+assert(html.includes('data-cls="druid"'),"启程界面有德鲁伊职业卡");
+
 /* V1-C3 Buff / Debuff 条冒烟 */
 const buffsSrc=fs.readFileSync(path.join(__dirname,"buffs.js"),"utf8");
 assert(buffsSrc.includes("function applyBuff"),"buffs.js 有 applyBuff");
@@ -231,6 +248,7 @@ const cmpSrc=fs.readFileSync(path.join(__dirname,"companions.js"),"utf8");
 assert(cmpSrc.includes('shaman:"同伴')||cmpSrc.includes('shaman:"同伴 ·'),"companions.js 有萨满同伴名");
 assert(cmpSrc.includes('rogue:"同伴')||cmpSrc.includes("rogue:\"同伴"),"companions.js 有盗贼同伴名");
 assert(cmpSrc.includes('warlock:"同伴')||cmpSrc.includes("warlock:\"同伴"),"companions.js 有术士同伴名");
+assert(cmpSrc.includes('druid:"同伴')||cmpSrc.includes("druid:\"同伴"),"companions.js 有德鲁伊同伴名");
 assert(cmpSrc.includes("function recruitCompanion"),"companions.js 有 recruitCompanion");
 assert(cmpSrc.includes("function dismissCompanion"),"companions.js 有 dismissCompanion");
 assert(cmpSrc.includes("function tickCompanion"),"companions.js 有 tickCompanion");

@@ -32,6 +32,7 @@ const CMP_NAMES={
   shaman:"同伴 · 风暴",
   rogue:"同伴 · 影刃",
   warlock:"同伴 · 影誓",
+  druid:"同伴 · 叶语",
 };
 const ROLE_ICON={tank:"🛡",healer:"✚",dps:"⚔"};
 

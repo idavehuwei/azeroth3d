@@ -82,11 +82,11 @@ const QUESTS=[
       byClass:{
         warrior:["frayed_cloth"], mage:["frayed_cloth"], archer:["frayed_cloth"],
         priest:["frayed_cloth"], shaman:["frayed_cloth"], rogue:["frayed_cloth"],
-        warlock:["frayed_cloth"]
+        warlock:["frayed_cloth"], druid:["frayed_cloth"]
       },
       choice:[
       {id:"plains_boots", prefer:["warrior","rogue","shaman"]},
-      {id:"plains_cloak", prefer:["mage","priest","archer","warlock"]},
+      {id:"plains_cloak", prefer:["mage","priest","archer","warlock","druid"]},
       {id:"plains_band"}
     ]},
     acceptLog:"接受任务【营地旧箱】：在营地附近找回旧木箱（闪光物件），带回给长者灰角。",

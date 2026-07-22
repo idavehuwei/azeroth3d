@@ -116,6 +116,21 @@ const TALENTS={
       ]},
     ],
   },
+  /* 德鲁伊 */
+  druid:{
+    branches:[
+      {id:"balance",name:"平衡",nodes:[
+        {id:"starlight",tier:1,name:"星光",maxRank:3,icon:"wrath",desc:"攻击伤害提高"},
+        {id:"improved_moon",tier:2,name:"强化月火",maxRank:3,icon:"moonfire",req:"starlight",reqRank:1,desc:"月火冷却缩短"},
+        {id:"wrath_mastery",tier:3,name:"愤怒专精",maxRank:3,icon:"wrath",req:"improved_moon",reqRank:1,desc:"伤害提高，愤怒冷却缩短"},
+      ]},
+      {id:"restoration",name:"恢复",nodes:[
+        {id:"gift_of_nature",tier:1,name:"自然赐福",maxRank:3,icon:"rejuvenation",desc:"治疗量提高"},
+        {id:"improved_rejuv",tier:2,name:"强化回春",maxRank:3,icon:"rejuvenation",req:"gift_of_nature",reqRank:1,desc:"回春冷却缩短"},
+        {id:"natural_spirit",tier:3,name:"自然之魂",maxRank:3,icon:"entangling",req:"improved_rejuv",reqRank:1,desc:"治疗量与生命上限提高"},
+      ]},
+    ],
+  },
 };
 
 /* 运行时态（挂在 S 上，便于存档 STEP 11） */

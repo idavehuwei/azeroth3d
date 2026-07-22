@@ -35,6 +35,8 @@ const SOUNDS={
   stealth:{src:"noise", filter:"lowpass", ffreq:380, attack:.04, decay:.35, vol:.28},
   shadow :{src:"osc", wave:"sawtooth", freq:[420,90], filter:"lowpass", ffreq:900,
            attack:.02, decay:.4, vol:.38},
+  nature :{src:"osc", wave:"sine", freq:[660,220], filter:"lowpass", ffreq:1800,
+           attack:.015, decay:.32, vol:.36},
 
   /* V1-A5 · 材质脚步（草/石/木） */
   foot_grass:{src:"noise", filter:"bandpass", ffreq:420, q:.8, attack:.002, decay:.08, vol:.22},

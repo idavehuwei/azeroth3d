@@ -786,6 +786,7 @@ function tick(){
         onHot(ent,amount){
           if(amount<=0||!S.p.alive)return;
           S.p.hp=Math.min(S.p.hpMax,S.p.hp+amount);
+          if(typeof fct==="function")fct(player.position.clone().setY(2.8),`+${amount}`,"#8aff9a",12,{kind:"heal"});
         },
         onExpire(ent,aura){
           if(!aura)return;

@@ -5,7 +5,7 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ clamp rand R BAL scene camera ARENA_R）
           icons.js（Icons）
-          models.js（buildPlayer buildMage buildArcher buildPriest buildShaman buildRogue buildWarlock）
+          models.js（buildPlayer buildMage buildArcher buildPriest buildShaman buildRogue buildWarlock buildDruid）
           creatures.js 运行时（buildFlameSpawn；raid/world 调用）
           items.js（ITEMS DROPS removeDrop dropLoot）
           world.js（player boss MOBS QUEST mobDamage updateQuest tryInteract）
@@ -191,6 +191,25 @@ const CLASSES={
        desc:"引导吸取目标生命，化为自身治疗。",range:24,cast:3,channel:true,channelInterval:1,channelTick:null},
       {name:"生命分流",  icon:"life_tap",    cd:4,  rage:0, fn:null, bal:"lifeTap",unlock:8,
        desc:"牺牲生命，立即回复法力。"}]},
+  druid:{title:"🌿 你 · 暗夜精灵德鲁伊",hp:4100,resMax:100,resStart:100,resName:"法力",resKind:"mana",
+    regen:8,hitGain:0,speed:10.3,ranged:true,range:28,sfx:"nature",
+    autoMin:155,autoMax:205,autoSpd:1.7,shotColor:0x60d080,
+    build:function(){
+      if(typeof buildDruid==="function")return buildDruid();
+      if(typeof buildFromClassLook==="function")return buildFromClassLook("druid");
+      return buildShaman();
+    },
+    barCss:"linear-gradient(180deg,#90e070,#2a7040 60%,#104020)",
+    tip:"提示：法力自动恢复；【月火】挂 DoT，【回春】持续自疗，【纠缠根须】定身敌人。",
+    skills:[
+      {name:"愤怒",      icon:"wrath",      cd:5,  rage:26,fn:null, bal:"wrath",school:"spell",unlock:1,
+       desc:"投出自然怒火，对目标造成伤害。",range:28,cast:1.8},
+      {name:"月火术",    icon:"moonfire",   cd:7,  rage:22,fn:null, bal:"moonfire",school:"spell",unlock:4,
+       desc:"以月光灼烧目标，造成持续自然伤害。",range:28},
+      {name:"回春术",    icon:"rejuvenation",cd:8, rage:28,fn:null, bal:"rejuvenation",unlock:6,
+       desc:"为自己施加自然愈合，持续恢复生命。"},
+      {name:"纠缠根须",  icon:"entangling", cd:12, rage:20,fn:null, bal:"entanglingRoots",school:"spell",unlock:8,
+       desc:"根须缠绕目标，短暂定身。",range:26}]},
 };
 CLS=CLASSES.warrior;
 
@@ -1611,6 +1630,95 @@ function lifeTap(){
   sk[2].fn=drainLifeEnd;
   sk[2].channelTick=drainLifeTick;
   sk[3].fn=lifeTap;
+})();
+
+/* ---------------- 德鲁伊技能 ---------------- */
+function wrath(){
+  const t=resolveSkillTarget(CLS.range);
+  if(!t)return false;
+  S.p.attackAnim=1;
+  firePlayerShot(t,R(getSkillBal("wrath").dmg),"愤怒",1.4,{school:"spell",skillId:"wrath"});
+  if(typeof SFX!=="undefined")SFX.play(CLS.sfx||"nature");
+  log("你唤来自然之怒！","lg-me");
+  return true;
+}
+function castMoonfire(){
+  const t=resolveSkillTarget(CLS.range);
+  if(!t)return false;
+  let ent=null, label="目标";
+  if(t.type==="mob"&&t.m){ent=t.m;label=t.m.name||"野怪";}
+  else if(t.type==="add"&&t.a){ent=t.a;label=t.a.name||"小怪";}
+  else if(t.type==="boss"&&typeof BOSS_ENT!=="undefined"){
+    ent=BOSS_ENT;
+    label=(typeof targetDisplayInfo==="function"&&targetDisplayInfo(t)||{}).name||"首领";
+  }
+  if(!ent||typeof applyAura!=="function"){log("无法月火该目标。","lg-sys");return false;}
+  const bal=getSkillBal("moonfire");
+  applyAura(ent,"moonfire",{
+    duration:bal.duration,
+    dmgPerTick:bal.dmgPerTick,
+    stacks:bal.stacks!=null?bal.stacks:1,
+  });
+  if(bal.impact){
+    if(t.type==="mob"&&typeof mobDamage==="function")mobDamage(ent,R(bal.impact),"月火术");
+    else if(t.type==="add"&&typeof addDamage==="function")addDamage(ent,R(bal.impact));
+    else if(t.type==="boss")dmgBoss(R(bal.impact),"月火术");
+  }
+  S.p.attackAnim=.55;
+  spawnBurst(player.position.clone().setY(1.6),0x80c0ff,10,1.2);
+  if(typeof SFX!=="undefined")SFX.play(CLS.sfx||"nature");
+  log(`【月火术】灼烧了${label}！`,"lg-me");
+  return true;
+}
+function castRejuvenation(){
+  const bal=getSkillBal("rejuvenation");
+  if(typeof applyAura!=="function"){log("无法施加回春。","lg-sys");return false;}
+  applyAura(S.p,"rejuvenation",{
+    duration:bal.duration,
+    healPerSec:bal.healPerSec,
+  });
+  S.p.attackAnim=.4;
+  spawnBurst(player.position.clone().setY(1.5),0x60e090,12,1.3);
+  fct(player.position.clone().setY(3.2),"回春","#8aff9a",14,{kind:"heal"});
+  if(typeof SFX!=="undefined")SFX.play("heal");
+  log(`回春术！持续恢复生命 ${bal.duration} 秒。`,"lg-heal");
+  return true;
+}
+function entanglingRoots(){
+  const t=resolveSkillTarget(CLS.range);
+  if(!t)return false;
+  const bal=getSkillBal("entanglingRoots");
+  const rootDur=bal.rootT!=null?bal.rootT:4;
+  let ent=null, label="目标", any=false;
+  if(t.type==="mob"&&t.m){ent=t.m;label=t.m.name||"野怪";}
+  else if(t.type==="add"&&t.a){ent=t.a;label=t.a.name||"小怪";}
+  else if(t.type==="boss"){
+    /* Boss 仅造成伤害，不定身 */
+    dmgBoss(R(bal.dmg||[200,280]),"纠缠根须");
+    any=true;
+  }
+  if(ent){
+    if(bal.dmg){
+      if(t.type==="mob"&&typeof mobDamage==="function")mobDamage(ent,R(bal.dmg),"纠缠根须");
+      else if(t.type==="add"&&typeof addDamage==="function")addDamage(ent,R(bal.dmg));
+    }
+    if(typeof applyAura==="function")applyAura(ent,"rooted",{duration:rootDur});
+    else ent.rootT=rootDur;
+    any=true;
+  }
+  S.p.attackAnim=.5;
+  spawnBurst(player.position.clone().setY(.6),0x40a060,14,1.5);
+  if(typeof SFX!=="undefined")SFX.play(CLS.sfx||"nature");
+  log(any?`纠缠根须缠住了${label}！`:"根须破土，但没有缠住目标。","lg-me");
+  return any;
+}
+(function bindDruidSkills(){
+  const sk=CLASSES.druid&&CLASSES.druid.skills;
+  if(!sk||sk.length<4)return;
+  sk[0].fn=wrath;
+  sk[1].fn=castMoonfire;
+  sk[2].fn=castRejuvenation;
+  sk[3].fn=entanglingRoots;
 })();
 
 /* ---- V1-C1 萨满技能 / 图腾 ---- */

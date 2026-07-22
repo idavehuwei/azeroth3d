@@ -145,6 +145,27 @@ const BALANCE={
       {minLevel:8, hpCost:360, manaGain:40},
       {minLevel:14, hpCost:440, manaGain:48}
     ]},
+    /* —— 德鲁伊 —— */
+    wrath:{ranks:[
+      {minLevel:1, dmg:[680,880]},
+      {minLevel:8, dmg:[802,1038]},
+      {minLevel:14, dmg:[925,1197]}
+    ]},
+    moonfire:{ranks:[
+      {minLevel:1, duration:12, dmgPerTick:48, stacks:1, impact:[180,240]},
+      {minLevel:8, duration:14, dmgPerTick:62, stacks:1, impact:[212,283]},
+      {minLevel:14, duration:15, dmgPerTick:78, stacks:1, impact:[245,326]}
+    ]},
+    rejuvenation:{ranks:[
+      {minLevel:1, duration:12, healPerSec:55},
+      {minLevel:8, duration:14, healPerSec:72},
+      {minLevel:14, duration:15, healPerSec:90}
+    ]},
+    entanglingRoots:{ranks:[
+      {minLevel:1, rootT:4, dmg:[160,220]},
+      {minLevel:8, rootT:4.5, dmg:[188,260]},
+      {minLevel:14, rootT:5, dmg:[218,300]}
+    ]},
     /* —— V1-C5 嘲讽 / 打断 —— */
     taunt:{ranks:[
       {minLevel:1, dur:4, range:16, margin:50000},
@@ -787,6 +808,15 @@ const BALANCE={
       improved_drain :{skillCd:{i:2,mul:.90}},
       dark_pact      :{fx:{leechMul:.05},hpMaxMul:.04},
     },
+    /* —— 德鲁伊 —— */
+    druid:{
+      starlight      :{dmgMul:.05},
+      improved_moon  :{skillCd:{i:1,mul:.90}},
+      wrath_mastery  :{dmgMul:.04,skillCd:{i:0,mul:.95}},
+      gift_of_nature :{fx:{healMul:.06}},
+      improved_rejuv :{skillCd:{i:2,mul:.90}},
+      natural_spirit :{fx:{healMul:.05},hpMaxMul:.04},
+    },
   },
   /* 存档（STEP 11）：localStorage 键与 schema 版本；改键会与旧存档隔离 */
   save:{key:"azeroth3d_save_v1",version:1},
@@ -914,6 +944,7 @@ const BALANCE={
       shaman:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
       rogue:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
       warlock:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
+      druid:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
     },
     roleLabel:{tank:"坦克",healer:"治疗",dps:"输出"},
   },
@@ -941,7 +972,7 @@ const BALANCE={
   /* 仇恨与职责（STEP 27） */
   threat:{
     perDmg:1,
-    flat:{heroicStrike:120, whirlwind:50, charge:80, taunt:200, companionAuto:0, shadowBolt:90, corruption:40, drainLife:25},
+    flat:{heroicStrike:120, whirlwind:50, charge:80, taunt:200, companionAuto:0, shadowBolt:90, corruption:40, drainLife:25, wrath:85, moonfire:35},
     roleMul:{player:1, playerTank:1.55, tank:1.6, dps:1, healer:.75},
     tauntDur:4,
     tauntMargin:50000,
