@@ -424,7 +424,10 @@ function applyEquipStats(it,sign){
   }
 }
 function cancelConsume(){
-  if(S.p.eating){S.p.eating=null;log("进食被打断。","lg-sys");}
+  if(S.p.eating){
+    if(typeof removeBuff==="function")removeBuff("eating","interrupt");
+    else{S.p.eating=null;log("进食被打断。","lg-sys");}
+  }
   if(S.p.bandaging){S.p.bandaging=null;log("包扎被打断。","lg-sys");}
   if(S.p.gathering){S.p.gathering=null;log("采集被打断。","lg-sys");}
 }
@@ -439,7 +442,9 @@ function useItem(id){
     S.inv.splice(idx,1);
     const E=BAL.economy.food;
     const total=Math.round(S.p.hpMax*E.healPct);
-    S.p.eating={t:E.duration,healPerSec:total/E.duration,name:it.name};
+    if(typeof applyBuff==="function")
+      applyBuff("eating",{duration:E.duration,healPerSec:total/E.duration,name:it.name});
+    else S.p.eating={t:E.duration,healPerSec:total/E.duration,name:it.name};
     announce("坐下进食…");
     log(`开始食用【${it.name}】（移动会打断）。`,"lg-heal");
     renderBag();
@@ -475,10 +480,14 @@ function useItem(id){
     S.inv.splice(idx,1);
     const W=BAL.economy.whetstone;
     const add=+(W.dmgMulAdd||0);
-    if(S.p.whetstoneT>0&&S.p.whetstoneAdd)S.p.dmgMul-=S.p.whetstoneAdd;
-    S.p.whetstoneAdd=add;
-    S.p.whetstoneT=W.duration|0;
-    S.p.dmgMul+=add;
+    if(typeof applyBuff==="function")
+      applyBuff("whetstone",{duration:W.duration|0,dmgMulAdd:add});
+    else{
+      if(S.p.whetstoneT>0&&S.p.whetstoneAdd)S.p.dmgMul-=S.p.whetstoneAdd;
+      S.p.whetstoneAdd=add;
+      S.p.whetstoneT=W.duration|0;
+      S.p.dmgMul+=add;
+    }
     announce("磨刀石 · 锋利");
     log(`使用【${it.name}】，伤害提升 ${Math.round(add*100)}%（${W.duration|0} 秒）。`,"lg-sys");
     renderBag();

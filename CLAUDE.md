@@ -33,6 +33,7 @@
 | `weather.js` | 天气层（render-only） | setWeather, updateWeather, clearWeather |
 | `world.js` | 莫高雷世界 | player, boss, MOBS, QUEST, enterRaid, mobDie, setCorpse, tryInteract, vendor, spiritHealer |
 | `combat.js` | 战斗系统 | S, CLASSES, SKILLS, hitEntity, useSkill, gainCopper, getFocusTarget |
+| `buffs.js` | Buff / Debuff 条 | applyBuff, tickBuffs, renderBuffHud, clearAllBuffs |
 | `companions.js` | AI 队友 / 3 人小队 | PARTY, formParty, recruitCompanion, tickCompanion |
 | `threat.js` | 仇恨与职责 | addThreat, getTopThreatActor, meleeHitFromThreat, checkPartyWipe |
 | `vfx.js` | 特效注册表 | VFX, fireProjectile, spawnTelegraph, spawnBurst, disposeVfxMesh |

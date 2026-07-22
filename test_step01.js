@@ -141,6 +141,18 @@ assert(iconsSrc.includes("backstab(cx)")&&iconsSrc.includes("stealth(cx)")&&icon
 assert(sfxSrc.includes("stealth"),"sfx.js 有 stealth 音效");
 assert(html.includes('data-cls="rogue"'),"启程界面有盗贼职业卡");
 
+/* V1-C3 Buff / Debuff 条冒烟 */
+const buffsSrc=fs.readFileSync(path.join(__dirname,"buffs.js"),"utf8");
+assert(buffsSrc.includes("function applyBuff"),"buffs.js 有 applyBuff");
+assert(buffsSrc.includes("function tickBuffs"),"buffs.js 有 tickBuffs");
+assert(buffsSrc.includes("function renderBuffHud"),"buffs.js 有 renderBuffHud");
+assert(buffsSrc.includes("power_word_shield")&&buffsSrc.includes("weakness")&&buffsSrc.includes("fear"),"buffs.js 含盾/虚弱/恐惧");
+assert(buffsSrc.includes("whetstone")&&buffsSrc.includes("eating"),"buffs.js 含磨刀石/进食");
+assert(html.includes('src="buffs.js"'),"game.html 加载 buffs.js");
+assert(html.includes('id="buffRow"'),"game.html 有 #buffRow HUD");
+assert(iconsSrc.includes("weakness(cx)")&&iconsSrc.includes("fear(cx)"),"icons.js 有虚弱/恐惧图标");
+assert(fs.readFileSync(path.join(__dirname,"main.js"),"utf8").includes("tickBuffs"),"main.js 调用 tickBuffs");
+
 /* STEP 20 AI 队友冒烟 */
 const cmpSrc=fs.readFileSync(path.join(__dirname,"companions.js"),"utf8");
 assert(cmpSrc.includes('shaman:"同伴')||cmpSrc.includes('shaman:"同伴 ·'),"companions.js 有萨满同伴名");

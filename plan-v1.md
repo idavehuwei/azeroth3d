@@ -197,7 +197,7 @@
 - 能量 + 潜行（脱战隐身简化）+ 背后伤害倍率
 - **验收：** 潜行时野怪 aggro 半径缩小
 
-#### V1-C3 · Buff / Debuff 条 `P0`
+#### V1-C3 · Buff / Debuff 条 `P0` ✅
 
 - `buffs.js`：`applyBuff` / `tickBuffs` / HUD 行
 - 迁入：盾、虚弱、恐惧、磨刀石、食物
@@ -308,7 +308,7 @@
 | V1-B5 | Delve | P2 | ⏳ |
 | V1-C1 | 萨满 | P0 | ✅ |
 | V1-C2 | 盗贼 | P1 | ✅ |
-| V1-C3 | Buff 条 | P0 | ⏳ |
+| V1-C3 | Buff 条 | P0 | ✅ |
 | V1-C4 | 技能 Rank | P1 | ⏳ |
 | V1-C5 | 嘲讽/打断 | P1 | ⏳ |
 | V1-D1 | 银行 | P1 | ⏳ |

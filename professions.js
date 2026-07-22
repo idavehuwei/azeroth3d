@@ -331,14 +331,6 @@ function tickGatherNodes(dt){
       finishGather(node);
     }
   }
-  if(S.p.whetstoneT>0){
-    S.p.whetstoneT=Math.max(0,S.p.whetstoneT-dt);
-    if(S.p.whetstoneT<=0&&S.p.whetstoneAdd){
-      S.p.dmgMul-=S.p.whetstoneAdd;
-      S.p.whetstoneAdd=0;
-      log("磨刀石效果结束。","lg-sys");
-    }
-  }
 }
 
 function openCraftPanel(){

@@ -180,6 +180,7 @@ function setClass(key){
   clearShieldVisual();
   if(typeof clearAllTotems==="function")clearAllTotems();
   if(typeof breakStealth==="function")breakStealth("class",true);
+  if(typeof clearAllBuffs==="function")clearAllBuffs("class");
   scene.remove(player);
   player=CLS.build(); player.position.copy(pos); player.rotation.y=rot; scene.add(player);
   S.p.hpMax=CLS.hp; S.p.hp=CLS.hp;
@@ -629,8 +630,8 @@ function powerWordShield(){
   const mul=1+((S.p.talentFx&&S.p.talentFx.shieldMul)||0);
   const absorb=Math.round(R(bal.absorb)*mul);
   clearShieldVisual();
-  S.p.absorb=absorb;
-  S.p.absorbT=bal.duration;
+  if(typeof applyBuff==="function")applyBuff("power_word_shield",{duration:bal.duration,absorb});
+  else{S.p.absorb=absorb;S.p.absorbT=bal.duration;}
   const ice=new THREE.Mesh(new THREE.IcosahedronGeometry(1.85,0),
     new THREE.MeshStandardMaterial({color:0xffe080,transparent:true,opacity:.42,roughness:.2,metalness:.15,
       emissive:0xffd060,emissiveIntensity:.25}));
@@ -908,7 +909,10 @@ function playerHit(amount,source){
       fct(player.position.clone().setY(3.2),`-${absorbed}(盾)`,"#ffe9a0",16);
       log(`真言术：盾吸收了 ${absorbed} 点伤害。`,"lg-heal");
     }
-    if(S.p.absorb<=0){S.p.absorb=0;S.p.absorbT=0;clearShieldVisual();}
+    if(S.p.absorb<=0){
+      if(typeof removeBuff==="function")removeBuff("power_word_shield","spent",true);
+      else{S.p.absorb=0;S.p.absorbT=0;clearShieldVisual();}
+    }
   }
   if(amount<=0)return;
   if(BAL.stealth&&BAL.stealth.breakOnHit!==false)breakStealth("hit");

@@ -275,6 +275,32 @@ const RECIPES={
     cx.beginPath();cx.arc(28,26,2.5,0,6.283);cx.fill();
     cx.beginPath();cx.arc(36,26,2.5,0,6.283);cx.fill();
   },
+  /* 虚弱 debuff（V1-C3） */
+  weakness(cx){
+    P.bg(cx,"#2a1828","#100810");
+    P.glow(cx,32,32,20,"rgba(160,80,160,.45)");
+    cx.strokeStyle="#c080c0";cx.lineWidth=3;
+    cx.beginPath();cx.moveTo(18,22);cx.lineTo(46,42);cx.stroke();
+    cx.beginPath();cx.moveTo(46,22);cx.lineTo(18,42);cx.stroke();
+    cx.fillStyle="#e0a0e0";
+    cx.beginPath();cx.arc(32,32,8,0,6.283);cx.fill();
+    cx.fillStyle="#401848";
+    cx.fillRect(28,28,8,8);
+  },
+  /* 恐惧 debuff（V1-C3） */
+  fear(cx){
+    P.bg(cx,"#281018","#100608");
+    P.glow(cx,32,28,22,"rgba(220,60,80,.55)");
+    cx.strokeStyle="#ff8090";cx.lineWidth=2;
+    for(let i=0;i<3;i++){
+      cx.beginPath();cx.arc(32,34,8+i*5,Math.PI*1.15,Math.PI*1.85);cx.stroke();
+    }
+    cx.fillStyle="#ffd0d8";
+    cx.beginPath();cx.arc(26,26,3,0,6.283);cx.fill();
+    cx.beginPath();cx.arc(38,26,3,0,6.283);cx.fill();
+    cx.fillStyle="#a02030";
+    cx.beginPath();cx.moveTo(24,40);cx.quadraticCurveTo(32,48,40,40);cx.fill();
+  },
   /* 疾步 */
   sprint(cx){
     P.bg(cx,"#182028","#081018");

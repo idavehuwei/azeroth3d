@@ -297,10 +297,14 @@ function applySaveData(data){
   S.p.alive=true; S.over=false;
   S.p.rage=CLS.resStart;
   S.p.hp=data.hp!=null?clamp(data.hp,1,S.p.hpMax):S.p.hpMax;
-  S.p.knock=null; S.p.fear=null;
-  S.p.eating=null; S.p.bandaging=null; S.p.gathering=null;
-  if(S.p.whetstoneAdd){S.p.dmgMul-=S.p.whetstoneAdd;S.p.whetstoneAdd=0;}
-  S.p.whetstoneT=0;
+  S.p.knock=null;
+  S.p.bandaging=null; S.p.gathering=null;
+  if(typeof clearAllBuffs==="function")clearAllBuffs("load");
+  else{
+    S.p.fear=null; S.p.eating=null;
+    if(S.p.whetstoneAdd){S.p.dmgMul-=S.p.whetstoneAdd;S.p.whetstoneAdd=0;}
+    S.p.whetstoneT=0; S.p.absorb=0; S.p.absorbT=0; S.p.weaknessT=0;
+  }
   S.craftOpen=false;
 
   player.position.set(data.pos.x,0,data.pos.z);

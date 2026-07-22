@@ -995,7 +995,8 @@ function runBossSkill(sk){
       }
       if(distToBoss()<st.range&&S.p.alive){
         playerHit(R(st.dmg),sk.name);
-        S.p.fear={t:st.fearT||2};
+        if(typeof applyBuff==="function")applyBuff("fear",{duration:st.fearT||2});
+        else S.p.fear={t:st.fearT||2};
         if(st.knockT){
           const dir=player.position.clone().sub(new THREE.Vector3(boss.position.x,0,boss.position.z)).normalize();
           S.p.knock={dir,t:st.knockT};
@@ -1276,12 +1277,18 @@ function resurrectPlayer(spawn,opts){
   S.p.hp=Math.max(1,Math.round(S.p.hpMax*(D.respawnHpPct!=null?D.respawnHpPct:.5)));
   S.p.rage=CLS.resStart;
   S.p.invuln=.8;
-  S.p.absorb=0; S.p.absorbT=0;
-  if(typeof clearShieldVisual==="function")clearShieldVisual();
-  S.p.knock=null; S.p.fear=null;
-  S.p.eating=null; S.p.bandaging=null; S.p.gathering=null;
-  if(S.p.whetstoneT>0&&S.p.whetstoneAdd){S.p.dmgMul-=S.p.whetstoneAdd;S.p.whetstoneAdd=0;S.p.whetstoneT=0;}
-  S.p.weaknessT=D.weaknessT||0;
+  if(typeof clearAllBuffs==="function")clearAllBuffs("resurrect");
+  else{
+    S.p.absorb=0; S.p.absorbT=0;
+    if(typeof clearShieldVisual==="function")clearShieldVisual();
+    S.p.fear=null;
+    S.p.eating=null;
+    if(S.p.whetstoneT>0&&S.p.whetstoneAdd){S.p.dmgMul-=S.p.whetstoneAdd;S.p.whetstoneAdd=0;S.p.whetstoneT=0;}
+  }
+  S.p.knock=null;
+  S.p.bandaging=null; S.p.gathering=null;
+  if(typeof applyBuff==="function")applyBuff("weakness",{duration:D.weaknessT||0});
+  else S.p.weaknessT=D.weaknessT||0;
   player.rotation.z=0; player.position.y=0;
   if(spawn)player.position.set(spawn.x,0,spawn.z);
   hideDeathUi();

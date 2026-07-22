@@ -14,6 +14,7 @@
           pickTarget firePlayerShot dmgBoss addDamage mobDamage playerHit
           setCurrentTarget log announce fct）
           companions.js 运行时（tickCompanion companionAlive companionHit COMPANION）
+          buffs.js 运行时（tickBuffs）
           anim.js 运行时（updateMobAnim updateBossWingAnim）
           weather.js 运行时（updateWeather）
           items.js（updateDrops nearestDrop removeDropOf cancelConsume）
@@ -569,6 +570,7 @@ function tick(){
       }
     }
     if(typeof tickTotems==="function")tickTotems(dt);
+    if(typeof tickBuffs==="function")tickBuffs(dt);
     if(CLS.regen)S.p.rage=Math.min(S.p.rageMax,S.p.rage+CLS.regen*dt);
     S.gcd=Math.max(0,S.gcd-dt);
     document.querySelectorAll(".skill").forEach((el,i)=>{
