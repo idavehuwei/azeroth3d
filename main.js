@@ -15,7 +15,8 @@
           setCurrentTarget log announce fct）
           companions.js 运行时（tickCompanion companionAlive companionHit COMPANION）
           buffs.js 运行时（tickBuffs）
-          anim.js 运行时（updateMobAnim updateBossWingAnim）
+          anim.js 运行时（updateMobAnim updateBossWingAnim updateBossHammerAnim）
+          creatures.js 运行时（族群工厂，由 world/raid 调用）
           weather.js 运行时（updateWeather）
           props.js 运行时（updateProps）
           sky.js 运行时（updateSky · render-only 昼夜/阴影跟随）
@@ -578,12 +579,37 @@ function tick(){
       if(D.tickBridge)D.tickBridge(dt);
       if(D.stage==="boss"||D.stage==="boss1")bossAI(dt);
     }
-    /* Boss 挥锤动画（人形有 armR；四足跳过） */
+    /* Boss 挥锤三段（蓄力→挥出→收势，对齐 delayMs）；四足 Boss 无 armR 则跳过 */
     if(boss.userData.armR&&boss.userData.armL){
-      if(S.b.swingT>0){S.b.swingT-=dt*1.6;
-        boss.userData.armR.rotation.x=-2.1*Math.sin(Math.min(1,S.b.swingT)*Math.PI);}
-      else boss.userData.armR.rotation.x=Math.sin(S.t*1.2)*.12;
-      boss.userData.armL.rotation.x=Math.sin(S.t*1.2+1)*.15;
+      const decay=(BAL.anim&&BAL.anim.bossHammerDecay)||1.6;
+      if(S.b.swingT>0)S.b.swingT=Math.max(0,S.b.swingT-dt*decay);
+      if(typeof updateBossHammerAnim==="function"){
+        const r=updateBossHammerAnim(boss,S.b.swingT,dt,{
+          shakeAmp:(BAL.anim&&BAL.anim.bossShakeAmp)||.28});
+        if(r&&r.shake>0)S.camShake=Math.max(S.camShake||0,r.shake);
+      }else if(S.b.swingT>0){
+        boss.userData.armR.rotation.x=-2.1*Math.sin(Math.min(1,S.b.swingT)*Math.PI);
+      }
+    }
+    /* 胸口熔核随缺血增亮（render-only） */
+    if(boss.userData.core&&boss.userData.bossLight&&S.b.hpMax){
+      const hurt=1-Math.max(0,Math.min(1,S.b.hp/S.b.hpMax));
+      const cg=(BAL.anim&&BAL.anim.bossCoreGlow)||{min:1,max:2.8};
+      const glow=cg.min+(cg.max-cg.min)*hurt;
+      boss.userData.core.scale.setScalar(1+hurt*.35);
+      boss.userData.bossLight.intensity=2.2+hurt*2.4;
+      if(boss.userData.core.material)boss.userData.core.material.color.setRGB(1,.8+hurt*.2,.3+hurt*.2);
+    }
+    /* 升起/沉入岩浆涟漪 */
+    if(boss.userData.ripple){
+      const rip=boss.userData.ripple;
+      const show=!!(S.b.rising||S.b.submerged);
+      rip.visible=show;
+      if(show){
+        const pulse=1.0+.15*Math.sin(S.t*3.2);
+        rip.scale.set(pulse,pulse,pulse);
+        if(rip.material)rip.material.opacity=.2+.2*Math.abs(Math.sin(S.t*2.4));
+      }
     }
     if(typeof updateBossWingAnim==="function")
       updateBossWingAnim(boss,dt,S.b.alive);
@@ -739,6 +765,14 @@ function tick(){
     camera.position.x+= (camTarget.x-camera.position.x)*followK;
     camera.position.y+= (camTarget.y-camera.position.y)*followK;
     camera.position.z+= (camTarget.z-camera.position.z)*followK;
+    /* R6：Boss 挥锤落地震屏（render-only） */
+    if(S.camShake>0){
+      const sh=S.camShake;
+      camera.position.x+=(Math.random()-.5)*sh;
+      camera.position.y+=(Math.random()-.5)*sh*.6;
+      camera.position.z+=(Math.random()-.5)*sh;
+      S.camShake=Math.max(0,S.camShake-dt*((BAL.anim&&BAL.anim.bossShakeDecay)||6));
+    }
     camera.lookAt(player.position.x,groundY+(C.lookY||2.2),player.position.z);
   }
 

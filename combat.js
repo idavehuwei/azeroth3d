@@ -5,7 +5,8 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ clamp rand R BAL scene camera ARENA_R）
           icons.js（Icons）
-          models.js（buildPlayer buildMage buildArcher buildPriest buildShaman buildRogue buildFlameSpawn）
+          models.js（buildPlayer buildMage buildArcher buildPriest buildShaman buildRogue）
+          creatures.js 运行时（buildFlameSpawn；raid/world 调用）
           items.js（ITEMS DROPS removeDrop dropLoot）
           world.js（player boss MOBS QUEST mobDamage updateQuest tryInteract）
           main.js 运行时（clampArena）
@@ -56,6 +57,7 @@ const S={
   eq:emptyEquipment(), /* 纸娃娃装备位（items.js · EQUIP_SLOTS） */
   god:false,   /* 上帝模式：启程时由首页勾选决定（hitEntity 消费） */
   cam:{dist:16,pitch:.38,yawOff:0,lmb:false,rmb:false,lx:0,ly:0}, /* 魔兽式视角状态 */
+  camShake:0, /* R6：Boss 挥锤震屏（render-only） */
   vendorOpen:false,
   vendorNpcId:null, /* 当前商店 NPC id（对照 BAL.economy.vendorStockByNpc） */
   deathUi:false, /* STEP 15：死亡面板打开中 */

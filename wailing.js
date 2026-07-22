@@ -4,7 +4,7 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（BAL srand rand scene makeLabel）
           zones.js（registerZone）
-          models.js（buildQuadruped QUADS）
+          creatures.js（buildQuadruped QUADS）
           raid.js（DUNGEONS getDungeon spawnAdd activateRaidBoss resetBoss
             EXIT_PORTAL_POS 运行时）
           barrens.js 运行时（南口进本）

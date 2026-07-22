@@ -28,8 +28,10 @@
 | `core.js` | 基础设施 | BALANCE, SeededRng, srand, makeLabel, scene, camera, renderer |
 | `icons.js` | 图标画布工厂 | Icons.canvas, Icons.get |
 | `items.js` | 物品与掉落 | QUALITY, ITEMS, LOOT, EQUIP_SLOTS, dropLoot, tryLoot, useItem, sellItem, equipItem |
-| `models.js` | 3D 模型工厂 | buildPlayer…, buildHut/Tent/Fence/Watchtower, QUADS |
-| `anim.js` | 生物动画挂点 | updateMobAnim, beginDeathRoll, updateBossWingAnim |
+| `rig.js` | 人形骨架 / Anim | createRigSkeleton, assembleHumanoidRig, updateHumanoidAnim, CLASS_LOOK_META |
+| `creatures.js` | 生物族群工厂 | buildQuadruped, buildElemental, buildHumanoidMob, buildFlameSpawn, QUADS, MOB_LOOK |
+| `models.js` | 职业 / NPC / Boss / 建筑 | buildPlayer…, buildBoss, buildHut/Tent/Fence/Watchtower |
+| `anim.js` | 生物动画挂点 | updateMobAnim, beginDeathRoll, updateBossHammerAnim, updateBossWingAnim |
 | `weather.js` | 天气层（render-only） | setWeather, updateWeather, clearWeather |
 | `world.js` | 莫高雷世界 | player, boss, MOBS, QUEST, enterRaid, mobDie, setCorpse, tryInteract, vendor, spiritHealer |
 | `combat.js` | 战斗系统 | S, CLASSES, SKILLS, hitEntity, useSkill, gainCopper, getFocusTarget |

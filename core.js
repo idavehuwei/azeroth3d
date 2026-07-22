@@ -245,7 +245,7 @@ const BALANCE={
     mobHit:null,
     woodPts:[[-36,40,14],[-28,32,10],[-48,48,10]],
   },
-  /* plan-v1 · V1-A3 生物动画挂点（仅表现，不改伤害/仇恨） */
+  /* plan-v1 · V1-A3 / plan-V2 · R6 生物动画挂点（仅表现，不改伤害/仇恨） */
   anim:{
     walkFreq:9, walkAmp:.55, walkDecay:8,
     attackDecay:4,
@@ -253,6 +253,10 @@ const BALANCE={
     bobAmp:.22,
     blendDur:.15,
     wingFlap:{freq:1.4, amp:.35},
+    bossHammerDecay:1.6,   /* swingT 每秒衰减；与 delayMs 对齐伤害帧 */
+    bossShakeAmp:.28,      /* 挥锤落地震屏幅度（render-only） */
+    bossShakeDecay:6,
+    bossCoreGlow:{min:1, max:2.8}, /* 熔核亮度随缺血上升 */
   },
   /* 烈焰之子 */
   add:{level:15, hp:1400, dmg:[130,190], atkCd:2, speed:4.6, meleeR:3, stopR:2.6, copper:[12,28]},

@@ -9,8 +9,9 @@
           zones.js（registerZone enterZone）
           models.js（buildPlayer buildBoss buildElder buildVendor buildSpiritHealer
             tintNpcCloth buildHut buildTent buildFence buildWatchtower buildCampfire
-            buildTotem buildMarketStall buildCratePile BUILD_PAL placeProp
-            buildMeleeHumanoid MELEE_HUMANOIDS buildElemental）
+            buildTotem buildMarketStall buildCratePile BUILD_PAL placeProp）
+          creatures.js（buildQuadruped buildElemental buildHumanoidMob buildMeleeHumanoid buildCentaur
+            QUADS MOB_LOOK MOB_HUMANOIDS MELEE_HUMANOIDS）
           anim.js 运行时（beginDeathRoll resetDeathRoll）
           items.js（dropLoot rollLoot LOOT tryLoot buyVendorItem）
           combat.js 运行时（S log announce fct spawnBurst hitEntity closeDialogue
@@ -751,10 +752,10 @@ const MOB_TYPES={
   thunderhawk:{name:"雷鹰",        build:()=>buildQuadruped(QUADS.thunderhawk),  stats:"thunderhawk", loot:"thunderhawk", labelW:4.6,labelY:3.6},
   kodo       :{name:"科多兽",      build:()=>buildQuadruped(QUADS.kodo),         stats:"kodo",        loot:"kodo",        labelW:6.5,labelY:4.2},
   palemane   :{name:"苍鬃豺狼人",  build:()=>buildQuadruped(QUADS.palemane),     stats:"palemane",    loot:"palemane",    labelW:5.0,labelY:2.9},
-  windElement:{name:"风元素",      build:()=>buildElemental({color:0xa8e0ff,emissive:0x66b0e0,size:.95}), stats:"windElement", loot:"windElement", labelW:4.2,labelY:3.0},
-  waterElement:{name:"水元素",     build:()=>buildElemental({color:0x5090e0,emissive:0x2870c0,size:1.05}), stats:"waterElement", loot:"waterElement", labelW:4.4,labelY:3.1},
-  oasisWater :{name:"污染水元素", build:()=>buildElemental({color:0x3a7a58,emissive:0x1a5030,size:1.15}), stats:"oasisWater", loot:"waterElement", labelW:5.0,labelY:3.3},
-  earthElement:{name:"土元素",     build:()=>buildElemental({color:0xa08050,emissive:0x705828,size:1.1}), stats:"earthElement", loot:"earthElement", labelW:4.4,labelY:3.1},
+  windElement:{name:"风元素",      build:()=>buildElemental(ELEMENTALS.wind), stats:"windElement", loot:"windElement", labelW:4.2,labelY:3.0},
+  waterElement:{name:"水元素",     build:()=>buildElemental(ELEMENTALS.water), stats:"waterElement", loot:"waterElement", labelW:4.4,labelY:3.1},
+  oasisWater :{name:"污染水元素", build:()=>buildElemental(ELEMENTALS.oasis), stats:"oasisWater", loot:"waterElement", labelW:5.0,labelY:3.3},
+  earthElement:{name:"土元素",     build:()=>buildElemental(ELEMENTALS.earth), stats:"earthElement", loot:"earthElement", labelW:4.4,labelY:3.1},
   baeldun    :{name:"巴尔丹火枪手",build:()=>buildMeleeHumanoid(MELEE_HUMANOIDS.baeldun), stats:"baeldun", loot:"baeldun", labelW:5.8,labelY:3.2},
   baeldunDigger:{name:"巴尔丹挖掘工",build:()=>buildMeleeHumanoid(MELEE_HUMANOIDS.baeldunDigger),stats:"baeldunDigger",loot:"baeldunDigger",labelW:5.6,labelY:3.1},
   venture    :{name:"风险投资公司工人",build:()=>buildMeleeHumanoid(MELEE_HUMANOIDS.venture),stats:"venture",loot:"venture",labelW:6.2,labelY:3.0},

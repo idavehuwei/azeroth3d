@@ -4,9 +4,10 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ srand worldRng BAL makeLabel）
           zones.js（registerZone）· sky.js（initZoneSky）
-          models.js（buildQuadruped buildHumanoidMob buildVendor buildSpiritHealer buildElder tintNpcCloth
+          models.js（buildVendor buildSpiritHealer buildElder tintNpcCloth
             buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem
             buildMarketStall buildCratePile BUILD_PAL placeProp）
+          creatures.js（buildQuadruped buildHumanoidMob）
           world.js（spawnMob MOBS pickNearestNpc appendNpcQuestButtons openVendor closeVendorPanel）
           combat.js 运行时（S log announce）
           quests.js 运行时（acceptQuest turnInQuest questsForNpc）

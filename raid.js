@@ -7,7 +7,8 @@
           lavaUniforms embers EMBERS emberVel srand worldRng sceneRaid setZoneSeed）
           zones.js（registerZone ensureZoneBuilt enterZone）
           sky.js 运行时（configureSunShadow）
-          models.js（buildFlameSpawn buildBoss buildQuadruped QUADS）
+          models.js（buildBoss）
+          creatures.js（buildFlameSpawn buildQuadruped QUADS）
           items.js（ITEMS DROPS removeDrop dropLoot rollLoot LOOT）
           world.js（player boss BOSS_MESHES MOBS QUEST setCorpse corpseMat removeDropOf
           spawnExitPortal removeExitPortal leaveRaid）

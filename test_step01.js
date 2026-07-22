@@ -223,7 +223,8 @@ assert(worldSrc.includes("WORLD_R=352")||worldSrc.includes("WORLD_R = 352"),"莫
 assert(worldSrc.includes("BLOODHOOF")&&worldSrc.includes("REDROCK_LAKE")&&worldSrc.includes("CAMP_NARACHE"),"血蹄村/石牛湖/纳拉其常量");
 assert(worldSrc.includes("MULGORE")&&worldSrc.includes("mulgoreWow")&&worldSrc.includes("*.82"),"经典莫高雷坐标映射铺满");
 assert(worldSrc.includes("palemane")&&worldSrc.includes("windfury")&&worldSrc.includes("baeldun"),"莫高雷分区怪种");
-assert(modelsSrc.includes("buildMeleeHumanoid")&&modelsSrc.includes("kodo"),"科多/人形敌对工厂");
+const creaturesSrcEarly=fs.readFileSync(path.join(__dirname,"creatures.js"),"utf8");
+assert(creaturesSrcEarly.includes("buildMeleeHumanoid")&&creaturesSrcEarly.includes("kodo"),"科多/人形敌对工厂");
 assert(html.includes("#questLogBody")&&html.includes("ql-split")&&html.includes("overflow-y:auto"),"L 任务日志左右分栏可滚动");
 assert(itemsSrc.includes("quest_sacred_oil")&&itemsSrc.includes("quest_winterhoof_totem")&&itemsSrc.includes("barrens_cleaver")&&itemsSrc.includes("ochre_fang"),"V1-B2 任务物与分区装备");
 assert(worldSrc.includes("placeTalkNpc")&&worldSrc.includes("_mulgoreInteractNpcs")&&worldSrc.includes("registerNpcInteract"),"莫高雷 NPC 统一 F 对话注册");
@@ -381,7 +382,8 @@ assert(html.includes('src="anim.js"'),"game.html 加载 anim.js");
 assert(animSrc.includes("function updateMobAnim")&&animSrc.includes("function beginDeathRoll"),"anim.js 有走/死 API");
 assert(animSrc.includes("function updateBossWingAnim")&&animSrc.includes("function tickDeathRoll"),"anim.js 有翼拍/侧倒插值");
 assert(coreSrc.includes("anim:")&&coreSrc.includes("deathRollSpd")&&coreSrc.includes("wingFlap"),"BALANCE 含 anim 表");
-assert(modelsSrcA1.includes("userData={legs")||modelsSrcA1.includes("legs,"),"buildQuadruped 导出腿枢轴");
+const creaturesSrcA3=fs.readFileSync(path.join(__dirname,"creatures.js"),"utf8");
+assert(creaturesSrcA3.includes("userData={")&&creaturesSrcA3.includes("legs"),"buildQuadruped 导出腿枢轴");
 assert(modelsSrcA1.includes("wingL")&&modelsSrcA1.includes('kind="dragon"'),"buildOnyxia 有翼挂点");
 assert(modelsSrcA1.includes('kind:"humanoid"')||modelsSrcA1.includes("anim:{state"),"人形 userData.anim");
 assert(worldSrc.includes("beginDeathRoll")&&worldSrc.includes("resetDeathRoll"),"setCorpse 走死亡插值");
@@ -697,8 +699,25 @@ assert(mainSrc.includes("updateHumanoidAnim"),"main.js 驱动人形 Anim");
   assert(blended.thighR&&Number.isFinite(blended.thighR.x),"blendPose 可混合姿态");
 })();
 
+/* plan-V2 · R6 生物族群工厂 */
+assert(html.includes('src="creatures.js"'),"game.html 加载 creatures.js");
+const creaturesSrc=fs.readFileSync(path.join(__dirname,"creatures.js"),"utf8");
+assert(creaturesSrc.includes("function buildQuadruped")&&creaturesSrc.includes("function buildElemental"),"creatures 含四足/元素工厂");
+assert(creaturesSrc.includes("function buildHumanoidMob")&&creaturesSrc.includes("buildHumanoid"),"人形怪复用 buildHumanoid");
+assert(creaturesSrc.includes("MOB_LOOK")&&creaturesSrc.includes("QUADS"),"creatures 含 MOB_LOOK/QUADS 配方");
+assert(creaturesSrc.includes("shins")&&creaturesSrc.includes("spine1"),"四足含小腿/脊柱挂点");
+assert(creaturesSrc.includes("rocks")&&creaturesSrc.includes("flames"),"元素含碎岩/火焰层");
+assert(creaturesSrc.includes("lavabeast")&&creaturesSrc.includes("imp:"),"含熔岩巨兽/小恶魔配方");
+assert(!modelsSrc.includes("function buildQuadruped"),"models.js 不再内联 buildQuadruped");
+assert(modelsSrc.includes("forearmR")&&modelsSrc.includes("ripple"),"buildBoss 含肘关节/涟漪");
+assert(animSrc.includes("updateBossHammerAnim")&&animSrc.includes("quadSide"),"anim 含挥锤三段/四足侧倒");
+assert(animSrc.includes("scatter")||animSrc.includes("deathStyle"),"anim 含元素碎散死亡");
+assert(coreSrc.includes("bossHammerDecay")&&coreSrc.includes("bossShakeAmp"),"BALANCE.anim 含 Boss 挥锤参数");
+assert(mainSrc.includes("updateBossHammerAnim")&&mainSrc.includes("camShake"),"main 驱动挥锤/震屏");
+assert(worldSrc.includes('build:()=>buildQuadruped(QUADS.wolf)'),"草原狼仍为配方接线");
+
 if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–29 … / V1 · plan-V2 R0–R5 冒烟");
+console.log("\n全部通过 · STEP 17–29 … / V1 · plan-V2 R0–R6 冒烟");
