@@ -3,7 +3,7 @@
    赭岩谷（plan-v1 · V1-B1）：橙土 / 兽人哨站风 / 巨蝎·刺脊·崖风鹰身
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ srand worldRng BAL makeLabel）
-          zones.js（registerZone）
+          zones.js（registerZone）· sky.js（initZoneSky）
           models.js（buildQuadruped buildHumanoidMob buildVendor buildSpiritHealer buildElder tintNpcCloth
             buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem
             buildMarketStall buildCratePile BUILD_PAL placeProp）
@@ -45,10 +45,18 @@ function buildDurotarZone(scn){
   root.add(durotarHeli);
   durotarSun=new THREE.DirectionalLight(D.sunColor,D.sunIntensity);
   durotarSun.position.set(40,70,20); durotarSun.castShadow=true;
-  durotarSun.shadow.mapSize.set(2048,2048);
-  durotarSun.shadow.camera.left=-100;durotarSun.shadow.camera.right=100;
-  durotarSun.shadow.camera.top=100;durotarSun.shadow.camera.bottom=-100;
   root.add(durotarSun);
+  root.add(durotarSun.target);
+  const _durotarSkyLights={heli:durotarHeli,sun:durotarSun};
+  if(typeof initZoneSky==="function"){
+    initZoneSky(root,_durotarSkyLights,{
+      zenith:0x8a6040, horizon:D.sky, ground:D.dirt||0xa85828,
+    });
+  }else{
+    durotarSun.shadow.mapSize.set(2048,2048);
+    durotarSun.shadow.camera.left=-100;durotarSun.shadow.camera.right=100;
+    durotarSun.shadow.camera.top=100;durotarSun.shadow.camera.bottom=-100;
+  }
 
   const ground=new THREE.Mesh(new THREE.CircleGeometry(DUROTAR_R+36,64),
     MAT.get("dirt.zone",{color:D.ground,roughness:1}));
@@ -211,7 +219,7 @@ function buildDurotarZone(scn){
     });
   }
   const z=ZONES.durotar;
-  if(z)z.lights={heli:durotarHeli,sun:durotarSun,flames:durotarFlames};
+  if(z)z.lights={heli:durotarHeli,sun:durotarSun,flames:durotarFlames,fill:_durotarSkyLights.fill};
 }
 
 function updateDurotarMarkers(){

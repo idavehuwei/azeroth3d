@@ -18,6 +18,7 @@
           anim.js 运行时（updateMobAnim updateBossWingAnim）
           weather.js 运行时（updateWeather）
           props.js 运行时（updateProps）
+          sky.js 运行时（updateSky · render-only 昼夜/阴影跟随）
           items.js（updateDrops nearestDrop removeDropOf cancelConsume）
           vfx.js（VFX spawnBurst fireProjectile disposeVfxMesh）
           raid.js 运行时（bossAI distToBoss bossTargetable DUNGEON）
@@ -129,66 +130,10 @@ function tick(){
   }
   embers.geometry.attributes.position.needsUpdate=true;
 
-  /* ---- 昼夜循环（STEP 7）：按当前 zone 灯光（STEP 18 多区） ---- */
-  const cz=typeof getCurrentZone==="function"?getCurrentZone():null;
-  if(cz&&cz.dayNight){
-    const dn=BAL.dayNight, cycle=(S.t%dn.duration)/dn.duration, a=cycle*Math.PI*2;
-    const dayFactor=(Math.cos(a)+1)/2;
-    const nightFactor=1-dayFactor;
-    const L=cz.lights||{};
-    const sunL=L.sun||(cz.id==="mulgore"?sun:null);
-    const hemiL=L.heli||(cz.id==="mulgore"?heli:null);
-    const scn=cz.scene;
-    if(sunL){
-      sunL.position.x=Math.cos(a)*60;
-      sunL.position.y=Math.sin(a)*50+25;
-      sunL.position.z=30;
-      const D=dn.day,N=dn.night;
-      sunL.color.lerpColors(new THREE.Color(D.sunColor),new THREE.Color(N.sunColor),nightFactor);
-      sunL.intensity=D.sunIntensity+nightFactor*(N.sunIntensity-D.sunIntensity);
-    }
-    if(scn&&scn.background&&scn.fog){
-      const D=dn.day,N=dn.night;
-      const skyCol=new THREE.Color();
-      const pal=cz.id==="barrens"?BAL.barrens:(cz.id==="durotar"?BAL.durotar:null);
-      const daySky=pal?pal.sky:D.sky;
-      const dayFog=pal?pal.fog:D.fog;
-      const dayDens=pal?pal.fogDensity:D.fogDensity;
-      scn.background=skyCol.lerpColors(new THREE.Color(daySky),new THREE.Color(N.sky),nightFactor);
-      scn.fog.color.copy(skyCol);
-      scn.fog.density=dayDens+nightFactor*(N.fogDensity-dayDens);
-      if(hemiL){
-        hemiL.color.lerpColors(new THREE.Color(pal?pal.hemiSky:D.hemiSky),new THREE.Color(N.hemiSky),nightFactor);
-        hemiL.groundColor.lerpColors(new THREE.Color(pal?pal.hemiGround:D.hemiGround),new THREE.Color(N.hemiGround),nightFactor);
-        hemiL.intensity=(pal?pal.hemiIntensity:D.hemiIntensity)+nightFactor*(N.hemiIntensity-(pal?pal.hemiIntensity:D.hemiIntensity));
-      }
-    }
-    const flames=L.flames||(cz.id==="mulgore"?worldFlames:null);
-    if(flames)flames.forEach((f,i)=>{
-      f.fl.scale.y=1+Math.sin(S.t*8+i*2)*.2;
-      f.li.intensity=1.2+Math.sin(S.t*9+i)*.35+nightFactor*dn.campfire.nightBoost;
-      if(f.layers)f.layers.forEach((ly,j)=>{
-        if(!ly.mesh)return;
-        ly.mesh.scale.y=1+Math.sin(S.t*ly.freq+ly.phase+i)*.22;
-        ly.mesh.scale.x=1+Math.sin(S.t*(ly.freq*.7)+j)*.08;
-      });
-    });
-    if(cz.id==="mulgore"&&fireflies){
-      fireflies.material.opacity=nightFactor*.7;
-      if(nightFactor>.1){
-        const fp=fireflies.geometry.attributes.position.array;
-        for(let i=0;i<FIREFLIES;i++){
-          fp[i*3+1]+=Math.sin(S.t*2+ffPhases[i])*dt*.6;
-          fp[i*3]+=Math.sin(S.t*1.3+ffPhases[i]*3)*dt*.3;
-          if(fp[i*3+1]>5)fp[i*3+1]=.5;
-          if(fp[i*3+1]<.5)fp[i*3+1]=5;
-        }
-        fireflies.geometry.attributes.position.needsUpdate=true;
-      }
-    }
-  }
+  /* ---- 昼夜 / 天空 / 阴影跟随（plan-V2 · R4 · sky.js · render-only） ---- */
+  if(typeof updateSky==="function")updateSky(S.t,dt);
 
-  /* 天气层（V1-A4）：须在 dayNight 写雾之后叠加；render-only */
+  /* 天气层（V1-A4）：须在 dayNight/sky 写雾之后叠加；render-only */
   if(typeof updateWeather==="function")updateWeather(dt);
 
   /* Boss 火焰摇曳（仅拉戈斯等人形岩浆 Boss 有 core/bossLight） */

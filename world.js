@@ -5,6 +5,7 @@
    [依赖] THREE · core.js（$ rand srand worldRng BAL makeLabel scene camera setZoneSeed）
           palette.js（PALETTE · MAT）· terrain.js（heightAt · buildMulgoreTerrain）
           props.js（spawnMulgoreProps · updateProps）
+          sky.js（initZoneSky · updateSky）
           zones.js（registerZone enterZone）
           models.js（buildPlayer buildBoss buildElder buildVendor buildSpiritHealer
             tintNpcCloth buildHut buildTent buildFence buildWatchtower buildCampfire
@@ -72,16 +73,15 @@ const BLOODHOOF=MULGORE.bloodhoof;
 const REDROCK_LAKE=MULGORE.stonebull;
 const CAMP_NARACHE=MULGORE.narache;
 const sceneWorld=new THREE.Scene();
-sceneWorld.background=new THREE.Color(0x8fc0e8);
 sceneWorld.fog=new THREE.FogExp2(0xa8c8e0,0.0042);
 sceneWorld.add(new THREE.HemisphereLight(0xcfe8ff,0x5a7a3a,0.95));
 const heli=sceneWorld.children.find(c=>c.isHemisphereLight);  /* 昼夜循环需要调节 */
 const sun=new THREE.DirectionalLight(0xfff2d8,1.05);
 sun.position.set(40,70,30); sun.castShadow=true;
-sun.shadow.mapSize.set(2048,2048);
-sun.shadow.camera.left=-220;sun.shadow.camera.right=220;
-sun.shadow.camera.top=220;sun.shadow.camera.bottom=-220;
 sceneWorld.add(sun);
+sceneWorld.add(sun.target);
+/* plan-V2 · R4：天空穹顶 + 紧阴影 + 补光（替换 background Color / ±220 阴影） */
+const _mulgoreSkyInit=initZoneSky(sceneWorld,{heli,sun});
 
 /* 高度场：经典莫高雷 · 台地/矿洞/湖泊 + 多段土路网 */
 const _portalMC={x:0,z:-(WORLD_R-8)};
@@ -332,8 +332,8 @@ if(typeof spawnGatherNodesForZone==="function"){
   });
 }
 
-/* ---------------- 萤火虫粒子（STEP 7 昼夜）：夜晚浮现，白天透明 ---------------- */
-const FIREFLIES=80;
+/* ---------------- 萤火虫粒子（STEP 7 / R4 昼夜）：夜晚浮现，白天透明 ---------------- */
+const FIREFLIES=(BAL.sky&&BAL.sky.fireflies)||100;
 const fireflyGeo=new THREE.BufferGeometry();
 const ffPos=new Float32Array(FIREFLIES*3), ffPhases=new Float32Array(FIREFLIES);
 for(let i=0;i<FIREFLIES;i++){
@@ -420,7 +420,7 @@ registerZone({
     targetZone:"barrens",
     targetGate:"from_mulgore",
   }],
-  lights:{heli,sun,flames:worldFlames,fireflies},
+  lights:{heli,sun,flames:worldFlames,fireflies,fill:_mulgoreSkyInit&&_mulgoreSkyInit.fill},
   onEnter(fromId,gateId,opts){
     if(opts&&opts.silent)return;
     if(fromId==="molten_core"){

@@ -6,6 +6,7 @@
    [依赖] THREE · core.js（$ clamp rand R BAL scene camera ARENA_R
           lavaUniforms embers EMBERS emberVel srand worldRng sceneRaid setZoneSeed）
           zones.js（registerZone ensureZoneBuilt enterZone）
+          sky.js 运行时（configureSunShadow）
           models.js（buildFlameSpawn buildBoss buildQuadruped QUADS）
           items.js（ITEMS DROPS removeDrop dropLoot rollLoot LOOT）
           world.js（player boss BOSS_MESHES MOBS QUEST setCorpse corpseMat removeDropOf
@@ -33,12 +34,18 @@ function buildMoltenCoreZone(scn){
   /* 光照：熔岩环境 */
   root.add(new THREE.AmbientLight(0x662211,0.9));
   const lavaLight=new THREE.PointLight(0xff5a1a,1.6,140,1.6); lavaLight.position.set(0,6,-26); root.add(lavaLight);
+  root.userData.lavaLight=lavaLight;
+  root.userData.raidFogBase=(root.fog&&root.fog.density)||0.016;
   const topLight=new THREE.DirectionalLight(0xffb070,0.55);
   topLight.position.set(18,40,20); topLight.castShadow=true;
-  topLight.shadow.mapSize.set(2048,2048);
-  topLight.shadow.camera.left=-50;topLight.shadow.camera.right=50;
-  topLight.shadow.camera.top=50;topLight.shadow.camera.bottom=-50;
+  if(typeof configureSunShadow==="function")configureSunShadow(topLight,{shadowHalf:40});
+  else{
+    topLight.shadow.mapSize.set(2048,2048);
+    topLight.shadow.camera.left=-50;topLight.shadow.camera.right=50;
+    topLight.shadow.camera.top=50;topLight.shadow.camera.bottom=-50;
+  }
   root.add(topLight);
+  root.add(topLight.target);
 
   /* 岩浆湖 */
   const lavaMat=new THREE.ShaderMaterial({

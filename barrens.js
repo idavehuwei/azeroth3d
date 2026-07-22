@@ -3,7 +3,7 @@
    贫瘠之地：十字路口枢纽（仿经典 WoW 布局）/ POI / NPC / 分区刷怪
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ srand worldRng BAL makeLabel setZoneSeed）
-          zones.js（registerZone）
+          zones.js（registerZone）· sky.js（initZoneSky）
           models.js（buildQuadruped buildCentaur buildVendor buildSpiritHealer buildElder tintNpcCloth QUADS
             buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem
             buildMarketStall buildCratePile BUILD_PAL placeProp）
@@ -107,10 +107,18 @@ function buildBarrensZone(scn){
   root.add(barrensHeli);
   barrensSun=new THREE.DirectionalLight(B.sunColor,B.sunIntensity);
   barrensSun.position.set(35,65,25); barrensSun.castShadow=true;
-  barrensSun.shadow.mapSize.set(2048,2048);
-  barrensSun.shadow.camera.left=-100;barrensSun.shadow.camera.right=100;
-  barrensSun.shadow.camera.top=100;barrensSun.shadow.camera.bottom=-100;
   root.add(barrensSun);
+  root.add(barrensSun.target);
+  const _barrensSkyLights={heli:barrensHeli,sun:barrensSun};
+  if(typeof initZoneSky==="function"){
+    initZoneSky(root,_barrensSkyLights,{
+      zenith:0x6a8ab0, horizon:B.sky, ground:B.dirt||0x9a7848,
+    });
+  }else{
+    barrensSun.shadow.mapSize.set(2048,2048);
+    barrensSun.shadow.camera.left=-100;barrensSun.shadow.camera.right=100;
+    barrensSun.shadow.camera.top=100;barrensSun.shadow.camera.bottom=-100;
+  }
 
   const ground=new THREE.Mesh(new THREE.CircleGeometry(BARRENS_R+40,64),
     MAT.get("dirt.zone",{color:B.ground,roughness:1}));
@@ -433,7 +441,7 @@ function buildBarrensZone(scn){
     });
   }
   const z=ZONES.barrens;
-  if(z)z.lights={heli:barrensHeli,sun:barrensSun,flames:barrensFlames};
+  if(z)z.lights={heli:barrensHeli,sun:barrensSun,flames:barrensFlames,fill:_barrensSkyLights.fill};
 }
 
 function updateBarrensMarkers(){

@@ -515,9 +515,46 @@ const BALANCE={
   dayNight:{duration:600,  /* 10 分钟一昼夜（秒） */
     day:{sky:0x8fc0e8, fog:0xa8c8e0, fogDensity:0.0062, sunColor:0xfff2d8, sunIntensity:1.05,
          sunAlt:65, sunAz:0, hemiSky:0xcfe8ff, hemiGround:0x5a7a3a, hemiIntensity:0.95},
+    dawn:{sky:0xc8a080, fog:0xb89070, fogDensity:0.008, sunColor:0xffa060, sunIntensity:.85,
+          hemiSky:0xffc8a0, hemiGround:0x6a5030, hemiIntensity:.7},
+    dusk:{sky:0xc07050, fog:0xa85840, fogDensity:0.01, sunColor:0xff6040, sunIntensity:.7,
+          hemiSky:0xff9060, hemiGround:0x4a3020, hemiIntensity:.55},
     night:{sky:0x08081a, fog:0x0a0a1a, fogDensity:0.025, sunColor:0x1a1a3a, sunIntensity:0.15,
            sunAlt:-20, sunAz:0, hemiSky:0x1a1a3a, hemiGround:0x0a0a1a, hemiIntensity:0.25},
     campfire:{base:1.4, nightBoost:2.6},  /* 白天 1.4，夜晚 1.4+2.6=4.0 */
+  },
+  /* 天空穹顶 · 阴影跟随 · 补光 · 副本脉动（plan-V2 · R4）· render-only */
+  sky:{
+    radius:500,
+    segsW:32,
+    segsH:16,
+    cameraFar:620,
+    shadowHalf:35,
+    shadowMap:2048,
+    shadowNear:.5,
+    shadowFar:220,
+    shadowBias:-0.0002,
+    shadowNormalBias:.04,
+    sunDist:90,
+    fillIntensity:.18,
+    fillColor:0xffe8d0,
+    fillPos:[-25,18,-30],
+    fireflies:100,
+    zenith:0x3a6aaa,
+    horizon:0xa8d0e8,
+    ground:0x6a8a50,
+    cloudStrength:.22,
+    sunGlow:.55,
+    raid:{
+      lavaBase:1.6,
+      lavaPulseAmp:.28,
+      lavaPulseFreq:.65,
+      fogBase:0.016,
+      fogPulseAmp:0.0028,
+      fogPulseFreq:.55,
+      emberUpDraft:1.45,
+      emberSide:1.25,
+    },
   },
   /* 天气层（plan-v1 · V1-A4）：render-only，不改伤害/仇恨/视野逻辑；enabled:false 可关 */
   weather:{
@@ -873,7 +910,7 @@ function disposeNameplate(root){
 const sceneRaid=new THREE.Scene();
 sceneRaid.fog=new THREE.FogExp2(0x1a0602,0.016);
 let scene=sceneRaid;   /* 当前渲染场景 */
-const camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,0.1,400);
+const camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,0.1,620);
 const renderer=new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth,innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));

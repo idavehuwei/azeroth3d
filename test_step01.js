@@ -644,8 +644,23 @@ assert(modelsSrc.includes("柴堆")||modelsSrc.includes("多层火焰")||modelsS
 assert(modelsSrc.includes("门帘")||modelsSrc.includes("缝线"),"帐篷含细节几何");
 assert(mainSrc.includes("updateProps"),"main.js 驱动 props 动画");
 
+/* plan-V2 · R4 天空 · 光照 · 阴影 · 昼夜 */
+assert(html.includes('src="sky.js"'),"game.html 加载 sky.js");
+assert(coreSrc.includes("sky:{")&&coreSrc.includes("shadowHalf:"),"BALANCE.sky 阴影跟随参数");
+assert(coreSrc.includes("dawn:")&&coreSrc.includes("dusk:"),"BALANCE.dayNight 含黎明/黄昏");
+const skySrc=fs.readFileSync(path.join(__dirname,"sky.js"),"utf8");
+assert(skySrc.includes("render-only")||skySrc.includes("铁律"),"sky.js 标明 render-only 铁律");
+assert(skySrc.includes("createSkyDome")&&skySrc.includes("SphereGeometry"),"sky.js 含天空穹顶");
+assert(skySrc.includes("configureSunShadow")||skySrc.includes("shadowHalf"),"sky.js 含阴影跟随配置");
+assert(skySrc.includes("updateSky")&&skySrc.includes("initZoneSky"),"sky.js 导出 update/init");
+assert(skySrc.includes("disposeSky"),"sky.js 有 disposeSky");
+assert(worldSrc.includes("initZoneSky"),"world.js 初始化天空");
+assert(!/shadow\.camera\.left=-220/.test(worldSrc),"莫高雷不再用 ±220 全图阴影");
+assert(mainSrc.includes("updateSky"),"main.js 驱动 updateSky");
+assert(!mainSrc.includes("scn.background=skyCol"),"main 不再直接写 background Color 昼夜");
+
 if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–29 … / V1 · plan-V2 R0–R3 冒烟");
+console.log("\n全部通过 · STEP 17–29 … / V1 · plan-V2 R0–R4 冒烟");
