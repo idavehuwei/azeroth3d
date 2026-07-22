@@ -720,12 +720,48 @@ function tickPlayerCast(dt){
    统一受击入口（STEP 1，参考 WoC 单一 Sim 战斗结算）
    流程：乘系数 → 扣血 → 飘字 → 日志(onHit) → 死亡回调(onDeath)
    实体接口：{hp, variance, dead(), fctPos(), fctSize?, onHit?, onDeath}
-   野猪 / 火裔 / Boss 全部走这一个函数；
+   野猪 / 火裔 / Boss / 玩家 / AI 队友全部走这一个函数；
    掉落（STEP 2）与经验（STEP 3）只需挂接各实体的 onDeath。
+   opts.incoming：敌方→玩家/队友（跳过命中表与玩家输出系数；唯一扣血点仍在此）
    ============================================================ */
 function hitEntity(ent,amount,label,opts){
   opts=opts||{};
   if(ent.dead&&ent.dead())return;
+
+  /* —— 受击方向：玩家 / 队友（plan-v4 基线 #1） —— */
+  if(opts.incoming){
+    if(typeof markCombat==="function")markCombat(S.res);
+    /* STEP 19：吸收盾先扣，溢出再扣血 */
+    if(opts.applyAbsorb&&S.p.absorb>0){
+      const absorbed=Math.min(S.p.absorb,amount);
+      S.p.absorb-=absorbed;
+      amount-=absorbed;
+      if(absorbed>0){
+        fct(player.position.clone().setY(3.2),`-${absorbed}(盾)`,"#ffe9a0",16);
+        log(`真言术：盾吸收了 ${absorbed} 点伤害。`,"lg-heal");
+      }
+      if(S.p.absorb<=0){
+        if(typeof removeBuff==="function")removeBuff("power_word_shield","spent",true);
+        else{S.p.absorb=0;S.p.absorbT=0;clearShieldVisual();}
+      }
+    }
+    if(amount<=0)return;
+    ent.hp=Math.max(0,ent.hp-amount);
+    const col=opts.fctColor||"#ff6a5a";
+    fct(ent.fctPos(),`-${amount}`,col,ent.fctSize?ent.fctSize(label):14);
+    if(opts.hurtFlash)hurtFlash();
+    if(typeof SFX!=="undefined")SFX.play(opts.sfx||"hit");
+    if(ent.mesh&&typeof pulseHitFlash==="function")pulseHitFlash(ent.mesh);
+    if(ent.onHit)ent.onHit(amount,label);
+    /* C5：战士受击获怒 */
+    if(opts.rageTake&&playerResKind()==="rage"&&amount>0&&typeof rageFromDamage==="function"){
+      const gain=rageFromDamage(amount,S.p.level,"take");
+      S.p.rage=Math.min(S.p.rageMax,S.p.rage+gain);
+    }
+    if(ent.hp<=0&&ent.onDeath)ent.onDeath();
+    return;
+  }
+
   /* 尸体 / 回巢不可再结算伤害（防自动普攻误锁） */
   if(ent.mesh&&typeof mobTargetable==="function"&&MOBS&&MOBS.includes(ent)&&!mobTargetable(ent))return;
   if(ent.mesh&&typeof addTargetable==="function"&&S.adds&&S.adds.includes(ent)&&!addTargetable(ent))return;
@@ -1561,7 +1597,6 @@ function sprint(){
 function playerHit(amount,source){
   if(S.p.ghost)return; /* 灵魂形态不受伤 */
   if(!S.p.alive||S.p.invuln>0)return;
-  if(typeof markCombat==="function")markCombat(S.res);
   /* C10：受击打断进食/饮水/包扎；Track E：打断读条 */
   if((S.p.eating||S.p.drinking||S.p.bandaging)&&typeof cancelConsume==="function")cancelConsume();
   if(S.p.casting&&BAL.cast&&BAL.cast.hitInterrupt!==false&&typeof cancelPlayerCast==="function")
@@ -1574,33 +1609,21 @@ function playerHit(amount,source){
     const red=armorReduction((S.p.derived&&S.p.derived.armor)||0,atkLv);
     amount=Math.max(1,Math.round(amount*(1-red)));
   }
-  /* STEP 19：吸收盾先扣，溢出再扣血（玩家受击入口在 playerHit，非 hitEntity） */
-  if(S.p.absorb>0){
-    const absorbed=Math.min(S.p.absorb,amount);
-    S.p.absorb-=absorbed;
-    amount-=absorbed;
-    if(absorbed>0){
-      fct(player.position.clone().setY(3.2),`-${absorbed}(盾)`,"#ffe9a0",16);
-      log(`真言术：盾吸收了 ${absorbed} 点伤害。`,"lg-heal");
-    }
-    if(S.p.absorb<=0){
-      if(typeof removeBuff==="function")removeBuff("power_word_shield","spent",true);
-      else{S.p.absorb=0;S.p.absorbT=0;clearShieldVisual();}
-    }
-  }
-  if(amount<=0)return;
-  if(BAL.stealth&&BAL.stealth.breakOnHit!==false)breakStealth("hit");
-  S.p.hp-=amount; hurtFlash(); SFX.play("hit");
-  S.p.animHitT=1;
-  if(player&&typeof pulseHitFlash==="function")pulseHitFlash(player);
-  fct(player.position.clone().setY(3),`-${amount}`,"#ff6a5a",18);
-  log(`${source} 对你造成 ${amount} 点伤害！`,"lg-dmg");
-  /* C5：战士受击获怒 */
-  if(playerResKind()==="rage"&&typeof rageFromDamage==="function"){
-    const gain=rageFromDamage(amount,S.p.level,"take");
-    S.p.rage=Math.min(S.p.rageMax,S.p.rage+gain);
-  }
-  if(S.p.hp<=0){S.p.hp=0;playerDie();}
+  /* 薄包装 → hitEntity(incoming)：扣血 / 盾 / 飘字 / 怒气 / onDeath 唯一入口 */
+  hitEntity({
+    get hp(){return S.p.hp;},
+    set hp(v){S.p.hp=v;},
+    dead(){return !S.p.alive||!!S.p.ghost;},
+    fctPos(){return player.position.clone().setY(3);},
+    fctSize(){return 18;},
+    mesh:player,
+    onHit(amt,src){
+      if(BAL.stealth&&BAL.stealth.breakOnHit!==false)breakStealth("hit");
+      S.p.animHitT=1;
+      log(`${src} 对你造成 ${amt} 点伤害！`,"lg-dmg");
+    },
+    onDeath(){S.p.hp=0;playerDie();}
+  },amount,source,{incoming:true,applyAbsorb:true,hurtFlash:true,rageTake:true,fctColor:"#ff6a5a"});
 }
 
 /* ============================================================

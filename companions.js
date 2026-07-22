@@ -5,7 +5,7 @@
    治疗职责优先级（STEP 27）与 threat.js 协作
    ------------------------------------------------------------
    [依赖] THREE · core.js（BAL $ clamp rand R scene makeLabel）
-          combat.js（S CLASSES CLS log announce fct getFocusTarget setCurrentTarget
+          combat.js（S CLASSES CLS log announce fct hitEntity getFocusTarget setCurrentTarget
             isTargetAlive）
           threat.js 运行时（threatKeyCompanion checkPartyWipe）
           world.js（player MOBS）· main/raid 运行时 · save.js · vfx/sfx
@@ -226,20 +226,28 @@ function companionHit(amount,source,target){
   const c=target||pickNearestCompanion(null,999);
   if(!c||!c.alive)return;
   amount=Math.round(amount*R(BAL.variance.player));
-  c.hp-=amount;
-  fct(c.mesh.position.clone().setY(3),`-${amount}`,"#ff8a7a",15);
-  if(typeof SFX!=="undefined")SFX.play("hit");
-  log(`${source} 击中了${CMP_NAMES[c.classKey]||"同伴"}，造成 ${amount} 点伤害！`,"lg-dmg");
-  if(c.hp<=0){
-    c.hp=0; c.alive=false; c.state="IDLE";
-    c.reviveT=BAL.companion.reviveT;
-    if(typeof beginDeathRoll==="function")beginDeathRoll(c);
-    else{c.mesh.rotation.z=Math.PI/2; c.mesh.position.y=.25;}
-    if(c.label)c.label.visible=false;
-    announce("同伴倒下了！");
-    log(`${CMP_NAMES[c.classKey]||"同伴"}倒下了，将在 ${BAL.companion.reviveT} 秒后振作。`,"lg-sys");
-    if(typeof checkPartyWipe==="function")checkPartyWipe();
-  }
+  /* 薄包装 → hitEntity(incoming)：与玩家受击共用唯一扣血点 */
+  hitEntity({
+    get hp(){return c.hp;},
+    set hp(v){c.hp=v;},
+    dead(){return !c.alive;},
+    fctPos(){return c.mesh.position.clone().setY(3);},
+    fctSize(){return 15;},
+    mesh:c.mesh,
+    onHit(amt,src){
+      log(`${src} 击中了${CMP_NAMES[c.classKey]||"同伴"}，造成 ${amt} 点伤害！`,"lg-dmg");
+    },
+    onDeath(){
+      c.hp=0; c.alive=false; c.state="IDLE";
+      c.reviveT=BAL.companion.reviveT;
+      if(typeof beginDeathRoll==="function")beginDeathRoll(c);
+      else{c.mesh.rotation.z=Math.PI/2; c.mesh.position.y=.25;}
+      if(c.label)c.label.visible=false;
+      announce("同伴倒下了！");
+      log(`${CMP_NAMES[c.classKey]||"同伴"}倒下了，将在 ${BAL.companion.reviveT} 秒后振作。`,"lg-sys");
+      if(typeof checkPartyWipe==="function")checkPartyWipe();
+    }
+  },amount,source,{incoming:true,fctColor:"#ff8a7a"});
   updateCompanionHud();
 }
 

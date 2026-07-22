@@ -105,7 +105,11 @@ assert(combatSrc.includes("priest:{"),"combat.js 有 CLASSES.priest");
 assert(combatSrc.includes("function powerWordShield"),"combat.js 有 powerWordShield");
 assert(combatSrc.includes("function applyHeal"),"combat.js 有 applyHeal");
 assert(combatSrc.includes("S.p.absorb"),"combat.js 使用 S.p.absorb 吸收盾");
-assert(/if\s*\(\s*S\.p\.absorb\s*>\s*0\s*\)/.test(combatSrc),"playerHit 先扣吸收盾");
+assert(/if\s*\(\s*S\.p\.absorb\s*>\s*0\s*\)/.test(combatSrc)||/opts\.applyAbsorb&&S\.p\.absorb>0/.test(combatSrc),"hitEntity(incoming) 先扣吸收盾");
+assert(combatSrc.includes("incoming:true")||combatSrc.includes("opts.incoming"),"hitEntity 支持 incoming 受击");
+assert(combatSrc.includes("applyAbsorb:true"),"playerHit 经 hitEntity 走吸收盾");
+assert(!/S\.p\.hp\s*-=/.test(combatSrc),"玩家扣血不直接 S.p.hp-=");
+assert((combatSrc.match(/ent\.hp\s*=\s*Math\.max\(0,\s*ent\.hp\s*-\s*amount\)/g)||[]).length>=1,"扣血唯一形态在 hitEntity");
 
 const modelsSrc=fs.readFileSync(path.join(__dirname,"models.js"),"utf8");
 assert(modelsSrc.includes("function buildPriest"),"models.js 导出 buildPriest");
@@ -196,6 +200,8 @@ assert(cmpSrc.includes("function dismissCompanion"),"companions.js 有 dismissCo
 assert(cmpSrc.includes("function tickCompanion"),"companions.js 有 tickCompanion");
 assert(cmpSrc.includes("const PARTY")||cmpSrc.includes("PARTY="),"companions.js 有 PARTY 小队");
 assert(cmpSrc.includes("function formParty"),"companions.js 有 formParty 一键成队");
+assert(cmpSrc.includes("hitEntity(")&&cmpSrc.includes("incoming:true"),"companionHit 走 hitEntity(incoming)");
+assert(!/c\.hp\s*-=/.test(cmpSrc),"队友扣血不直接 c.hp-=");
 assert(cmpSrc.includes("FOLLOW")&&cmpSrc.includes("COMBAT")&&cmpSrc.includes("HEAL")&&cmpSrc.includes("RETREAT"),"同伴状态机含 FOLLOW/COMBAT/HEAL/RETREAT");
 assert(cmpSrc.includes("disposeCompanionMesh"),"解散有 disposeCompanionMesh");
 assert(html.includes('src="companions.js"'),"game.html 加载 companions.js");
