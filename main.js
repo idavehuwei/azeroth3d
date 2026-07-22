@@ -773,7 +773,8 @@ function tickFrame(){
       /* 无 rig.js 回退 */
       const U=player.userData,sw=Math.sin(S.p.walkPhase)*.55;
       U.legR.rotation.x=sw; U.legL.rotation.x=-sw;
-      U.cape.rotation.x=.12+Math.abs(sw)*.25+Math.sin(S.t*3)*.04;
+      U.cape.rotation.x=.12+Math.abs(sw)*.35+Math.sin(S.t*3.5)*.04;
+      U.cape.rotation.y=Math.sin(S.p.walkPhase*.7)*.12;
       if(S.p.attackAnim>0){S.p.attackAnim-=dt*4;
         U.armR.rotation.x=-2.4*Math.sin(Math.min(1,S.p.attackAnim)*Math.PI);}
       else U.armR.rotation.x=Math.sin(S.p.walkPhase)*.3;

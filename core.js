@@ -51,17 +51,41 @@ function isMobileClient(){
   return typeof matchMedia==="function"&&matchMedia("(pointer:coarse)").matches;
 }
 
-/* ---------------- makeLabel：Canvas 悬浮文字（掉落系统以品质色调用，默认参数保持旧观感） ---------------- */
+/* ---------------- makeLabel：Canvas 悬浮文字（按字宽自适应，避免裁切） ---------------- */
 function makeLabel(text,w,color="#ffd9a0",glow="rgba(255,90,0,.95)"){
-  const cv=document.createElement("canvas");cv.width=512;cv.height=128;
+  const NP=(typeof BAL!=="undefined"&&BAL.nameplate)||{};
+  const maxCanvas=NP.labelCanvasMax!=null?NP.labelCanvasMax:1024;
+  const minCanvas=NP.labelCanvasMin!=null?NP.labelCanvasMin:192;
+  let fontSize=NP.fontSize!=null?NP.fontSize:44;
+  const minFont=NP.minFontSize!=null?NP.minFontSize:24;
+  const family="'Noto Sans SC','Microsoft YaHei',sans-serif";
+  const str=String(text==null?"":text);
+  const cv=document.createElement("canvas");
   const cx=cv.getContext("2d");
-  cx.font="bold 78px 'Noto Sans SC','Microsoft YaHei',sans-serif";
-  cx.textAlign="center";cx.textBaseline="middle";
-  cx.shadowColor=glow;cx.shadowBlur=26;
-  cx.fillStyle=color;cx.fillText(text,256,64);
-  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),
-    transparent:true,depthWrite:false}));
-  sp.scale.set(w,w/4,1); return sp;
+  cx.font=`bold ${fontSize}px ${family}`;
+  let tw=cx.measureText(str).width;
+  while(tw+40>maxCanvas&&fontSize>minFont){
+    fontSize-=2;
+    cx.font=`bold ${fontSize}px ${family}`;
+    tw=cx.measureText(str).width;
+  }
+  const cw=Math.min(maxCanvas,Math.max(minCanvas,Math.ceil(tw+44)));
+  const ch=Math.max(48,Math.ceil(fontSize*1.65));
+  cv.width=cw; cv.height=ch;
+  cx.font=`bold ${fontSize}px ${family}`;
+  cx.textAlign="center"; cx.textBaseline="middle";
+  cx.shadowColor=glow; cx.shadowBlur=Math.max(8,Math.round(fontSize*.28));
+  cx.fillStyle=color;
+  cx.fillText(str,cw/2,ch/2+.5);
+  const tex=new THREE.CanvasTexture(cv);
+  tex.needsUpdate=true;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));
+  const aspect=cw/Math.max(1,ch);
+  /* 长名加宽世界宽度，短名保持传入 w；高度按画布比例，不再裁切 */
+  const baseAspect=NP.labelAspect!=null?NP.labelAspect:4;
+  const worldW=w*Math.max(1,aspect/baseAspect);
+  sp.scale.set(worldW,worldW/aspect,1);
+  return sp;
 }
 
 /**
@@ -150,7 +174,10 @@ function makeNameplate(name,level,opts){
   const barH=opts.barH!=null?opts.barH:(NP.barH||.16);
   const g=new THREE.Group();
   const title=(level!=null&&level!==""?`Lv.${level}  `:"")+name;
-  const lab=makeLabel(title,opts.w||5.2,color,glow);
+  let lw=opts.w!=null?opts.w:(NP.labelW||4.2);
+  if(NP.labelWMul!=null)lw*=NP.labelWMul;
+  if(NP.labelWMax!=null)lw=Math.min(lw,NP.labelWMax);
+  const lab=makeLabel(title,lw,color,glow);
   lab.position.y=.28;
   g.add(lab);
   /* R7：精英金色描边 */

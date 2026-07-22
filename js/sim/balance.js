@@ -739,15 +739,23 @@ const BALANCE={
   },
   /* 头顶姓名板（血条 + 等级）· plan-V2 R7 / plan-V3 C2 */
   nameplate:{
-    barW:1.9, barH:.16,
+    barW:1.7, barH:.14,
     enemy:"#d84828", friend:"#3a9a48", bg:"#1a1208",
     enemyGlow:"rgba(180,40,20,.9)", friendGlow:"rgba(40,120,50,.9)",
     eliteBorder:"#ffd76a", rareBorder:"#c0c8d8",
     threatTint:0xff6060,     /* C2：仇恨中姓名板着色 */
     near:10, far:42,         /* 距离缩放区间；超出 far 直接隐藏 */
     farShowAll:120,          /* V 全显时的远距上限 */
-    minScale:.55, maxScale:1.1,
+    minScale:.5, maxScale:.95,
     farFade:.3,              /* 远处最低不透明度（距离衰减，非 raycast） */
+    labelW:4.2,              /* 姓名板默认世界宽度 */
+    labelWMul:.72,           /* 压缩各处传入的 labelW */
+    labelWMax:5.8,           /* 精英/稀有上限，避免占半屏 */
+    fontSize:42,             /* makeLabel 画布字号 */
+    minFontSize:24,          /* 过长时缩小下限 */
+    labelCanvasMax:1024,
+    labelCanvasMin:192,
+    labelAspect:4,           /* 历史 512×128 比例，用于宽度补偿 */
   },
   /* 目标系统（plan-V3 C2） */
   target:{
@@ -763,7 +771,7 @@ const BALANCE={
   },
   npcLevel:{hawkwind:10,grull:8,grayhorn:12,raoul:6,vera:5,whiterock:10,baine:40,bloodhoof_elder:35,tark:18,mull:16,haru:18,mara:14,kur:15,aska:20,cairne:60,stonetalon:40,seen:22,pala:20,hamya:24,magatha:50,runetotem:45,thunderhorn_guard:12,winterhoof_guard:10,windfury_sentinel:25,elder:40,vendor:25,varg:25,weaponsmith:26,hunter:18,cook:20,spirit:55,crossroads:30,darsok:28,kag:26,mankrik:30,thom:27,kil:24,serra:25,lal:28,zinge:26,scriven:22,innkeeper:22,flightmaster:25,barrens_vendor:24,barrens_armor:24,ochre:28,ochre_guard:26,ochre_vendor:24,ember_scout:22,ember_vendor:20,companion:null},
   /* 营地 NPC 外观：体型缩放 + 姓名板高度（相对缩放后头顶） */
-  npc:{scale:.72, labelY:4.05, labelW:6.2,
+  npc:{scale:.72, labelY:4.05, labelW:4.4,
     /* 任务标记（魔兽式头顶 ! / ?）：更大、更高、轻弹跳 */
     markerY:6.55, questMarkW:5.6, questMarkAspect:1.15, questMarkBob:.42},
   /* 经验与等级（STEP 3 / G2 / plan-V3 C6）：曲线来自 SIM_CONTENT.xp.XP_CURVE */

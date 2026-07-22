@@ -314,6 +314,7 @@ function syncCharDollModel(){
     try{
       D.hum=buildFromClassLook(key);
       D.hum.position.set(0,0,0);
+      D.hum.scale.setScalar(.82);
       D.hum.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
       D.scene.add(D.hum);
       D.classKey=key;
@@ -349,9 +350,9 @@ function ensureCharDoll(host){
     ren.setClearColor(0x000000,0);
     ren.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
     const scene=new THREE.Scene();
-    const cam=new THREE.PerspectiveCamera(30,1,.1,40);
-    cam.position.set(0,1.55,5.4);
-    cam.lookAt(0,1.25,0);
+    const cam=new THREE.PerspectiveCamera(26,1,.1,40);
+    cam.position.set(0,1.45,7.6);
+    cam.lookAt(0,1.15,0);
     scene.add(new THREE.AmbientLight(0xffe2c0,.85));
     const key=new THREE.DirectionalLight(0xffc090,1.05);
     key.position.set(2.2,4.5,3.2);
@@ -374,6 +375,13 @@ function ensureCharDoll(host){
     D.scene=scene; D.cam=cam; D.ren=ren; D.canvas=canvas; D.pedestal=ped;
   }
   if(D.canvas.parentElement!==host)host.appendChild(D.canvas);
+  if(D.cam){
+    D.cam.fov=26;
+    D.cam.position.set(0,1.45,7.6);
+    D.cam.lookAt(0,1.15,0);
+    D.cam.updateProjectionMatrix();
+  }
+  if(D.hum)D.hum.scale.setScalar(.82);
   syncCharDollModel();
   paintCharDoll();
 }
