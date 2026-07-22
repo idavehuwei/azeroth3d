@@ -508,8 +508,13 @@ function tick(){
     }
     /* ---- 掉落动画 & 拾取按钮（世界/副本通用，STEP 2） ---- */
     updateDrops(dt);
-    const nd=nearestDrop(BAL.loot.pickupR), ib=$("#interactBtn");
-    if(nd&&!S.p.ghost){ib.textContent="✨ 拾 取（F）";ib.style.display="block";}
+    const nearLoot=typeof nearbyDrops==="function"?nearbyDrops(BAL.loot.pickupR)
+      :(nearestDrop(BAL.loot.pickupR)?[nearestDrop(BAL.loot.pickupR)]:[]);
+    const ib=$("#interactBtn");
+    if(nearLoot.length&&!S.p.ghost){
+      ib.textContent=nearLoot.length>1?`✨ 拾取全部×${nearLoot.length}（F）`:"✨ 拾 取（F）";
+      ib.style.display="block";
+    }
     else if(!S.p.ghost&&S.mode==="raid"&&S.b.canLeave&&exitPortal&&player.position.distanceTo(EXIT_PORTAL_POS)<BAL.zones.exitPortalEnterR){
       ib.textContent="🚪 走进传送门";ib.style.display="block";
     }else{
@@ -571,10 +576,12 @@ function tick(){
       mx=fSin*nz+fCos*nx;
       mz=fCos*nz-fSin*nx;
     }
-    /* 前进时把 LMB 环绕视角缓缓回正到角色背后 */
-    if(S.cam&&!S.cam.lmb&&!S.cam.rmb&&!S.cam.touchLook&&forward>.2&&Math.abs(S.cam.yawOff||0)>.01){
-      const k=1-Math.exp(-(Cam.recenterSpd||3.2)*dt);
+    /* 魔兽式：松开拖拽后视角缓缓回到角色背后（站立也会回正） */
+    if(S.cam&&!S.cam.lmb&&!S.cam.rmb&&!S.cam.touchLook&&Math.abs(S.cam.yawOff||0)>.008){
+      const spd=forward>.15?(Cam.recenterSpd||6):(Cam.idleRecenterSpd||3.5);
+      const k=1-Math.exp(-spd*dt);
       S.cam.yawOff+=(0-S.cam.yawOff)*k;
+      if(Math.abs(S.cam.yawOff)<.008)S.cam.yawOff=0;
     }
     /* 虚弱计时（STEP 15） */
     let moveSpd=S.p.speed;
@@ -739,45 +746,44 @@ function tick(){
     if(S.eq.mainhand==="sulfuras_haft")
       player.traverse(o=>{if(o.userData.flame)o.scale.y=1+Math.sin(S.t*7+o.position.x*5)*.25;});
 
-    /* ---- 自动普攻（优先当前目标） ---- */
+    /* ---- 自动普攻：贴身一律武器挥砍；远处仅远程职业射击（与技能 CD 无关） ---- */
     S.p.atkTimer-=dt;
-    if(S.p.alive&&S.p.atkTimer<=0){
+    if(S.p.alive&&!S.p.ghost&&S.p.atkTimer<=0){
       let did=false;
-      const autoR=(BAL.target&&BAL.target.meleeAutoR)||4.5;
-      if(CLS.ranged){
+      const autoR=(BAL.target&&BAL.target.meleeAutoR)||5.5;
+      let focus=typeof isTargetAlive==="function"&&isTargetAlive(S.currentTarget)?S.currentTarget:null;
+      /* 1) 贴身优先：当前目标过远则改找最近怪 */
+      let meleeTgt=null;
+      if(focus&&typeof targetDist==="function"&&targetDist(focus)<=autoR)meleeTgt=focus;
+      if(!meleeTgt&&typeof pickTarget==="function")meleeTgt=pickTarget(autoR);
+      if(meleeTgt){
+        if(typeof setCurrentTarget==="function")setCurrentTarget(meleeTgt);
+        S.p.attackAnim=1;
+        const wr=typeof getPlayerWeaponRange==="function"?getPlayerWeaponRange():[CLS.autoMin,CLS.autoMax];
+        const thr={school:"physical"};
+        const dmg=rand(wr[0],wr[1]);
+        if(meleeTgt.type==="mob")mobDamage(meleeTgt.m,dmg,undefined,thr);
+        else if(meleeTgt.type==="boss")dmgBoss(dmg,undefined,thr);
+        else if(meleeTgt.type==="add")addDamage(meleeTgt.a,dmg,thr);
+        did=true;
+        if(typeof SFX!=="undefined")SFX.play("swing");
+      }else if(CLS.ranged){
+        /* 2) 非贴身：远程职业继续射击 */
         const minR=CLS.minRange!=null?CLS.minRange:((BAL.sim&&BAL.sim.ranged&&BAL.sim.ranged.minRange)||0);
         let tgt=typeof resolveSkillTarget==="function"
           ?resolveSkillTarget(CLS.range,{silent:true})
           :pickTarget(CLS.range);
-        if(tgt&&minR>0&&targetDist(tgt)<minR){
-          /* 猎人死区：太近不射 */
-          tgt=null;
-        }
+        if(tgt&&minR>0&&targetDist(tgt)<minR)tgt=null;
         if(tgt){
           S.p.attackAnim=1;
           const school=CLS.resKind==="mana"?"spell":"physical";
           firePlayerShot(tgt,rand(...(typeof getPlayerWeaponRange==="function"?getPlayerWeaponRange():[CLS.autoMin,CLS.autoMax])),null,1,{school});
           did=true;
         }
-      }else{
-        let tgt=isTargetAlive(S.currentTarget)?S.currentTarget:null;
-        if(tgt&&targetDist(tgt)>autoR)tgt=null;
-        if(!tgt)tgt=pickTarget(autoR);
-        if(tgt){
-          setCurrentTarget(tgt);
-          S.p.attackAnim=1;
-          const wr=typeof getPlayerWeaponRange==="function"?getPlayerWeaponRange():[CLS.autoMin,CLS.autoMax];
-          const thr={school:"physical"};
-          if(tgt.type==="mob")mobDamage(tgt.m,rand(wr[0],wr[1]),undefined,thr);
-          else if(tgt.type==="boss")dmgBoss(rand(wr[0],wr[1]),undefined,thr);
-          else if(tgt.type==="add")addDamage(tgt.a,rand(wr[0],wr[1]),thr);
-          did=true;
-        }
       }
-      if(did&&!CLS.ranged)SFX.play("swing");
       if(did&&CLS.hitGain)S.p.rage=Math.min(S.p.rageMax,S.p.rage+CLS.hitGain);
       if(did&&BAL.stealth&&BAL.stealth.breakOnAttack!==false&&typeof breakStealth==="function")breakStealth("attack");
-      S.p.atkTimer=did?(typeof getPlayerAutoSpeed==="function"?getPlayerAutoSpeed():CLS.autoSpd):.3;
+      S.p.atkTimer=did?(typeof getPlayerAutoSpeed==="function"?getPlayerAutoSpeed():CLS.autoSpd):.25;
     }
 
     /* ---- 光环推进（STEP 16）+ 资源恢复 & 冷却 ---- */

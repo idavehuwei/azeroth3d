@@ -567,14 +567,17 @@ function camOnCanvas(e){
 }
 function camApplyDrag(dx,dy,sensOverride){
   if(!S.started||!S.cam)return;
-  const C=BAL.camera||{}, sens=sensOverride!=null?sensOverride:(C.mouseSens||.0042);
-  const pMin=C.pitchMin!=null?C.pitchMin:-1.4, pMax=C.pitchMax!=null?C.pitchMax:.6;
+  const C=BAL.camera||{}, sens=sensOverride!=null?sensOverride:(C.mouseSens||.0025);
+  const pMin=C.pitchMin!=null?C.pitchMin:-.55, pMax=C.pitchMax!=null?C.pitchMax:.48;
+  const yawMax=C.yawOffMax!=null?C.yawOffMax:.7;
   if(S.cam.rmb||S.cam.touchLook){
+    /* 右键：角色转向 + 相机锁在背后（魔兽式） */
     S.p.face-=dx*sens;
     S.cam.yawOff=0;
     S.cam.pitch=clamp(S.cam.pitch+dy*sens,pMin,pMax);
   }else if(S.cam.lmb){
-    S.cam.yawOff-=dx*sens;
+    /* 左键：仅小幅环绕/俯仰，偏航有上限 */
+    S.cam.yawOff=clamp((S.cam.yawOff||0)-dx*sens,-yawMax,yawMax);
     S.cam.pitch=clamp(S.cam.pitch+dy*sens,pMin,pMax);
   }
 }

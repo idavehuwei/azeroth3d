@@ -12,7 +12,7 @@
    [导出] QUALITY ITEMS LOOT EQUIP_SLOTS EQUIP_SLOT_LABEL emptyEquipment
           normalizeItemSlot resolveEquipSlot itemFitsEqSlot isEquippable isItemEquipped
           normalizeEquipment reclaimUnequippedGear
-          rollLoot rollMobLoot questLootNeedsFromTable dropLoot updateDrops nearestDrop
+          rollLoot rollMobLoot questLootNeedsFromTable dropLoot updateDrops nearestDrop nearbyDrops
           tryLoot removeDropOf logLoot DROPS
           openLootPanel closeLootPanel lootPanelOpen renderLootPanel
           equipItem unequipItem swapInvSlots toggleBag ensureBagOpen renderBag applyEquipStats
@@ -552,6 +552,17 @@ function nearestDrop(r){
   }
   return hit;
 }
+/* 当前场景内 r 码内全部掉落（由近到远） */
+function nearbyDrops(r){
+  const hits=[];
+  for(const d of DROPS){
+    if(d.scn!==scene)continue;
+    const dd=Math.hypot(player.position.x-d.grp.position.x,player.position.z-d.grp.position.z);
+    if(dd<r)hits.push({d,dd});
+  }
+  hits.sort((a,b)=>a.dd-b.dd);
+  return hits.map(h=>h.d);
+}
 function removeDrop(d){
   if(_lootDrop===d)closeLootPanel();
   d.scn.remove(d.grp);
@@ -641,28 +652,22 @@ function openLootPanel(d){
   return true;
 }
 function tryLoot(){
-  const d=nearestDrop(BAL.loot.pickupR);
-  if(!d)return false;
-  /* Track E：默认打开拾取窗；BAL.loot.panel===false 时一键真空 */
-  if(BAL.loot&&BAL.loot.panel!==false){
-    if(_lootDrop===d&&lootPanelOpen())return true;
-    openLootPanel(d);
-    return true;
+  const R=(BAL.loot&&BAL.loot.pickupR!=null)?BAL.loot.pickupR:5;
+  const list=nearbyDrops(R);
+  if(!list.length)return false;
+  /* F：5 码内全部真空拾取（多堆一次收完）；背包满则尽量捡满后停下 */
+  let any=false;
+  for(const d of list.slice()){
+    if(DROPS.indexOf(d)<0)continue;
+    if(!d.items||!d.items.length){removeDrop(d);continue;}
+    if(S.inv.length>=BAL.bag.size){
+      log("背包已满！（B 键打开背包整理）","lg-sys");
+      break;
+    }
+    takeAllLoot(d);
+    any=true;
   }
-  if(S.inv.length+d.items.length>BAL.bag.size){log("背包已满！（B 键打开背包整理）","lg-sys");return true;}
-  for(const it of d.items){
-    S.inv.push(it.id);
-    fct(d.grp.position.clone().setY(2),`获得【${it.name}】`,"#ffd76a",16);
-    logLoot(it);
-  }
-  SFX.play("pickup");
-  VFX.spawn("loot_spark",{pos:d.grp.position.clone().setY(1)});
-  removeDrop(d);
-  if(d.onLooted)d.onLooted();
-  renderBag();
-  if(typeof refreshDeliverObjectives==="function")refreshDeliverObjectives({noSave:true});
-  if(typeof saveGame==="function")saveGame(true);
-  return true;
+  return any;
 }
 /* 拾取日志：canvas 图标（品质描边）+ 品质色物品名 */
 function logLoot(item){

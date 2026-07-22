@@ -483,7 +483,7 @@ assert(combatSrc.includes("camApplyDrag")||combatSrc.includes("S.cam.lmb"),"左�
 assert(combatSrc.includes("function getMoveIntent")&&combatSrc.includes("autoRun"),"C1 输入意图 + 自动跑");
 assert(combatSrc.includes("_wantJump")||combatSrc.includes('key===" "'),"C1 Space 跳跃键");
 assert(coreSrc.includes("move:")&&coreSrc.includes("jumpVel")&&coreSrc.includes("gravity"),"BALANCE.move 跳跃物理");
-assert(coreSrc.includes("distMin:3")&&coreSrc.includes("firstPersonDist")&&coreSrc.includes("collision"),"BALANCE.camera C1 球坐标/碰撞/第一人称");
+assert(coreSrc.includes("distMin:")&&coreSrc.includes("firstPersonDist")&&coreSrc.includes("collision")&&coreSrc.includes("yawOffMax"),"BALANCE.camera C1 球坐标/碰撞/第一人称");
 assert(mainSrc.includes("resolveCamCollision")&&mainSrc.includes("playerGroundY"),"C1 相机碰撞 + 落地高度");
 assert(mainSrc.includes("firstPerson")||mainSrc.includes("firstPersonDist"),"C1 近距第一人称");
 assert(combatSrc.includes("touchLook")&&combatSrc.includes("pinch"),"C1 移动端右半屏视角 / 捏合缩放");
@@ -972,6 +972,8 @@ assert(html.includes("gfxBloom"),"登录页含假 Bloom 开关");
 assert(html.includes('src="icons.js"')&&html.includes('src="items.js"'),"game.html 加载 icons/items");
 assert(iconsSrc.includes("Icons.canvas")||iconsSrc.includes("canvas("),"icons 含 canvas 工厂");
 assert(itemsSrc.includes("function dropLoot")&&itemsSrc.includes("function tryLoot"),"items 含 dropLoot/tryLoot");
+assert(itemsSrc.includes("function nearbyDrops")&&itemsSrc.includes("nearbyDrops(R)"),"F 真空拾取 nearbyDrops");
+assert(coreSrc.includes("pickupR:5")||balSrc.includes("pickupR:5"),"BALANCE.loot.pickupR=5");
 assert(itemsSrc.includes("onLooted"),"dropLoot 支持 onLooted 回调");
 assert(worldSrc.includes("requestCorpseDissolve")&&worldSrc.includes("awaitLoot"),"尸体溶解延迟到拾取");
 assert(worldSrc.includes("requestCorpseDissolve(m)")||worldSrc.includes("()=>requestCorpseDissolve"),"mobDie 挂 onLooted 溶解");

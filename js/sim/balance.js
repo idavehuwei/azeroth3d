@@ -543,11 +543,11 @@ const BALANCE={
     sunColor:0xffc880, sunIntensity:1.2,
   },
   /* 掉落与尸体拾取（STEP 2）：品质权重 70/25/5 · 尸体停留秒数 · 拾取距离 */
-  loot:{weights:{poor:8,common:62,uncommon:25,rare:5}, corpseT:8, pickupR:3.5,
+  loot:{weights:{poor:8,common:62,uncommon:25,rare:5}, corpseT:8, pickupR:5,
         eliteWeights:{uncommon:72,rare:28},   /* 精英必掉优秀以上（STEP 5） */
         rareWeights:{uncommon:55,rare:45},    /* C11：稀有必掉优秀以上，偏紫 */
         questDropChance:.95,                  /* 进行中交付任务物品的优先掉落率 */
-        panel:true},                          /* Track E：拾取窗（false=一键真空） */
+        panel:true},                          /* 拾取窗仍可用；F 键改为 5 码内真空全收 */
   /* Track E：玩家施法条 */
   cast:{
     moveInterrupt:true,   /* 移动打断读条 */
@@ -670,21 +670,23 @@ const BALANCE={
       fogTint:0x1a3020, fogBlend:.28, fogDensityMul:1.06,
     },
   },
-  /* 相机 / 转向（相对角色朝向）· plan-V3 C1 */
+  /* 相机 / 转向（相对角色朝向）· plan-V3 C1 · 魔兽式略锁定 */
   camera:{
-    dist:16, distMin:3, distMax:25,
+    dist:14, distMin:4, distMax:22,
     lookChestY:1.55,        /* 球坐标锚点：胸口高度 */
     eyeY:1.7,               /* 第一人称眼高 */
-    turnSpd:2.6,            /* A/D 键盘转向 弧度/秒 */
-    zoomStep:1.15,
-    pitchMin:-1.4, pitchMax:.6, pitch:.32,
-    follow:14,              /* 相机跟手速度 */
-    mouseSens:.0042,
-    touchLookSens:.0055,    /* 移动端右半屏拖动 */
-    pinchZoomScale:.05,     /* 双指捏合缩放系数 */
-    recenterSpd:3.2,        /* 前进时视角回正（LMB 环绕后） */
+    turnSpd:2.0,            /* A/D 键盘转向 弧度/秒（略慢，减少乱转） */
+    zoomStep:1.1,
+    pitchMin:-.55, pitchMax:.48, pitch:.28,
+    follow:16,              /* 相机跟手速度 */
+    mouseSens:.0025,        /* 右键转向 / 左键微调灵敏度 */
+    touchLookSens:.0035,
+    pinchZoomScale:.05,
+    recenterSpd:6.0,        /* 非拖拽时视角回正到角色背后 */
+    idleRecenterSpd:3.5,    /* 站立时较慢回正 */
+    yawOffMax:.7,           /* 左键环绕最大偏航（弧度）≈40° */
     bothBtnForward:true,    /* 左右键同按 = 朝镜头前进（魔兽） */
-    firstPersonDist:3.35,   /* dist ≤ 此值切第一人称 */
+    firstPersonDist:3.35,
     collision:true,
     collisionMargin:.45,
   },
@@ -721,7 +723,7 @@ const BALANCE={
     totThreatR:80,           /* 目标的目标：Boss 仇恨查询半径 */
     clickMaxDist:55,         /* 点击选取最大距离 */
     clickDragPx:6,           /* 低于此像素位移视为点击（非拖镜头） */
-    meleeAutoR:4.5,
+    meleeAutoR:5.5,          /* 贴身普攻距离（全职业挥砍） */
     showTot:true,            /* 目标的目标小框 */
   },
   npcLevel:{hawkwind:10,grull:8,grayhorn:12,raoul:6,vera:5,whiterock:10,baine:40,bloodhoof_elder:35,tark:18,mull:16,haru:18,mara:14,kur:15,aska:20,cairne:60,stonetalon:40,seen:22,pala:20,hamya:24,magatha:50,runetotem:45,thunderhorn_guard:12,winterhoof_guard:10,windfury_sentinel:25,elder:40,vendor:25,varg:25,weaponsmith:26,hunter:18,cook:20,spirit:55,crossroads:30,darsok:28,kag:26,mankrik:30,thom:27,kil:24,serra:25,lal:28,zinge:26,scriven:22,innkeeper:22,flightmaster:25,barrens_vendor:24,barrens_armor:24,ochre:28,ochre_guard:26,ochre_vendor:24,companion:null},

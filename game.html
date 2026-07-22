@@ -539,30 +539,38 @@
  
   /* ---------- 开始/结束遮罩 ---------- */
   .overlay{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;
-    justify-content:center;background:radial-gradient(ellipse at 50% 60%,rgba(60,15,0,.88),rgba(5,2,1,.96));
-    text-align:center;padding:20px;transition:opacity .6s}
+    justify-content:flex-start;background:radial-gradient(ellipse at 50% 60%,rgba(60,15,0,.88),rgba(5,2,1,.96));
+    text-align:center;padding:28px 16px 36px;transition:opacity .6s;overflow-y:auto}
   .overlay.hide{opacity:0;pointer-events:none}
-  .overlay h1{font-size:clamp(30px,6vw,54px);font-weight:900;letter-spacing:10px;color:#ffd9a0;
+  .overlay h1{font-size:clamp(26px,5vw,48px);font-weight:900;letter-spacing:8px;color:#ffd9a0;margin-top:12px;
     text-shadow:0 0 30px rgba(255,90,0,.9),0 0 90px rgba(255,40,0,.5)}
-  .overlay h2{font-size:clamp(13px,2vw,17px);color:#ff9a55;letter-spacing:6px;margin:10px 0 26px;font-weight:400}
-  .overlay p{max-width:560px;font-size:13px;line-height:2;color:#d8c3a5;margin-bottom:30px}
-  .overlay .btn{padding:13px 46px;font-size:17px;font-weight:800;letter-spacing:6px;color:#2a1000;cursor:pointer;
+  .overlay h2{font-size:clamp(12px,1.8vw,16px);color:#ff9a55;letter-spacing:5px;margin:8px 0 16px;font-weight:400}
+  .overlay p{max-width:520px;font-size:12.5px;line-height:1.85;color:#d8c3a5;margin-bottom:18px}
+  .overlay .btn{padding:12px 40px;font-size:16px;font-weight:800;letter-spacing:5px;color:#2a1000;cursor:pointer;
     background:linear-gradient(180deg,#ffce7a,#e0812a 60%,#a34a08);border:1px solid #ffcf90;
     box-shadow:0 0 26px rgba(255,120,20,.55);font-family:inherit}
   .overlay .btn:hover{filter:brightness(1.12)}
-  .overlay .hint{margin-top:22px;font-size:11px;color:#8b7a5e;letter-spacing:2px;line-height:2}
+  .overlay .hint{margin-top:16px;font-size:10.5px;color:#8b7a5e;letter-spacing:1.5px;line-height:1.9;max-width:640px}
  
-  /* ---------- 职业选择 ---------- */
-  #classPick{display:flex;gap:14px;margin-bottom:28px;flex-wrap:wrap;justify-content:center}
-  .ccard{width:152px;padding:14px 10px;border:1px solid var(--panel-border);background:var(--slot-bg);
-    cursor:pointer;transition:.15s;text-align:center;box-shadow:inset 0 0 14px rgba(0,0,0,.45)}
-  .ccard .ci{font-size:34px;filter:drop-shadow(0 0 8px rgba(255,140,40,.5))}
-  .ccard .cn{font-size:15px;font-weight:800;letter-spacing:4px;margin:6px 0 5px;color:var(--gold-bright)}
-  .ccard .cd2{font-size:10.5px;line-height:1.8;color:var(--parchment-muted)}
+  /* ---------- 职业选择（9 职业 · 3×3） ---------- */
+  #classPick{display:grid;grid-template-columns:repeat(3,minmax(0,148px));gap:10px;
+    margin:0 auto 18px;justify-content:center;max-width:480px;width:100%}
+  .ccard{width:auto;padding:10px 8px;border:1px solid var(--panel-border);background:var(--slot-bg);
+    cursor:pointer;transition:.15s;text-align:center;box-shadow:inset 0 0 14px rgba(0,0,0,.45);min-width:0}
+  .ccard .ci{font-size:26px;line-height:1.1;filter:drop-shadow(0 0 8px rgba(255,140,40,.5))}
+  .ccard .cn{font-size:13px;font-weight:800;letter-spacing:2px;margin:5px 0 3px;color:var(--gold-bright)}
+  .ccard .cd2{font-size:10px;line-height:1.55;color:var(--parchment-muted)}
   .ccard:hover{border-color:var(--gold-bright);transform:translateY(-2px)}
   .ccard.sel{border-color:var(--gold-bright);background:rgba(120,50,10,.45);box-shadow:0 0 20px rgba(255,120,20,.45)}
-  #godRow{display:flex;align-items:center;gap:8px;margin-bottom:24px;cursor:pointer;
-    font-size:13px;color:#ffcf98;letter-spacing:2px;text-shadow:0 1px 2px #000}
+  @media (max-width:520px){
+    #classPick{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:100%}
+    .ccard{padding:8px 4px}
+    .ccard .ci{font-size:22px}
+    .ccard .cn{font-size:11px;letter-spacing:1px}
+    .ccard .cd2{font-size:9px}
+  }
+  #godRow{display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer;
+    font-size:12px;color:#ffcf98;letter-spacing:1px;text-shadow:0 1px 2px #000;justify-content:center}
   #godRow input{width:16px;height:16px;accent-color:#ff8a2a;cursor:pointer}
   #startMenu{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:8px}
   #startMenu .btn-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
@@ -877,23 +885,23 @@
   <div id="newGamePanel">
     <div id="classPick">
       <div class="ccard sel" data-cls="warrior"><div class="ci">⚔️</div><div class="cn">战 士</div>
-        <div class="cd2">近战 · 高生存<br>怒气：攻击积攒<br>冲锋 / 旋风斩</div></div>
+        <div class="cd2">近战 · 怒气</div></div>
       <div class="ccard" data-cls="mage"><div class="ci">🔮</div><div class="cn">法 师</div>
-        <div class="cd2">远程法术 · 高爆发<br>法力：自动恢复<br>炎爆 / 闪现 / 寒冰屏障</div></div>
+        <div class="cd2">远程 · 法力</div></div>
       <div class="ccard" data-cls="archer"><div class="ci">🏹</div><div class="cn">弓箭手</div>
-        <div class="cd2">远程物理 · 高机动<br>能量：自动恢复<br>瞄准射击 / 翻滚闪避</div></div>
+        <div class="cd2">远程 · 能量</div></div>
       <div class="ccard" data-cls="priest"><div class="ci">✨</div><div class="cn">牧 师</div>
-        <div class="cd2">治疗 · 神圣<br>法力：自动恢复<br>治疗术 / 真言术：盾</div></div>
+        <div class="cd2">治疗 · 法力</div></div>
       <div class="ccard" data-cls="shaman"><div class="ci">🌀</div><div class="cn">萨 满</div>
-        <div class="cd2">混合 · 图腾<br>法力：自动恢复<br>闪电箭 / 治疗图腾</div></div>
+        <div class="cd2">混合 · 法力</div></div>
       <div class="ccard" data-cls="rogue"><div class="ci">🗡</div><div class="cn">盗 贼</div>
-        <div class="cd2">近战 · 潜行<br>能量：自动恢复<br>背刺 / 潜行</div></div>
+        <div class="cd2">近战 · 能量</div></div>
       <div class="ccard" data-cls="warlock"><div class="ci">💀</div><div class="cn">术 士</div>
-        <div class="cd2">远程暗影 · DoT<br>法力：自动恢复<br>腐蚀 / 生命吸取</div></div>
+        <div class="cd2">暗影 · 法力</div></div>
       <div class="ccard" data-cls="druid"><div class="ci">🌿</div><div class="cn">德鲁伊</div>
-        <div class="cd2">自然 · DoT/HoT<br>法力：自动恢复<br>月火 / 回春 / 根须</div></div>
+        <div class="cd2">自然 · 法力</div></div>
       <div class="ccard" data-cls="paladin"><div class="ci">✝️</div><div class="cn">圣骑士</div>
-        <div class="cd2">近战 · 神圣<br>法力：自动恢复<br>审判 / 圣光 / 圣盾</div></div>
+        <div class="cd2">神圣 · 法力</div></div>
     </div>
     <label id="godRow"><input type="checkbox" id="godChk"><span>⚡ 上帝模式 · 每次攻击造成 5,000 伤害</span></label>
     <div class="btn-row" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
