@@ -1,7 +1,7 @@
 /* ============================================================
    炽心 · quests.js
    任务枢纽（STEP 22 / plan-V3 C9）：QUESTS(=QUEST_DB) 数据驱动
-   目标：kill / collect(=deliver) / explore(=arrive) / interact / use / escort…
+   目标：kill / collect(=deliver) / explore|reach(=arrive) / interact / use / escort…
    ------------------------------------------------------------
    [依赖] THREE · core.js（BAL clamp makeLabel）
           combat.js（S · gainXP gainCopper log announce）
@@ -71,14 +71,19 @@ const QUESTS=[
     readyAnnounce:"补给在身 · 交给贝恩",
     completeAnnounce:"猎蹄的补给 · 完成",
     next:"bloodhoof_journey"},
-  /* C9 样例：地面闪光箱 + 职业可选奖励（只加数据，走通用 interact/choice） */
+  /* C9 / STEP 19 样例：地面闪光箱 + choice.prefer + byClass 自动小奖 */
   {id:"camp_cache", title:"营地旧箱", subtitle:"灰角的嘱托",
     chapter:"side", zone:"mulgore", sort:17,
     minLevel:1, prereq:["hunt_continues"],
     giver:"grayhorn", turnIn:"grayhorn",
     objectives:[{type:"interact", x:0, z:0, r:3.5, label:"旧木箱",
       liveOffsetNpc:"grayhorn", ox:6, oz:-5}],
-    rewards:{xp:60, copper:25, choice:[
+    rewards:{xp:60, copper:25, money:25,
+      byClass:{
+        warrior:["frayed_cloth"], mage:["frayed_cloth"], archer:["frayed_cloth"],
+        priest:["frayed_cloth"], shaman:["frayed_cloth"], rogue:["frayed_cloth"]
+      },
+      choice:[
       {id:"plains_boots", prefer:["warrior","rogue","shaman"]},
       {id:"plains_cloak", prefer:["mage","priest","archer"]},
       {id:"plains_band"}
@@ -755,10 +760,10 @@ QUESTS.forEach(q=>{QUEST_BY_ID[q.id]=q;});
 /** plan-V3 C9：QUEST_DB 即 QUESTS（保留大表于 quests.js，不搬进 sim/content） */
 const QUEST_DB=QUESTS;
 
-/** C9 目标类型别名：collect→deliver · explore→arrive */
+/** C9 / STEP 19 目标类型别名：collect→deliver · explore|reach→arrive */
 function normalizeObjectiveType(type){
   if(type==="collect")return "deliver";
-  if(type==="explore")return "arrive";
+  if(type==="explore"||type==="reach")return "arrive";
   return type;
 }
 function getObjective0(q){
@@ -1014,6 +1019,7 @@ function applyQuestRewards(q,opts){
     let copper=0;
     if(side&&side.copper!=null)copper=side.copper|0;
     else if(r.copper!=null)copper=r.copper|0;
+    else if(r.money!=null)copper=r.money|0; /* STEP 19：money 别名 */
     else if(r.copperKey==="boarCopper")copper=BAL.quest.rewardCopper|0;
     else if(r.copperKey==="barrensCopper")copper=(BAL.quest.barrens&&BAL.quest.barrens.rewardCopper)|0;
     else if(r.copperKey==="durotarCopper")copper=(BAL.quest.durotar&&BAL.quest.durotar.rewardCopper)|0;
@@ -1038,16 +1044,19 @@ function applyQuestRewards(q,opts){
     }
   }
   if(!opts.skipItems){
-    if(opts.choiceItem&&ITEMS[opts.choiceItem]){
-      const id=opts.choiceItem;
-      if(S.inv.length<BAL.bag.size&&!S.inv.includes(id)&&!(typeof isItemEquipped==="function"&&isItemEquipped(id)))
-        S.inv.push(id);
-    }else if(Array.isArray(r.items)){
-      for(const id of r.items){
-        if(ITEMS[id]&&S.inv.length<BAL.bag.size&&!S.inv.includes(id)&&!(typeof isItemEquipped==="function"&&isItemEquipped(id)))
-          S.inv.push(id);
-      }
-    }
+    const pushItem=id=>{
+      if(!ITEMS[id])return;
+      if(S.inv.length>=BAL.bag.size)return;
+      if(S.inv.includes(id))return;
+      if(typeof isItemEquipped==="function"&&isItemEquipped(id))return;
+      S.inv.push(id);
+    };
+    /* STEP 19：byClass 自动发放（在自选奖励之外） */
+    const clsKey=(typeof CLS!=="undefined"&&CLS&&CLS.key)||(S.p&&S.p.classKey)||null;
+    if(r.byClass&&clsKey&&Array.isArray(r.byClass[clsKey]))
+      r.byClass[clsKey].forEach(pushItem);
+    if(opts.choiceItem&&ITEMS[opts.choiceItem])pushItem(opts.choiceItem);
+    else if(Array.isArray(r.items))r.items.forEach(pushItem);
     if(typeof renderBag==="function")renderBag();
   }
 }

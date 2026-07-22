@@ -296,6 +296,9 @@ assert(raidSrc.includes("restoreDeathFromSave")&&raidSrc.includes("nearestGravey
 assert(coreSrc.includes("corpseWeaknessT")&&coreSrc.includes("swimMul"),"BALANCE 含跑尸短虚弱与游泳");
 assert(fs.existsSync(path.join(__dirname,"test_death.js")),"test_death.js 存在");
 assert(fs.existsSync(path.join(__dirname,"test_economy.js")),"test_economy.js 存在");
+assert(fs.existsSync(path.join(__dirname,"test_quests.js")),"test_quests.js 存在");
+assert(itemsSrc.includes("可与饮水同时")||itemsSrc.includes("可与饮水并行"),"STEP 19 进食可与饮水并行");
+assert(questsSrc.includes("byClass")&&(questsSrc.includes('type==="reach"')||questsSrc.includes('"reach"')),"STEP 19 byClass/reach 别名");
 assert(coreSrc.includes("weaponsmith")&&coreSrc.includes("camp_shortsword"),"BALANCE 含武器匠货架");
 assert(itemsSrc.includes("frayed_cloth")&&itemsSrc.includes("getVendorSell"),"灰装与 vendor 价助手");
 assert(worldSrc.includes("武器匠 · 石刃")&&worldSrc.includes("杂货商 · 瓦尔格"),"营地双商人");

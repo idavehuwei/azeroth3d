@@ -4,6 +4,6 @@
   "description": "熔火之心 · 程序化 3D 网页游戏",
   "scripts": {
     "lint:sim": "bash scripts/lint-sim.sh",
-    "test": "bash scripts/lint-sim.sh && node test_step01.js && node test_formulas.js && node test_rules.js && node test_auras.js && node test_death.js && node test_economy.js"
+    "test": "bash scripts/lint-sim.sh && node test_step01.js && node test_formulas.js && node test_rules.js && node test_auras.js && node test_death.js && node test_economy.js && node test_quests.js"
   }
 }

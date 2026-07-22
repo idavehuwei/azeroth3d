@@ -741,7 +741,8 @@ function useItem(id){
   if(!S.p.alive||S.over)return false;
   const idx=S.inv.indexOf(id); if(idx<0)return false;
   if(it.use==="food"){
-    if(S.p.eating||S.p.drinking||S.p.bandaging||S.p.gathering){log("你正在忙碌中。","lg-sys");return false;}
+    /* STEP 19：可与饮水同时进行；仅互斥同类型 / 包扎 / 采集 */
+    if(S.p.eating||S.p.bandaging||S.p.gathering){log("你正在忙碌中。","lg-sys");return false;}
     if(S.p.hp>=S.p.hpMax){log("生命已满。","lg-sys");return false;}
     S.inv.splice(idx,1);
     const E=BAL.economy.food;
@@ -750,14 +751,14 @@ function useItem(id){
       applyBuff("eating",{duration:E.duration,healPerSec:total/E.duration,name:it.name});
     else S.p.eating={t:E.duration,healPerSec:total/E.duration,name:it.name};
     S.p.sitting=true;
-    announce("坐下进食…");
-    log(`开始食用【${it.name}】（移动或受击会打断）。`,"lg-heal");
+    announce(S.p.drinking?"坐下进食（同时饮水）…":"坐下进食…");
+    log(`开始食用【${it.name}】（${S.p.drinking?"可与饮水并行；":""}移动或受击会打断）。`,"lg-heal");
     renderBag();
     if(typeof saveGame==="function")saveGame(true);
     return true;
   }
   if(it.use==="drink"){
-    if(S.p.eating||S.p.drinking||S.p.bandaging||S.p.gathering){log("你正在忙碌中。","lg-sys");return false;}
+    if(S.p.drinking||S.p.bandaging||S.p.gathering){log("你正在忙碌中。","lg-sys");return false;}
     if(S.p.rage>=S.p.rageMax){log(`${CLS.resName}已满。`,"lg-sys");return false;}
     S.inv.splice(idx,1);
     const E=BAL.economy.drink||{manaPct:.45,duration:18};
@@ -766,8 +767,8 @@ function useItem(id){
       applyBuff("drinking",{duration:E.duration,manaPerSec:total/E.duration,name:it.name});
     else S.p.drinking={t:E.duration,manaPerSec:total/E.duration,name:it.name};
     S.p.sitting=true;
-    announce("坐下饮水…");
-    log(`开始饮用【${it.name}】（移动或受击会打断）。`,"lg-heal");
+    announce(S.p.eating?"坐下饮水（同时进食）…":"坐下饮水…");
+    log(`开始饮用【${it.name}】（${S.p.eating?"可与进食并行；":""}移动或受击会打断）。`,"lg-heal");
     renderBag();
     if(typeof saveGame==="function")saveGame(true);
     return true;
