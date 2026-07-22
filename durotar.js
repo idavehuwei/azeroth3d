@@ -1,5 +1,5 @@
 /* ============================================================
-   熔火之心 · durotar.js
+   炽心 · durotar.js
    赭岩谷（plan-v1 · V1-B1）：橙土 / 兽人哨站风 / 巨蝎·刺脊·崖风鹰身
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ srand worldRng BAL makeLabel）
@@ -110,7 +110,7 @@ function buildDurotarZone(scn){
     if(cf&&cf.userData.flame)durotarFlames.push(cf.userData.flame);
   });
 
-  /* 东口 → 贫瘠之地 */
+  /* 东口 → 枯原荒地 */
   const gateMat=MAT.get("wood.gate",{color:0x6a3a18,roughness:.9,flatShading:true,emissive:0x8a4020,emissiveIntensity:.18});
   const ePlat=new THREE.Mesh(new THREE.CylinderGeometry(6.5,7.5,1,12),gateMat);
   ePlat.position.set(DUROTAR_PORTAL_E.x,.5,DUROTAR_PORTAL_E.z); ePlat.receiveShadow=true; root.add(ePlat);
@@ -134,10 +134,10 @@ function buildDurotarZone(scn){
         gl_FragColor=vec4(c*1.15,smoothstep(1.,.88,r));
       }`}));
   eDisc.position.set(DUROTAR_PORTAL_E.x,4.5,DUROTAR_PORTAL_E.z); eDisc.rotation.y=Math.PI/2; root.add(eDisc);
-  const eLab=makeLabel("贫瘠之地",11,"#e8c898","rgba(120,70,30,.9)");
+  const eLab=makeLabel(T("zone.barrens"),11,"#e8c898","rgba(120,70,30,.9)");
   eLab.position.set(DUROTAR_PORTAL_E.x,11.8,DUROTAR_PORTAL_E.z); root.add(eLab);
 
-  /* 西口 → 怒焰裂谷 */
+  /* 西口 → 焰怒深渊 */
   const rfMat=MAT.get("lava.gate",{color:0x5a2010,roughness:.9,flatShading:true,emissive:0xff4000,emissiveIntensity:.28});
   const wPlat=new THREE.Mesh(new THREE.CylinderGeometry(6.5,7.5,1,12),rfMat);
   wPlat.position.set(DUROTAR_PORTAL_W.x,.5,DUROTAR_PORTAL_W.z); wPlat.receiveShadow=true; root.add(wPlat);
@@ -161,7 +161,7 @@ function buildDurotarZone(scn){
         gl_FragColor=vec4(c*1.2,smoothstep(1.,.88,r));
       }`}));
   wDisc.position.set(DUROTAR_PORTAL_W.x,4.5,DUROTAR_PORTAL_W.z); wDisc.rotation.y=-Math.PI/2; root.add(wDisc);
-  const wLab=makeLabel("怒焰裂谷",11,"#ff9060","rgba(100,30,10,.9)");
+  const wLab=makeLabel(T("zone.ragefire"),11,"#ff9060","rgba(100,30,10,.9)");
   wLab.position.set(DUROTAR_PORTAL_W.x,11.8,DUROTAR_PORTAL_W.z); root.add(wLab);
   const wLab2=makeLabel("副本入口",8,"#ffb090","rgba(80,20,8,.85)");
   wLab2.position.set(DUROTAR_PORTAL_W.x,10.4,DUROTAR_PORTAL_W.z); root.add(wLab2);
@@ -301,7 +301,7 @@ function openOchreDialogue(){
   const need=(BAL.quest.durotar&&BAL.quest.durotar.scorpKills)|5;
 
   if(typeof canTurnInQuest==="function"&&canTurnInQuest("ochre_sting")){
-    tx.textContent="干得漂亮！蝎群退了，补给线能喘口气。西边刺脊野猪人还在闹——有空再清一清。";
+    tx.textContent="干得漂亮！蝎群退了，补给线能喘口气。西边"+T("mob.razorback")+"还在闹——有空再清一清。";
     btn("✦ 领取奖励 · 赭岩毒刺",()=>{
       turnInQuest("ochre_sting");
       spawnBurst(player.position.clone().setY(1.5),0xff9040,28,2);
@@ -314,7 +314,7 @@ function openOchreDialogue(){
     const k=questProgress("ochre_sting").kills|0;
     tx.textContent=`巨蝎还在谷地游荡（${k}/${need}）。干完再来找我。`;
   }else{
-    tx.textContent="赭岩谷热得很。买卖找赤蹄，清剿找焦刺；东边旋涡通往贫瘠之地。";
+    tx.textContent="赭岩谷热得很。买卖找赤蹄，清剿找焦刺；东边旋涡通往"+T("zone.barrens")+"。";
   }
 
   appendNpcQuestButtons("ochre_outpost",btn,null,["ochre_sting"]);
@@ -343,8 +343,8 @@ registerZone({
     pos:()=>DUROTAR_PORTAL_E,
     hintR:()=>BAL.zones.portalHintR,
     enterR:()=>BAL.zones.portalEnterR,
-    announce:"贫瘠之地 · 十字路口",
-    logHint:"东行热风中，贫瘠之地的荒原轮廓隐约可见……",
+    announce:T("zone.barrens")+" · "+T("poi.crossroads"),
+    logHint:"东行热风中，"+T("zone.barrens")+"的荒原轮廓隐约可见……",
     requireAlive:true,
     autoEnter:true,
     targetZone:"barrens",
@@ -354,20 +354,20 @@ registerZone({
     pos:()=>DUROTAR_PORTAL_W,
     hintR:()=>BAL.zones.portalHintR,
     enterR:()=>BAL.zones.portalEnterR,
-    announce:"怒焰裂谷 · 副本入口",
-    logHint:"西侧裂隙喷吐着硫磺与怒焰……走进即可进入怒焰裂谷。",
+    announce:T("zone.ragefire")+" · 副本入口",
+    logHint:"西侧裂隙喷吐着硫磺与怒焰……走进即可进入"+T("zone.ragefire")+"。",
     requireAlive:true,
     autoEnter:true,
     minLevel:()=>BAL.durotar.ragefireMinLevel||13,
     lockedAnnounce:()=>`等级不足！需要 Lv.${BAL.durotar.ragefireMinLevel||13}`,
-    lockedLog:()=>`怒焰裂谷危机四伏——当前 Lv.${S.p.level}，建议升到 Lv.${BAL.durotar.ragefireMinLevel||13} 后再挑战。`,
+    lockedLog:()=>`${T("zone.ragefire")}危机四伏——当前 Lv.${S.p.level}，建议升到 Lv.${BAL.durotar.ragefireMinLevel||13} 后再挑战。`,
     targetZone:"ragefire_chasm",
     targetGate:"entrance",
   }],
   onEnter(fromId,gateId,opts){
     if(opts&&opts.silent)return;
     if(fromId==="barrens")log("灼热的橙土迎面扑来——你已踏入赭岩谷。","lg-sys");
-    if(fromId==="ragefire_chasm")log("你离开怒焰裂谷，重回赭岩哨站的热风中。","lg-sys");
+    if(fromId==="ragefire_chasm")log("你离开"+T("zone.ragefire")+"，重回赭岩哨站的热风中。","lg-sys");
     updateDurotarMarkers();
     if(typeof updateQuest==="function")updateQuest();
   },

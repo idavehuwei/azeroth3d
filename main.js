@@ -1,5 +1,5 @@
 /* ============================================================
-   熔火之心 · main.js
+   炽心 · main.js
    主循环与启动：范围钳制 / 每帧更新 / 相机 / UI 刷新 / 职业选择 / FPS
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ clamp rand R BAL camera renderer scene ARENA_R
@@ -28,7 +28,7 @@
           save.js 运行时（启程 / 继续冒险）
           map.js 运行时（updateMinimap）
           debug.js 运行时（tickDebugHud · 在 script 链末尾加载）
-   [导出] clampArena tick chosenClass toggleFps
+   [导出] clampArena tick chosenClass toggleFps playerGroundY resolveCamCollision getMoveIntent(via combat)
    ============================================================ */
 "use strict";
 /* ============================================================
@@ -41,6 +41,83 @@ function clampArena(pos){
   const d=Math.hypot(pos.x,pos.z);
   if(d>lim){const s=lim/d;pos.x*=s;pos.z*=s;}
   return pos;
+}
+/** 玩家脚下地面高度（有 heightAt 的区域用地形，否则 0） */
+function playerGroundY(x,z){
+  if(typeof heightAt==="function"&&S.mode==="world"
+    &&typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="mulgore"){
+    return heightAt(x,z);
+  }
+  return 0;
+}
+let _camRay=null,_camFrom=null,_camTo=null,_camDir=null,_camMeshes=null;
+function camDesiredOffset(yaw,pitch,dist){
+  const flat=Math.cos(pitch)*dist;
+  return{
+    x:-Math.sin(yaw)*flat,
+    y:Math.sin(pitch)*dist,
+    z:-Math.cos(yaw)*flat
+  };
+}
+/** 仅收集可碰撞 Mesh（跳过 Sprite/粒子/标签，避免 Raycaster.camera 报错） */
+function collectCamColliders(root, out){
+  if(!root||!root.visible)return;
+  if(root===player)return;
+  if(root.isSprite||root.isPoints||root.isLine||root.isLineSegments)return;
+  if(root.userData&&(root.userData.noCamCollide||root.userData.vfx||root.userData.isLabel))return;
+  if(root.isMesh&&root.geometry){
+    out.push(root);
+    return; /* Mesh 子树一般无独立碰撞体 */
+  }
+  const ch=root.children;
+  if(!ch||!ch.length)return;
+  for(let i=0;i<ch.length;i++)collectCamColliders(ch[i],out);
+}
+/** 相机碰撞：锚点→理想机位 Raycaster，命中则压近 dist */
+function resolveCamCollision(anchor,yaw,pitch,dist){
+  const C=BAL.camera||{};
+  if(C.collision===false)return dist;
+  const minD=C.distMin||3;
+  if(dist<=minD+.05)return dist;
+  if(!_camRay){
+    _camRay=new THREE.Raycaster();
+    _camFrom=new THREE.Vector3();
+    _camTo=new THREE.Vector3();
+    _camDir=new THREE.Vector3();
+    _camMeshes=[];
+  }
+  const off=camDesiredOffset(yaw,pitch,dist);
+  _camFrom.copy(anchor);
+  _camTo.set(anchor.x+off.x,anchor.y+off.y,anchor.z+off.z);
+  _camDir.subVectors(_camTo,_camFrom);
+  const maxD=_camDir.length();
+  if(maxD<.05)return dist;
+  _camDir.multiplyScalar(1/maxD);
+  _camRay.set(_camFrom,_camDir);
+  _camRay.far=maxD;
+  if(typeof camera!=="undefined")_camRay.camera=camera; /* 防御：万一仍碰到 Sprite */
+  _camMeshes.length=0;
+  const roots=scene&&scene.children?scene.children:[];
+  for(let i=0;i<roots.length;i++)collectCamColliders(roots[i],_camMeshes);
+  const hits=_camMeshes.length?_camRay.intersectObjects(_camMeshes,false):[];
+  const margin=C.collisionMargin!=null?C.collisionMargin:.45;
+  if(hits.length){
+    const d=hits[0].distance;
+    if(d<margin)return minD;
+    return Math.max(minD,d-margin);
+  }
+  /* 地形采样兜底（赤蹄草甸）：镜头点不得钻入 heightAt */
+  if(typeof heightAt==="function"&&S.mode==="world"
+    &&typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="mulgore"){
+    for(let s=1;s<=5;s++){
+      const t=s/5, td=dist*t;
+      const o2=camDesiredOffset(yaw,pitch,td);
+      const y=anchor.y+o2.y;
+      const gy=heightAt(anchor.x+o2.x,anchor.z+o2.z);
+      if(y<gy+margin)return Math.max(minD,td-margin);
+    }
+  }
+  return dist;
 }
 
 /** V1-A5：区 → 脚步表面（草/石/木） */
@@ -141,7 +218,7 @@ function tick(){
   /* 天气层（V1-A4）：须在 dayNight/sky 写雾之后叠加；render-only */
   if(typeof updateWeather==="function")updateWeather(dt);
 
-  /* Boss 火焰摇曳（仅拉戈斯等人形岩浆 Boss 有 core/bossLight） */
+  /* Boss 火焰摇曳（仅卡尔戈等人形岩浆 Boss 有 core/bossLight） */
   if(boss.userData.core&&boss.userData.bossLight){
     boss.traverse(o=>{if(o.userData.flame){o.scale.y=1+Math.sin(S.t*7+o.position.x*3)*.18;
       o.rotation.y+=dt*2;}});
@@ -203,7 +280,7 @@ function tick(){
       }
     }
 
-    /* ---- 莫高雷：野怪 AI / NPC ---- */
+    /* ---- 赤蹄草甸：野怪 AI / NPC ---- */
     if(S.mode==="world"){
       const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore";
       for(const m of MOBS){
@@ -390,26 +467,25 @@ function tick(){
       if(S.mode!=="world"||!S.p.alive)ib.style.display="none";
       if($("#vendorPanel")&&$("#vendorPanel").style.display==="block")ib.style.display="none";
     }
-    /* ---- 玩家移动（魔兽默认：W/S 进退 · A/D 转向 · Q/E 平移；右键时 A/D 也变平移） ---- */
+    /* ---- 玩家移动（plan-V3 C1：意图层 · 朝向相对 · 跳跃） ---- */
     const Cam=BAL.camera||{};
-    const mouselook=!!(S.cam&&S.cam.rmb);
+    const Move=BAL.move||{};
+    const intent=typeof getMoveIntent==="function"?getMoveIntent()
+      :{forward:0,back:0,strafeL:0,strafeR:0,turnL:0,turnR:0,jump:false};
     let turn=0, strafe=0, forward=0;
     if(S.p.alive&&!S.p.knock&&!S.p.fear){
-      if(mouselook){
-        /* 右键按住：A/D 与 Q/E 均为平移（魔兽） */
-        strafe=((keys.e||keys.d||keys.arrowright?1:0)-(keys.q||keys.a||keys.arrowleft?1:0));
-      }else{
-        turn=((keys.a||keys.arrowleft?1:0)-(keys.d||keys.arrowright?1:0));
-        strafe=((keys.e?1:0)-(keys.q?1:0));
-      }
-      forward=((keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0));
-      /* 左右键同按：朝镜头方向前进 */
-      if(Cam.bothBtnForward!==false&&S.cam&&S.cam.lmb&&S.cam.rmb)forward=Math.max(forward,1);
+      turn=(intent.turnL||0)-(intent.turnR||0);
+      strafe=(intent.strafeR||0)-(intent.strafeL||0);
+      forward=(intent.forward||0)-(intent.back||0);
       if(turn)S.p.face+=turn*(Cam.turnSpd||2.6)*dt;
+      if(intent.jump&&S.p.grounded){
+        S.p.vy=Move.jumpVel!=null?Move.jumpVel:9.2;
+        S.p.grounded=false;
+      }
+      S.p._wantJump=false;
+    }else{
+      S.p._wantJump=false;
     }
-    /* 摇杆：上推前进，左右在非鼠标转向时=转向感改为平移更适合触屏 */
-    strafe+=joy.x;
-    forward+=-joy.y;
     const ml=Math.hypot(strafe,forward);
     const face=S.p.face;
     const fSin=Math.sin(face), fCos=Math.cos(face);
@@ -420,7 +496,7 @@ function tick(){
       mz=fCos*nz-fSin*nx;
     }
     /* 前进时把 LMB 环绕视角缓缓回正到角色背后 */
-    if(S.cam&&!S.cam.lmb&&!S.cam.rmb&&forward>.2&&Math.abs(S.cam.yawOff||0)>.01){
+    if(S.cam&&!S.cam.lmb&&!S.cam.rmb&&!S.cam.touchLook&&forward>.2&&Math.abs(S.cam.yawOff||0)>.01){
       const k=1-Math.exp(-(Cam.recenterSpd||3.2)*dt);
       S.cam.yawOff+=(0-S.cam.yawOff)*k;
     }
@@ -485,10 +561,23 @@ function tick(){
       S.p.walkPhase*=1-dt*8;
     }
     if(S.p.alive)player.rotation.y=S.p.face;
-    /* 莫高雷贴地（plan-V2 · R2） */
-    if(S.p.alive&&S.mode==="world"&&typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="mulgore"
-      &&typeof heightAt==="function"){
-      player.position.y=heightAt(player.position.x,player.position.z);
+    /* 贴地 + 跳跃（plan-V3 C1 · heightAt 落地） */
+    if(S.p.alive){
+      const gY=playerGroundY(player.position.x,player.position.z);
+      const eps=Move.groundEps!=null?Move.groundEps:.06;
+      const grav=Move.gravity!=null?Move.gravity:26;
+      if(!S.p.grounded||S.p.vy>0){
+        S.p.vy-=grav*dt;
+        player.position.y+=S.p.vy*dt;
+        if(player.position.y<=gY+eps){
+          player.position.y=gY;
+          S.p.vy=0;
+          S.p.grounded=true;
+        }
+      }else{
+        player.position.y=gY;
+        S.p.vy=0;
+      }
     }
     /* 人形 Anim 状态机（plan-V2 · R5） */
     if(S.p.alive&&typeof updateHumanoidAnim==="function"){
@@ -525,7 +614,7 @@ function tick(){
       else U.armR.rotation.x=Math.sin(S.p.walkPhase)*.3;
       U.armL.rotation.x=-Math.sin(S.p.walkPhase)*.3;
     }
-    /* 萨弗拉斯之柄火焰摇曳（STEP 4：仅装备橙锤时遍历） */
+    /* 熔渊之柄之柄火焰摇曳（STEP 4：仅装备橙锤时遍历） */
     if(S.eq.mainhand==="sulfuras_haft")
       player.traverse(o=>{if(o.userData.flame)o.scale.y=1+Math.sin(S.t*7+o.position.x*5)*.25;});
 
@@ -742,35 +831,41 @@ function tick(){
   if(typeof tickVfx==="function")tickVfx(dt);
   if(typeof tickHitFlash==="function"&&boss)tickHitFlash(boss,dt);
 
-  /* ---- 相机跟随（魔兽第三人称：默认背后；左键环绕偏移；右键与朝向锁定） ---- */
+  /* ---- 相机跟随（plan-V3 C1：球坐标 · 碰撞压近 · 近距第一人称） ---- */
   {
     const C=BAL.camera||{};
     if(S.cam.dist==null)S.cam.dist=C.dist||16;
-    if(S.cam.pitch==null)S.cam.pitch=C.pitch||.38;
+    if(S.cam.pitch==null)S.cam.pitch=C.pitch!=null?C.pitch:.32;
     if(S.cam.yawOff==null)S.cam.yawOff=0;
-    const dist=S.cam.dist;
-    const pitch=S.cam.pitch;
-    const yaw=S.p.face+(S.cam.rmb?0:(S.cam.yawOff||0));
-    const flat=Math.cos(pitch)*dist;
-    const lift=(C.height||9.5)+Math.sin(pitch)*dist*.55;
-    let groundY=0;
-    if(S.mode==="world"&&typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="mulgore"
-      &&typeof heightAt==="function"){
-      const gy=heightAt(player.position.x,player.position.z);
-      if(S.cam._gy==null)S.cam._gy=gy;
-      S.cam._gy+=(gy-S.cam._gy)*(1-Math.exp(-8*dt));
+    S.cam.dist=clamp(S.cam.dist,C.distMin||3,C.distMax||25);
+    S.cam.pitch=clamp(S.cam.pitch,C.pitchMin!=null?C.pitchMin:-1.4,C.pitchMax!=null?C.pitchMax:.6);
+    const yaw=S.p.face+(S.cam.rmb||S.cam.touchLook?0:(S.cam.yawOff||0));
+    let groundY=playerGroundY(player.position.x,player.position.z);
+    if(S.mode==="world"&&typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="mulgore"){
+      if(S.cam._gy==null)S.cam._gy=groundY;
+      S.cam._gy+=(groundY-S.cam._gy)*(1-Math.exp(-8*dt));
       groundY=S.cam._gy;
     }else S.cam._gy=null;
-    const camTarget=new THREE.Vector3(
-      player.position.x-Math.sin(yaw)*flat,
-      groundY+lift,
-      player.position.z-Math.cos(yaw)*flat
-    );
-    const followK=1-Math.exp(-(C.follow||12)*dt);
-    camera.position.x+= (camTarget.x-camera.position.x)*followK;
-    camera.position.y+= (camTarget.y-camera.position.y)*followK;
-    camera.position.z+= (camTarget.z-camera.position.z)*followK;
-    /* R6：Boss 挥锤落地震屏（render-only） */
+    const chestY=groundY+(C.lookChestY!=null?C.lookChestY:1.55);
+    const anchor=new THREE.Vector3(player.position.x,chestY,player.position.z);
+    const wantDist=S.cam.dist;
+    const useDist=resolveCamCollision(anchor,yaw,S.cam.pitch,wantDist);
+    S.cam.colDist=useDist;
+    const fpDist=C.firstPersonDist!=null?C.firstPersonDist:3.35;
+    const firstPerson=useDist<=fpDist;
+    if(player)player.visible=!S.p.alive||!firstPerson;
+    let camTarget;
+    if(firstPerson){
+      const eye=groundY+(C.eyeY!=null?C.eyeY:1.7);
+      camTarget=new THREE.Vector3(player.position.x,eye,player.position.z);
+    }else{
+      const off=camDesiredOffset(yaw,S.cam.pitch,useDist);
+      camTarget=new THREE.Vector3(anchor.x+off.x,anchor.y+off.y,anchor.z+off.z);
+    }
+    const followK=1-Math.exp(-(C.follow||14)*dt);
+    camera.position.x+=(camTarget.x-camera.position.x)*followK;
+    camera.position.y+=(camTarget.y-camera.position.y)*followK;
+    camera.position.z+=(camTarget.z-camera.position.z)*followK;
     if(S.camShake>0){
       const sh=S.camShake;
       camera.position.x+=(Math.random()-.5)*sh;
@@ -778,7 +873,17 @@ function tick(){
       camera.position.z+=(Math.random()-.5)*sh;
       S.camShake=Math.max(0,S.camShake-dt*((BAL.anim&&BAL.anim.bossShakeDecay)||6));
     }
-    camera.lookAt(player.position.x,groundY+(C.lookY||2.2),player.position.z);
+    if(firstPerson){
+      const look=12;
+      const pit=S.cam.pitch;
+      camera.lookAt(
+        player.position.x+Math.sin(S.p.face)*Math.cos(pit)*look,
+        (groundY+(C.eyeY!=null?C.eyeY:1.7))+Math.sin(pit)*look,
+        player.position.z+Math.cos(S.p.face)*Math.cos(pit)*look
+      );
+    }else{
+      camera.lookAt(anchor.x,anchor.y,anchor.z);
+    }
   }
 
   /* ---- UI 刷新 ---- */
@@ -792,12 +897,12 @@ function tick(){
         :"—— 岩桥开启中 ——";
     }else{
       $("#bossHp").style.transform=`scaleX(${S.b.hpMax?S.b.hp/S.b.hpMax:0})`;
-      $("#bossHpTx").textContent=S.b.submerged?"—— 潜入岩浆 ·先消灭烈焰之子 ——":
+      $("#bossHpTx").textContent=S.b.submerged?"—— 潜入岩浆 ·先消灭"+T("mob.flame_spawn")+" ——":
         `${S.b.hp.toLocaleString()} / ${S.b.hpMax.toLocaleString()}  (${Math.ceil(S.b.hp/S.b.hpMax*100)}%)`;
     }
   }else{
     $("#bossHp").style.transform=`scaleX(${S.b.hpMax?S.b.hp/S.b.hpMax:0})`;
-    $("#bossHpTx").textContent=S.b.submerged?"—— 潜入岩浆 ·先消灭烈焰之子 ——":
+    $("#bossHpTx").textContent=S.b.submerged?"—— 潜入岩浆 ·先消灭"+T("mob.flame_spawn")+" ——":
       `${S.b.hp.toLocaleString()} / ${S.b.hpMax.toLocaleString()}  (${Math.ceil(S.b.hp/S.b.hpMax*100)}%)`;
   }
   $("#pHp").style.transform=`scaleX(${S.p.hp/S.p.hpMax})`;

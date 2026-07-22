@@ -1,5 +1,5 @@
 /* ============================================================
-   熔火之心 · models.js
+   炽心 · models.js
    ------------------------------------------------------------
    [依赖] THREE · core.js（rand）· palette.js（PALETTE · MAT）· rig.js（assembleHumanoidRig）
    [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS CLASS_LOOK buildFromClassLook
@@ -75,7 +75,7 @@ const WEAPONS={
       {g:'tor',a:[.85,.05,6,16,Math.PI],r:[0,0,Math.PI/2],m:'wood'},  /* 弓臂 */
       {g:'box',a:[.02,1.7,.02],m:'feather'},                          /* 弓弦 */
     ]},
-  /* 萨弗拉斯之柄：燃烧巨锤（装备橙锤时替换手中武器组） */
+  /* 熔渊之柄之柄：燃烧巨锤（装备橙锤时替换手中武器组） */
   sulfuras:{mats:{
       rock:{c:0x241009,r:1,flat:true,e:0x992200,ei:.18},
       magma:{c:0x33130a,r:.85,flat:true,e:0xff3b00,ei:.55},
@@ -358,7 +358,7 @@ function buildShaman(){return buildFromClassLook("shaman");}
 function buildRogue(){return buildFromClassLook("rogue");}
 
 /* ============================================================
-   Boss 模型：炎魔领主（岩浆巨人，程序化原创低模）
+   Boss 模型：熔渊领主（岩浆巨人，程序化原创低模）
    ============================================================ */
 function buildBoss(){
   const g=new THREE.Group();
@@ -454,7 +454,7 @@ function buildBoss(){
 }
 
 /* ============================================================
-   奥妮克希亚（STEP 28）：黑龙女王 · 程序化龙形低模
+   黑曜女皇（STEP 28）：黑龙女王 · 程序化龙形低模
    ============================================================ */
 function buildOnyxia(){
   const g=new THREE.Group();
@@ -521,7 +521,7 @@ function buildOnyxia(){
 /* 野怪族群工厂已迁至 creatures.js（plan-V2 · R6）：
    buildQuadruped / buildElemental / buildHumanoidMob / QUADS / MOB_LOOK 等 */
 
-/* ---------------- 牛头人营地 NPC（缩小精致版；vendor/spirit/tint 共用） ---------------- */
+/* ---------------- 蹄人营地 NPC（缩小精致版；vendor/spirit/tint 共用） ---------------- */
 function buildElder(){
   const g=new THREE.Group();
   const fur=MAT.get("fur.centaur");
@@ -665,7 +665,7 @@ const BUILD_PAL={
 
 function placeProp(root,mesh,x,z,rotY){
   if(!root||!mesh)return mesh;
-  /* 莫高雷场景根贴 heightAt；其他 zone 保持平坦 y=0 */
+  /* 赤蹄草甸场景根贴 heightAt；其他 zone 保持平坦 y=0 */
   const useH=typeof heightAt==="function"&&typeof sceneWorld!=="undefined"&&root===sceneWorld;
   mesh.position.set(x,useH?heightAt(x,z):0,z);
   if(rotY!=null)mesh.rotation.y=rotY;

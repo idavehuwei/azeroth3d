@@ -1,5 +1,5 @@
 /* ============================================================
-   熔火之心 · rares.js
+   炽心 · rares.js
    稀有精英 + 世界 Boss 框架（STEP 24）
    RARES / WORLD_BOSSES 声明式表 · 长刷新 · 金色姓名板 · 公告 · 必掉
    ------------------------------------------------------------
@@ -21,7 +21,7 @@ const RARES=[
   {id:"ashmane_barrens", type:"ashmane", zone:"barrens",
     x:-192, z:152, rare:true, label:"灰蹄野猪王",
     name:"灰蹄野猪王"},
-  /* 粉色精英也走表，便于小地图统一 · 乱风岗 */
+  /* 粉色精英也走表，便于小地图统一 · 风啸岗 */
   {id:"harpy_mulgore", type:"harpy", zone:"mulgore",
     x:62, z:-300, rare:false, label:"鹰身女妖"},
 ];
@@ -104,5 +104,5 @@ function onRareKill(m){
 }
 
 console.info("[rares] STEP 24 就绪：RARES · WORLD_BOSSES");
-/* world.js 先于本文件加载：莫高雷稀有在此补刷 */
+/* world.js 先于本文件加载：赤蹄草甸稀有在此补刷 */
 if(typeof MOBS!=="undefined")spawnRaresForZone("mulgore");

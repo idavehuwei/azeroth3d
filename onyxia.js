@@ -1,6 +1,6 @@
 /* ============================================================
-   熔火之心 · onyxia.js
-   奥妮克希亚巢穴·精简（STEP 28）：走廊幼龙 → 奥妮克希亚三阶段
+   炽心 · onyxia.js
+   黑曜巢穴·精简（STEP 28）：走廊幼龙 → 黑曜女皇三阶段
    ------------------------------------------------------------
    [依赖] THREE · core.js（BAL srand rand scene makeLabel）
           zones.js（registerZone）
@@ -66,7 +66,7 @@ function buildOnyxiaZone(root){
   const entry=new THREE.PointLight(0xaa6644,1.0,30,2);
   entry.position.set(0,7,14); root.add(entry);
 
-  const lab=makeLabel("奥妮克希亚巢穴",9,"#e8a080","rgba(60,20,15,.92)");
+  const lab=makeLabel(T("zone.onyxia"),9,"#e8a080","rgba(60,20,15,.92)");
   lab.position.set(0,7.5,16); root.add(lab);
 }
 
@@ -105,8 +105,8 @@ const ONYXIA_DUNGEON={
     }else if(s==="boss"){
       this.stage="boss";
       activateRaidBoss("onyxia");
-      announce("奥妮克希亚 · 黑龙女王！");
-      log("巢穴深处，黑龙女王奥妮克希亚张开双翼——三阶段之战开始！","lg-boss");
+      announce(T("boss.onyxia")+" · 黑龙女王！");
+      log("巢穴深处，黑龙女王"+T("boss.onyxia")+"张开双翼——三阶段之战开始！","lg-boss");
     }
   },
   tickBridge(){ /* 无岩桥 */ },
@@ -116,7 +116,7 @@ DUNGEONS.onyxias_lair=ONYXIA_DUNGEON;
 
 registerZone({
   id:"onyxias_lair",
-  name:"奥妮克希亚巢穴",
+  name:T("zone.onyxia"),
   scene:sceneOnyxia,
   build:buildOnyxiaZone,
   music:"raid",
@@ -141,11 +141,11 @@ registerZone({
     if(opts&&opts.silent)return;
     if(typeof resetBoss==="function")resetBoss();
     ONYXIA_DUNGEON.setStage("corridor");
-    log("你踏入奥妮克希亚巢穴——硫磺与焦骨的气味扑面而来。","lg-sys");
+    log("你踏入"+T("zone.onyxia")+"——硫磺与焦骨的气味扑面而来。","lg-sys");
     $("#bossFrame").classList.add("show");
     const n=$("#bossName .n"), t=$("#bossName .t");
-    if(n)n.textContent="🐉 奥妮克希亚巢穴";
-    if(t)t.textContent="贫瘠之地 · 黑龙巢穴";
+    if(n)n.textContent="🐉 "+T("zone.onyxia");
+    if(t)t.textContent=T("zone.barrens")+" · 黑龙巢穴";
   },
   onLeave(){
     if(typeof removeExitPortal==="function")removeExitPortal();

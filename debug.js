@@ -1,5 +1,5 @@
 /* ============================================================
-   熔火之心 · debug.js
+   炽心 · debug.js
    性能预算面板 + 作弊台（plan-V2 · R8）
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ BAL renderer isMobileClient effectiveWorldSeed

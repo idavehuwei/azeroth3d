@@ -1,5 +1,5 @@
 /* ============================================================
-   熔火之心 · combat.js
+   炽心 · combat.js
    战斗系统：游戏状态 / 职业配置 / UI 与输入 / 玩家技能
             统一受击入口 hitEntity / 玩家胜负
    ------------------------------------------------------------
@@ -20,6 +20,9 @@
             spawnAdd addDamage addDie bossDie playerDie resetBoss BOSS_ENT DUNGEON）
           threat.js 运行时（addThreat）
    [导出] S SKILLS CLASSES CLS setClass applySkillBarIcons log announce fct hurtFlash keys joy
+          getMoveIntent clearMoveTarget camApplyDrag
+          hitEntity playerHit gainXP updateLevelUI useSkill pickTarget setCurrentTarget getFocusTarget
+          firePlayerShot
           useSkill hitEntity dmgBoss pickTarget firePlayerShot playerHit
           isTargetAlive setCurrentTarget getFocusTarget clearCurrentTargetIf
           gainXP updateLevelUI gainCopper spendCopper formatCopperText updateGoldUI
@@ -46,7 +49,8 @@ const S={
      stealth:false,sprintT:0,              /* V1-C2 潜行 / 疾步 */
      level:1,xp:0,xpMax:BAL.levels.xpMax[0],gold:0,   /* 经验与等级（STEP 3）· 金币铜（STEP 13） */
      eating:null,bandaging:null,gathering:null,weaknessT:0,
-     whetstoneT:0,whetstoneAdd:0},
+     whetstoneT:0,whetstoneAdd:0,
+     vy:0,grounded:true,autoRun:false,_wantJump:false}, /* plan-V3 C1 */
   b:{id:"ragnaros",hp:BAL.boss.hp,hpMax:BAL.boss.hp,alive:true,rising:true,riseT:0,
      phase:1,swingT:0,casting:null,castT:0,castDur:0,
      next:{},submerged:false,submergeT:0,canLeave:false,nextAddSpawn:0,addWave:null},
@@ -56,7 +60,7 @@ const S={
   inv:[],      /* 背包（STEP 2 起：拾取的物品 id 列表） */
   eq:emptyEquipment(), /* 纸娃娃装备位（items.js · EQUIP_SLOTS） */
   god:false,   /* 上帝模式：启程时由首页勾选决定（hitEntity 消费） */
-  cam:{dist:16,pitch:.38,yawOff:0,lmb:false,rmb:false,lx:0,ly:0}, /* 魔兽式视角状态 */
+  cam:{dist:BAL.camera.dist,pitch:BAL.camera.pitch,yawOff:0,lmb:false,rmb:false,lx:0,ly:0,colDist:null},
   camShake:0, /* R6：Boss 挥锤震屏（render-only） */
   vendorOpen:false,
   vendorNpcId:null, /* 当前商店 NPC id（对照 BAL.economy.vendorStockByNpc） */
@@ -227,26 +231,78 @@ function fct(worldPos,text,color,size=17,opts){
 function hurtFlash(){const f=$("#hurtFlash");f.style.transition="none";f.style.opacity=.9;
   requestAnimationFrame(()=>{f.style.transition="opacity .5s";f.style.opacity=0;});}
 
-/* ---------------- 输入 ---------------- */
+/* ---------------- 输入（plan-V3 C1：意图层 + 魔兽键位） ---------------- */
 const keys={};
+/** 统一移动意图：键鼠 / 摇杆 / 触控都映射到此，便于测试驱动 */
+function getMoveIntent(){
+  const intent={forward:0,back:0,strafeL:0,strafeR:0,turnL:0,turnR:0,jump:false};
+  if(!S.p||!S.started)return intent;
+  const mouselook=!!(S.cam&&(S.cam.rmb||S.cam.touchLook));
+  if(keys.w||keys.arrowup)intent.forward=1;
+  if(keys.s||keys.arrowdown)intent.back=1;
+  if(mouselook){
+    if(keys.q||keys.a||keys.arrowleft)intent.strafeL=1;
+    if(keys.e||keys.d||keys.arrowright)intent.strafeR=1;
+  }else{
+    if(keys.a||keys.arrowleft)intent.turnL=1;
+    if(keys.d||keys.arrowright)intent.turnR=1;
+    if(keys.q)intent.strafeL=1;
+    if(keys.e)intent.strafeR=1;
+  }
+  if(S.p.autoRun)intent.forward=Math.max(intent.forward,1);
+  const Cam=BAL.camera||{};
+  if(Cam.bothBtnForward!==false&&S.cam&&S.cam.lmb&&S.cam.rmb)intent.forward=Math.max(intent.forward,1);
+  if(joy.active||joy.x||joy.y){
+    if(joy.y< -.05)intent.forward=Math.max(intent.forward,-joy.y);
+    if(joy.y> .05)intent.back=Math.max(intent.back,joy.y);
+    if(joy.x< -.05)intent.strafeL=Math.max(intent.strafeL,-joy.x);
+    if(joy.x> .05)intent.strafeR=Math.max(intent.strafeR,joy.x);
+  }
+  if(S.p._wantJump)intent.jump=true;
+  return intent;
+}
+function clearMoveTarget(){
+  if(S.currentTarget){
+    setCurrentTarget(null);
+    log("取消目标。","lg-sys");
+    return true;
+  }
+  return false;
+}
 addEventListener("keydown",e=>{
-  keys[e.key.toLowerCase()]=true;
+  const k=e.key.toLowerCase();
+  keys[k]=true;
+  if(e.key===" "){keys[" "]=true;if(!e.repeat&&S.started&&S.p&&S.p.alive)S.p._wantJump=true;e.preventDefault();}
   if(["1","2","3","4"].includes(e.key))useSkill(+e.key-1);
-  if(e.key.toLowerCase()==="f")tryInteract();
-  if(e.key.toLowerCase()==="b")toggleBag();
-  if(e.key.toLowerCase()==="n")toggleTalentPanel();
-  if(e.key.toLowerCase()==="c")toggleCharPanel();
-  if(e.key.toLowerCase()==="p")toggleSpellPanel();
-  if(e.key.toLowerCase()==="l")toggleQuestLog();
-  if(e.key.toLowerCase()==="m")toggleWorldMap();
-  if(e.shiftKey&&e.key.toLowerCase()==="z"&&typeof toggleDeedsPanel==="function"){e.preventDefault();toggleDeedsPanel();}
-  if(e.shiftKey&&e.key.toLowerCase()==="i"&&typeof toggleDungeonFinderPanel==="function"){e.preventDefault();toggleDungeonFinderPanel();}
+  if(k==="f")tryInteract();
+  if(k==="b")toggleBag();
+  if(k==="n")toggleTalentPanel();
+  if(k==="c")toggleCharPanel();
+  if(k==="p")toggleSpellPanel();
+  if(k==="l")toggleQuestLog();
+  if(k==="m")toggleWorldMap();
+  if(k==="r"&&!e.repeat&&S.started&&S.p&&S.p.alive){
+    S.p.autoRun=!S.p.autoRun;
+    log(S.p.autoRun?"自动奔跑 · 开":"自动奔跑 · 关","lg-sys");
+  }
+  if(e.shiftKey&&k==="z"&&typeof toggleDeedsPanel==="function"){e.preventDefault();toggleDeedsPanel();}
+  if(e.shiftKey&&k==="i"&&typeof toggleDungeonFinderPanel==="function"){e.preventDefault();toggleDungeonFinderPanel();}
   if(e.key==="Escape"){
     if(typeof worldMapOpen==="function"&&worldMapOpen()){closeWorldMap();return;}
+    if(typeof anyHudPanelOpen==="function"&&anyHudPanelOpen()){
+      if(typeof closeAllHudPanels==="function")closeAllHudPanels();
+      return;
+    }
     if(typeof closeAllHudPanels==="function")closeAllHudPanels();
+    clearMoveTarget();
   }
 });
-addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
+addEventListener("keyup",e=>{
+  const k=e.key.toLowerCase();
+  keys[k]=false;
+  if(e.key===" ")keys[" "]=false;
+  if(k==="s"||k==="arrowdown"){if(S.p)S.p.autoRun=false;}
+});
 document.getElementById("interactBtn").addEventListener("pointerdown",()=>tryInteract());
 document.querySelectorAll(".skill").forEach(el=>{
   el.addEventListener("pointerdown",()=>useSkill(+el.dataset.sk));
@@ -257,29 +313,29 @@ function camOnCanvas(e){
   const c=typeof renderer!=="undefined"&&renderer.domElement;
   return !!(c&&(e.target===c));
 }
-function camApplyDrag(dx,dy){
+function camApplyDrag(dx,dy,sensOverride){
   if(!S.started||!S.cam)return;
-  const C=BAL.camera||{}, sens=C.mouseSens||.0042;
-  if(S.cam.rmb){
-    /* 右键：鼠标转向（角色朝向=镜头），俯仰 */
+  const C=BAL.camera||{}, sens=sensOverride!=null?sensOverride:(C.mouseSens||.0042);
+  const pMin=C.pitchMin!=null?C.pitchMin:-1.4, pMax=C.pitchMax!=null?C.pitchMax:.6;
+  if(S.cam.rmb||S.cam.touchLook){
     S.p.face-=dx*sens;
     S.cam.yawOff=0;
-    S.cam.pitch=clamp(S.cam.pitch+dy*sens,C.pitchMin||.12,C.pitchMax||.78);
+    S.cam.pitch=clamp(S.cam.pitch+dy*sens,pMin,pMax);
   }else if(S.cam.lmb){
-    /* 左键：仅环绕镜头，不改角色朝向 */
     S.cam.yawOff-=dx*sens;
-    S.cam.pitch=clamp(S.cam.pitch+dy*sens,C.pitchMin||.12,C.pitchMax||.78);
+    S.cam.pitch=clamp(S.cam.pitch+dy*sens,pMin,pMax);
   }
 }
 addEventListener("wheel",e=>{
   if(!S.started||!S.cam)return;
-  if(!camOnCanvas(e)&&e.target&&e.target.closest&&e.target.closest(".hudPanel,#bag,#dlg,#overlay"))return;
+  if(!camOnCanvas(e)&&e.target&&e.target.closest&&e.target.closest(".hudPanel,#bag,#dlg,#overlay,#startOv"))return;
   const C=BAL.camera;
   const step=(C.zoomStep||1.15)*(e.deltaY>0?1:-1);
-  S.cam.dist=clamp(S.cam.dist+step,C.distMin||6,C.distMax||32);
+  S.cam.dist=clamp(S.cam.dist+step,C.distMin||3,C.distMax||25);
 },{passive:true});
 addEventListener("pointerdown",e=>{
   if(!S.started||!S.cam)return;
+  if(e.pointerType==="touch")return; /* 触控走 touch*（右半屏视角 / 捏合） */
   if(e.button===0){
     if(!camOnCanvas(e))return;
     S.cam.lmb=true; S.cam.lx=e.clientX; S.cam.ly=e.clientY;
@@ -290,12 +346,14 @@ addEventListener("pointerdown",e=>{
 });
 addEventListener("pointerup",e=>{
   if(!S.cam)return;
+  if(e.pointerType==="touch")return;
   if(e.button===0)S.cam.lmb=false;
   if(e.button===2)S.cam.rmb=false;
 });
 addEventListener("pointercancel",()=>{if(S.cam){S.cam.lmb=false;S.cam.rmb=false;}});
 addEventListener("pointermove",e=>{
   if(!S.cam||!S.started)return;
+  if(e.pointerType==="touch")return;
   if(!S.cam.lmb&&!S.cam.rmb)return;
   const dx=e.clientX-S.cam.lx, dy=e.clientY-S.cam.ly;
   S.cam.lx=e.clientX; S.cam.ly=e.clientY;
@@ -317,6 +375,58 @@ joyEl.addEventListener("touchstart",e=>{joy.active=true;joyMove(e);e.preventDefa
 joyEl.addEventListener("touchmove",e=>{joyMove(e);e.preventDefault();},{passive:false});
 joyEl.addEventListener("touchend",()=>{joy.active=false;joy.x=joy.y=0;
   knob.style.transform="translate(-50%,-50%)";});
+
+/* 移动端：右半屏拖动 = 鼠标视角；双指捏合 = 缩放 */
+const touchCam={id:null,x:0,y:0,pinch:null};
+function touchOnJoy(t){
+  return !!(t&&t.target&&t.target.closest&&t.target.closest("#joy,#joyKnob,#skillBar,.skill,#interactBtn,#bagBtn"));
+}
+addEventListener("touchstart",e=>{
+  if(!S.started||!S.cam)return;
+  if(e.touches.length===2){
+    const a=e.touches[0],b=e.touches[1];
+    touchCam.pinch=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+    return;
+  }
+  const t=e.changedTouches[0];
+  if(!t||touchOnJoy(t))return;
+  if(t.clientX<innerWidth*.42)return;
+  touchCam.id=t.identifier; touchCam.x=t.clientX; touchCam.y=t.clientY;
+  S.cam.touchLook=true; S.cam.yawOff=0;
+},{passive:true});
+addEventListener("touchmove",e=>{
+  if(!S.started||!S.cam)return;
+  if(e.touches.length===2&&touchCam.pinch!=null){
+    const a=e.touches[0],b=e.touches[1];
+    const d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+    const C=BAL.camera||{};
+    const dd=(touchCam.pinch-d)*(C.pinchZoomScale||.05);
+    S.cam.dist=clamp(S.cam.dist+dd,C.distMin||3,C.distMax||25);
+    touchCam.pinch=d;
+    return;
+  }
+  if(touchCam.id==null||!S.cam.touchLook)return;
+  let t=null;
+  for(let i=0;i<e.touches.length;i++)if(e.touches[i].identifier===touchCam.id){t=e.touches[i];break;}
+  if(!t)return;
+  const dx=t.clientX-touchCam.x, dy=t.clientY-touchCam.y;
+  touchCam.x=t.clientX; touchCam.y=t.clientY;
+  const sens=(BAL.camera&&BAL.camera.touchLookSens)||.0055;
+  camApplyDrag(dx,dy,sens);
+},{passive:true});
+addEventListener("touchend",e=>{
+  if(!S.cam)return;
+  for(let i=0;i<e.changedTouches.length;i++){
+    if(e.changedTouches[i].identifier===touchCam.id){
+      touchCam.id=null; S.cam.touchLook=false;
+    }
+  }
+  if(e.touches.length<2)touchCam.pinch=null;
+});
+addEventListener("touchcancel",()=>{
+  touchCam.id=null; touchCam.pinch=null;
+  if(S.cam)S.cam.touchLook=false;
+});
 
 /* ============================================================
    玩家技能
@@ -371,7 +481,7 @@ function useSkill(i){
    统一受击入口（STEP 1，参考 WoC 单一 Sim 战斗结算）
    流程：乘系数 → 扣血 → 飘字 → 日志(onHit) → 死亡回调(onDeath)
    实体接口：{hp, variance, dead(), fctPos(), fctSize?, onHit?, onDeath}
-   野猪 / 烈焰之子 / Boss 全部走这一个函数；
+   野猪 / 火裔 / Boss 全部走这一个函数；
    掉落（STEP 2）与经验（STEP 3）只需挂接各实体的 onDeath。
    ============================================================ */
 function hitEntity(ent,amount,label,opts){

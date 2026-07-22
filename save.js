@@ -1,5 +1,5 @@
 /* ============================================================
-   熔火之心 · save.js
+   炽心 · save.js
    存档系统（STEP 11）：只序列化纯数据；localStorage + Base64 导出/导入
    加载时按来源重建等级/任务奖励/天赋/装备修饰，不碰 Three.js 对象
    ------------------------------------------------------------
@@ -216,7 +216,7 @@ function rebuildLevelStats(level){
 function applySaveData(data){
   /* 副本态不恢复遭遇，回世界；野外按 zoneId 重建 */
   const wantZone=normalizeSaveZoneId(data.zoneId||data.zone);
-  /* 副本遭遇不恢复：熔火回莫高雷，哀嚎/奥妮回贫瘠，怒焰回赭岩 */
+  /* 副本遭遇不恢复：熔火回赤蹄草甸，哀嚎/奥妮回贫瘠，怒焰回赭岩 */
   const restoreZone=wantZone==="molten_core"?"mulgore"
     :(wantZone==="wailing_caverns"||wantZone==="onyxias_lair"?"barrens"
       :(wantZone==="ragefire_chasm"?"durotar":wantZone));
@@ -426,8 +426,8 @@ function beginNewGame(classKey){
   );
   updateQuest(); setMarker();
   if(typeof updateBarrensMarkers==="function")updateBarrensMarkers();
-  finishStart("莫高雷 · 纳拉其营地");
-  log("你从纳拉其营地醒来。北上红云台地猎杀野兽，再前往血蹄村拜见长老。","lg-sys");
+  finishStart(T("zone.mulgore")+" · "+T("poi.camp_narache"));
+  log("你从"+T("poi.camp_narache")+"醒来。北上红云台地猎杀野兽，再前往"+T("poi.bloodhoof")+"拜见长老。","lg-sys");
   if(S.god)log(`⚡ 上帝模式已开启：你的每一次攻击都将造成 ${BAL.god.dmg.toLocaleString()} 点伤害。`,"lg-sys");
   setTimeout(()=>log(CLS.tip,"lg-sys"),2200);
 }
@@ -436,7 +436,7 @@ function beginContinue(){
   const r=loadGame();
   if(!r.ok){log(r.reason||"无法读取存档","lg-sys");return false;}
   S.god=false;
-  finishStart(r.data.zone==="raid"?"你在熔火之心外苏醒……":"继续冒险");
+  finishStart(r.data.zone==="raid"?"你在"+T("zone.molten_core")+"外苏醒……":"继续冒险");
   log(`读取存档：${CLASSES[r.data.classKey].title} · Lv.${r.data.level}`,"lg-sys");
   if(r.data.zone==="raid")log("副本遭遇不保留——请再次踏入传送门。","lg-sys");
   return true;

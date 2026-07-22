@@ -1,5 +1,5 @@
 /* ============================================================
-   熔火之心 · items.js
+   炽心 · items.js
    物品与掉落系统（STEP 2）：品质表 / 物品定义 / 按权重掉落表
    世界掉落实体（发光方块 + 图标悬浮牌 + 品质色名字）与尸体拾取
    ------------------------------------------------------------
@@ -128,7 +128,7 @@ const ITEMS={
   wind_essence :{id:"wind_essence", name:"风之精华",    icon:"feather",quality:"common",  slot:"misc",  stats:null, vendorSell:12},
   earth_shard  :{id:"earth_shard",  name:"土地元素碎片",icon:"ore",    quality:"common",  slot:"misc",  stats:null, vendorSell:12},
   soul_shard   :{id:"soul_shard",   name:"灵魂碎片",    icon:"tusk",   quality:"common",  slot:"misc",  stats:null, vendorSell:10},
-  quilboar_gland:{id:"quilboar_gland",name:"野猪人毒腺",icon:"potion", quality:"common",  slot:"misc",  stats:null, vendorSell:9},
+  quilboar_gland:{id:"quilboar_gland",name:T("mob.quilboar")+"毒腺",icon:"potion", quality:"common",  slot:"misc",  stats:null, vendorSell:9},
   harpy_feather:{id:"harpy_feather",name:"鹰身人羽毛",  icon:"feather",quality:"uncommon",slot:"misc",  stats:null, vendorSell:15},
   blasting_powder:{id:"blasting_powder",name:"爆破炸药",icon:"fireball",quality:"common",slot:"misc",stats:null,vendorSell:14},
   quest_venture_crate:{id:"quest_venture_crate",name:"地精补给箱",icon:"armor",quality:"common",slot:"misc",stats:null,quest:true},
@@ -143,16 +143,16 @@ const ITEMS={
   tusk_blade   :{id:"tusk_blade",   name:"獠牙短刃",    icon:"sword", quality:"uncommon", slot:"mainhand",stats:{dmgMul:1.05},model:"sword",vendorSell:45},
   plains_blade :{id:"plains_blade", name:"草原猎手战刃",icon:"sword", quality:"rare",     slot:"mainhand",stats:{dmgMul:1.12},model:"sword",vendorSell:180},
   sulf_blade   :{id:"sulf_blade",   name:"熔火利刃",    icon:"sword", quality:"rare",     slot:"mainhand",stats:{dmgMul:1.08},model:"sword",vendorSell:220},
-  sulfuras_haft:{id:"sulfuras_haft",name:"萨弗拉斯之柄",icon:"hammer",quality:"legendary",slot:"mainhand",stats:{dmgMul:1.3},model:"sulfuras",vendorSell:2500},
+  sulfuras_haft:{id:"sulfuras_haft",name:T("item.sulfuras_haft"),icon:"hammer",quality:"legendary",slot:"mainhand",stats:{dmgMul:1.3},model:"sulfuras",vendorSell:2500},
   wind_blade   :{id:"wind_blade",   name:"疾风之刃",    icon:"sword",  quality:"uncommon",slot:"mainhand",stats:{dmgMul:1.06},model:"sword",vendorSell:55},
   greyjaw_tusk :{id:"greyjaw_tusk", name:"老灰鬃的獠牙刃",icon:"sword",quality:"rare",   slot:"mainhand",stats:{dmgMul:1.15},model:"sword",vendorSell:240},
   serpent_fang :{id:"serpent_fang", name:"毒牙弯刃",    icon:"sword", quality:"rare",    slot:"mainhand",stats:{dmgMul:1.14},model:"sword",vendorSell:280},
-  onyxia_fang  :{id:"onyxia_fang",  name:"奥妮克希亚之牙",icon:"sword", quality:"epic",  slot:"mainhand",stats:{dmgMul:1.22},model:"sword",vendorSell:800},
+  onyxia_fang  :{id:"onyxia_fang",  name:T("item.onyxia_fang"),icon:"sword", quality:"epic",  slot:"mainhand",stats:{dmgMul:1.22},model:"sword",vendorSell:800},
   warbringer_spear:{id:"warbringer_spear",name:"战争使者战矛",icon:"sword",quality:"rare",slot:"mainhand",stats:{dmgMul:1.16},model:"sword",vendorSell:320},
   barrens_cleaver:{id:"barrens_cleaver",name:"贫瘠劈刀",icon:"sword",quality:"uncommon",slot:"mainhand",stats:{dmgMul:1.09},model:"sword",vendorSell:160},
   ochre_fang   :{id:"ochre_fang",   name:"赭岩毒牙刃",  icon:"sword", quality:"rare",    slot:"mainhand",stats:{dmgMul:1.13},model:"sword",vendorSell:260},
   whelp_claw   :{id:"whelp_claw",   name:"幼龙利爪",    icon:"sword", quality:"uncommon",slot:"mainhand",stats:{dmgMul:1.04},model:"sword",vendorSell:160},
-  /* —— 怒焰裂谷 —— */
+  /* —— 焰怒深渊 —— */
   rage_blade   :{id:"rage_blade",   name:"怒焰短刃",    icon:"sword", quality:"uncommon",slot:"mainhand",stats:{dmgMul:1.08},model:"sword",vendorSell:140},
   cinder_vest  :{id:"cinder_vest",  name:"燃烬皮甲",    icon:"armor", quality:"uncommon",slot:"chest",stats:{hpMax:380},vendorSell:150},
   ember_band   :{id:"ember_band",   name:"余烬指环",    icon:"star",  quality:"rare",    slot:"finger",stats:{hpMax:240,dmgMul:1.03},vendorSell:220},
@@ -179,7 +179,7 @@ const ITEMS={
   mesa_guard   :{id:"mesa_guard",   name:"红岩守卫胸甲",icon:"armor", quality:"rare",     slot:"chest",stats:{hpMax:600},vendorSell:200},
   dragonscale  :{id:"dragonscale",  name:"黑龙鳞胸甲",  icon:"armor", quality:"epic",     slot:"chest",stats:{hpMax:1100},vendorSell:850},
   warbringer_plate:{id:"warbringer_plate",name:"半人马督军胸甲",icon:"armor",quality:"rare",slot:"chest",stats:{hpMax:780},vendorSell:340},
-  barrens_cuirass:{id:"barrens_cuirass",name:"十字路口胸甲",icon:"armor",quality:"uncommon",slot:"chest",stats:{hpMax:420},vendorSell:170},
+  barrens_cuirass:{id:"barrens_cuirass",name:T("poi.crossroads")+"胸甲",icon:"armor",quality:"uncommon",slot:"chest",stats:{hpMax:420},vendorSell:170},
   ochre_plate  :{id:"ochre_plate",  name:"哨站硬皮甲",  icon:"armor", quality:"uncommon",slot:"chest",stats:{hpMax:480},vendorSell:190},
   /* —— 手部（含原护腕 / 盾） —— */
   wolf_gauntlets:{id:"wolf_gauntlets",name:"灰狼手套",icon:"hide", quality:"uncommon",slot:"hands",stats:{hpMax:110},vendorSell:42},
@@ -189,7 +189,7 @@ const ITEMS={
   tusk_buckler :{id:"tusk_buckler", name:"獠牙圆盾",    icon:"armor", quality:"uncommon",slot:"hands",stats:{hpMax:200},vendorSell:55},
   /* —— 腿部（含原腰带） —— */
   hide_leggings:{id:"hide_leggings",name:"硬化皮裤",   icon:"hide",  quality:"uncommon",slot:"legs",stats:{hpMax:180},vendorSell:48},
-  barrens_greaves:{id:"barrens_greaves",name:"十字路口护腿",icon:"armor",quality:"rare",slot:"legs",stats:{hpMax:360},vendorSell:200},
+  barrens_greaves:{id:"barrens_greaves",name:T("poi.crossroads")+"护腿",icon:"armor",quality:"rare",slot:"legs",stats:{hpMax:360},vendorSell:200},
   boar_belt    :{id:"boar_belt",    name:"野猪皮带",    icon:"hide",  quality:"uncommon",slot:"legs",stats:{hpMax:100},vendorSell:38},
   serpent_sash :{id:"serpent_sash", name:"毒牙腰带",    icon:"armor", quality:"rare",    slot:"legs",stats:{hpMax:260},vendorSell:170},
   /* —— 脚部 —— */
@@ -221,7 +221,7 @@ const ITEMS={
   quest_dwarf_plans:{id:"quest_dwarf_plans",name:"矮人计划书",icon:"hide",quality:"common",slot:"misc",stats:null,quest:true},
   quest_signal_horn :{id:"quest_signal_horn", name:"信号号角",    icon:"tusk",   quality:"common", slot:"consumable",use:"quest",
                       stats:null, quest:true},
-  quest_darsok_letter:{id:"quest_darsok_letter",name:"十字路口急信",icon:"hide",quality:"common",slot:"misc",stats:null,quest:true},
+  quest_darsok_letter:{id:"quest_darsok_letter",name:T("poi.crossroads")+"急信",icon:"hide",quality:"common",slot:"misc",stats:null,quest:true},
   quest_kil_crate:{id:"quest_kil_crate",name:"斯特雷的货物",icon:"armor",quality:"common",slot:"misc",stats:null,quest:true},
   quest_grave_totem:{id:"quest_grave_totem",name:"大地净化图腾",icon:"tusk",quality:"common",slot:"consumable",use:"quest",
     tip:"在勇士之墓附近使用以净化污染。",quest:true},

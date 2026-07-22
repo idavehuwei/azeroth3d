@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>熔火之心 · 炎魔之王决战</title>
+<title data-t="meta.title">炽心熔窟 · 熔渊之王决战</title>
 <style>
   :root{
     --ember:#ff6a1a; --lava:#ff3b00;
@@ -540,7 +540,7 @@
 <div id="fps">— FPS</div>
  
 <div id="bossFrame">
-  <div id="bossName"><span class="n">🔥 拉戈斯 · 炎魔领主</span><span class="t">熔火之心 · 最终首领</span></div>
+  <div id="bossName"><span class="n" data-t="ui.boss_name">🔥 熔渊之王 · 卡尔戈</span><span class="t" data-t="ui.boss_title">炽心熔窟 · 最终首领</span></div>
   <div class="barShell"><div class="barFill" id="bossHp"></div><div id="bossHpTicks"></div><div class="barText" id="bossHpTx"></div></div>
   <div id="castShell"><div id="castFill"></div><div id="castText"></div></div>
 </div>
@@ -577,13 +577,13 @@
 <div id="announce"></div>
 <div id="joy"><div id="joyKnob"></div></div>
 <div id="minimapWrap">
-  <div class="mm-title">莫 高 雷</div>
+  <div class="mm-title" data-t="ui.minimap_spaced">赤 蹄 草 甸</div>
   <canvas id="minimap" width="140" height="140" title="点击或按 M 打开世界地图"></canvas>
 </div>
 <div id="quest"></div>
 <div id="worldMapOv">
   <div id="worldMapBox">
-    <div class="bag-title">🗺 世界地图 · 莫高雷<span class="bag-close" id="worldMapClose">✕</span></div>
+    <div class="bag-title"><span data-t="ui.world_map_mulgore">🗺 世界地图 · 赤蹄草甸</span><span class="bag-close" id="worldMapClose">✕</span></div>
     <canvas id="worldMap" width="520" height="520"></canvas>
     <div id="worldMapLeg">
       <span><i style="background:#7ab8ff"></i>你（面向）</span>
@@ -656,7 +656,7 @@
   <div id="vendorStock"></div>
   <div class="ph-hint">点击购买 · 背包自动打开可右键出售 · 关背包结束交易</div>
 </div>
-<div id="dlg"><div class="dname">🐂 长老 · 岩蹄</div><div id="dlgText"></div><div id="dlgBtns"></div></div>
+<div id="dlg"><div class="dname" data-t="npc.elder_dlg">🐂 长老 · 岩蹄</div><div id="dlgText"></div><div id="dlgBtns"></div></div>
  
 <div class="overlay" id="startOv">
   <button type="button" id="btnGfxGear" title="画面与特效" aria-label="画面与特效" aria-expanded="false">⚙</button>
@@ -675,11 +675,11 @@
     <label class="gfx-opt"><input type="checkbox" id="gfxBloom"><span>假 Bloom 外壳</span><span class="warn">零 CDN</span></label>
     <p class="gfx-foot">立即生效，并记住本机设置。卡顿时优先选「流畅」。游戏中按 <kbd style="color:#ffcf98">`</kbd> 查看性能预算。</p>
   </div>
-  <h1>熔火之心</h1>
-  <h2>MOLTEN&nbsp;CORE&nbsp;·&nbsp;深入炽热核心</h2>
-  <p>草原之风吹过莫高雷的红岩台地。牛头人长老在营火旁低语：<br>
-     北方矗立着一道燃烧的传送门，通往地底深处的 <b style="color:#ff8a4a">熔火之心</b>——<br>
-     讨伐炎魔领主 <b style="color:#ff8a4a">拉戈斯</b>，或继续未竟的旅程。</p>
+  <h1 data-t="start.title">炽心熔窟</h1>
+  <h2 data-t="meta.h2">EMBER&nbsp;CORE&nbsp;·&nbsp;深入炽热核心</h2>
+  <p data-t-html="start.intro">草原之风吹过赤蹄草甸的红岩台地。蹄人长老在营火旁低语：<br>
+     北方矗立着一道燃烧的传送门，通往地底深处的 <b style="color:#ff8a4a">炽心熔窟</b>——<br>
+     讨伐熔渊之王 <b style="color:#ff8a4a">卡尔戈</b>，或继续未竟的旅程。</p>
   <div id="saveMeta"></div>
   <div id="startMenu">
     <div class="btn-row">
@@ -717,9 +717,9 @@
       <button type="button" class="btn sm ghost" id="btnExportSave" style="display:none">导出存档码</button>
     </div>
   </div>
-  <div class="hint">W/S 进退 · A/D 转向 · Q/E 平移 · 右键鼠标转向 · 左键环绕视角 · 滚轮远近 · 双键按住前进<br>
+  <div class="hint">W/S 进退 · A/D 转向（右键时横移）· Q/E 平移 · 右键视角 · 左键环绕 · 滚轮远近 · Space 跳跃 · R 自动跑 · Esc 取消目标<br>
   1-4 技能 · F 交互 · B 背包 · N 天赋 · C 角色 · P 法术书 · L 任务 · M 地图 · Shift+Z 功绩 · Shift+I 查找器<br>
-       在莫高雷沿土路北行，走进传送门旋涡即进入副本 · 副本内走出地面红圈躲避熔岩喷发</div>
+       <span data-t="start.hint">在赤蹄草甸沿土路北行，走进传送门旋涡即进入副本 · 副本内走出地面红圈躲避熔岩喷发</span></div>
 </div>
  
 <div class="overlay hide" id="endOv">
@@ -738,6 +738,7 @@
 </div>
  
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/sim/strings.js"></script>
 <script src="core.js"></script>
 <script src="palette.js"></script>
 <script src="textures.js"></script>

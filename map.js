@@ -1,5 +1,5 @@
 /* ============================================================
-   熔火之心 · map.js
+   炽心 · map.js
    小地图 + 世界地图（STEP 16）：Canvas 2D 程序化，零贴图
    多区域预留 MAP_ZONES 图层接口（STEP 17 enterZone 可切换）
    ------------------------------------------------------------
@@ -12,23 +12,23 @@
    ============================================================ */
 "use strict";
 
-/* 区域图层注册表（STEP 17：与 ZONES 对齐；贫瘠之地在 STEP 18） */
+/* 区域图层注册表（STEP 17：与 ZONES 对齐；枯原荒地在 STEP 18） */
 const MAP_ZONES={
   mulgore:{
     id:"mulgore",
-    name:"莫高雷",
+    name:T("zone.mulgore"),
     radius:()=>typeof WORLD_R==="number"?WORLD_R:352,
-    /* 静态地标：经典莫高雷 POI（运行时优先读 live mesh） */
+    /* 静态地标：经典赤蹄草甸 POI（运行时优先读 live mesh） */
     landmarks:[
-      {id:"narache", label:"纳拉其营地", x:-90, z:281, color:"#c9a06a", kind:"camp"},
-      {id:"camp",    label:"血蹄村",     x:-36, z:40,  color:"#e8c080", kind:"camp"},
-      {id:"thunder", label:"雷霆崖",     x:-72, z:-208,color:"#a8c8ff", kind:"camp"},
+      {id:"narache", label:T("poi.camp_narache"), x:-90, z:281, color:"#c9a06a", kind:"camp"},
+      {id:"camp",    label:T("poi.bloodhoof"),     x:-36, z:40,  color:"#e8c080", kind:"camp"},
+      {id:"thunder", label:T("poi.thunder_bluff"),     x:-72, z:-208,color:"#a8c8ff", kind:"camp"},
       {id:"redcloud",label:"红云台地",   x:-180,z:208, color:"#d08060", kind:"camp"},
       {id:"palemane",label:"贫瘠石",     x:-234,z:62,  color:"#c4783a", kind:"camp"},
       {id:"golden",  label:"黄金平原",   x:0,   z:-106,color:"#d8c060", kind:"poi"},
       {id:"thunderhorn",label:"雷角水井",x:-54, z:-55, color:"#7ab8ff", kind:"poi"},
       {id:"winterhoof", label:"冬蹄水井",x:108, z:91,  color:"#7ab8ff", kind:"poi"},
-      {id:"windfury",label:"乱风岗",     x:54,  z:-288,color:"#c8a0e0", kind:"camp"},
+      {id:"windfury",label:T("poi.freewind"),     x:54,  z:-288,color:"#c8a0e0", kind:"camp"},
       {id:"baeldun", label:"巴尔丹挖掘场",x:-253,z:-47, color:"#90a0b0", kind:"camp"},
       {id:"venture", label:"风险投资矿洞",x:216, z:-26, color:"#8ab050", kind:"camp"},
       {id:"lake",    label:"石牛湖",     x:-126,z:33,  color:"#7ab8ff", kind:"poi"},
@@ -37,13 +37,13 @@ const MAP_ZONES={
       {id:"grayhorn", label:"灰角", color:"#d0c8a8", kind:"npc"},
       {id:"baine", label:"贝恩", color:"#ffd9a0", kind:"npc"},
       {id:"elder", label:"贝恩", color:"#ffd9a0", kind:"npc"},
-      {id:"cairne", label:"凯恩", color:"#ffd9a0", kind:"npc"},
+      {id:"cairne", label:T("npc.cairne"), color:"#ffd9a0", kind:"npc"},
       {id:"mull", label:"穆尔", color:"#a8c8e8", kind:"npc"},
       {id:"vendor", label:"瓦尔格", color:"#8aff9a", kind:"npc"},
       {id:"hunter", label:"哈鲁", color:"#d0e8a0", kind:"npc"},
       {id:"spirit", label:"灵魂医者", color:"#a8d8ff", kind:"npc"},
-      {id:"portal",  label:"熔火之心",   x:0,   z:-344,color:"#ff8a4a", kind:"portal"},
-      {id:"barrens", label:"贫瘠之地",   x:0,   z:344, color:"#e8c898", kind:"portal"},
+      {id:"portal",  label:T("zone.molten_core"),   x:0,   z:-344,color:"#ff8a4a", kind:"portal"},
+      {id:"barrens", label:T("zone.barrens"),   x:0,   z:344, color:"#e8c898", kind:"portal"},
     ],
     elites:[],
     outline:[
@@ -70,7 +70,7 @@ const MAP_ZONES={
   },
   molten_core:{
     id:"molten_core",
-    name:"熔火之心",
+    name:T("zone.molten_core"),
     radius:()=>typeof ARENA_R==="number"?ARENA_R+4:30,
     landmarks:[],
     elites:[],
@@ -80,13 +80,13 @@ const MAP_ZONES={
   },
   barrens:{
     id:"barrens",
-    name:"贫瘠之地",
+    name:T("zone.barrens"),
     radius:()=>typeof BARRENS_R==="number"?BARRENS_R:(BAL.barrens&&BAL.barrens.radius)||368,
     landmarks:[
-      {id:"crossroads",label:"十字路口",x:0,z:0,color:"#e8c080",kind:"camp"},
-      {id:"portal_n",label:"莫高雷",x:0,z:-360,color:"#c9a06a",kind:"portal"},
-      {id:"portal_s",label:"哀嚎洞穴",x:0,z:356,color:"#8a9a6a",kind:"portal"},
-      {id:"portal_e",label:"奥妮克希亚巢穴",x:356,z:8,color:"#e8a080",kind:"portal"},
+      {id:"crossroads",label:T("poi.crossroads"),x:0,z:0,color:"#e8c080",kind:"camp"},
+      {id:"portal_n",label:T("zone.mulgore"),x:0,z:-360,color:"#c9a06a",kind:"portal"},
+      {id:"portal_s",label:T("zone.wailing"),x:0,z:356,color:"#8a9a6a",kind:"portal"},
+      {id:"portal_e",label:T("zone.onyxia"),x:356,z:8,color:"#e8a080",kind:"portal"},
       {id:"portal_w",label:"赭岩谷",x:-356,z:-18,color:"#ffb070",kind:"portal"},
       {id:"spirit",label:"灵魂医者",x:-22,z:18,color:"#a8d8ff",kind:"npc"},
       {id:"barrens_vendor",label:"武器商",x:-12,z:-10,color:"#8aff9a",kind:"npc"},
@@ -129,8 +129,8 @@ const MAP_ZONES={
     radius:()=>typeof DUROTAR_R==="number"?DUROTAR_R:(BAL.durotar&&BAL.durotar.radius)||352,
     landmarks:[
       {id:"ochre_outpost",label:"赭岩哨站",x:0,z:0,color:"#ffb070",kind:"camp"},
-      {id:"portal_e",label:"贫瘠之地",x:342,z:0,color:"#e8c898",kind:"portal"},
-      {id:"portal_w",label:"怒焰裂谷",x:-342,z:8,color:"#ff7040",kind:"portal"},
+      {id:"portal_e",label:T("zone.barrens"),x:342,z:0,color:"#e8c898",kind:"portal"},
+      {id:"portal_w",label:T("zone.ragefire"),x:-342,z:8,color:"#ff7040",kind:"portal"},
       {id:"spirit",label:"灵魂医者",x:-8,z:22,color:"#a8d8ff",kind:"npc"},
       {id:"ochre_vendor",label:"商人",x:-14,z:-10,color:"#8aff9a",kind:"npc"},
       {id:"ochre_guard",label:"卫士",x:18,z:12,color:"#ff9a70",kind:"npc"},
@@ -151,7 +151,7 @@ const MAP_ZONES={
   },
   ragefire_chasm:{
     id:"ragefire_chasm",
-    name:"怒焰裂谷",
+    name:T("zone.ragefire"),
     radius:()=>(BAL.ragefire&&BAL.ragefire.arenaR)||22,
     landmarks:[
       {id:"entrance",label:"入口",x:0,z:16,color:"#ff9060",kind:"portal"},
@@ -169,7 +169,7 @@ const MAP_ZONES={
   },
   wailing_caverns:{
     id:"wailing_caverns",
-    name:"哀嚎洞穴",
+    name:T("zone.wailing"),
     radius:()=>(BAL.wailing&&BAL.wailing.arenaR)||24,
     landmarks:[
       {id:"entrance",label:"入口",x:0,z:16,color:"#8a9a6a",kind:"portal"},
@@ -187,7 +187,7 @@ const MAP_ZONES={
   },
   onyxias_lair:{
     id:"onyxias_lair",
-    name:"奥妮克希亚巢穴",
+    name:T("zone.onyxia"),
     radius:()=>(BAL.onyxiasLair&&BAL.onyxiasLair.arenaR)||26,
     landmarks:[
       {id:"entrance",label:"入口",x:0,z:16,color:"#e8a080",kind:"portal"},
@@ -639,7 +639,7 @@ function updateMinimap(){
   const title=wrap.querySelector(".mm-title");
   if(title){
     const zn=getActiveMapZone();
-    title.textContent=(zn&&zn.name?zn.name:S.mode==="raid"?"熔火之心":"莫高雷").split("").join(" ");
+    title.textContent=(zn&&zn.name?zn.name:S.mode==="raid"?T("zone.molten_core"):T("zone.mulgore")).split("").join(" ");
   }
   const size=_mm.size, pad=BAL.map.padding;
   const ctx=_mm.ctx;

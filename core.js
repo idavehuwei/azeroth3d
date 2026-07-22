@@ -1,7 +1,7 @@
 /* ============================================================
-   熔火之心 · core.js
+   炽心 · core.js
    基础设施：工具函数 / 数值总表 BALANCE / 可播种随机器 / 渲染器 / 相机
-            熔火之心场景环境（岩浆、平台、岩柱、火星粒子）/ makeLabel
+            炽心场景环境（岩浆、平台、岩柱、火星粒子）/ makeLabel
    ------------------------------------------------------------
    [依赖] THREE（全局，CDN 引入）
    [导出] $ clamp rand R srand worldRng BALANCE BAL WORLD_SEED
@@ -11,7 +11,7 @@
           GFX_PRESETS getGraphicsSettings applyGraphicsSettings loadGraphicsSettings saveGraphicsSettings
    ============================================================ */
 /* ============================================================
-   熔火之心 · 最终 Boss 战斗模拟
+   炽心 · 最终 Boss 战斗模拟
    全部 3D 模型使用 Three.js 几何体程序化搭建（原创低多边形风格）
    ============================================================ */
 "use strict";
@@ -156,7 +156,7 @@ const BALANCE={
   stealth:{aggroMul:.35, alpha:.42, breakOnAttack:true, breakOnHit:true},
   /* 野怪族群数值表（STEP 5）：加新怪 = 加一条；aggroR:0 = 中立被动（只反击） */
   mobs:{
-    /* —— 莫高雷分层（仿经典等级带） —— */
+    /* —— 赤蹄草甸分层（仿经典等级带） —— */
     bird    :{level:2, hp:380, dmg:[28,42],  atkCd:1.6, meleeR:2.2, aggroR:0,  leashR:28, wanderSpd:4.5,chaseSpd:8,   respawnT:22,  xp:45,  copper:[4,10]},
     youngBoar:{level:3, hp:420, dmg:[35,55], atkCd:2.0, meleeR:2.2, aggroR:6,  leashR:28, wanderSpd:3.2,chaseSpd:5.2, respawnT:22,  xp:55,  copper:[5,12]},
     bristleback:{level:3, hp:480, dmg:[40,60], atkCd:2.0, meleeR:2.4, aggroR:8, leashR:30, wanderSpd:2.8,chaseSpd:5.4, respawnT:24, xp:65, copper:[6,14]},
@@ -183,7 +183,7 @@ const BALANCE={
     harpy   :{level:11, hp:4200,dmg:[90,130], atkCd:2.4, meleeR:3.2, aggroR:12, leashR:44, wanderSpd:2.5,chaseSpd:5,   respawnT:60,  xp:450, copper:[80,140], socialR:24,
               cast:{name:"女妖之火",dmg:[220,300],dur:1.5,cd:6,range:20,speed:16,hitR:3}},
     boarKing:{level:9, hp:3200,dmg:[110,160],atkCd:2.4, meleeR:3.2, aggroR:8,  leashR:40, wanderSpd:2.2,chaseSpd:5,   respawnT:120, xp:500, copper:[120,200], socialR:22},
-    /* —— STEP 18 贫瘠之地 —— */
+    /* —— STEP 18 枯原荒地 —— */
     quilboar:{level:11, hp:1200,dmg:[75,110], atkCd:2.0, meleeR:2.6, aggroR:8,  leashR:36, wanderSpd:2.8,chaseSpd:5.8, respawnT:28,  xp:140, copper:[18,35]},
     centaur :{level:13, hp:1800,dmg:[95,140], atkCd:2.2, meleeR:3.0, aggroR:10, leashR:40, wanderSpd:2.6,chaseSpd:5.5, respawnT:35,  xp:180, copper:[28,50], socialR:20},
     zebra   :{level:10, hp:700, dmg:[50,75],  atkCd:1.7, meleeR:2.3, aggroR:0,  leashR:32, wanderSpd:4.2,chaseSpd:7.5, respawnT:26,  xp:90,  copper:[10,20]},
@@ -229,7 +229,7 @@ const BALANCE={
     respawnHpPct:.5,          /* 复活时生命比例 */
     weaknessT:10,             /* 虚弱秒数 */
     moveSpeedMul:.7,          /* 虚弱移速倍率（-30%） */
-    worldSpawn:{x:0,z:58},    /* 灵魂医者旁（莫高雷默认） */
+    worldSpawn:{x:0,z:58},    /* 灵魂医者旁（赤蹄草甸默认） */
     raidSpawn:{x:0,z:18},     /* 副本走廊入口 */
     corpseDelay:1.2,          /* 倒地后弹出死亡面板延迟 */
     spawns:{                  /* 分区复活点（STEP 18） */
@@ -259,16 +259,16 @@ const BALANCE={
     bossShakeDecay:6,
     bossCoreGlow:{min:1, max:2.8}, /* 熔核亮度随缺血上升 */
   },
-  /* 烈焰之子 */
+  /* 火裔 */
   add:{level:15, hp:1400, dmg:[130,190], atkCd:2, speed:4.6, meleeR:3, stopR:2.6, copper:[12,28], xp:120},
-  /* 炎魔领主 · 拉戈斯 */
+  /* 熔渊领主 · 卡尔戈 */
   boss:{hp:120000, phase2At:.5, phase3At:.3, submergeT:25, addCount:4, copper:2500,
     melee   :{dmg:[300,420], p2Mul:1.25, p3Mul:1.5, cd:[3,4.2], range:12, hitRange:13, delayMs:450},
     fireball:{dmg:[520,680], cast:1.8, cd:[8,11], hitR:4, speed:22},
     eruption:{dmg:[600,780], cast:1.5, cd:[9,12], count:3, p2Count:5, p3Count:8, delay:2.2},
     wrath   :{dmg:[380,520], cast:2.2, cd:[16,20], range:16},
   },
-  /* 玛格曼达 · 熔火之心一号位（STEP 9c） */
+  /* 炎喉 · 炽心一号位（STEP 9c） */
   magmadar:{hp:56000, phase2At:.5, addCount:3, copper:800,
     melee :{dmg:[220,300], p2Mul:1.35, cd:[2.4,3.2], range:9, hitRange:10, delayMs:260},
     spit  :{dmg:[260,340], cast:1.5, cd:[6,8.5], hitR:3.2, speed:18, count:3, p2Count:5, fan:0.42},
@@ -276,7 +276,7 @@ const BALANCE={
     stomp :{dmg:[400,540], cast:1.3, cd:[9,12], count:3, p2Count:6, delay:1.9, ringR:6},
     fear  :{dmg:[140,200], cast:1.6, cd:[13,16], range:16, fearT:2.6, knockT:.35, panicRings:3, panicR:4.5, delay:1.5},
   },
-  /* 哀嚎洞穴（STEP 21） */
+  /* 泣息洞窟（STEP 21） */
   wailing:{
     arenaR:24,
     minLevel:15,
@@ -295,7 +295,7 @@ const BALANCE={
     spit  :{dmg:[280,360], cast:1.5, cd:[6,8], hitR:3.3, speed:16, count:4, p2Count:6, fan:0.5},
     stomp :{dmg:[360,480], cast:1.4, cd:[9,12], count:3, p2Count:5, delay:1.8, ringR:5.5},
   },
-  /* 奥妮克希亚巢穴·精简（STEP 28） */
+  /* 黑曜巢穴·精简（STEP 28） */
   onyxiasLair:{
     arenaR:26,
     minLevel:16,
@@ -314,7 +314,7 @@ const BALANCE={
     deepBreath:{dmg:[620,820], cast:2.2, cd:[14,18], delay:2.0,
       segs:8, p2Segs:8, p3Segs:10, step:3.8, ringR:3.8},
   },
-  /* 怒焰裂谷·精简（plan-v1 · V1-B3） */
+  /* 焰怒深渊·精简（plan-v1 · V1-B3） */
   ragefire:{
     arenaR:22,
     minLevel:13,
@@ -454,7 +454,7 @@ const BALANCE={
       runner_main:{xp:280,copper:120,kills:1},
     },
     trackerMax:5},
-  /* 贫瘠之地（STEP 18）· V2 半径再×2（相对 V1-B2） */
+  /* 枯原荒地（STEP 18）· V2 半径再×2（相对 V1-B2） */
   barrens:{
     radius:368,
     minLevel:10,
@@ -592,17 +592,29 @@ const BALANCE={
       fogTint:0x1a3020, fogBlend:.28, fogDensityMul:1.06,
     },
   },
-  /* 相机 / 转向（相对角色朝向） */
+  /* 相机 / 转向（相对角色朝向）· plan-V3 C1 */
   camera:{
-    dist:16, distMin:6, distMax:32,
-    height:9.5, lookY:2.2,
+    dist:16, distMin:3, distMax:25,
+    lookChestY:1.55,        /* 球坐标锚点：胸口高度 */
+    eyeY:1.7,               /* 第一人称眼高 */
     turnSpd:2.6,            /* A/D 键盘转向 弧度/秒 */
     zoomStep:1.15,
-    pitchMin:.12, pitchMax:.78, pitch:.38,
-    follow:12,              /* 相机跟手速度 */
-    mouseSens:.0042,        /* 鼠标灵敏度 */
+    pitchMin:-1.4, pitchMax:.6, pitch:.32,
+    follow:14,              /* 相机跟手速度 */
+    mouseSens:.0042,
+    touchLookSens:.0055,    /* 移动端右半屏拖动 */
+    pinchZoomScale:.05,     /* 双指捏合缩放系数 */
     recenterSpd:3.2,        /* 前进时视角回正（LMB 环绕后） */
     bothBtnForward:true,    /* 左右键同按 = 朝镜头前进（魔兽） */
+    firstPersonDist:3.35,   /* dist ≤ 此值切第一人称 */
+    collision:true,
+    collisionMargin:.45,
+  },
+  /* 移动物理（plan-V3 C1） */
+  move:{
+    jumpVel:9.2,
+    gravity:26,
+    groundEps:.06,
   },
   /* 头顶姓名板（血条 + 等级）· plan-V2 R7 打磨（性能优先：无每帧 raycast） */
   nameplate:{
@@ -836,10 +848,10 @@ const BALANCE={
     difficulties:["normal","heroic"],
     labels:{normal:"普通",heroic:"英雄"},
     entries:[
-      {id:"molten_core",    name:"熔火之心",       blurb:"走廊 → 玛格曼达 → 拉戈斯", minLevel:0,  gate:"entrance", icon:"dungeon"},
-      {id:"ragefire_chasm", name:"怒焰裂谷",       blurb:"燃刃兽人 → 奥格弗林特 → 饥饿者", minLevel:13, gate:"entrance", icon:"fireball"},
-      {id:"wailing_caverns",name:"哀嚎洞穴",       blurb:"变异蛇 → 考布莱恩 → 吞噬者", minLevel:15, gate:"entrance", icon:"venom"},
-      {id:"onyxias_lair",   name:"奥妮克希亚巢穴", blurb:"幼龙 → 黑龙女王三阶段",   minLevel:16, gate:"entrance", icon:"fireball"},
+      {id:"molten_core",    name:T("zone.molten_core"),       blurb:"走廊 → "+T("boss.magmadar")+" → "+T("boss.ragnaros_short"), minLevel:0,  gate:"entrance", icon:"dungeon"},
+      {id:"ragefire_chasm", name:T("zone.ragefire"),       blurb:"燃刃兽人 → 奥格弗林特 → 饥饿者", minLevel:13, gate:"entrance", icon:"fireball"},
+      {id:"wailing_caverns",name:T("zone.wailing"),       blurb:"变异蛇 → "+T("boss.cobrahn_short")+" → 吞噬者", minLevel:15, gate:"entrance", icon:"venom"},
+      {id:"onyxias_lair",   name:T("zone.onyxia"), blurb:"幼龙 → 黑龙女王三阶段",   minLevel:16, gate:"entrance", icon:"fireball"},
     ],
   },
   /* 仇恨与职责（STEP 27） */
@@ -1008,7 +1020,7 @@ function disposeNameplate(root){
   if(root.parent)root.parent.remove(root);
 }
 
-/* ---------------- 场景基础（双场景：莫高雷 / 熔火之心） ---------------- */
+/* ---------------- 场景基础（双场景：赤蹄草甸 / 炽心） ---------------- */
 const sceneRaid=new THREE.Scene();
 sceneRaid.fog=new THREE.FogExp2(0x1a0602,0.016);
 let scene=sceneRaid;   /* 当前渲染场景 */

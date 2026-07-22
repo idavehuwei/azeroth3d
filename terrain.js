@@ -1,6 +1,6 @@
 /* ============================================================
-   熔火之心 · terrain.js
-   高度场地形 + 顶点着色 + 多段马路（plan-V2 · R2 / 经典莫高雷地貌）
+   炽心 · terrain.js
+   高度场地形 + 顶点着色 + 多段马路（plan-V2 · R2 / 经典赤蹄草甸地貌）
    ------------------------------------------------------------
    [依赖] THREE · core.js（WORLD_SEED · hashZoneId）· palette.js（PALETTE）
           textures.js（可选 Tex.get）
@@ -71,7 +71,7 @@ const TERRAIN=(function(){
     return smoothstep(inner,outer,d);
   }
 
-  /** 平顶山 / 台地抬升（红云台地·雷霆崖·乱风岗） */
+  /** 平顶山 / 台地抬升（红云台地·雷岩台·风啸岗） */
   function mesaLift(x,z){
     let lift=0;
     const list=CFG.mesas||[];

@@ -1,6 +1,6 @@
 /* ============================================================
-   熔火之心 · barrens.js
-   贫瘠之地：十字路口枢纽（仿经典 WoW 布局）/ POI / NPC / 分区刷怪
+   炽心 · barrens.js
+   枯原荒地：岔路镇枢纽（仿经典 WoW 布局）/ POI / NPC / 分区刷怪
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ srand worldRng BAL makeLabel setZoneSeed）
           zones.js（registerZone）· sky.js（initZoneSky）
@@ -27,7 +27,7 @@
 const BARRENS_R=BAL.barrens.radius;
 const sceneBarrens=new THREE.Scene();
 
-/** 经典贫瘠坐标 → 世界 XZ；以十字路口 (51,30) 为原点 */
+/** 经典贫瘠坐标 → 世界 XZ；以岔路镇 (51,30) 为原点 */
 function barrensWow(wx,wy){
   const cx=51, cy=30, hx=18, hy=28;
   const nx=(wx-cx)/hx, nz=(wy-cy)/hy;
@@ -156,7 +156,7 @@ function buildBarrensZone(scn){
   }
 
   const P=BUILD_PAL.barrens;
-  /* 刺背野猪人前哨：兽皮帐篷圈（十字路口南） */
+  /* 刺背野豕前哨：兽皮帐篷圈（岔路镇南） */
   const Qp=BARRENS.bristleback, Ce=BARRENS.centaur, C0=CROSSROADS;
   [[Qp.x,Qp.z],[Qp.x+8,Qp.z-10],[Qp.x-10,Qp.z+6]].forEach(([cx,cz])=>{
     placeProp(root,buildTent({hide:P.hide,stake:P.stake,r:3.0,h:4.2,stakes:6,size:1}),cx,cz,0);
@@ -179,7 +179,7 @@ function buildBarrensZone(scn){
     barrensFlames.push({fl,li});
   });
 
-  /* 十字路口：扩大街区 · 市集 · 双塔 · 围栏 */
+  /* 岔路镇：扩大街区 · 市集 · 双塔 · 围栏 */
   const cx=C0.x, cz=C0.z;
   placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1.05}),cx,cz,0);
   placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.75}),cx-18,cz-8,.4);
@@ -212,7 +212,7 @@ function buildBarrensZone(scn){
     L.position.set(p.x,6.5,p.z); root.add(L);
   };
   poiLab("死水绿洲",BARRENS.deadOasis,"#7ec8a8");
-  poiLab("哀嚎洞穴入口",BARRENS.wailing,"#a8d080");
+  poiLab(T("zone.wailing")+"入口",BARRENS.wailing,"#a8d080");
   poiLab("棘齿城方向",BARRENS.ratchet,"#c8b070");
   poiLab("黄金之路",BARRENS.goldRoad,"#d8c080");
   poiLab("陶拉祖营地",BARRENS.taurajo,"#c89860");
@@ -245,7 +245,7 @@ function buildBarrensZone(scn){
         gl_FragColor=vec4(c*1.15,smoothstep(1.,.88,r));
       }`}));
   nDisc.position.set(BARRENS_PORTAL_N.x,4.6,BARRENS_PORTAL_N.z); root.add(nDisc);
-  const nLab=makeLabel("莫高雷",12,"#c8e8a0","rgba(60,120,40,.9)");
+  const nLab=makeLabel(T("zone.mulgore"),12,"#c8e8a0","rgba(60,120,40,.9)");
   nLab.position.set(BARRENS_PORTAL_N.x,12.2,BARRENS_PORTAL_N.z); root.add(nLab);
 
   const sPlat=new THREE.Mesh(new THREE.CylinderGeometry(7,8.5,1,12),
@@ -274,12 +274,12 @@ function buildBarrensZone(scn){
         gl_FragColor=vec4(c*1.2,smoothstep(1.,.88,r));
       }`}));
   sDisc.position.set(BARRENS_PORTAL_S.x,4.6,BARRENS_PORTAL_S.z); root.add(sDisc);
-  const sLab=makeLabel("哀嚎洞穴",11,"#a8d080","rgba(40,80,30,.9)");
+  const sLab=makeLabel(T("zone.wailing"),11,"#a8d080","rgba(40,80,30,.9)");
   sLab.position.set(BARRENS_PORTAL_S.x,12.0,BARRENS_PORTAL_S.z); root.add(sLab);
   const sLab2=makeLabel(`需要 Lv.${BAL.barrens.wailingMinLevel||15}+`,6,"#ffb060","rgba(60,80,20,.9)");
   sLab2.position.set(BARRENS_PORTAL_S.x,10.6,BARRENS_PORTAL_S.z); root.add(sLab2);
 
-  /* —— 东口：奥妮克希亚巢穴（STEP 28） —— */
+  /* —— 东口：黑曜巢穴（STEP 28） —— */
   const ePlat=new THREE.Mesh(new THREE.CylinderGeometry(5.5,6,.5,10),
     MAT.get("_",{color:0x4a2820,roughness:1,flatShading:true}));
   ePlat.position.set(BARRENS_PORTAL_E.x,.5,BARRENS_PORTAL_E.z); ePlat.receiveShadow=true; root.add(ePlat);
@@ -304,7 +304,7 @@ function buildBarrensZone(scn){
         gl_FragColor=vec4(c*1.2,smoothstep(1.,.88,r));
       }`}));
   eDisc.position.set(BARRENS_PORTAL_E.x,4.6,BARRENS_PORTAL_E.z); eDisc.rotation.y=Math.PI/2; root.add(eDisc);
-  const eLab=makeLabel("奥妮克希亚巢穴",10,"#e8a080","rgba(80,30,20,.92)");
+  const eLab=makeLabel(T("zone.onyxia"),10,"#e8a080","rgba(80,30,20,.92)");
   eLab.position.set(BARRENS_PORTAL_E.x,12.0,BARRENS_PORTAL_E.z); root.add(eLab);
   const eLab2=makeLabel(`需要 Lv.${BAL.barrens.onyxiaMinLevel||16}+`,6,"#ff9060","rgba(80,40,20,.9)");
   eLab2.position.set(BARRENS_PORTAL_E.x,10.6,BARRENS_PORTAL_E.z); root.add(eLab2);
@@ -339,14 +339,14 @@ function buildBarrensZone(scn){
   const wLab2=makeLabel(`需要 Lv.${BAL.barrens.durotarMinLevel||12}+`,6,"#ff9060","rgba(90,40,15,.9)");
   wLab2.position.set(BARRENS_PORTAL_W.x,10.4,BARRENS_PORTAL_W.z); root.add(wLab2);
 
-  /* —— 十字路口任务 NPC（营地内 · 经典清单） —— */
+  /* —— 岔路镇任务 NPC（营地内 · 经典清单） —— */
   _barrensNpcMarkers.length=0; _barrensInteractNpcs.length=0;
   const _bAt=(wx,wy,dx,dz)=>{const p=barrensWow(wx,wy);return{x:p.x+(dx||0),z:p.z+(dz||0)};};
 
   barrensInnkeeper=tintNpcCloth(buildElder(),0x8a6840);
   {const p=_bAt(50,30,-10,8);placeBarrensTalkNpc(root,barrensInnkeeper,p.x,p.z,Math.PI*.3,
     "旅店老板 · 风蹄",BAL.npcLevel.innkeeper,"#e0c090","innkeeper",
-    ()=>openNpcQuestDialogue("innkeeper","🏨 旅店老板 · 风蹄","欢迎来到十字路口。炉石在此绑定——愿尘土不迷你的眼。"));}
+    ()=>openNpcQuestDialogue("innkeeper","🏨 旅店老板 · 风蹄","欢迎来到"+T("poi.crossroads")+"。炉石在此绑定——愿尘土不迷你的眼。"));}
 
   barrensFlight=tintNpcCloth(buildElder(),0x5a7088);
   {const p=_bAt(51,29,6,10);placeBarrensTalkNpc(root,barrensFlight,p.x,p.z,Math.PI*1.1,
@@ -406,12 +406,12 @@ function buildBarrensZone(scn){
   barrensLal=tintNpcCloth(buildElder(),0x4a6850);
   {const p=_bAt(50,31);placeBarrensTalkNpc(root,barrensLal,p.x,p.z,Math.PI*.9,
     "拉尔 · 野性图腾",BAL.npcLevel.lal,"#90c8a0","lal",
-    ()=>openNpcQuestDialogue("lal","🌿 拉尔 · 野性图腾","哀嚎洞穴的污染蔓延到了勇士之墓。大地母亲需要勇士。"));}
+    ()=>openNpcQuestDialogue("lal","🌿 拉尔 · 野性图腾",T("zone.wailing")+"的污染蔓延到了勇士之墓。大地母亲需要勇士。"));}
 
   barrensZinge=tintNpcCloth(buildElder(),0x608070);
   {const p=_bAt(52,32);placeBarrensTalkNpc(root,barrensZinge,p.x,p.z,Math.PI*1.5,
     "药剂师 · 金格",BAL.npcLevel.zinge,"#90d0c0","zinge",
-    ()=>openNpcQuestDialogue("zinge","🧪 药剂师 · 金格","毒液、样本——十字路口的药剂学需要材料。"));}
+    ()=>openNpcQuestDialogue("zinge","🧪 药剂师 · 金格","毒液、样本——"+T("poi.crossroads")+"的药剂学需要材料。"));}
 
   /* —— 分区刷怪（任务指向区） —— */
   const RP=BARRENS.raptors, GR=BARRENS.goldRoad;
@@ -503,7 +503,7 @@ function openBarrensSpiritDialogue(){
   const nameEl=$("#dlg .dname");
   if(nameEl)nameEl.textContent="👻 灵魂医者 · 尘语";
   dlg.style.display="block"; bts.innerHTML="";
-  tx.textContent="贫瘠之地的风很干，旅人。若你倒下，释放灵魂后我会在十字路口接引你。";
+  tx.textContent=T("zone.barrens")+"的风很干，旅人。若你倒下，释放灵魂后我会在"+T("poi.crossroads")+"接引你。";
   const b=document.createElement("button");
   b.className="dbtn";b.textContent="感谢您，医者";b.onclick=closeDialogue;bts.appendChild(b);
 }
@@ -532,20 +532,20 @@ function openBarrensDialogue(){
   const need=BAL.quest.barrens.quilboarKills;
 
   if(typeof canTurnInQuest==="function"&&canTurnInQuest("crossroads_trouble")){
-    tx.textContent="刺背野猪人暂时退了。陶拉祖还等着补给信——也去问问卡格、托姆和曼科里克，他们手里都有活。";
-    btn("✦ 领取奖励 · 野猪人的威胁",()=>{
+    tx.textContent=T("mob.bristleback")+"暂时退了。陶拉祖还等着补给信——也去问问卡格、托姆和曼科里克，他们手里都有活。";
+    btn("✦ 领取奖励 · "+T("mob.quilboar")+"的威胁",()=>{
       turnInQuest("crossroads_trouble");
       spawnBurst(player.position.clone().setY(1.5),0xe8c898,28,2);
       closeDialogue();
     });
   }else if(typeof canAcceptQuest==="function"&&canAcceptQuest("crossroads_trouble")){
-    tx.textContent="刺背野猪人在营地南边劫掠商队。清剿他们，十字路口才能喘口气。";
-    btn("✦ 接受任务：野猪人的威胁",()=>{acceptQuest("crossroads_trouble");closeDialogue();});
+    tx.textContent=T("mob.bristleback")+"在营地南边劫掠商队。清剿他们，"+T("poi.crossroads")+"才能喘口气。";
+    btn("✦ 接受任务："+T("mob.quilboar")+"的威胁",()=>{acceptQuest("crossroads_trouble");closeDialogue();});
   }else if(typeof questStatus==="function"&&questStatus("crossroads_trouble")==="active"){
     const k=questProgress("crossroads_trouble").kills|0;
-    tx.textContent=`刺背野猪人还在南边游荡（${k}/${need}）。`;
+    tx.textContent=`${T("mob.bristleback")}还在南边游荡（${k}/${need}）。`;
   }else{
-    tx.textContent="十字路口是部落的枢纽。补给、侦察、狩猎——营地里的人都有事要拜托你。";
+    tx.textContent=T("poi.crossroads")+"是部落的枢纽。补给、侦察、狩猎——营地里的人都有事要拜托你。";
   }
 
   appendNpcQuestButtons("darsok",btn,null,["crossroads_trouble"]);
@@ -555,7 +555,7 @@ function openBarrensDialogue(){
 
 registerZone({
   id:"barrens",
-  name:"贫瘠之地",
+  name:T("zone.barrens"),
   scene:sceneBarrens,
   build:buildBarrensZone,
   music:"barrens",
@@ -564,7 +564,7 @@ registerZone({
   boundsR:()=>BARRENS_R,
   dayNight:true,
   gates:{
-    from_mulgore:{x:0,z:-(BARRENS_R-22)},  /* 远离北口，避免与莫高雷南口乒乓 */
+    from_mulgore:{x:0,z:-(BARRENS_R-22)},  /* 远离北口，避免与赤蹄草甸南口乒乓 */
     from_wailing:{x:0,z:BARRENS_R-22},     /* 远离南口，避免进出乒乓 */
     from_onyxia:{x:BARRENS_R-28,z:8},      /* 远离东口 */
     from_durotar:{x:-(BARRENS_R-26),z:-18}, /* 远离西口 */
@@ -577,8 +577,8 @@ registerZone({
     pos:()=>BARRENS_PORTAL_N,
     hintR:()=>BAL.zones.portalHintR,
     enterR:()=>BAL.zones.portalEnterR,
-    announce:"莫高雷 · 圣山草原",
-    logHint:"北行土路通往牛头人营地……",
+    announce:T("zone.mulgore")+" · 圣山草原",
+    logHint:"北行土路通往"+T("race.tauren")+"营地……",
     requireAlive:true,
     autoEnter:true,
     targetZone:"mulgore",
@@ -588,13 +588,13 @@ registerZone({
     pos:()=>BARRENS_PORTAL_S,
     hintR:()=>BAL.zones.portalHintR,
     enterR:()=>BAL.zones.portalEnterR,
-    announce:"哀嚎洞穴 · 副本入口",
-    logHint:"潮气与毒草的气味从旋涡中渗出……走进即可进入哀嚎洞穴。",
+    announce:T("zone.wailing")+" · 副本入口",
+    logHint:"潮气与毒草的气味从旋涡中渗出……走进即可进入"+T("zone.wailing")+"。",
     requireAlive:true,
     autoEnter:true,
     minLevel:()=>BAL.barrens.wailingMinLevel||15,
     lockedAnnounce:()=>`等级不足！需要 Lv.${BAL.barrens.wailingMinLevel||15}`,
-    lockedLog:()=>`哀嚎洞穴危机四伏——当前 Lv.${S.p.level}，建议升到 Lv.${BAL.barrens.wailingMinLevel||15} 后再挑战。`,
+    lockedLog:()=>`${T("zone.wailing")}危机四伏——当前 Lv.${S.p.level}，建议升到 Lv.${BAL.barrens.wailingMinLevel||15} 后再挑战。`,
     targetZone:"wailing_caverns",
     targetGate:"entrance",
   },{
@@ -602,7 +602,7 @@ registerZone({
     pos:()=>BARRENS_PORTAL_E,
     hintR:()=>BAL.zones.portalHintR,
     enterR:()=>BAL.zones.portalEnterR,
-    announce:"奥妮克希亚巢穴 · 副本入口",
+    announce:T("zone.onyxia")+" · 副本入口",
     logHint:"硫磺与龙息的气味从旋涡中涌出……走进即可挑战黑龙女王。",
     requireAlive:true,
     autoEnter:true,
@@ -628,9 +628,9 @@ registerZone({
   }],
   onEnter(fromId,gateId,opts){
     if(opts&&opts.silent)return;
-    if(fromId==="mulgore")log("干燥的热风扑面而来——你已踏入贫瘠之地。","lg-sys");
-    else if(fromId==="wailing_caverns")log("你离开哀嚎洞穴，十字路口的风干而炙热。","lg-sys");
-    else if(fromId==="durotar")log("你离开赭岩谷，贫瘠之地的热风干涩依旧。","lg-sys");
+    if(fromId==="mulgore")log("干燥的热风扑面而来——你已踏入"+T("zone.barrens")+"。","lg-sys");
+    else if(fromId==="wailing_caverns")log("你离开"+T("zone.wailing")+"，"+T("poi.crossroads")+"的风干而炙热。","lg-sys");
+    else if(fromId==="durotar")log("你离开赭岩谷，"+T("zone.barrens")+"的热风干涩依旧。","lg-sys");
     updateBarrensMarkers();
     if(typeof updateQuest==="function")updateQuest();
   },

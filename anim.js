@@ -1,5 +1,5 @@
 /* ============================================================
-   熔火之心 · anim.js
+   炽心 · anim.js
    生物动画挂点（plan-v1 · V1-A3 / plan-V2 · R6）：走 / 攻 / 死 + 族群特化
    ------------------------------------------------------------
    [依赖] core.js（BAL）· THREE 运行时（mesh.rotation）
@@ -236,7 +236,7 @@ function updateMobAnim(m,dt){
   }
 }
 
-/** 奥妮克希亚等：翼拍打（存活时）；死亡侧倒另调 tickDeathRoll */
+/** 黑曜女皇等：翼拍打（存活时）；死亡侧倒另调 tickDeathRoll */
 function updateBossWingAnim(bossMesh,dt,alive){
   if(!bossMesh)return;
   const U=bossMesh.userData||{};
@@ -252,7 +252,7 @@ function updateBossWingAnim(bossMesh,dt,alive){
 }
 
 /**
- * 拉戈斯挥锤：蓄力 → 挥出 → 收势（对齐 delayMs 伤害帧）
+ * 卡尔戈挥锤：蓄力 → 挥出 → 收势（对齐 delayMs 伤害帧）
  * swingT: 1→0；伤害约在 swingT≈0.28（delayMs=450, decay=1.6）
  */
 function updateBossHammerAnim(bossMesh,swingT,dt,opts){

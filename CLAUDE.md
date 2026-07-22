@@ -26,6 +26,7 @@
 | 文件 | 职责 | 导出 |
 |------|------|------|
 | `core.js` | 基础设施 | BALANCE, SeededRng, srand, makeLabel, scene, camera, renderer |
+| `js/sim/strings.js` | 专有名词 / 叙事文本（C0） | NAMES, TEXTS, T, applyStaticUiStrings |
 | `icons.js` | 图标画布工厂 | Icons.canvas, Icons.get |
 | `items.js` | 物品与掉落 | QUALITY, ITEMS, LOOT, EQUIP_SLOTS, dropLoot, tryLoot, useItem, sellItem, equipItem |
 | `rig.js` | 人形骨架 / Anim | createRigSkeleton, assembleHumanoidRig, updateHumanoidAnim, CLASS_LOOK_META |
@@ -68,6 +69,7 @@
 
 - 已执行账本：`plan-merged.md`（STEP 0–29 / v4.0 完成）
 - **plan-V2 已完成：R0–R8 + G1–G7（M1–M5）**（见 `plan-V2.md`）
+- **plan-V3：C0–C1 已完成**（文本数据化 + 经典操作/相机）；下一步 C2 目标系统（见 `plan-V3.md`）
 - 后续可对照 `plan-v1.md` 打磨内容；默认不做联机
 
 ## 协作流程

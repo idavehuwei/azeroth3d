@@ -1,6 +1,6 @@
 /* ============================================================
-   熔火之心 · raid.js
-   副本系统（STEP 8）：副本环境搭建 / 烈焰之子 / 分段
+   炽心 · raid.js
+   副本系统（STEP 8）：副本环境搭建 / 火裔 / 分段
             Boss 工厂（STEP 9b）：createBoss + BOSSES 数据驱动 AI
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ clamp rand R BAL scene camera ARENA_R
@@ -134,7 +134,7 @@ function buildBridge(root){
 
 registerZone({
   id:"molten_core",
-  name:"熔火之心",
+  name:T("zone.molten_core"),
   scene:sceneRaid,
   build:buildMoltenCoreZone,
   music:"raid",
@@ -170,7 +170,7 @@ registerZone({
 
 /* ============================================================
    副本分段系统（STEP 8 + 9c）
-   corridor → boss1（玛格曼达）→ bridge → boss（拉戈斯）
+   corridor → boss1（炎喉）→ bridge → boss（卡尔戈）
    ============================================================ */
 const DUNGEON={
   id:"molten_core",
@@ -184,8 +184,8 @@ const DUNGEON={
   raidSpawn:{x:0,z:18},
   wipeBoss1:"magmadar",
   wipeFinal:"ragnaros",
-  addCfg:{build:null, balKey:"add", name:"烈焰之子", lootTable:"add",
-    dieLog:"一只烈焰之子被消灭了！", burstColor:0xff5a1a},
+  addCfg:{build:null, balKey:"add", name:T("mob.flame_spawn"), lootTable:"add",
+    dieLog:"一只"+T("mob.flame_spawn")+"被消灭了！", burstColor:0xff5a1a},
   setStage(s){
     if(s==="corridor"){
       this.stage="corridor"; this.bridgeDone=false;
@@ -195,22 +195,22 @@ const DUNGEON={
         spawnAdd(Math.cos(a)*rand(14,20),Math.sin(a)*rand(14,20)-8);
       }
       this.mobsAlive=2;
-      log("走廊中涌出熔岩犬！消灭它们才能面对玛格曼达。","lg-sys");
+      log("走廊中涌出熔岩犬！消灭它们才能面对"+T("boss.magmadar")+"。","lg-sys");
     }else if(s==="boss1"){
       this.stage="boss1";
       activateRaidBoss("magmadar");
-      announce("玛格曼达 · 熔岩猎犬！");
+      announce(T("boss.magmadar")+" · 熔岩猎犬！");
       log("黑曜石平台上，一头燃烧的熔岩猎犬咆哮着迎了上来！","lg-boss");
     }else if(s==="bridge"){
       this.stage="bridge"; this.bridgeT=0; this.bridgeDone=false;
       S.b.alive=false; if(boss)boss.visible=false;
       announce("岩桥正在开启！");
-      log("玛格曼达倒下，黑曜石岩柱缓缓沉入地面——通往炎魔的道路打开了……","lg-sys");
+      log(T("boss.magmadar")+"倒下，黑曜石岩柱缓缓沉入地面——通往"+T("boss.ragnaros_title")+"的道路打开了……","lg-sys");
     }else if(s==="boss"){
       this.stage="boss"; this.bridgeDone=true;
       activateRaidBoss("ragnaros");
-      announce("炎魔领主苏醒！");
-      log("熔岩散去，通往拉戈斯平台的道路已经打开。","lg-sys");
+      announce(T("boss.ragnaros_title")+"苏醒！");
+      log("熔岩散去，通往"+T("boss.ragnaros_short")+"平台的道路已经打开。","lg-sys");
     }
   },
   tickBridge(dt){
@@ -245,12 +245,12 @@ const BOSSES={};
 
 function defineBoss(cfg){BOSSES[cfg.id]=cfg;return cfg;}
 
-/* ---- 拉戈斯：数值引用 BAL.boss，文案与流程在此 ---- */
+/* ---- 卡尔戈：数值引用 BAL.boss，文案与流程在此 ---- */
 defineBoss({
   id:"ragnaros",
-  name:"拉戈斯 · 炎魔领主",
-  title:"熔火之心 · 最终首领",
-  hitNoun:"炎魔",
+  name:T("boss.ragnaros"),
+  title:T("zone.molten_core")+" · 最终首领",
+  hitNoun:T("boss.ragnaros_title"),
   statsKey:"boss",
   build:()=>buildBoss(),
   projectileY:9, fctY:9,
@@ -258,66 +258,66 @@ defineBoss({
     type:"rise", fromY:-16, toY:0, dur:4,
     burst:{at:1.2,window:.1,vfx:"roar_aura",pos:[0,1,-14],color:0xff5a1a,count:60,spread:4},
     sfx:"roar",
-    announce:"拉戈斯：太早了！你们竟敢太早唤醒我！",
-    log:"炎魔领主 拉戈斯 从熔岩中苏醒了！",
+    announce:T("boss.ragnaros_short")+"：太早了！你们竟敢太早唤醒我！",
+    log:T("boss.ragnaros_title")+" "+T("boss.ragnaros_short")+" 从熔岩中苏醒了！",
   },
   bob:true,
   home:{x:0,z:-14},
   skills:[
     {id:"melee",type:"melee",bal:"melee",name:"熔火重击",firstDelay:6,
-      vfx:"melee_impact",label:"拉戈斯的熔火重击",
+      vfx:"melee_impact",label:T("boss.ragnaros_short")+"的熔火重击",
       phaseMul:{2:"p2Mul",3:"p3Mul"}},
     {id:"fireball",type:"cast_projectile",bal:"fireball",name:"烈焰冲击",firstDelay:10,
-      vfx:"lava_bolt",log:"拉戈斯掷出烈焰冲击！",exclusive:true},
+      vfx:"lava_bolt",log:T("boss.ragnaros_short")+"掷出烈焰冲击！",exclusive:true},
     {id:"eruption",type:"cast_telegraph",bal:"eruption",name:"熔岩喷发",firstDelay:14,
       vfx:"eruption_ring",playerRingR:4.5,
       countKey:{1:"count",2:"p2Count",3:"p3Count"},
       announce:"熔岩喷发 · 快躲开红圈！",log:"大地震颤，熔岩即将喷发！",exclusive:true},
-    {id:"wrath",type:"cast_knockback",bal:"wrath",name:"拉戈斯之怒",firstDelay:22,
-      vfx:"roar_aura",vfxY:2,announce:"拉戈斯之怒！",
+    {id:"wrath",type:"cast_knockback",bal:"wrath",name:T("boss.ragnaros_short")+"之怒",firstDelay:22,
+      vfx:"roar_aura",vfxY:2,announce:T("boss.ragnaros_short")+"之怒！",
       knockT:.4,hitLog:"你被巨大的冲击波击飞！",exclusive:true},
   ],
   phases:[
     {to:2,from:1,hpPctKey:"phase2At",onEnter:"submerge",
       submergeTKey:"submergeT",
       spawnAdds:{countKey:"addCount",r:[10,16],zOff:-4},
-      sfx:"roar",announce:"阶段二 · 烈焰之子！",
-      log:"拉戈斯沉入岩浆——烈焰之子从熔岩中涌出！消灭它们！",
-      emergeAnnounce:"拉戈斯重新浮出岩浆！",
-      emergeLog:"烈焰散去，拉戈斯再度现身！",
+      sfx:"roar",announce:"阶段二 · "+T("mob.flame_spawn")+"！",
+      log:T("boss.ragnaros_short")+"沉入岩浆——"+T("mob.flame_spawn")+"从熔岩中涌出！消灭它们！",
+      emergeAnnounce:T("boss.ragnaros_short")+"重新浮出岩浆！",
+      emergeLog:"烈焰散去，"+T("boss.ragnaros_short")+"再度现身！",
       emergeNext:{melee:2,fireball:5,eruption:8,wrath:14}},
     {to:3,from:2,hpPctKey:"phase3At",onEnter:"enrage",
-      sfx:"roar",announce:"⚠️ 阶段三 · 拉戈斯狂暴！",
-      log:"拉戈斯发出震天咆哮——岩浆沸腾，烈焰之子将不断重生！",
+      sfx:"roar",announce:"⚠️ 阶段三 · "+T("boss.ragnaros_short")+"狂暴！",
+      log:T("boss.ragnaros_short")+"发出震天咆哮——岩浆沸腾，"+T("mob.flame_spawn")+"将不断重生！",
       compressNext:{melee:1.5,fireball:3,eruption:2.5,wrath:6},
       burst:{vfx:"roar_aura",y:6,color:0xff2200,count:80,spread:8},
       spawnAdds:{count:3,r:[8,14],zOff:-4},
       addWave:{interval:5,count:2,r:[10,16],zOff:-4,
-        log:"熔岩翻涌——新的烈焰之子从岩浆中爬出！"}},
+        log:"熔岩翻涌——新的"+T("mob.flame_spawn")+"从岩浆中爬出！"}},
   ],
   death:{
     isFinal:true, questComplete:true,
-    sfx:"roar",announce:"炎魔领主 已被击败！",
-    log:"拉戈斯发出震天怒吼，缓缓沉回熔岩深处……",
+    sfx:"roar",announce:T("boss.ragnaros_title")+" 已被击败！",
+    log:T("boss.ragnaros_short")+"发出震天怒吼，缓缓沉回熔岩深处……",
     tip:"已拾取战利品后，走进出现的传送门即可离开副本。",
     lootId:"sulfuras_haft",lootPos:[0,0,-8],lootDelay:3400,
     lootAnnounce:"传说战利品 · 按 F 拾取",
     lootLog:"熔岩翻涌，一柄燃烧的锤柄浮出岩浆——靠近按 F 拾取。",
     endTitle:"胜 利",endSub:"MOLTEN CORE · CLEARED",
-    endHtml:"炎魔领主的躯体崩解为冷却的黑曜岩。<br>前往副本入口处，走进传送门离开。",
+    endHtml:T("boss.ragnaros_title")+"的躯体崩解为冷却的黑曜岩。<br>前往副本入口处，走进传送门离开。",
     burst:{vfx:"roar_aura",y:6,color:0xffc060,count:120,spread:9},
   },
   defeat:{
     endTitle:"团 灭",endSub:"YOU HAVE BEEN DEFEATED",
-    endHtml:"烈焰吞没了你的身躯，拉戈斯的狂笑响彻洞穴。<br>灵魂医者在等着你——跑尸之后，再来一次。",
+    endHtml:"烈焰吞没了你的身躯，"+T("boss.ragnaros_short")+"的狂笑响彻洞穴。<br>灵魂医者在等着你——跑尸之后，再来一次。",
   },
 });
 
-/* ---- 熔岩巨兽 / 玛格曼达：熔火一号位（STEP 9c · plan-V2 G6）---- */
+/* ---- 熔岩巨兽 / 炎喉：熔火一号位（STEP 9c · plan-V2 G6）---- */
 defineBoss({
   id:"magmadar",
-  name:"熔岩巨兽 · 玛格曼达",
-  title:"熔火之心 · 一号首领",
+  name:"熔岩巨兽 · "+T("boss.magmadar"),
+  title:T("zone.molten_core")+" · 一号首领",
   hitNoun:"熔岩巨兽",
   statsKey:"magmadar",
   build:()=>buildQuadruped(QUADS.lavabeast||QUADS.magmadar),
@@ -326,28 +326,28 @@ defineBoss({
     type:"appear", fromY:0, toY:0, dur:1.4,
     burst:{at:.35,window:.2,vfx:"roar_aura",pos:[0,3,-12],color:0xff5a1a,count:70,spread:5},
     sfx:"roar",
-    announce:"玛格曼达发出灼热的咆哮！",
-    log:"巨型熔岩猎犬玛格曼达踏入了战场！",
+    announce:T("boss.magmadar")+"发出灼热的咆哮！",
+    log:"巨型熔岩猎犬"+T("boss.magmadar")+"踏入了战场！",
   },
   bob:false,
   home:{x:0,z:-11},
   skills:[
     {id:"melee",type:"melee",bal:"melee",name:"烈焰撕咬",firstDelay:2.5,
-      vfx:"melee_impact",label:"玛格曼达的撕咬",phaseMul:{2:"p2Mul"}},
+      vfx:"melee_impact",label:T("boss.magmadar")+"的撕咬",phaseMul:{2:"p2Mul"}},
     /* 扇形多发火球：阶段二发数翻倍 */
     {id:"spit",type:"cast_projectile",bal:"spit",name:"岩浆喷吐",firstDelay:4.5,
-      vfx:"lava_bolt",log:"玛格曼达喷出扇形岩浆！",exclusive:true,
+      vfx:"lava_bolt",log:T("boss.magmadar")+"喷出扇形岩浆！",exclusive:true,
       countKey:{1:"count",2:"p2Count"},fanKey:"fan"},
     /* 直线喷吐：Boss→玩家方向铺预警环 */
     {id:"breath",type:"cast_line",bal:"breath",name:"熔岩吐息",firstDelay:7,
       sfx:"breath_fire",vfx:"eruption_ring",
-      announce:"熔岩吐息 · 躲开直线！",log:"玛格曼达深吸一口气，岩浆沿直线喷涌！",
+      announce:"熔岩吐息 · 躲开直线！",log:T("boss.magmadar")+"深吸一口气，岩浆沿直线喷涌！",
       exclusive:true,segsKey:{1:"segs",2:"p2Segs"}},
     /* 践踏：脚下大圈 + 随机落点 */
     {id:"stomp",type:"cast_telegraph",bal:"stomp",name:"践踏震荡",firstDelay:10,
       vfx:"eruption_ring",playerRingRKey:"ringR",
       countKey:{1:"count",2:"p2Count"},
-      announce:"践踏 · 快躲开红圈！",log:"玛格曼达猛踏地面，震荡波层层扩散！",exclusive:true},
+      announce:"践踏 · 快躲开红圈！",log:T("boss.magmadar")+"猛踏地面，震荡波层层扩散！",exclusive:true},
     /* 恐惧 + 击退 + 脚下恐慌圈 */
     {id:"fear",type:"cast_fear",bal:"fear",name:"恐慌咆哮",firstDelay:13,
       vfx:"roar_aura",vfxY:3.5,announce:"恐慌咆哮！",
@@ -355,35 +355,35 @@ defineBoss({
   ],
   phases:[
     {to:2,from:1,hpPctKey:"phase2At",onEnter:"enrage",
-      sfx:"roar",announce:"⚠️ 玛格曼达狂暴！",
-      log:"玛格曼达皮毛迸裂出岩浆——喷吐更密，幼犬从熔岩中涌出！",
+      sfx:"roar",announce:"⚠️ "+T("boss.magmadar")+"狂暴！",
+      log:T("boss.magmadar")+"皮毛迸裂出岩浆——喷吐更密，幼犬从熔岩中涌出！",
       compressNext:{melee:1.2,spit:2.5,breath:4,stomp:3.5,fear:6},
       burst:{vfx:"roar_aura",y:4,color:0xff2200,count:90,spread:7},
       spawnAdds:{countKey:"addCount",r:[9,15],zOff:-2}},
   ],
   death:{
     isFinal:false, nextStage:"bridge",
-    sfx:"roar",announce:"玛格曼达倒下了！",
+    sfx:"roar",announce:T("boss.magmadar")+"倒下了！",
     log:"巨型熔岩猎犬发出最后一声哀嚎，瘫倒在黑曜岩上。",
-    tip:"岩桥即将开启——准备面对炎魔领主。",
+    tip:"岩桥即将开启——准备面对"+T("boss.ragnaros_title")+"。",
     xpKey:"magmadar",
     lootTable:"magmadar", lootPos:[0,0,-10], lootDelay:1200,
     lootAnnounce:"战利品掉落 · 按 F 拾取",
-    lootLog:"玛格曼达的项圈与犬牙滚落在地。",
+    lootLog:T("boss.magmadar")+"的项圈与犬牙滚落在地。",
     burst:{vfx:"roar_aura",y:4,color:0xff8040,count:80,spread:6},
   },
   defeat:{
     endTitle:"团 灭",endSub:"YOU HAVE BEEN DEFEATED",
-    endHtml:"玛格曼达的利齿撕碎了你的防线。<br>灵魂医者在等着你——再来一次。",
+    endHtml:T("boss.magmadar")+"的利齿撕碎了你的防线。<br>灵魂医者在等着你——再来一次。",
   },
 });
 
-/* ---- 考布莱恩：哀嚎洞穴一号位（STEP 21）· 毒液喷吐 ---- */
+/* ---- 考布：泣息洞窟一号位（STEP 21）· 毒液喷吐 ---- */
 defineBoss({
   id:"cobrahn",
-  name:"考布莱恩 · 毒牙领主",
-  title:"哀嚎洞穴 · 一号首领",
-  hitNoun:"考布莱恩",
+  name:T("boss.cobrahn_short")+" · 毒牙领主",
+  title:T("zone.wailing")+" · 一号首领",
+  hitNoun:T("boss.cobrahn_short"),
   statsKey:"cobrahn",
   build:()=>buildQuadruped(QUADS.cobrahn),
   projectileY:4.8, fctY:6.5,
@@ -391,26 +391,26 @@ defineBoss({
     type:"appear", fromY:0, toY:0, dur:1.2,
     burst:{at:.3,window:.2,vfx:"roar_aura",pos:[0,2.5,-10],color:0x44aa22,count:50,spread:4},
     sfx:"growl",
-    announce:"考布莱恩发出嘶嘶低鸣！",
-    log:"巨大的变异蛇怪考布莱恩从苔藓中探出身来！",
+    announce:T("boss.cobrahn_short")+"发出嘶嘶低鸣！",
+    log:"巨大的变异蛇怪"+T("boss.cobrahn_short")+"从苔藓中探出身来！",
   },
   bob:false,
   home:{x:0,z:-10},
   skills:[
     {id:"melee",type:"melee",bal:"melee",name:"毒牙撕咬",firstDelay:2.2,
-      vfx:"melee_impact",label:"考布莱恩的撕咬",phaseMul:{2:"p2Mul"}},
+      vfx:"melee_impact",label:T("boss.cobrahn_short")+"的撕咬",phaseMul:{2:"p2Mul"}},
     {id:"spit",type:"cast_projectile",bal:"spit",name:"毒液喷吐",firstDelay:4,
-      vfx:"venom_bolt",log:"考布莱恩喷出扇形毒液！",exclusive:true,
+      vfx:"venom_bolt",log:T("boss.cobrahn_short")+"喷出扇形毒液！",exclusive:true,
       countKey:{1:"count",2:"p2Count"},fanKey:"fan"},
     {id:"breath",type:"cast_line",bal:"breath",name:"酸液吐息",firstDelay:7,
       sfx:"breath_poison",
       vfx:"venom_ring",
-      announce:"酸液吐息 · 躲开直线！",log:"考布莱恩张开巨口，酸液沿直线喷涌！",
+      announce:"酸液吐息 · 躲开直线！",log:T("boss.cobrahn_short")+"张开巨口，酸液沿直线喷涌！",
       exclusive:true,segsKey:{1:"segs",2:"p2Segs"}},
   ],
   phases:[
     {to:2,from:1,hpPctKey:"phase2At",onEnter:"enrage",
-      sfx:"growl",announce:"⚠️ 考布莱恩狂暴！",
+      sfx:"growl",announce:"⚠️ "+T("boss.cobrahn_short")+"狂暴！",
       log:"毒牙领主鳞片迸裂——喷吐更密，变异兽从暗处涌出！",
       compressNext:{melee:1.2,spit:2.2,breath:3.5},
       burst:{vfx:"roar_aura",y:3.5,color:0x33cc44,count:70,spread:6},
@@ -418,7 +418,7 @@ defineBoss({
   ],
   death:{
     isFinal:false, nextStage:"boss",
-    sfx:"growl",announce:"考布莱恩倒下了！",
+    sfx:"growl",announce:T("boss.cobrahn_short")+"倒下了！",
     log:"毒牙领主瘫倒在苔藓上，洞穴深处传来更沉重的脚步声……",
     tip:"通往吞噬者巢穴的道路已打开。",
     xpKey:"cobrahn", copperKey:"cobrahn",
@@ -431,7 +431,7 @@ defineBoss({
 defineBoss({
   id:"verdan",
   name:"吞噬者 · 永生者",
-  title:"哀嚎洞穴 · 最终首领",
+  title:T("zone.wailing")+" · 最终首领",
   hitNoun:"吞噬者",
   statsKey:"verdan",
   build:()=>buildQuadruped(QUADS.verdan),
@@ -467,14 +467,14 @@ defineBoss({
   death:{
     isFinal:true, questComplete:false,
     sfx:"roar",announce:"吞噬者已被击败！",
-    log:"巨兽缓缓倒下，苔藓失去生气……哀嚎洞穴恢复了短暂的平静。",
-    tip:"已拾取战利品后，走进入口处的传送门即可返回贫瘠之地。",
+    log:"巨兽缓缓倒下，苔藓失去生气……"+T("zone.wailing")+"恢复了短暂的平静。",
+    tip:"已拾取战利品后，走进入口处的传送门即可返回"+T("zone.barrens")+"。",
     xpKey:"verdan", copperKey:"verdan",
     lootTable:"wailing", lootPos:[0,0,-6], lootDelay:2000,
     lootAnnounce:"稀有战利品出现了",
     lootLog:"毒液褪去，蓝装散落在苔藓上——靠近按 F 拾取。",
     endTitle:"胜 利",endSub:"WAILING CAVERNS · CLEARED",
-    endHtml:"吞噬者的躯体崩解为枯死的藤蔓。<br>前往副本入口处，走进传送门返回贫瘠之地。",
+    endHtml:"吞噬者的躯体崩解为枯死的藤蔓。<br>前往副本入口处，走进传送门返回"+T("zone.barrens")+"。",
     burst:{vfx:"roar_aura",y:5,color:0x66cc44,count:100,spread:8},
   },
   defeat:{
@@ -483,11 +483,11 @@ defineBoss({
   },
 });
 
-/* ---- 奥格弗林特：怒焰裂谷一号位（V1-B3）· 熔岩喷吐 / 直线 ---- */
+/* ---- 奥格弗林特：焰怒深渊一号位（V1-B3）· 熔岩喷吐 / 直线 ---- */
 defineBoss({
   id:"oggleflint",
   name:"奥格弗林特",
-  title:"怒焰裂谷 · 一号首领",
+  title:T("zone.ragefire")+" · 一号首领",
   hitNoun:"奥格弗林特",
   statsKey:"oggleflint",
   build:()=>buildQuadruped(QUADS.oggleflint),
@@ -540,7 +540,7 @@ defineBoss({
 defineBoss({
   id:"taragaman",
   name:"饥饿者 · 塔拉加曼",
-  title:"怒焰裂谷 · 最终首领",
+  title:T("zone.ragefire")+" · 最终首领",
   hitNoun:"塔拉加曼",
   statsKey:"taragaman",
   build:()=>buildQuadruped(QUADS.taragaman),
@@ -592,12 +592,12 @@ defineBoss({
   },
 });
 
-/* ---- 奥妮克希亚：巢穴精简团本（STEP 28）· 三阶段飞天/喷吐/深呼吸 ---- */
+/* ---- 黑曜女皇：巢穴精简团本（STEP 28）· 三阶段飞天/喷吐/深呼吸 ---- */
 defineBoss({
   id:"onyxia",
-  name:"奥妮克希亚 · 黑龙女王",
-  title:"奥妮克希亚巢穴 · 最终首领",
-  hitNoun:"奥妮克希亚",
+  name:T("boss.onyxia")+" · 黑龙女王",
+  title:T("zone.onyxia")+" · 最终首领",
+  hitNoun:T("boss.onyxia"),
   statsKey:"onyxia",
   build:()=>buildOnyxia(),
   projectileY:6.5, fctY:8.5,
@@ -605,17 +605,17 @@ defineBoss({
     type:"appear", fromY:0, toY:0, dur:1.6,
     burst:{at:.4,window:.25,vfx:"roar_aura",pos:[0,4,-12],color:0xff3300,count:90,spread:6},
     sfx:"roar",
-    announce:"奥妮克希亚发出震天龙吟！",
-    log:"黑龙女王奥妮克希亚展开双翼，巢穴在烈焰中苏醒！",
+    announce:T("boss.onyxia")+"发出震天龙吟！",
+    log:"黑龙女王"+T("boss.onyxia")+"展开双翼，巢穴在烈焰中苏醒！",
   },
   bob:false,
   home:{x:0,z:-12},
   skills:[
     {id:"melee",type:"melee",bal:"melee",name:"龙爪撕扯",firstDelay:2.4,
-      vfx:"melee_impact",label:"奥妮克希亚的龙爪",
+      vfx:"melee_impact",label:T("boss.onyxia")+"的龙爪",
       phaseMul:{2:"p2Mul",3:"p3Mul"}},
     {id:"spit",type:"cast_projectile",bal:"spit",name:"暗焰喷吐",firstDelay:4.5,
-      vfx:"lava_bolt",log:"奥妮克希亚喷出扇形暗焰！",exclusive:true,
+      vfx:"lava_bolt",log:T("boss.onyxia")+"喷出扇形暗焰！",exclusive:true,
       countKey:{1:"count",2:"p2Count",3:"p3Count"},fanKey:"fan"},
     {id:"breath",type:"cast_line",bal:"breath",name:"火焰吐息",firstDelay:7.5,
       sfx:"breath_fire",vfx:"eruption_ring",
@@ -627,7 +627,7 @@ defineBoss({
       announce:"翼击落火 · 快躲开红圈！",log:"龙翼扇起火雨——地面燃起红圈！",exclusive:true},
     {id:"deepBreath",type:"cast_line",bal:"deepBreath",name:"深呼吸",firstDelay:28,
       sfx:"breath_fire",vfx:"eruption_ring",
-      announce:"深呼吸 · 立刻躲开整条直线！！",log:"奥妮克希亚深深吸气——毁灭性的直线烈焰即将释放！",
+      announce:"深呼吸 · 立刻躲开整条直线！！",log:T("boss.onyxia")+"深深吸气——毁灭性的直线烈焰即将释放！",
       exclusive:true,segsKey:{1:"segs",2:"p2Segs",3:"p3Segs"}},
   ],
   phases:[
@@ -638,7 +638,7 @@ defineBoss({
       burst:{vfx:"roar_aura",y:6,color:0xff2200,count:80,spread:7}},
     {to:3,from:2,hpPctKey:"phase3At",onEnter:"land",
       sfx:"roar",announce:"⚠️ 阶段三 · 深呼吸！",
-      log:"奥妮克希亚俯冲落地——深呼吸与漫天火雨开始了！",
+      log:T("boss.onyxia")+"俯冲落地——深呼吸与漫天火雨开始了！",
       compressNext:{melee:1.4,spit:3,breath:3.5,wing:2.8,deepBreath:5},
       burst:{vfx:"roar_aura",y:4,color:0xff4400,count:100,spread:8},
       spawnAdds:{countKey:"addCount",r:[9,15],zOff:-2}},
@@ -646,14 +646,14 @@ defineBoss({
   death:{
     isFinal:true, questComplete:false,
     sfx:"roar",announce:"黑龙女王已被击败！",
-    log:"奥妮克希亚发出最后一声悲鸣，庞大的躯体轰然坠地……",
-    tip:"已拾取战利品后，走进入口处的传送门即可返回贫瘠之地。",
+    log:T("boss.onyxia")+"发出最后一声悲鸣，庞大的躯体轰然坠地……",
+    tip:"已拾取战利品后，走进入口处的传送门即可返回"+T("zone.barrens")+"。",
     xpKey:"onyxia", copperKey:"onyxia",
     lootTable:"onyxia", lootPos:[0,0,-6], lootDelay:2200,
     lootAnnounce:"龙鳞战利品散落一地",
     lootLog:"黑龙鳞片与利牙滚落在地——靠近按 F 拾取。",
     endTitle:"胜 利",endSub:"ONYXIA'S LAIR · CLEARED",
-    endHtml:"黑龙女王的躯体逐渐冷却。<br>前往副本入口处，走进传送门返回贫瘠之地。",
+    endHtml:"黑龙女王的躯体逐渐冷却。<br>前往副本入口处，走进传送门返回"+T("zone.barrens")+"。",
     burst:{vfx:"roar_aura",y:5,color:0xff8040,count:120,spread:9},
   },
   defeat:{
@@ -1110,7 +1110,7 @@ function bossAI(dt){
   }
 }
 
-/* ---------------- 副本小怪（烈焰之子 / 变异蛇等，由 getDungeon().addCfg 驱动） ---------------- */
+/* ---------------- 副本小怪（火裔 / 变异蛇等，由 getDungeon().addCfg 驱动） ---------------- */
 function spawnAdd(x,z,opts){
   opts=opts||{};
   const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
@@ -1127,12 +1127,12 @@ function spawnAdd(x,z,opts){
   mesh.position.set(clamp(x,-Rlim+3,Rlim-3),0,clamp(z,-Rlim+3,Rlim-3));
   scene.add(mesh);
   S.adds.push({
-    mesh,name:conf.name||"烈焰之子",level:(bal.level!=null?bal.level:15),
+    mesh,name:conf.name||T("mob.flame_spawn"),level:(bal.level!=null?bal.level:15),
     hp,hpMax:hp,atkT:0,corpseT:0,
     stats, moving:false, attackAnim:0, state:"alive",
     hitKind:conf.hitKind||"flame",
     lootTable:conf.lootTable||"add",
-    dieLog:conf.dieLog||"一只烈焰之子被消灭了！",
+    dieLog:conf.dieLog||"一只"+T("mob.flame_spawn")+"被消灭了！",
     burstColor:conf.burstColor!=null?conf.burstColor:0xff5a1a,
     variance:null,
     dead(){return this.corpseT>0||!S.adds.includes(this);},
@@ -1281,7 +1281,7 @@ function showDeathUi(){
   if(!ov)return;
   const world=S.mode==="world";
   $("#deathTitle").textContent="你 已 死 亡";
-  $("#deathSub").textContent=world?"灵魂将前往营地的灵魂医者处":"在熔火之心中倒下了……";
+  $("#deathSub").textContent=world?"灵魂将前往营地的灵魂医者处":"在"+T("zone.molten_core")+"中倒下了……";
   $("#deathText").textContent=world
     ?"释放灵魂后，你将在灵魂医者旁复活（短暂虚弱）。"
     :"可选择在走廊入口重整旗鼓，或退出副本回到营地。";
@@ -1393,10 +1393,10 @@ function releaseSpiritLeaveRaid(){
   enterZone(hub,gate,{
     afterEnter(){
       resurrectPlayer(worldSp,{silent:true});
-      announce(hub==="barrens"?"你回到了十字路口":"你回到了营地");
+      announce(hub==="barrens"?"你回到了"+T("poi.crossroads"):"你回到了营地");
       log(hub==="barrens"
-        ?"你退出哀嚎洞穴，在十字路口灵魂医者旁苏醒。"
-        :"你退出熔火之心，在灵魂医者旁苏醒。","lg-sys");
+        ?"你退出"+T("zone.wailing")+"，在"+T("poi.crossroads")+"灵魂医者旁苏醒。"
+        :"你退出"+T("zone.molten_core")+"，在灵魂医者旁苏醒。","lg-sys");
     },
   });
 }

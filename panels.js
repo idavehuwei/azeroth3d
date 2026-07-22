@@ -1,5 +1,5 @@
 /* ============================================================
-   熔火之心 · panels.js
+   炽心 · panels.js
    HUD 面板（STEP 14）：角色(C) / 法术书(P) / 任务日志(L)
    纯 DOM 覆盖层，不碰 Three.js；数值读自 S.p / CLS / ITEMS / getSkillCd
    ------------------------------------------------------------
@@ -30,6 +30,16 @@ function closeAllHudPanels(except){
     const ov=$("#worldMapOv"); if(ov)ov.classList.remove("show");
   }
   if(except!=="vendor"&&typeof closeVendorPanel==="function")closeVendorPanel();
+}
+function anyHudPanelOpen(){
+  if(panelOpen("#charPanel")||panelOpen("#spellPanel")||panelOpen("#questLog"))return true;
+  if(panelOpen("#deedsPanel")||panelOpen("#finderPanel"))return true;
+  if(typeof bagOpen==="function"&&bagOpen())return true;
+  if(typeof talentOpen==="function"&&talentOpen())return true;
+  if(typeof worldMapOpen==="function"&&worldMapOpen())return true;
+  if($("#vendorPanel")&&$("#vendorPanel").style.display==="block")return true;
+  if($("#dlg")&&$("#dlg").style.display==="block")return true;
+  return false;
 }
 
 function itemScore(it){
@@ -180,8 +190,9 @@ function questEntries(){
   return [];
 }
 
-const QUEST_ZONE_NAME={mulgore:"莫高雷",barrens:"贫瘠之地",durotar:"赭岩谷",
-  molten_core:"熔火之心",wailing_caverns:"哀嚎洞穴",onyxias_lair:"奥妮克希亚巢穴"};
+const QUEST_ZONE_NAME={mulgore:T("zone.mulgore"),barrens:T("zone.barrens"),durotar:T("zone.durotar"),
+  molten_core:T("zone.molten_core"),wailing_caverns:T("zone.wailing"),ragefire_chasm:T("zone.ragefire"),
+  onyxias_lair:T("zone.onyxia")};
 let _questLogSel=null;
 
 function questRewardLines(q){

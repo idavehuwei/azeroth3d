@@ -1,5 +1,5 @@
 /* ============================================================
-   熔火之心 · creatures.js
+   炽心 · creatures.js
    生物族群工厂（plan-V2 · R6）
    ------------------------------------------------------------
    [依赖] THREE · palette.js（MAT）· models.js（buildHumanoid · makeMats · prim · GEO 运行时）
@@ -72,7 +72,7 @@ const QUADS={
             head:"beak",neck:"long",gait:{freq:2.3,lift:.24}},
   crocolisk:{fur:0x4a6a48,furD:0x2a3a28,accent:0x6a8a58,snoutLong:true,ears:false,mane:false,tail:'whip',size:1.25,style:"wolf",
             head:"wolf",gait:{freq:1.8,lift:.1}},
-  /* G6：熔岩巨兽 = 玛格曼达 Boss 体型（与 magmadar 配方对齐） */
+  /* G6：熔岩巨兽 = 炎喉 Boss 体型（与 magmadar 配方对齐） */
   lavabeast:{fur:0x8a2208,furD:0x3a1008,accent:0xff6020,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:5.1,style:"wolf",glow:0xff4400,
             head:"wolf",bulk:1.4,gait:{freq:1.6,lift:.14}},
 };

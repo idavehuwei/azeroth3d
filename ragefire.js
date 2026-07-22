@@ -1,6 +1,6 @@
 /* ============================================================
-   熔火之心 · ragefire.js
-   怒焰裂谷·精简（plan-v1 · V1-B3）：走廊燃刃 → 奥格弗林特 → 饥饿者塔拉加曼
+   炽心 · ragefire.js
+   焰怒深渊·精简（plan-v1 · V1-B3）：走廊燃刃 → 奥格弗林特 → 饥饿者塔拉加曼
    ------------------------------------------------------------
    [依赖] THREE · core.js（BAL srand rand scene makeLabel）
           zones.js（registerZone）
@@ -65,7 +65,7 @@ function buildRagefireZone(root){
   const entry=new THREE.PointLight(0xffa040,1.0,28,2);
   entry.position.set(0,6,14); root.add(entry);
 
-  const lab=makeLabel("怒焰裂谷",9,"#ffb080","rgba(100,30,10,.9)");
+  const lab=makeLabel(T("zone.ragefire"),9,"#ffb080","rgba(100,30,10,.9)");
   lab.position.set(0,7,16); root.add(lab);
 }
 
@@ -101,7 +101,7 @@ const RAGEFIRE_DUNGEON={
         spawnAdd(Math.cos(a)*rand(9,15),Math.sin(a)*rand(7,13)-4);
       }
       this.mobsAlive=n;
-      log("怒焰裂谷中燃刃兽人涌出——消灭他们才能面对奥格弗林特。","lg-sys");
+      log(T("zone.ragefire")+"中燃刃兽人涌出——消灭他们才能面对奥格弗林特。","lg-sys");
     }else if(s==="boss1"){
       this.stage="boss1";
       activateRaidBoss("oggleflint");
@@ -121,7 +121,7 @@ DUNGEONS.ragefire_chasm=RAGEFIRE_DUNGEON;
 
 registerZone({
   id:"ragefire_chasm",
-  name:"怒焰裂谷",
+  name:T("zone.ragefire"),
   scene:sceneRagefire,
   build:buildRagefireZone,
   music:"raid",
@@ -146,10 +146,10 @@ registerZone({
     if(opts&&opts.silent)return;
     if(typeof resetBoss==="function")resetBoss();
     RAGEFIRE_DUNGEON.setStage("corridor");
-    log("你踏入怒焰裂谷——热浪与硫磺扑面而来。","lg-sys");
+    log("你踏入"+T("zone.ragefire")+"——热浪与硫磺扑面而来。","lg-sys");
     $("#bossFrame").classList.add("show");
     const n=$("#bossName .n"), t=$("#bossName .t");
-    if(n)n.textContent="🔥 怒焰裂谷";
+    if(n)n.textContent="🔥 "+T("zone.ragefire");
     if(t)t.textContent="赭岩谷 · 地下裂隙";
   },
   onLeave(){

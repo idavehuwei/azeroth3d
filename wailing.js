@@ -1,6 +1,6 @@
 /* ============================================================
-   熔火之心 · wailing.js
-   哀嚎洞穴（STEP 21）：5 人风格副本 · 走廊变异兽 → 考布莱恩 → 吞噬者
+   炽心 · wailing.js
+   泣息洞窟（STEP 21）：5 人风格副本 · 走廊变异兽 → 考布 → 吞噬者
    ------------------------------------------------------------
    [依赖] THREE · core.js（BAL srand rand scene makeLabel）
           zones.js（registerZone）
@@ -69,11 +69,11 @@ function buildWailingZone(root){
   const entry=new THREE.PointLight(0xaacc88,.9,28,2);
   entry.position.set(0,6,14); root.add(entry);
 
-  const lab=makeLabel("哀嚎洞穴",9,"#a8d080","rgba(40,80,30,.9)");
+  const lab=makeLabel(T("zone.wailing"),9,"#a8d080","rgba(40,80,30,.9)");
   lab.position.set(0,7,16); root.add(lab);
 }
 
-/* 哀嚎洞穴副本状态机（无岩桥：corridor → boss1 → boss） */
+/* 泣息洞窟副本状态机（无岩桥：corridor → boss1 → boss） */
 const WAILING_DUNGEON={
   id:"wailing_caverns",
   stage:"corridor",
@@ -106,12 +106,12 @@ const WAILING_DUNGEON={
         spawnAdd(Math.cos(a)*rand(10,16),Math.sin(a)*rand(8,14)-4);
       }
       this.mobsAlive=n;
-      log("潮湿的嘶鸣响起——变异蛇从岩缝中涌出！消灭它们才能面对考布莱恩。","lg-sys");
+      log("潮湿的嘶鸣响起——变异蛇从岩缝中涌出！消灭它们才能面对"+T("boss.cobrahn_short")+"。","lg-sys");
     }else if(s==="boss1"){
       this.stage="boss1";
       activateRaidBoss("cobrahn");
-      announce("考布莱恩 · 毒牙领主！");
-      log("毒液在石缝间汇聚，考布莱恩挡在了去路中央！","lg-boss");
+      announce(T("boss.cobrahn_short")+" · 毒牙领主！");
+      log("毒液在石缝间汇聚，"+T("boss.cobrahn_short")+"挡在了去路中央！","lg-boss");
     }else if(s==="boss"){
       this.stage="boss";
       activateRaidBoss("verdan");
@@ -126,7 +126,7 @@ DUNGEONS.wailing_caverns=WAILING_DUNGEON;
 
 registerZone({
   id:"wailing_caverns",
-  name:"哀嚎洞穴",
+  name:T("zone.wailing"),
   scene:sceneWailing,
   build:buildWailingZone,
   music:"raid",
@@ -151,11 +151,11 @@ registerZone({
     if(opts&&opts.silent)return;
     if(typeof resetBoss==="function")resetBoss();
     WAILING_DUNGEON.setStage("corridor");
-    log("你踏入哀嚎洞穴——潮气与毒草的气味扑面而来。","lg-sys");
+    log("你踏入"+T("zone.wailing")+"——潮气与毒草的气味扑面而来。","lg-sys");
     $("#bossFrame").classList.add("show");
     const n=$("#bossName .n"), t=$("#bossName .t");
-    if(n)n.textContent="🐍 哀嚎洞穴";
-    if(t)t.textContent="贫瘠之地 · 地下洞穴";
+    if(n)n.textContent="🐍 "+T("zone.wailing");
+    if(t)t.textContent=T("zone.barrens")+" · 地下洞穴";
   },
   onLeave(){
     if(typeof removeExitPortal==="function")removeExitPortal();

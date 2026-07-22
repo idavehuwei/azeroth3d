@@ -1,5 +1,5 @@
 /* ============================================================
-   熔火之心 · buffs.js
+   炽心 · buffs.js
    Buff / Debuff 条（V1-C3）：注册表 + HUD 剩余时间
    玩法计时仍由既有字段驱动（absorbT / weaknessT / fear / whetstoneT / eating）
    本模块：applyBuff 写入字段 · tickBuffs 同步 HUD · 磨刀石倒计时迁入此处
