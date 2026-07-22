@@ -875,6 +875,7 @@ function spawnMob(type,x,z,group,opts){
     attackAnim:0,
     armor,
     simStats:{level:mobLv,armor,elite:isElite},
+    auras:[],
     variance:BAL.variance.mob,
     dead(){return this.state==="dead"||this.state==="return";},
     fctPos(){return this.mesh.position.clone().setY(this.labelY-.4);},

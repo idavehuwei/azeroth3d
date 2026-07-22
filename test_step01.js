@@ -126,6 +126,11 @@ assert(coreSrc.includes("flashHeal")&&coreSrc.includes("smite"),"BALANCE.skills 
 assert(fs.existsSync(path.join(__dirname,"js/sim/balance.js")),"js/sim/balance.js 存在");
 assert(html.includes('src="js/sim/balance.js"'),"game.html 加载 balance.js");
 assert(html.includes('src="js/sim/rules.js"'),"game.html 加载 rules.js");
+assert(html.includes('src="js/sim/auras.js"'),"game.html 加载 auras.js");
+assert(fs.existsSync(path.join(__dirname,"js/sim/auras.js")),"js/sim/auras.js 存在");
+assert(fs.existsSync(path.join(__dirname,"test_auras.js")),"test_auras.js 存在");
+assert(combatSrc.includes("applyCorruptionToTarget")||combatSrc.includes("corruption"),"combat 含腐蚀 DoT 入口");
+assert(combatSrc.includes("applyAura")&&fs.readFileSync(path.join(__dirname,"main.js"),"utf8").includes("tickAuras"),"光环施加与推进接线");
 assert(html.includes('src="js/ui/static-strings.js"'),"game.html 加载 static-strings.js");
 assert(fs.existsSync(path.join(__dirname,"scripts/lint-sim.sh")),"scripts/lint-sim.sh 存在");
 assert(fs.existsSync(path.join(__dirname,"package.json")),"package.json 存在");

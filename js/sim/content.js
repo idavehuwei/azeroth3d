@@ -155,5 +155,41 @@ var SIM_CONTENT={
       innPerSec:5,
       nearR:14
     }
+  },
+
+  /* ---- plan-v4 STEP 16：统一光环定义 ---- */
+  auras:{
+    corruption:{
+      name:"腐蚀", kind:"debuff", type:"dot", icon:"venom",
+      dur:9, tick:3, maxStacks:3, dmgPerTick:35
+    },
+    power_word_shield:{
+      name:"真言术：盾", kind:"buff", type:"absorb", icon:"holy_shield",
+      dur:15, maxStacks:1
+    },
+    rooted:{
+      name:"定身", kind:"debuff", type:"crowd", flag:"rooted", icon:"frost",
+      dur:4, maxStacks:1
+    },
+    ice_block:{
+      name:"寒冰屏障", kind:"buff", type:"invuln", icon:"ice_block",
+      dur:6, maxStacks:1
+    },
+    evasion:{
+      name:"闪避", kind:"buff", type:"invuln", icon:"stealth",
+      dur:1.2, maxStacks:1
+    },
+    weakness:{
+      name:"虚弱", kind:"debuff", type:"stat", icon:"weakness",
+      dur:60, maxStacks:1
+    },
+    whetstone:{
+      name:"磨刀石", kind:"buff", type:"stat", icon:"whetstone",
+      dur:30, maxStacks:1, dmgMulAdd:0
+    },
+    rejuvenation:{
+      name:"回春", kind:"buff", type:"hot", icon:"heal",
+      dur:12, tick:3, maxStacks:1, healPerSec:25
+    }
   }
 };

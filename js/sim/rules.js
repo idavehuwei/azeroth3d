@@ -40,6 +40,11 @@ var RULES={
     isGreyMob:typeof isGreyMob==="function"?isGreyMob:null,
     baseMobXp:typeof baseMobXp==="function"?baseMobXp:null,
     scaledMobXp:typeof scaledMobXp==="function"?scaledMobXp:null
+  },
+  auras:{
+    applyAura:typeof applyAura==="function"?applyAura:null,
+    tickAuras:typeof tickAuras==="function"?tickAuras:null,
+    hasAura:typeof hasAura==="function"?hasAura:null
   }
 };
 

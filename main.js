@@ -313,7 +313,23 @@ function tick(){
           }
           continue;
         }
-        if(m.rootT>0)m.rootT-=dt;
+        if(typeof tickAuras==="function"){
+          tickAuras(m,dt,{
+            onDot(ent,amount,aura){
+              if(amount<=0||(ent.hp|0)<=0)return;
+              if(typeof applyEntityHpDamage==="function")applyEntityHpDamage(ent,amount);
+              else ent.hp=Math.max(0,(ent.hp|0)-amount);
+              if(typeof fct==="function"&&ent.fctPos)fct(ent.fctPos(),`-${amount}`,"#c070ff",12);
+              if(typeof log==="function")log(`【${aura.name}】对${ent.name}造成 ${amount} 点持续伤害。`,"lg-dmg");
+              if(typeof updateNameplateHp==="function"&&ent.label)updateNameplateHp(ent.label,ent.hp,ent.hpMax);
+              if((ent.hp|0)<=0&&ent.onDeath)ent.onDeath();
+            },
+            onExpire(ent,aura){
+              if(aura&&aura.id==="corruption"&&typeof log==="function")
+                log(`${ent.name}身上的【${aura.name}】消散了。`,"lg-sys");
+            }
+          });
+        }else if(m.rootT>0)m.rootT-=dt;
         if(m.castCd>0)m.castCd-=dt;
         const dP=Math.hypot(player.position.x-m.mesh.position.x,player.position.z-m.mesh.position.z);
         const dH=Math.hypot(m.home.x-m.mesh.position.x,m.home.z-m.mesh.position.z);
@@ -745,14 +761,40 @@ function tick(){
       S.p.atkTimer=did?(typeof getPlayerAutoSpeed==="function"?getPlayerAutoSpeed():CLS.autoSpd):.3;
     }
 
-    /* ---- 资源恢复 & 冷却（C5） ---- */
-    S.p.invuln=Math.max(0,S.p.invuln-dt);
-    /* STEP 19：真言术：盾持续时间 */
-    if(S.p.absorbT>0){
-      S.p.absorbT=Math.max(0,S.p.absorbT-dt);
-      if(S.p.absorbT<=0&&S.p.absorb>0){
-        S.p.absorb=0;
-        if(typeof clearShieldVisual==="function")clearShieldVisual();
+    /* ---- 光环推进（STEP 16）+ 资源恢复 & 冷却 ---- */
+    if(typeof tickAuras==="function"){
+      tickAuras(S.p,dt,{
+        onHot(ent,amount){
+          if(amount<=0||!S.p.alive)return;
+          S.p.hp=Math.min(S.p.hpMax,S.p.hp+amount);
+        },
+        onExpire(ent,aura){
+          if(!aura)return;
+          if(aura.id==="power_word_shield"&&typeof clearShieldVisual==="function")clearShieldVisual();
+          if((aura.id==="ice_block"||aura.id==="evasion")&&typeof log==="function")
+            log(`${aura.name}结束。`,"lg-sys");
+        }
+      });
+    }else{
+      S.p.invuln=Math.max(0,S.p.invuln-dt);
+      if(S.p.absorbT>0){
+        S.p.absorbT=Math.max(0,S.p.absorbT-dt);
+        if(S.p.absorbT<=0&&S.p.absorb>0){
+          S.p.absorb=0;
+          if(typeof clearShieldVisual==="function")clearShieldVisual();
+        }
+      }
+    }
+    if(typeof PARTY!=="undefined"&&PARTY&&PARTY.length&&typeof tickAuras==="function"){
+      for(const c of PARTY){
+        if(!c||!c.alive)continue;
+        tickAuras(c,dt,{
+          onHot(ent,amount){
+            if(amount<=0)return;
+            ent.hp=Math.min(ent.hpMax,ent.hp+amount);
+            if(ent.label&&typeof updateNameplateHp==="function")updateNameplateHp(ent.label,ent.hp,ent.hpMax);
+          }
+        });
       }
     }
     if(typeof tickTotems==="function")tickTotems(dt);
@@ -882,7 +924,17 @@ function tick(){
       const dir=player.position.clone().sub(a.mesh.position);dir.y=0;
       const d=dir.length();
       a.moving=false;
-      if(a.rootT>0){a.rootT-=dt;}  /* 被冰霜新星定身 */
+      if(typeof tickAuras==="function"){
+        tickAuras(a,dt,{
+          onDot(ent,amount,aura){
+            if(amount<=0||(ent.hp|0)<=0)return;
+            if(typeof applyEntityHpDamage==="function")applyEntityHpDamage(ent,amount);
+            else ent.hp=Math.max(0,(ent.hp|0)-amount);
+            if(typeof fct==="function"&&ent.fctPos)fct(ent.fctPos(),`-${amount}`,"#c070ff",12);
+            if((ent.hp|0)<=0&&ent.onDeath)ent.onDeath();
+          }
+        });
+      }else if(a.rootT>0){a.rootT-=dt;}  /* 被冰霜新星定身 */
       else if(d>(st.stopR||BAL.add.stopR)){
         dir.normalize();a.mesh.position.add(dir.multiplyScalar(dt*(st.speed||BAL.add.speed)));
         a.moving=true;

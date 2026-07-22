@@ -51,6 +51,7 @@ const S={
   craftOpen:false,
   p:{hp:5200,hpMax:5200,rage:20,rageMax:100,speed:10.5,alive:true,dmgMul:1,debugMul:1,
      atkTimer:0,attackAnim:0,walkPhase:0,face:0,invuln:0,
+     auras:[],
      absorb:0,absorbT:0,shieldMesh:null,   /* STEP 19 真言术：盾 */
      stealth:false,sprintT:0,              /* V1-C2 潜行 / 疾步 */
      level:1,xp:0,xpMax:BAL.levels.xpMax[0],gold:0,restXp:0,lastSeenAt:0,   /* C6 休息经验 */
@@ -761,18 +762,25 @@ function hitEntity(ent,amount,label,opts){
   /* —— 受击方向：玩家 / 队友（plan-v4 基线 #1） —— */
   if(opts.incoming){
     if(typeof markCombat==="function")markCombat(S.res);
-    /* STEP 19 / STEP 14：吸收盾纯结算 → 表现层反馈 */
-    if(opts.applyAbsorb){
+    /* STEP 19 / STEP 14/16：吸收盾纯结算（玩家或带 absorb 的实体） */
+    if(opts.applyAbsorb||(ent&&ent.absorb>0)){
+      const owner=opts.absorbOwner||ent||S.p;
       const sh=typeof applyAbsorbShield==="function"
-        ?applyAbsorbShield(S.p,amount)
+        ?applyAbsorbShield(owner,amount)
         :{amount,absorbed:0,shieldBroken:false};
       if(sh.absorbed>0){
-        fct(player.position.clone().setY(3.2),`-${sh.absorbed}(盾)`,"#ffe9a0",16);
+        const pos=ent.fctPos?ent.fctPos():(player&&player.position?player.position.clone().setY(3.2):null);
+        if(pos)fct(pos,`-${sh.absorbed}(盾)`,"#ffe9a0",16);
         log(`真言术：盾吸收了 ${sh.absorbed} 点伤害。`,"lg-heal");
       }
       if(sh.shieldBroken){
-        if(typeof removeBuff==="function")removeBuff("power_word_shield","spent",true);
-        else{S.p.absorb=0;S.p.absorbT=0;clearShieldVisual();}
+        if(typeof removeAura==="function")removeAura(owner,"power_word_shield","spent");
+        if(owner===S.p){
+          if(typeof removeBuff==="function")removeBuff("power_word_shield","spent",true);
+          else{S.p.absorb=0;S.p.absorbT=0;clearShieldVisual();}
+        }
+      }else if(typeof syncAbsorbAuraFromEnt==="function"){
+        syncAbsorbAuraFromEnt(owner);
       }
       amount=sh.amount;
     }
@@ -1231,18 +1239,25 @@ function pyroblast(){
 function frostNova(){
   tryInterrupt(getSkillBal("frostNova").bossRadius||12,"冰霜新星");
   spawnBurst(player.position.clone().setY(.8),0x8ad8ff,14,2.2);
+  const rootDur=getSkillBal("frostNova").rootT;
   let any=false;
   if(S.mode==="world"){
     MOBS.forEach(m=>{
       if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<getSkillBal("frostNova").radius){
-        mobDamage(m,R(getSkillBal("frostNova").dmg),"冰霜新星"); m.rootT=getSkillBal("frostNova").rootT; any=true;
+        mobDamage(m,R(getSkillBal("frostNova").dmg),"冰霜新星");
+        if(typeof applyAura==="function")applyAura(m,"rooted",{duration:rootDur});
+        else m.rootT=rootDur;
+        any=true;
       }
     });
   }else{
     if(bossTargetable()&&distToBoss()<=getSkillBal("frostNova").bossRadius){dmgBoss(R(getSkillBal("frostNova").bossDmg),"冰霜新星");any=true;}
     S.adds.forEach(a=>{
       if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<getSkillBal("frostNova").radius){
-        addDamage(a,R(getSkillBal("frostNova").dmg)); a.rootT=getSkillBal("frostNova").rootT; any=true;
+        addDamage(a,R(getSkillBal("frostNova").dmg));
+        if(typeof applyAura==="function")applyAura(a,"rooted",{duration:rootDur});
+        else a.rootT=rootDur;
+        any=true;
       }
     });
   }
@@ -1258,7 +1273,9 @@ function blink(){
   return true;
 }
 function iceBlock(){
-  S.p.invuln=getSkillBal("iceBlock").invuln;
+  const dur=getSkillBal("iceBlock").invuln;
+  if(typeof applyAura==="function")applyAura(S.p,"ice_block",{duration:dur});
+  else S.p.invuln=dur;
   const p=player;
   const ice=new THREE.Mesh(new THREE.IcosahedronGeometry(1.9,0),
     MAT.get("emissive.ice"));
@@ -1303,7 +1320,9 @@ function roll(){
   const dir=new THREE.Vector3(Math.sin(S.p.face),0,Math.cos(S.p.face));
   player.position.add(dir.multiplyScalar(getSkillBal("roll").dist));
   clampArena(player.position);
-  S.p.invuln=Math.max(S.p.invuln,getSkillBal("roll").invuln);
+  const dur=getSkillBal("roll").invuln;
+  if(typeof applyAura==="function")applyAura(S.p,"evasion",{duration:dur});
+  else S.p.invuln=Math.max(S.p.invuln,dur);
   spawnBurst(player.position.clone().setY(.6),0xd0ffa0,14,1);
   log("你灵巧地翻滚，短暂闪避一切伤害！","lg-me");
   return true;
@@ -1328,12 +1347,20 @@ function clearShieldVisual(){
 function applyHeal(amount,label){
   if(S.p.hp>=S.p.hpMax){log("生命已满。");return false;}
   const mul=1+((S.p.talentFx&&S.p.talentFx.healMul)||0);
-  const heal=Math.round(amount*mul);
+  let heal=Math.round(amount*mul);
+  /* STEP 16：治疗可暴击（走自身暴击率，倍率 1.5） */
+  let crit=false;
+  if(!S.p.derived&&typeof refreshPlayerDerived==="function")refreshPlayerDerived();
+  const critPct=(S.p.derived&&S.p.derived.critPct)!=null?S.p.derived.critPct:5;
+  if(Math.random()*100<critPct){
+    heal=Math.round(heal*1.5);
+    crit=true;
+  }
   S.p.hp=Math.min(S.p.hpMax,S.p.hp+heal);
-  fct(player.position.clone().setY(3),`+${heal}`,"#8aff9a",18);
+  fct(player.position.clone().setY(3),crit?`暴击 +${heal}`:`+${heal}`,"#8aff9a",crit?22:18,{crit});
   VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.4)});
   if(typeof SFX!=="undefined")SFX.play("heal");
-  log(`你施放【${label}】，恢复 ${heal} 点生命值。`,"lg-heal");
+  log(crit?`你施放【${label}】，暴击恢复 ${heal} 点生命值！`:`你施放【${label}】，恢复 ${heal} 点生命值。`,"lg-heal");
   return true;
 }
 function heal(){
@@ -1356,6 +1383,9 @@ function powerWordShield(){
   const mul=1+((S.p.talentFx&&S.p.talentFx.shieldMul)||0);
   const absorb=Math.round(R(bal.absorb)*mul);
   clearShieldVisual();
+  if(typeof applyAura==="function"){
+    applyAura(S.p,"power_word_shield",{duration:bal.duration,absorb});
+  }
   if(typeof applyBuff==="function")applyBuff("power_word_shield",{duration:bal.duration,absorb});
   else{S.p.absorb=absorb;S.p.absorbT=bal.duration;}
   const ice=typeof attachShieldAura==="function"
@@ -1367,6 +1397,23 @@ function powerWordShield(){
   fct(player.position.clone().setY(3.2),`盾 ${absorb}`,"#ffe9a0",16);
   if(typeof SFX!=="undefined")SFX.play("holy");
   log(`真言术：盾！吸收 ${absorb} 点伤害，持续 ${bal.duration} 秒。`,"lg-heal");
+  return true;
+}
+
+/** STEP 16：对焦点野怪施加腐蚀 DoT（验收 / 作弊台） */
+function applyCorruptionToTarget(stacks){
+  const tgt=typeof getFocusTarget==="function"?getFocusTarget(40):null;
+  let ent=null, label="目标";
+  if(tgt&&tgt.type==="mob"&&tgt.m){ent=tgt.m;label=tgt.m.name||"野怪";}
+  else if(tgt&&tgt.type==="add"&&tgt.a){ent=tgt.a;label=tgt.a.name||"小怪";}
+  if(!ent||typeof applyAura!=="function"){
+    log("没有可施加腐蚀的目标。","lg-sys");
+    return false;
+  }
+  const st=stacks!=null?stacks:3;
+  applyAura(ent,"corruption",{stacks:st});
+  log(`【腐蚀】附着在${label}身上（${st} 层）。`,"lg-me");
+  if(typeof announce==="function")announce("腐蚀");
   return true;
 }
 
@@ -1629,7 +1676,7 @@ function sprint(){
 
 function playerHit(amount,source,atkLevel){
   if(S.p.ghost)return; /* 灵魂形态不受伤 */
-  if(!S.p.alive||S.p.invuln>0)return;
+  if(!S.p.alive||S.p.invuln>0||(typeof hasAura==="function"&&(hasAura(S.p,"ice_block")||hasAura(S.p,"evasion"))))return;
   /* C10：受击打断进食/饮水/包扎；Track E：打断读条 */
   if((S.p.eating||S.p.drinking||S.p.bandaging)&&typeof cancelConsume==="function")cancelConsume();
   if(S.p.casting&&BAL.cast&&BAL.cast.hitInterrupt!==false&&typeof cancelPlayerCast==="function")

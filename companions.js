@@ -144,6 +144,7 @@ function recruitCompanion(classKey,opts){
     atkTimer:C.atkTimerStart||.4, healCd:0,
     face:0, walkPhase:0, attackAnim:0,
     reviveT:0, moving:false,
+    auras:[],
   };
   PARTY.push(member);
   syncCompanionAlias();
@@ -247,7 +248,7 @@ function companionHit(amount,source,target){
       log(`${CMP_NAMES[c.classKey]||"同伴"}倒下了，将在 ${BAL.companion.reviveT} 秒后振作。`,"lg-sys");
       if(typeof checkPartyWipe==="function")checkPartyWipe();
     }
-  },amount,source,{incoming:true,fctColor:"#ff8a7a"});
+  },amount,source,{incoming:true,fctColor:"#ff8a7a",applyAbsorb:!!(c.absorb>0),absorbOwner:c});
   updateCompanionHud();
 }
 

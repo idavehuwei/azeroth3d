@@ -122,7 +122,7 @@ function removeBuff(id,reason,silent){
   renderBuffHud();
 }
 
-/** 从既有计时字段重建 S.buffs（显示源） */
+/** 从既有计时字段 + auras[] 重建 S.buffs（显示源） */
 function syncBuffsFromLegacy(){
   const next={};
   if(S.p.absorb>0&&S.p.absorbT>0){
@@ -151,6 +151,18 @@ function syncBuffsFromLegacy(){
     const d=BUFF_DEFS.drinking;
     next.drinking={id:"drinking",kind:d.kind,icon:d.icon,
       name:S.p.drinking.name||d.name,t:S.p.drinking.t};
+  }
+  /* STEP 16：玩家 auras[]（无敌等）并入 HUD */
+  if(typeof listAuras==="function"&&S.p){
+    const auras=listAuras(S.p);
+    for(const a of auras){
+      if(!a||next[a.id])continue;
+      if(a.id==="power_word_shield")continue; /* 已由 absorb 字段表示 */
+      next[a.id]={
+        id:a.id,kind:a.kind||"buff",icon:a.icon||"sword",name:a.name||a.id,
+        t:a.remaining,stacks:a.stacks,absorb:a.absorb
+      };
+    }
   }
   S.buffs=next;
 }

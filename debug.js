@@ -186,6 +186,11 @@ window.cheat={
   level:cheatLevel,
   time:cheatTime,
   seed:cheatSeed,
+  dot(stacks){
+    if(typeof applyCorruptionToTarget==="function")return applyCorruptionToTarget(stacks);
+    console.warn("[cheat.dot] applyCorruptionToTarget 未加载");
+    return false;
+  },
   dump(){
     return Object.assign({
       seed:effectiveWorldSeed(),
