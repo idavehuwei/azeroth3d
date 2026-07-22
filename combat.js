@@ -84,6 +84,8 @@ const S={
    职业系统：战士 / 法师 / 弓箭手 / 牧师 / 萨满
    ============================================================ */
 let SKILLS=[];
+/** 先占位，避免 CLASSES 初始化失败时 CLS 落入 TDZ、主循环误报 */
+let CLS=null;
 const CLASSES={
   warrior:{title:"⚔️ 你 · 人类战士",hp:5200,resMax:100,resStart:20,resName:"怒气",resKind:"rage",
     regen:0,hitGain:0,speed:10.5,ranged:false,range:10,sfx:"swing",
@@ -169,22 +171,28 @@ const CLASSES={
        desc:"脱战后进入隐身，大幅缩小野怪主动仇恨半径。"},
       {name:"疾步",  icon:"sprint", cd:20, rage:20,fn:sprint,          bal:"sprint",unlock:8,
        desc:"短时间内大幅提高移动速度。"}]},
+  /* build / 技能 fn 惰性挂接：避免字面量解析期 ReferenceError → CLS TDZ */
   warlock:{title:"💀 你 · 人类术士",hp:3900,resMax:100,resStart:100,resName:"法力",resKind:"mana",
     regen:7,hitGain:0,speed:10,ranged:true,range:28,sfx:"shadow",
-    autoMin:160,autoMax:210,autoSpd:1.75,shotColor:0xa040ff,build:buildWarlock,
+    autoMin:160,autoMax:210,autoSpd:1.75,shotColor:0xa040ff,
+    build:function(){
+      if(typeof buildWarlock==="function")return buildWarlock();
+      if(typeof buildFromClassLook==="function")return buildFromClassLook("warlock");
+      return buildMage();
+    },
     barCss:"linear-gradient(180deg,#c090ff,#6a2088 60%,#301040)",
     tip:"提示：法力随时间恢复；【腐蚀】挂 DoT，【生命吸取】引导吸血；缺蓝时【生命分流】换法力。",
     skills:[
-      {name:"暗影箭",    icon:"shadow_bolt", cd:6,  rage:28,fn:shadowBolt,   bal:"shadowBolt",school:"spell",unlock:1,
+      {name:"暗影箭",    icon:"shadow_bolt", cd:6,  rage:28,fn:null, bal:"shadowBolt",school:"spell",unlock:1,
        desc:"投出暗影箭，对目标造成暗影伤害。",range:28,cast:2},
-      {name:"腐蚀术",    icon:"corruption",  cd:8,  rage:22,fn:castCorruption,bal:"corruption",school:"spell",unlock:4,
+      {name:"腐蚀术",    icon:"corruption",  cd:8,  rage:22,fn:null, bal:"corruption",school:"spell",unlock:4,
        desc:"使目标感染腐蚀，持续受到暗影伤害。",range:28},
-      {name:"生命吸取",  icon:"drain_life",  cd:10, rage:30,fn:drainLifeEnd, bal:"drainLife",school:"spell",unlock:6,
-       desc:"引导吸取目标生命，化为自身治疗。",range:24,cast:3,channel:true,channelInterval:1,channelTick:drainLifeTick},
-      {name:"生命分流",  icon:"life_tap",    cd:4,  rage:0, fn:lifeTap,      bal:"lifeTap",unlock:8,
+      {name:"生命吸取",  icon:"drain_life",  cd:10, rage:30,fn:null, bal:"drainLife",school:"spell",unlock:6,
+       desc:"引导吸取目标生命，化为自身治疗。",range:24,cast:3,channel:true,channelInterval:1,channelTick:null},
+      {name:"生命分流",  icon:"life_tap",    cd:4,  rage:0, fn:null, bal:"lifeTap",unlock:8,
        desc:"牺牲生命，立即回复法力。"}]},
 };
-let CLS=CLASSES.warrior;
+CLS=CLASSES.warrior;
 
 /** V1-A2 / C7：技能栏按 actionBar 绑定刷新图标 */
 const SKILL_ICON_BORDER="#e8b34a";
@@ -287,6 +295,7 @@ function applySkillBarIcons(){
 }
 
 function setClass(key){
+  if(!CLASSES[key]){console.error("[setClass] 未知职业",key);key="warrior";}
   CLS=CLASSES[key];
   CLS.key=key;
   const pos=player.position.clone(),rot=player.rotation.y;
@@ -1593,6 +1602,16 @@ function lifeTap(){
   log(`生命分流：牺牲 ${hpCost} 生命，回复 ${manaGain} 法力。`,"lg-me");
   return true;
 }
+/** 术士技能表在 CLASSES 字面量里占位，函数声明后再挂接 */
+(function bindWarlockSkills(){
+  const sk=CLASSES.warlock&&CLASSES.warlock.skills;
+  if(!sk||sk.length<4)return;
+  sk[0].fn=shadowBolt;
+  sk[1].fn=castCorruption;
+  sk[2].fn=drainLifeEnd;
+  sk[2].channelTick=drainLifeTick;
+  sk[3].fn=lifeTap;
+})();
 
 /* ---- V1-C1 萨满技能 / 图腾 ---- */
 function lightningBolt(){
