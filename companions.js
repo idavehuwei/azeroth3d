@@ -29,6 +29,7 @@ const CMP_NAMES={
   mage:"同伴 · 余烬",
   archer:"同伴 · 疾羽",
   priest:"同伴 · 晨光",
+  shaman:"同伴 · 风暴",
 };
 const ROLE_ICON={tank:"🛡",healer:"✚",dps:"⚔"};
 
@@ -157,7 +158,7 @@ function recruitCompanion(classKey,opts){
 
 function guessRole(classKey){
   if(classKey==="warrior")return"tank";
-  if(classKey==="priest")return"healer";
+  if(classKey==="priest"||classKey==="shaman")return"healer";
   return"dps";
 }
 
@@ -317,10 +318,15 @@ function companionMoveToward(c,dest,spd,dt){
 function companionTryHeal(c,dt){
   const C=BAL.companion;
   const T=BAL.threat||{};
-  if(c.classKey!=="priest"||c.healCd>0)return false;
+  if((c.classKey!=="priest"&&c.classKey!=="shaman")||c.healCd>0)return false;
   const tankPct=T.healTankHpPct!=null?T.healTankHpPct:.30;
   const selfPct=T.healSelfHpPct!=null?T.healSelfHpPct:.40;
   const dpsPct=T.healDpsHpPct!=null?T.healDpsHpPct:.50;
+  const isShaman=c.classKey==="shaman";
+  const bigHeal=isShaman?BAL.skills.healingWave:BAL.skills.heal;
+  const smallHeal=isShaman?BAL.skills.healingWave:BAL.skills.flashHeal;
+  const bigLabel=isShaman?"治疗波":"治疗术";
+  const smallLabel=isShaman?"治疗波":"快速治疗";
 
   /* 找坦克职责同伴；若无坦克槽则战士玩家视为坦克 */
   let tank=null;
@@ -335,16 +341,16 @@ function companionTryHeal(c,dt){
 
   /* 1) 坦克 <30% */
   if(tank&&(tank.hp/tank.hpMax)<tankPct){
-    amount=R(BAL.skills.heal.heal);
-    ok=companionApplyHeal(c,false,tank,amount,"治疗术");
+    amount=R(bigHeal.heal);
+    ok=companionApplyHeal(c,false,tank,amount,bigLabel);
   }else if(playerIsTank&&S.p.alive&&(S.p.hp/S.p.hpMax)<tankPct){
-    amount=R(BAL.skills.flashHeal.heal);
-    ok=companionApplyHeal(c,true,null,amount,"快速治疗");
+    amount=R(smallHeal.heal);
+    ok=companionApplyHeal(c,true,null,amount,smallLabel);
   }
   /* 2) 自己 <40% */
   else if((c.hp/c.hpMax)<selfPct){
-    amount=R(BAL.skills.heal.heal);
-    ok=companionApplyHeal(c,false,c,amount,"治疗术");
+    amount=R(bigHeal.heal);
+    ok=companionApplyHeal(c,false,c,amount,bigLabel);
   }
   /* 3) 最低血 DPS（含非坦克玩家） */
   else{
@@ -360,11 +366,11 @@ function companionTryHeal(c,dt){
       if(pct<dpsPct&&pct<bestPct){bestPct=pct;best=o;bestIsPlayer=false;}
     }
     if(bestIsPlayer){
-      amount=R(BAL.skills.flashHeal.heal);
-      ok=companionApplyHeal(c,true,null,amount,"快速治疗");
+      amount=R(smallHeal.heal);
+      ok=companionApplyHeal(c,true,null,amount,smallLabel);
     }else if(best){
-      amount=R(BAL.skills.heal.heal);
-      ok=companionApplyHeal(c,false,best,amount,"治疗术");
+      amount=R(bigHeal.heal);
+      ok=companionApplyHeal(c,false,best,amount,bigLabel);
     }else return false;
   }
   if(ok)c.healCd=C.healCd;
@@ -546,6 +552,7 @@ function openRecruitDialogue(){
     if(n<max){
       btn("⚔️ 补招战士（坦克）",()=>{recruitCompanion("warrior",{role:"tank"});closeDialogue();});
       btn("✨ 补招牧师（治疗）",()=>{recruitCompanion("priest",{role:"healer"});closeDialogue();});
+      btn("🌀 补招萨满（治疗）",()=>{recruitCompanion("shaman",{role:"healer"});closeDialogue();});
       btn("🔮 补招法师（输出）",()=>{recruitCompanion("mage",{role:"dps"});closeDialogue();});
       btn("🏹 补招弓箭手（输出）",()=>{recruitCompanion("archer",{role:"dps"});closeDialogue();});
     }
@@ -560,6 +567,7 @@ function openRecruitDialogue(){
   btn("🔮 招募法师",()=>{recruitCompanion("mage",{role:"dps"});closeDialogue();});
   btn("🏹 招募弓箭手",()=>{recruitCompanion("archer",{role:"dps"});closeDialogue();});
   btn("✨ 招募牧师",()=>{recruitCompanion("priest",{role:"healer"});closeDialogue();});
+  btn("🌀 招募萨满",()=>{recruitCompanion("shaman",{role:"healer"});closeDialogue();});
   btn("返回",()=>{closeDialogue();if(typeof openDialogue==="function")openDialogue();});
 }
 

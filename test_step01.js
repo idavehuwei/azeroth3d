@@ -107,8 +107,26 @@ assert(sfxSrc.includes("heal")&&sfxSrc.includes("holy"),"sfx.js 有 heal/holy �
 
 assert(html.includes('data-cls="priest"'),"启程界面有牧师职业卡");
 
+/* V1-C1 萨满冒烟 */
+assert(combatSrc.includes("shaman:{"),"combat.js 有 CLASSES.shaman");
+assert(combatSrc.includes("function placeHealingTotem"),"combat.js 有 placeHealingTotem");
+assert(combatSrc.includes("function tickTotems"),"combat.js 有 tickTotems");
+assert(combatSrc.includes("function clearAllTotems"),"combat.js 有 clearAllTotems");
+assert(combatSrc.includes("function lightningBolt")&&combatSrc.includes("function earthShock"),"combat.js 有闪电箭/大地震击");
+assert(modelsSrc.includes("function buildShaman"),"models.js 导出 buildShaman");
+assert(modelsSrc.includes("shaman:")||modelsSrc.includes("shaman:{"),"models.js 有 shaman 人形配方");
+assert(talentsSrc.includes("shaman:{"),"talents.js 有 TALENTS.shaman");
+assert(talentsSrc.includes('id:"enhancement"')&&talentsSrc.includes('id:"restoration"'),"萨满天赋双枝 增强/恢复");
+assert(coreSrc.includes("lightningBolt")&&coreSrc.includes("healingTotem"),"BALANCE.skills 含萨满技能");
+assert(coreSrc.includes("shaman:")&&coreSrc.includes("totemic_call"),"BALANCE.talents 含 shaman");
+assert(/fill:[\s\S]*shaman:/.test(coreSrc),"BAL.party.fill 含 shaman");
+assert(iconsSrc.includes("lightning(cx)")&&iconsSrc.includes("totem(cx)")&&iconsSrc.includes("earth_shock(cx)"),"icons.js 有萨满图标");
+assert(sfxSrc.includes("lightning"),"sfx.js 有 lightning 音效");
+assert(html.includes('data-cls="shaman"'),"启程界面有萨满职业卡");
+
 /* STEP 20 AI 队友冒烟 */
 const cmpSrc=fs.readFileSync(path.join(__dirname,"companions.js"),"utf8");
+assert(cmpSrc.includes('shaman:"同伴')||cmpSrc.includes('shaman:"同伴 ·'),"companions.js 有萨满同伴名");
 assert(cmpSrc.includes("function recruitCompanion"),"companions.js 有 recruitCompanion");
 assert(cmpSrc.includes("function dismissCompanion"),"companions.js 有 dismissCompanion");
 assert(cmpSrc.includes("function tickCompanion"),"companions.js 有 tickCompanion");

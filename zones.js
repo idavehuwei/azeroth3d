@@ -113,6 +113,7 @@ function enterZone(id,gateId,opts){
         S.pShots.length=0;
       }
       if(S.p)S.p.knock=null;
+      if(typeof clearAllTotems==="function")clearAllTotems();
     }
     if(typeof closeDialogue==="function")closeDialogue();
     const ib=typeof $==="function"?$("#interactBtn"):null;

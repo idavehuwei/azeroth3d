@@ -1,6 +1,6 @@
 /* ============================================================
    熔火之心 · talents.js
-   天赋（STEP 10a/10b）：四职业双枝三层小树 + 修饰器聚合 + N 键面板
+   天赋（STEP 10a/10b）：多职业双枝三层小树 + 修饰器聚合 + N 键面板
    不改技能函数本体；CD/伤害/生命通过 recomputeTalentMods 注入
    ------------------------------------------------------------
    [依赖] core.js（BAL）· combat.js（S CLS SKILLS CLASSES）· icons.js
@@ -68,6 +68,21 @@ const TALENTS={
         {id:"power_infusion",tier:1,name:"能量灌注",maxRank:3,icon:"holy_shield",desc:"盾吸收量提高"},
         {id:"smite_power",tier:2,name:"惩击",maxRank:3,icon:"holy",req:"power_infusion",reqRank:1,desc:"攻击伤害提高"},
         {id:"borrowed_time",tier:3,name:"借来的时间",maxRank:3,icon:"holy_shield",req:"smite_power",reqRank:1,desc:"盾吸收提高，全局冷却微减"},
+      ]},
+    ],
+  },
+  /* V1-C1 萨满 */
+  shaman:{
+    branches:[
+      {id:"enhancement",name:"增强",nodes:[
+        {id:"storm_weapon",tier:1,name:"风暴武器",maxRank:3,icon:"lightning",desc:"攻击伤害提高"},
+        {id:"magma_shock",tier:2,name:"熔岩震击",maxRank:3,icon:"earth_shock",req:"storm_weapon",reqRank:1,desc:"大地震击冷却缩短"},
+        {id:"feral_spirit",tier:3,name:"野性之魂",maxRank:3,icon:"lightning",req:"magma_shock",reqRank:1,desc:"伤害提高，闪电箭冷却缩短"},
+      ]},
+      {id:"restoration",name:"恢复",nodes:[
+        {id:"healing_focus",tier:1,name:"治疗专注",maxRank:3,icon:"heal",desc:"治疗量提高"},
+        {id:"totemic_call",tier:2,name:"图腾召唤",maxRank:3,icon:"totem",req:"healing_focus",reqRank:1,desc:"治疗图腾冷却缩短"},
+        {id:"ancestral",tier:3,name:"先祖护佑",maxRank:3,icon:"heal",req:"totemic_call",reqRank:1,desc:"治疗量与生命上限提高"},
       ]},
     ],
   },

@@ -561,6 +561,7 @@ function tick(){
         if(typeof clearShieldVisual==="function")clearShieldVisual();
       }
     }
+    if(typeof tickTotems==="function")tickTotems(dt);
     if(CLS.regen)S.p.rage=Math.min(S.p.rageMax,S.p.rage+CLS.regen*dt);
     S.gcd=Math.max(0,S.gcd-dt);
     document.querySelectorAll(".skill").forEach((el,i)=>{

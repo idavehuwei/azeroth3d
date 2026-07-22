@@ -208,6 +208,41 @@ const RECIPES={
     cx.beginPath();cx.moveTo(40,14);cx.lineTo(48,22);cx.lineTo(42,28);cx.lineTo(50,36);
     cx.stroke();
   },
+  /* ⚡ 闪电（V1-C1 萨满） */
+  lightning(cx){
+    P.bg(cx,"#102838","#061018");
+    P.glow(cx,32,28,24,"rgba(100,220,255,.8)");
+    cx.strokeStyle="#e8ffff";cx.lineWidth=3;cx.lineJoin="round";
+    cx.beginPath();
+    cx.moveTo(28,10);cx.lineTo(38,26);cx.lineTo(30,26);cx.lineTo(40,50);cx.lineTo(22,30);cx.lineTo(32,30);
+    cx.closePath();cx.stroke();
+    cx.fillStyle="#9aeeff";
+    cx.beginPath();
+    cx.moveTo(28,10);cx.lineTo(38,26);cx.lineTo(30,26);cx.lineTo(40,50);cx.lineTo(22,30);cx.lineTo(32,30);
+    cx.closePath();cx.fill();
+  },
+  /* 🪨 大地震击 */
+  earth_shock(cx){
+    P.bg(cx,"#2a2010","#100c06");
+    P.glow(cx,32,36,20,"rgba(200,150,60,.55)");
+    cx.fillStyle="#8a6a40";
+    cx.beginPath();cx.moveTo(14,44);cx.lineTo(24,22);cx.lineTo(40,18);cx.lineTo(52,44);cx.closePath();cx.fill();
+    cx.fillStyle="#c9a060";
+    cx.beginPath();cx.moveTo(26,34);cx.lineTo(34,22);cx.lineTo(42,36);cx.closePath();cx.fill();
+    cx.strokeStyle="#ffe080";cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(18,48);cx.lineTo(32,40);cx.lineTo(46,48);cx.stroke();
+  },
+  /* 🗿 治疗图腾 */
+  totem(cx){
+    P.bg(cx,"#1a3028","#081410");
+    P.glow(cx,32,30,20,"rgba(80,220,160,.6)");
+    cx.fillStyle="#6a4528";
+    cx.fillRect(26,18,12,34);
+    cx.fillStyle="#3aaa78";
+    cx.beginPath();cx.moveTo(22,18);cx.lineTo(32,6);cx.lineTo(42,18);cx.closePath();cx.fill();
+    cx.strokeStyle="#7aeeaa";cx.lineWidth=2;
+    cx.beginPath();cx.arc(32,42,14,0,Math.PI,true);cx.stroke();
+  },
   /* 🌿 草药（STEP 23） */
   herb(cx){
     P.bg(cx,"#1a3a18","#081208");

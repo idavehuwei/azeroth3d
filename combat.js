@@ -5,7 +5,7 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ clamp rand R BAL scene camera ARENA_R）
           icons.js（Icons）
-          models.js（buildPlayer buildMage buildArcher buildPriest buildFlameSpawn）
+          models.js（buildPlayer buildMage buildArcher buildPriest buildShaman buildFlameSpawn）
           items.js（ITEMS DROPS removeDrop dropLoot）
           world.js（player boss MOBS QUEST mobDamage updateQuest tryInteract）
           main.js 运行时（clampArena）
@@ -22,7 +22,7 @@
           useSkill hitEntity dmgBoss pickTarget firePlayerShot playerHit
           isTargetAlive setCurrentTarget getFocusTarget clearCurrentTargetIf
           gainXP updateLevelUI gainCopper spendCopper formatCopperText updateGoldUI
-          clearShieldVisual applyHeal
+          clearShieldVisual applyHeal clearAllTotems tickTotems
           （S.quests · STEP 22 任务运行时）
    ============================================================ */
 "use strict";
@@ -47,6 +47,7 @@ const S={
      phase:1,swingT:0,casting:null,castT:0,castDur:0,
      next:{},submerged:false,submergeT:0,canLeave:false,nextAddSpawn:0,addWave:null},
   adds:[],projectiles:[],pShots:[],telegraphs:[],bursts:[],
+  totems:[], /* V1-C1：玩家图腾地面 aura */
   cds:[0,0,0,0],gcd:0,
   inv:[],      /* 背包（STEP 2 起：拾取的物品 id 列表） */
   eq:emptyEquipment(), /* 纸娃娃装备位（items.js · EQUIP_SLOTS） */
@@ -59,7 +60,7 @@ const S={
   lfgPick:"normal",    /* 查找器当前选中的难度 */
 };
 /* ============================================================
-   职业系统：战士 / 法师 / 弓箭手 / 牧师
+   职业系统：战士 / 法师 / 弓箭手 / 牧师 / 萨满
    ============================================================ */
 let SKILLS=[];
 const CLASSES={
@@ -119,6 +120,20 @@ const CLASSES={
        desc:"对目标造成神圣伤害。"},
       {name:"真言术：盾",icon:"holy_shield", cd:12, rage:30,fn:powerWordShield,bal:"powerWordShield",
        desc:"为自己施加吸收护盾，持续一段时间。"}]},
+  shaman:{title:"🌀 你 · 兽人萨满",hp:4200,resMax:100,resStart:100,resName:"法力",
+    regen:8,hitGain:0,speed:10.2,ranged:true,range:26,sfx:"lightning",
+    autoMin:160,autoMax:210,autoSpd:1.7,shotColor:0x66ccff,build:buildShaman,
+    barCss:"linear-gradient(180deg,#7ad0ff,#2a8a9a 60%,#104858)",
+    tip:"提示：法力自动恢复；闪电箭远程输出；【治疗图腾】落地持续回血。",
+    skills:[
+      {name:"闪电箭",    icon:"lightning", cd:6,  rage:28,fn:lightningBolt, bal:"lightningBolt",
+       desc:"投出闪电，对目标造成自然伤害。"},
+      {name:"大地震击",  icon:"earth_shock", cd:7,  rage:25,fn:earthShock,    bal:"earthShock",
+       desc:"以大地之力震击目标。"},
+      {name:"治疗波",    icon:"heal", cd:8,  rage:32,fn:healingWave,   bal:"healingWave",
+       desc:"引导水流，恢复自身生命。"},
+      {name:"治疗图腾",  icon:"totem", cd:18, rage:35,fn:placeHealingTotem,bal:"healingTotem",
+       desc:"在脚下放置图腾，持续治疗范围内的自己。"}]},
 };
 let CLS=CLASSES.warrior;
 
@@ -147,6 +162,7 @@ function setClass(key){
   CLS=CLASSES[key];
   const pos=player.position.clone(),rot=player.rotation.y;
   clearShieldVisual();
+  if(typeof clearAllTotems==="function")clearAllTotems();
   scene.remove(player);
   player=CLS.build(); player.position.copy(pos); player.rotation.y=rot; scene.add(player);
   S.p.hpMax=CLS.hp; S.p.hp=CLS.hp;
@@ -606,6 +622,110 @@ function powerWordShield(){
   if(typeof SFX!=="undefined")SFX.play("holy");
   log(`真言术：盾！吸收 ${absorb} 点伤害，持续 ${bal.duration} 秒。`,"lg-heal");
   return true;
+}
+
+/* ---- V1-C1 萨满技能 / 图腾 ---- */
+function lightningBolt(){
+  const t=pickTarget(CLS.range);
+  if(!t){log("目标超出施法距离！");return false;}
+  S.p.attackAnim=1;
+  firePlayerShot(t,R(BAL.skills.lightningBolt.dmg),"闪电箭",1.45);
+  if(typeof SFX!=="undefined")SFX.play("lightning");
+  log("你唤来闪电箭！","lg-me");
+  return true;
+}
+function earthShock(){
+  const t=pickTarget(CLS.range);
+  if(!t){log("目标超出施法距离！");return false;}
+  S.p.attackAnim=1;
+  firePlayerShot(t,R(BAL.skills.earthShock.dmg),"大地震击",1.15);
+  if(typeof SFX!=="undefined")SFX.play("lightning");
+  log("大地震击！","lg-me");
+  return true;
+}
+function healingWave(){
+  return applyHeal(R(BAL.skills.healingWave.heal),"治疗波");
+}
+function disposeTotemMesh(mesh){
+  if(!mesh)return;
+  if(mesh.parent)mesh.parent.remove(mesh);
+  mesh.traverse(o=>{
+    if(o.geometry)o.geometry.dispose();
+    if(o.material){
+      if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());
+      else o.material.dispose();
+    }
+  });
+}
+function clearAllTotems(){
+  if(!S.totems){S.totems=[];return;}
+  for(const t of S.totems)disposeTotemMesh(t.mesh);
+  S.totems.length=0;
+}
+function buildHealingTotemMesh(){
+  const g=new THREE.Group();
+  const wood=new THREE.MeshStandardMaterial({color:0x5a3820,roughness:.9,flatShading:true});
+  const teal=new THREE.MeshStandardMaterial({color:0x2a9a78,roughness:.55,emissive:0x1a6048,emissiveIntensity:.35});
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,1.8,6),wood);
+  pole.position.y=.9; g.add(pole);
+  const head=new THREE.Mesh(new THREE.ConeGeometry(.28,.55,6),teal);
+  head.position.y=2.0; g.add(head);
+  const ring=new THREE.Mesh(new THREE.RingGeometry(1.2,2.4,24),
+    new THREE.MeshBasicMaterial({color:0x44e0a0,transparent:true,opacity:.28,side:THREE.DoubleSide}));
+  ring.rotation.x=-Math.PI/2; ring.position.y=.04; g.add(ring);
+  g.userData.auraRing=ring;
+  return g;
+}
+function placeHealingTotem(){
+  const bal=BAL.skills.healingTotem;
+  const max=bal.max||1;
+  if(!S.totems)S.totems=[];
+  while(S.totems.filter(x=>x.kind==="heal").length>=max){
+    const old=S.totems.find(x=>x.kind==="heal");
+    if(!old)break;
+    disposeTotemMesh(old.mesh);
+    S.totems.splice(S.totems.indexOf(old),1);
+  }
+  const mesh=buildHealingTotemMesh();
+  mesh.position.set(player.position.x,0,player.position.z);
+  scene.add(mesh);
+  S.totems.push({
+    kind:"heal", mesh, t:bal.duration, tickAcc:0,
+    radius:bal.radius, tick:bal.tick||1,
+  });
+  if(typeof SFX!=="undefined")SFX.play("heal");
+  VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.2)});
+  log(`你放置了【治疗图腾】，持续 ${bal.duration} 秒。`,"lg-heal");
+  return true;
+}
+function tickTotems(dt){
+  if(!S.totems||!S.totems.length)return;
+  const bal=BAL.skills.healingTotem;
+  for(let i=S.totems.length-1;i>=0;i--){
+    const t=S.totems[i];
+    t.t-=dt;
+    const ring=t.mesh&&t.mesh.userData&&t.mesh.userData.auraRing;
+    if(ring&&ring.material)ring.material.opacity=.18+.12*Math.sin(S.t*3);
+    if(t.t<=0){
+      disposeTotemMesh(t.mesh);
+      S.totems.splice(i,1);
+      continue;
+    }
+    if(t.kind!=="heal"||!S.p.alive)continue;
+    t.tickAcc+=dt;
+    const step=t.tick||1;
+    while(t.tickAcc>=step){
+      t.tickAcc-=step;
+      const dx=player.position.x-t.mesh.position.x;
+      const dz=player.position.z-t.mesh.position.z;
+      if(Math.hypot(dx,dz)>t.radius)continue;
+      if(S.p.hp>=S.p.hpMax)continue;
+      const mul=1+((S.p.talentFx&&S.p.talentFx.healMul)||0);
+      const heal=Math.round(R(bal.healPerTick)*mul);
+      S.p.hp=Math.min(S.p.hpMax,S.p.hp+heal);
+      fct(player.position.clone().setY(2.5),`+${heal}`,"#7affc0",13);
+    }
+  }
 }
 
 function playerHit(amount,source){

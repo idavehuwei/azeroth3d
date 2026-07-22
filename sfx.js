@@ -30,6 +30,8 @@ const SOUNDS={
   heal   :{src:"arp", wave:"sine",     notes:[659,784,988],       noteDur:.1,  vol:.4},
   holy   :{src:"osc", wave:"sine",     freq:[880,1320], filter:"lowpass", ffreq:2400,
            attack:.01, decay:.28, vol:.38},
+  lightning:{src:"osc", wave:"sawtooth", freq:[520,980,1400], filter:"bandpass", ffreq:1600, q:.9,
+           attack:.005, decay:.22, vol:.42},
 
   /* V1-A5 · 材质脚步（草/石/木） */
   foot_grass:{src:"noise", filter:"bandpass", ffreq:420, q:.8, attack:.002, decay:.08, vol:.22},

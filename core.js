@@ -43,6 +43,11 @@ const BALANCE={
     flashHeal       :{heal:[650,850]},
     smite           :{dmg:[720,920]},
     powerWordShield :{absorb:[1800,2200], duration:15},
+    /* —— V1-C1 萨满 —— */
+    lightningBolt   :{dmg:[740,940]},
+    earthShock      :{dmg:[520,680]},
+    healingWave     :{heal:[1100,1400]},
+    healingTotem    :{healPerTick:[90,130], radius:9, duration:14, tick:1.0, max:1},
   },
   /* 野怪族群数值表（STEP 5）：加新怪 = 加一条；aggroR:0 = 中立被动（只反击） */
   mobs:{
@@ -419,6 +424,15 @@ const BALANCE={
       smite_power  :{dmgMul:.04},
       borrowed_time:{fx:{shieldMul:.05},cdMul:.97},
     },
+    /* —— V1-C1 萨满 —— */
+    shaman:{
+      storm_weapon :{dmgMul:.05},
+      magma_shock  :{skillCd:{i:1,mul:.90}},
+      feral_spirit :{dmgMul:.04,skillCd:{i:0,mul:.95}},
+      healing_focus:{fx:{healMul:.06}},
+      totemic_call  :{skillCd:{i:3,mul:.88}},
+      ancestral    :{fx:{healMul:.05},hpMaxMul:.04},
+    },
   },
   /* 存档（STEP 11）：localStorage 键与 schema 版本；改键会与旧存档隔离 */
   save:{key:"azeroth3d_save_v1",version:1},
@@ -484,6 +498,7 @@ const BALANCE={
       mage:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
       archer:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
       priest:[{role:"tank",classKey:"warrior"},{role:"dps",classKey:"archer"}],
+      shaman:[{role:"tank",classKey:"warrior"},{role:"healer",classKey:"priest"}],
     },
     roleLabel:{tank:"坦克",healer:"治疗",dps:"输出"},
   },

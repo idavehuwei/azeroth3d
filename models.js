@@ -4,7 +4,7 @@
    [依赖] THREE · core.js（rand）
    [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS
           buildQuadruped buildScorpion buildHumanoidMob buildCentaur QUADS MOB_HUMANOIDS（STEP 5/18 族群工厂）
-          buildPlayer buildMage buildArcher buildPriest buildBoss buildOnyxia buildElder buildVendor buildSpiritHealer
+          buildPlayer buildMage buildArcher buildPriest buildShaman buildBoss buildOnyxia buildElder buildVendor buildSpiritHealer
           tintNpcCloth
           buildBoar buildFlameSpawn
           buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem buildMarketStall buildCratePile
@@ -12,7 +12,7 @@
    ------------------------------------------------------------
     3D 模型库（全部程序化几何体，零模型文件）
    STEP 4：人形基座 buildHumanoid(config)——躯干/四肢/头/披风 + 动画挂点，
-   四职业收敛为 HUMANOIDS 数据配置；武器独立为 WEAPONS 配方表，
+   五职业收敛为 HUMANOIDS 数据配置；武器独立为 WEAPONS 配方表，
    武器组打 userData.weapon 标，换装时 setWeapon 只换武器组。
    加新职业 = 加一条 HUMANOIDS 配置；加新武器 = 加一条 WEAPONS 配方。
    城镇建筑（V1-A1）：工厂纯几何无随机；摆放由调用方用固定坐标或 srand。
@@ -109,6 +109,17 @@ const WEAPONS={
       {g:'sph',a:[.16,8,8],p:[0,2.45,0],m:'orb'},
     ],
     light:{c:0xffe080,i:.55,d:5,p:[0,2.4,0]}},
+  /* 萨满图腾杖（V1-C1）：木杆 + 青晶 + 羽饰 */
+  shaman_staff:{mats:{wood:{c:0x4a3020,r:.9},teal:{c:0x2a8a7a,r:.35,mt:.55},
+                 orb:{c:0x66ffcc,basic:true}, feather:{c:0xd8c090,r:.9}},
+    parts:[
+      {g:'cyl',a:[.05,.07,2.8,7],p:[0,.55,0],m:'wood'},
+      {g:'cyl',a:[.12,.14,.35,7],p:[0,2.0,0],m:'teal'},
+      {g:'ico',a:[.2,0],p:[0,2.35,0],m:'orb'},
+      {g:'cone',a:[.08,.35,5],p:[.18,2.55,0],r:[0,0,-.6],m:'feather'},
+      {g:'cone',a:[.08,.35,5],p:[-.18,2.55,0],r:[0,0,.6],m:'feather'},
+    ],
+    light:{c:0x44e0c0,i:.5,d:5,p:[0,2.3,0]}},
 };
 function buildWeapon(type){
   const cfg=WEAPONS[type]||WEAPONS.sword;
@@ -125,7 +136,7 @@ function buildWeapon(type){
 }
 
 /* ============================================================
-   四职业人形配置（纯数据；外观与重构前一致）
+   人形职业配置（纯数据；外观与重构前一致）
    ============================================================ */
 const HUMANOIDS={
   /* ⚔️ 人类战士：板甲 + 头盔盔缨 + 剑盾 */
@@ -229,6 +240,30 @@ const HUMANOIDS={
     cape:{a:[.95,1.85],p:[0,1.9,-.38],rx:.1,m:'capeM'},
     weapon:'crosier', weaponMount:'armR', weaponPos:[.05,-.85,.15],
   },
+  /* 🌀 兽人萨满（V1-C1）：青绿皮甲 + 图腾杖 */
+  shaman:{
+    mats:{
+      leather:{c:0x3a6a58,r:.85}, leatherD:{c:0x2a4038,r:.9},
+      trim:{c:0xc9a050,r:.35,mt:.7}, skin:{c:0x6a9a48,r:.8},
+      cloth:{c:0x2a5a70,r:.9}, capeM:{c:0x1a4050,r:.9,ds:true},
+    },
+    parts:[
+      {g:'box',a:[.88,1.1,.5],p:[0,1.65,0],m:'leather'},
+      {g:'box',a:[.92,.16,.54],p:[0,1.12,0],m:'trim'},
+      {g:'box',a:[.8,.34,.46],p:[0,.92,0],m:'leatherD'},
+      {g:'box',a:[.5,.48,.46],p:[0,2.48,0],m:'skin'},
+      {g:'cyl',a:[.32,.34,.28,8],p:[0,2.78,0],m:'cloth'},          /* 头环 */
+      {g:'cone',a:[.06,.28,5],p:[.22,2.95,0],r:[0,0,-.4],m:'trim'}, /* 羽饰 */
+      {g:'cone',a:[.06,.28,5],p:[-.22,2.95,0],r:[0,0,.4],m:'trim'},
+      {g:'sph',a:[.28,8,6,0,6.28,0,1.7],p:[.58,2.2,0],m:'leatherD'},
+      {g:'sph',a:[.28,8,6,0,6.28,0,1.7],p:[-.58,2.2,0],m:'leatherD'},
+    ],
+    arm:{x:.58,y:2.12,mesh:{g:'box',a:[.24,.82,.24],p:[0,-.4,0],m:'leather'}},
+    armExtraL:[{g:'cyl',a:[.08,.1,.55,6],p:[-.08,-.9,.1],m:'trim'}], /* 小图腾 */
+    leg:{x:.24,y:.9,mesh:{g:'box',a:[.28,.9,.28],p:[0,-.45,0],m:'leatherD'}},
+    cape:{a:[.9,1.45],p:[0,1.7,-.32],rx:.12,m:'capeM'},
+    weapon:'shaman_staff', weaponMount:'armR', weaponPos:[.05,-.85,.12],
+  },
 };
 
 /* ============================================================
@@ -270,11 +305,12 @@ function setWeapon(hum,type){
   const w=buildWeapon(type); w.position.set(...U.weaponPos); mount.add(w);
 }
 
-/* 四职业构建：一条配置一职业（CLASSES.build 消费） */
+/* 职业构建：一条配置一职业（CLASSES.build 消费） */
 function buildPlayer(){return buildHumanoid(HUMANOIDS.warrior);}
 function buildMage(){return buildHumanoid(HUMANOIDS.mage);}
 function buildArcher(){return buildHumanoid(HUMANOIDS.archer);}
 function buildPriest(){return buildHumanoid(HUMANOIDS.priest);}
+function buildShaman(){return buildHumanoid(HUMANOIDS.shaman);}
 
 /* ============================================================
    Boss 模型：炎魔领主（岩浆巨人，程序化原创低模）
