@@ -212,6 +212,8 @@ const ITEMS={
   /* —— 商人消耗品 —— */
   plain_bread  :{id:"plain_bread",  name:"硬面饼",      icon:"bread",  quality:"common", slot:"consumable",use:"food",
                  stats:null, vendorBuy:25, vendorSell:5},
+  spring_water :{id:"spring_water", name:"清泉之水",    icon:"potion", quality:"common", slot:"consumable",use:"drink",
+                 stats:null, vendorBuy:20, vendorSell:4},
   linen_bandage:{id:"linen_bandage",name:"亚麻绷带",    icon:"bandage",quality:"common", slot:"consumable",use:"bandage",
                  stats:null, vendorBuy:40, vendorSell:8},
   minor_potion :{id:"minor_potion", name:"初级治疗药水",icon:"potion", quality:"common", slot:"consumable",use:"potion",
@@ -476,7 +478,9 @@ function rollMobLoot(m){
     const id=need[(Math.random()*need.length)|0];
     if(ITEMS[id])return ITEMS[id];
   }
-  return rollLoot(m.loot,m.elite?BAL.loot.eliteWeights:null);
+  return rollLoot(m.loot,m.rare||m.worldBoss
+    ?(BAL.loot.rareWeights||BAL.loot.eliteWeights)
+    :(m.elite?BAL.loot.eliteWeights:null));
 }
 
 /* ============================================================
@@ -613,8 +617,13 @@ function cancelConsume(){
     if(typeof removeBuff==="function")removeBuff("eating","interrupt");
     else{S.p.eating=null;log("进食被打断。","lg-sys");}
   }
+  if(S.p.drinking){
+    if(typeof removeBuff==="function")removeBuff("drinking","interrupt");
+    else{S.p.drinking=null;log("饮水被打断。","lg-sys");}
+  }
   if(S.p.bandaging){S.p.bandaging=null;log("包扎被打断。","lg-sys");}
   if(S.p.gathering){S.p.gathering=null;log("采集被打断。","lg-sys");}
+  S.p.sitting=false;
 }
 function useItem(id){
   const it=ITEMS[id];
@@ -622,7 +631,7 @@ function useItem(id){
   if(!S.p.alive||S.over)return false;
   const idx=S.inv.indexOf(id); if(idx<0)return false;
   if(it.use==="food"){
-    if(S.p.eating||S.p.bandaging||S.p.gathering){log("你正在忙碌中。","lg-sys");return false;}
+    if(S.p.eating||S.p.drinking||S.p.bandaging||S.p.gathering){log("你正在忙碌中。","lg-sys");return false;}
     if(S.p.hp>=S.p.hpMax){log("生命已满。","lg-sys");return false;}
     S.inv.splice(idx,1);
     const E=BAL.economy.food;
@@ -630,14 +639,31 @@ function useItem(id){
     if(typeof applyBuff==="function")
       applyBuff("eating",{duration:E.duration,healPerSec:total/E.duration,name:it.name});
     else S.p.eating={t:E.duration,healPerSec:total/E.duration,name:it.name};
+    S.p.sitting=true;
     announce("坐下进食…");
-    log(`开始食用【${it.name}】（移动会打断）。`,"lg-heal");
+    log(`开始食用【${it.name}】（移动或受击会打断）。`,"lg-heal");
+    renderBag();
+    if(typeof saveGame==="function")saveGame(true);
+    return true;
+  }
+  if(it.use==="drink"){
+    if(S.p.eating||S.p.drinking||S.p.bandaging||S.p.gathering){log("你正在忙碌中。","lg-sys");return false;}
+    if(S.p.rage>=S.p.rageMax){log(`${CLS.resName}已满。`,"lg-sys");return false;}
+    S.inv.splice(idx,1);
+    const E=BAL.economy.drink||{manaPct:.45,duration:18};
+    const total=Math.round(S.p.rageMax*(E.manaPct!=null?E.manaPct:.45));
+    if(typeof applyBuff==="function")
+      applyBuff("drinking",{duration:E.duration,manaPerSec:total/E.duration,name:it.name});
+    else S.p.drinking={t:E.duration,manaPerSec:total/E.duration,name:it.name};
+    S.p.sitting=true;
+    announce("坐下饮水…");
+    log(`开始饮用【${it.name}】（移动或受击会打断）。`,"lg-heal");
     renderBag();
     if(typeof saveGame==="function")saveGame(true);
     return true;
   }
   if(it.use==="bandage"){
-    if(S.p.eating||S.p.bandaging||S.p.gathering){log("你正在忙碌中。","lg-sys");return false;}
+    if(S.p.eating||S.p.drinking||S.p.bandaging||S.p.gathering){log("你正在忙碌中。","lg-sys");return false;}
     if(S.p.hp>=S.p.hpMax){log("生命已满。","lg-sys");return false;}
     S.inv.splice(idx,1);
     const E=BAL.economy.bandage;
@@ -798,7 +824,7 @@ const SLOT_NAME={
   wrists:"腕部",trinket:"颈部",weapon:"主手",armor:"胸部",consumable:"消耗品",misc:"杂物",
 };
 const STAT_LABEL={str:"力量",agi:"敏捷",sta:"耐力",int:"智力",spi:"精神"};
-const USE_NAME={food:"坐下进食回血",bandage:"引导包扎回血",potion:"立即回复生命",whetstone:"临时提升伤害",quest:"任务使用"};
+const USE_NAME={food:"坐下进食回血",drink:"坐下饮水回资源",bandage:"引导包扎回血",potion:"立即回复生命",whetstone:"临时提升伤害",quest:"任务使用"};
 function itemTipHtml(it,extraHint){
   if(!it)return "";
   const q=QUALITY[it.quality]||QUALITY.common;

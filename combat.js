@@ -30,7 +30,7 @@
           resolveSkillTarget cycleHostileTargets
           gainXP updateLevelUI gainCopper spendCopper formatCopperText updateGoldUI
           clearShieldVisual applyHeal clearAllTotems tickTotems
-          breakStealth enterStealth getPlayerAggroMul isBehindTarget
+          breakStealth enterStealth getPlayerAggroMul getMobAggroRadius isBehindTarget
           skillRank getSkillBal tryInterrupt taunt
           （S.quests · STEP 22 任务运行时）
    ============================================================ */
@@ -53,7 +53,8 @@ const S={
      absorb:0,absorbT:0,shieldMesh:null,   /* STEP 19 真言术：盾 */
      stealth:false,sprintT:0,              /* V1-C2 潜行 / 疾步 */
      level:1,xp:0,xpMax:BAL.levels.xpMax[0],gold:0,restXp:0,lastSeenAt:0,   /* C6 休息经验 */
-     eating:null,bandaging:null,gathering:null,weaknessT:0,
+     eating:null,drinking:null,bandaging:null,gathering:null,weaknessT:0,
+     sitting:false,ghost:false,corpsePos:null,fallPeakY:null,
      whetstoneT:0,whetstoneAdd:0,
      vy:0,grounded:true,autoRun:false,_wantJump:false, /* plan-V3 C1 */
      stats:null,derived:null}, /* plan-V3 C3 五属性 */
@@ -660,6 +661,9 @@ function hitEntity(ent,amount,label,opts){
   const attacker=typeof buildAttackerCtx==="function"
     ?buildAttackerCtx(S.p,CLS.key,S.p.derived)
     :{level:S.p.level,critPct:5,apDmgMul:1,dmgMul:S.p.dmgMul};
+  /* C10：虚弱降低输出 */
+  if(S.p.weaknessT>0&&BAL.death&&BAL.death.weaknessStatMul!=null)
+    attacker.dmgMul=(attacker.dmgMul||1)*BAL.death.weaknessStatMul;
   let target;
   if(typeof BOSS_ENT!=="undefined"&&ent===BOSS_ENT){
     target=typeof buildTargetCtx==="function"
@@ -679,7 +683,9 @@ function hitEntity(ent,amount,label,opts){
     });
   }else{
     const v=ent.variance;
-    const dmg=S.god?BAL.god.dmg:Math.round(amount*S.p.dmgMul*(v?rand(v[0],v[1]):1));
+    let mul=S.p.dmgMul||1;
+    if(S.p.weaknessT>0&&BAL.death&&BAL.death.weaknessStatMul!=null)mul*=BAL.death.weaknessStatMul;
+    const dmg=S.god?BAL.god.dmg:Math.round(amount*mul*(v?rand(v[0],v[1]):1));
     result={outcome:"hit",damage:dmg,mitigated:0,raw:dmg};
   }
 
@@ -1342,6 +1348,25 @@ function getPlayerAggroMul(){
   if(fx)mul=Math.max(.12,mul-fx);
   return mul;
 }
+/** C11：等级差主动仇恨半径（中立 aggroR:0 / 灰怪 → 0；叠乘潜行倍率） */
+function getMobAggroRadius(m){
+  if(!m||!m.stats)return 0;
+  const base=m.stats.aggroR|0;
+  if(base<=0)return 0;
+  const cfg=BAL.aggro||{};
+  const pl=(S.p&&S.p.level)|0||1;
+  const ml=m.level!=null?m.level:((m.stats.level)|0||1);
+  if(cfg.greySkip!==false&&typeof isGreyMob==="function"&&isGreyMob(pl,ml))return 0;
+  const diff=ml-pl;
+  const above=cfg.perLevelAbove!=null?cfg.perLevelAbove:.15;
+  const below=cfg.perLevelBelow!=null?cfg.perLevelBelow:.1;
+  let levelMul=diff>0?(1+diff*above):(1+diff*below);
+  const minM=cfg.minMul!=null?cfg.minMul:.4;
+  const maxM=cfg.maxMul!=null?cfg.maxMul:2.4;
+  levelMul=Math.max(minM,Math.min(maxM,levelMul));
+  const stealth=typeof getPlayerAggroMul==="function"?getPlayerAggroMul():1;
+  return base*levelMul*stealth;
+}
 function applyStealthVisual(on){
   if(typeof player==="undefined"||!player)return;
   const alpha=(BAL.stealth&&BAL.stealth.alpha!=null)?BAL.stealth.alpha:.42;
@@ -1458,8 +1483,11 @@ function sprint(){
 }
 
 function playerHit(amount,source){
+  if(S.p.ghost)return; /* 灵魂形态不受伤 */
   if(!S.p.alive||S.p.invuln>0)return;
   if(typeof markCombat==="function")markCombat(S.res);
+  /* C10：受击打断进食/饮水/包扎 */
+  if((S.p.eating||S.p.drinking||S.p.bandaging)&&typeof cancelConsume==="function")cancelConsume();
   amount=Math.round(amount*R(BAL.variance.player));
   /* C4：玩家护甲减伤 */
   if(typeof armorReduction==="function"){

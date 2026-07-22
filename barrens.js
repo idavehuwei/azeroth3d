@@ -509,9 +509,16 @@ function openBarrensSpiritDialogue(){
   const nameEl=$("#dlg .dname");
   if(nameEl)nameEl.textContent="👻 灵魂医者 · 尘语";
   dlg.style.display="block"; bts.innerHTML="";
-  tx.textContent=T("zone.barrens")+"的风很干，旅人。若你倒下，释放灵魂后我会在"+T("poi.crossroads")+"接引你。";
-  const b=document.createElement("button");
-  b.className="dbtn";b.textContent="感谢您，医者";b.onclick=closeDialogue;bts.appendChild(b);
+  const btn=(t,fn)=>{const b=document.createElement("button");
+    b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
+  if(S.p.ghost){
+    tx.textContent="枯原的风很干。我能把你拉回来——但你会虚弱。跑回尸体则不必。";
+    btn("在此复活（虚弱）",()=>{if(typeof resurrectAtSpiritHealer==="function")resurrectAtSpiritHealer();});
+    btn("我再想想",closeDialogue);
+  }else{
+    tx.textContent=T("zone.barrens")+"的风很干，旅人。若你倒下，释放灵魂后我会在"+T("poi.crossroads")+"接引你。";
+    btn("感谢您，医者",closeDialogue);
+  }
 }
 
 function openBarrensCookDialogue(){

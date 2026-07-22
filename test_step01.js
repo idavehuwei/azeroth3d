@@ -259,11 +259,39 @@ assert(worldSrc.includes("placeTalkNpc")&&worldSrc.includes("_mulgoreInteractNpc
 assert((worldSrc.match(/placeTalkNpc\(/g)||[]).length>=24,"莫高雷可对话 NPC≥24");
 assert(barrensSrc.includes("barrensWow")&&barrensSrc.includes("CROSSROADS")&&barrensSrc.includes("placeBarrensTalkNpc"),"贫瘠十字路口 POI/NPC 工厂");
 const mainSrc=fs.readFileSync(path.join(__dirname,"main.js"),"utf8");
+
+/* plan-V3 · C10 死亡·墓地·尸体跑·进食饮水 */
+assert(coreSrc.includes("ghostSpeedMul")&&coreSrc.includes("respawnResPct")&&coreSrc.includes("weaknessStatMul"),"BALANCE.death 含灵魂/虚弱参数");
+assert(coreSrc.includes("fallSafe")&&coreSrc.includes("fallDmgPer"),"BALANCE.move 含摔落参数");
+assert(coreSrc.includes("drink:")&&/food:\{[^}]*duration:\s*18/.test(coreSrc),"BALANCE 进食 18s + 饮水");
+assert(itemsSrc.includes('use:"drink"')&&itemsSrc.includes("spring_water"),"items 含水饮");
+assert(buffsSrc.includes("drinking"),"buffs 含饮水");
+assert(raidSrc.includes("enterGhostForm")&&raidSrc.includes("tryResurrectAtCorpse")&&raidSrc.includes("resurrectAtSpiritHealer"),"raid 含灵魂/跑尸/医者复活");
+assert(raidSrc.includes("tickGhostWorld")&&raidSrc.includes("spawnCorpseMark"),"raid 含尸体标记与幽灵 tick");
+assert(mainSrc.includes("tickGhostWorld")&&mainSrc.includes("fallPeakY")&&mainSrc.includes("S.p.ghost"),"main 驱动幽灵移动/摔落");
+assert(mainSrc.includes("S.p.drinking")&&combatSrc.includes("cancelConsume"),"进食饮水受击/主循环");
+assert(html.includes("ghostBanner")&&html.includes("corpseHint")&&html.includes("ghost-mode"),"HUD 含灵魂横幅/尸体提示/灰阶");
+assert(worldSrc.includes("在此复活（虚弱）"),"灵魂医者远程虚弱复活");
+
 assert(barrensSrc.includes("nearBarrensNpc")&&mainSrc.includes("nearBarrensNpc"),"贫瘠全量 NPC F 提示");
 assert(questsSrc.includes('id:"crossroads_trouble"')&&questsSrc.includes('T("mob.quilboar")')&&questsSrc.includes("darsok"),"贫瘠刺背威胁主线");
 assert(questsSrc.includes("mankrik")&&questsSrc.includes("serra")&&questsSrc.includes("lal")&&questsSrc.includes("thom"),"十字路口经典任务 NPC");
 assert((barrensSrc.match(/placeBarrensTalkNpc\(/g)||[]).length>=8,"十字路口可对话 NPC≥8");
 assert(mainSrc.includes("nearMulgoreNpc"),"主循环用全量 NPC 距离判断 F 提示");
+
+/* plan-V3 · C11 野怪 AI · 精英 · 稀有 */
+assert(coreSrc.includes("aggro:")&&coreSrc.includes("greySkip")&&coreSrc.includes("perLevelAbove"),"BALANCE.aggro 等级差仇恨");
+assert(coreSrc.includes("hpMul:2.3")&&coreSrc.includes("dmgMul:1.5"),"BALANCE.elite C11 倍率");
+assert(coreSrc.includes("respawnT:3600")&&coreSrc.includes("worldBossRespawnT:7200"),"BALANCE.rares 小时级刷新");
+assert(coreSrc.includes("rareWeights"),"BALANCE.loot 稀有必掉优秀权重");
+assert(combatSrc.includes("function getMobAggroRadius"),"combat 有 getMobAggroRadius");
+assert(mainSrc.includes("getMobAggroRadius"),"main 主动仇恨走等级差半径");
+assert(worldSrc.includes("eliteBaked")||coreSrc.includes("eliteBaked"),"精英手调表标 eliteBaked");
+assert(worldSrc.includes("respawnBase")&&worldSrc.includes("hpMul"),"spawnMob 含精英倍率/稀有刷新基线");
+assert(itemsSrc.includes("rareWeights")||itemsSrc.includes("m.rare"),"rollMobLoot 稀有权重");
+assert(worldSrc.includes("function aggroMob")&&coreSrc.includes("socialR"),"社群拉怪仍在");
+assert(coreSrc.includes("aggroR:0")&&mainSrc.includes("getMobAggroRadius"),"中立 aggroR:0 + 半径函数");
+
 assert(questsSrc.includes('id:"elder_boars"')&&questsSrc.includes("开始狩猎")&&questsSrc.includes('id:"mulgore_crisis"')&&questsSrc.includes('id:"bloodhoof_journey"'),"莫高雷经典主线链");
 assert(questsSrc.includes("grayhorn")&&questsSrc.includes("windfury_sentinel")&&questsSrc.includes("thunderhorn_guard"),"莫高雷表内 NPC 绑定");
 assert(worldSrc.includes("bristleback")&&worldSrc.includes("plainslion")&&worldSrc.includes("waterElement"),"刺背/平原狮/水元素");
@@ -297,6 +325,7 @@ const raresSrc=fs.readFileSync(path.join(__dirname,"rares.js"),"utf8");
 assert(html.includes('src="rares.js"'),"game.html 加载 rares.js");
 assert(raresSrc.includes("const RARES=")&&raresSrc.includes("const WORLD_BOSSES="),"rares.js 有 RARES/WORLD_BOSSES 表");
 assert(raresSrc.includes("function spawnRaresForZone")&&raresSrc.includes("function getRareMapEntries"),"rares.js 有 spawn/map API");
+assert(raresSrc.includes("respawnT:3600")||raresSrc.includes("respawnT:7200"),"C11 RARES/WORLD_BOSSES 含长刷新");
 assert(raresSrc.includes("centaur_warbringer")||raresSrc.includes("centaurHerald"),"世界 Boss 半人马战争使者");
 assert(raresSrc.includes("greyjaw_mulgore")&&raresSrc.includes("ashmane_barrens"),"莫高雷/贫瘠各一只稀有");
 assert(coreSrc.includes("centaurHerald")&&coreSrc.includes("rares:"),"BALANCE 含 centaurHerald / rares");

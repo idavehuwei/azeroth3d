@@ -17,11 +17,11 @@
 /* ---- 稀有精英表（加一只 = 加一条；坐标相对各区原点） ---- */
 const RARES=[
   {id:"greyjaw_mulgore", type:"boarKing", zone:"mulgore",
-    x:40, z:-120, rare:true, label:"老灰鬃"},
+    x:40, z:-120, rare:true, label:"老灰鬃", respawnT:3600},
   {id:"ashmane_barrens", type:"ashmane", zone:"barrens",
     x:-192, z:152, rare:true, label:"灰蹄野猪王",
-    name:"灰蹄野猪王"},
-  /* 粉色精英也走表，便于小地图统一 · 风啸岗 */
+    name:"灰蹄野猪王", respawnT:3600},
+  /* 粉色精英也走表，便于小地图统一 · 风啸岗（非稀有，短刷新） */
   {id:"harpy_mulgore", type:"harpy", zone:"mulgore",
     x:62, z:-300, rare:false, label:"鹰身女妖"},
 ];
@@ -30,7 +30,7 @@ const RARES=[
 const WORLD_BOSSES=[
   {id:"centaur_warbringer", type:"centaurHerald", zone:"barrens",
     x:208, z:128, worldBoss:true, rare:true, label:"战争使者",
-    name:"半人马战争使者"},
+    name:"半人马战争使者", respawnT:7200},
 ];
 
 function isRareMob(m){return !!(m&&(m.rare||m.worldBoss));}
@@ -45,6 +45,7 @@ function spawnRareEntry(entry){
     rareId:entry.id,
   };
   if(entry.name)opts.name=entry.name;
+  if(entry.respawnT!=null)opts.respawnT=entry.respawnT;
   const m=spawnMob(entry.type,entry.x,entry.z,entry.id,opts);
   return m;
 }

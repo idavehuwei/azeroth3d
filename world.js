@@ -823,7 +823,7 @@ function spawnEliteMinions(elite,typeKey){
 function spawnMob(type,x,z,group,opts){
   opts=opts||{};
   const zoneId=opts.zoneId||"mulgore";
-  const T=MOB_TYPES[type], st=BAL.mobs[T.stats];
+  const T=MOB_TYPES[type], baseSt=BAL.mobs[T.stats];
   const mesh=T.build();
   const gy=(zoneId==="mulgore"&&typeof heightAt==="function")?heightAt(x,z):0;
   mesh.position.set(x,gy,z);
@@ -831,27 +831,45 @@ function spawnMob(type,x,z,group,opts){
   let labelY=T.labelY;
   const isWB=!!(opts.worldBoss||T.worldBoss)&&!opts.minion;
   const isElite=!!(T.elite||opts.rare||isWB)&&!opts.minion;
+  const isRare=!!(opts.rare||T.rare||isWB)&&!opts.minion;
   if(isElite){
     const mul=isWB?(BAL.elite.worldBossScaleMul||BAL.elite.scaleMul||1):(BAL.elite.scaleMul||1);
     mesh.scale.multiplyScalar(mul);
     labelY+=isWB?(BAL.elite.worldBossLabelYBonus||BAL.elite.labelYBonus||0):(BAL.elite.labelYBonus||0);
   }
+  /* C11：精英运行时倍率（表内已手调的标 eliteBaked 跳过） */
+  let st=baseSt;
+  let hp=baseSt.hp, dmg=baseSt.dmg;
+  if(isElite&&!baseSt.eliteBaked){
+    const hm=(BAL.elite&&BAL.elite.hpMul!=null)?BAL.elite.hpMul:2.3;
+    const dm=(BAL.elite&&BAL.elite.dmgMul!=null)?BAL.elite.dmgMul:1.5;
+    hp=Math.max(1,Math.round(baseSt.hp*hm));
+    dmg=Array.isArray(baseSt.dmg)
+      ?[Math.max(1,Math.round(baseSt.dmg[0]*dm)),Math.max(1,Math.round(baseSt.dmg[1]*dm))]
+      :baseSt.dmg;
+    st=Object.assign({},baseSt,{hp,dmg});
+  }
   const scn=(typeof ZONES!=="undefined"&&ZONES[zoneId]&&ZONES[zoneId].scene)||sceneWorld;
   scn.add(mesh);
   const dispName=opts.name||T.name;
-  const nameColor=opts.color||T.color||(isWB||opts.rare||T.rare?(BAL.rares&&BAL.rares.gold)||"#ffd700":"#ffd9a0");
+  const nameColor=opts.color||T.color||(isWB||isRare?(BAL.rares&&BAL.rares.gold)||"#ffd700":"#ffd9a0");
   const mobLv=st.level!=null?st.level:1;
   const label=makeNameplate(dispName,mobLv,{w:T.labelW+(isWB?1.5:0),color:nameColor,glow:nameColor,elite:isElite});
   label.position.set(x,gy+labelY,z); scn.add(label);
-  updateNameplateHp(label,st.hp,st.hp);
+  updateNameplateHp(label,hp,hp);
+  /* C11：稀有/世界 Boss 长刷新；条目可覆盖 */
+  let respawnBase=st.respawnT;
+  if(opts.respawnT!=null)respawnBase=opts.respawnT;
+  else if(isWB)respawnBase=(BAL.rares&&BAL.rares.worldBossRespawnT)!=null?BAL.rares.worldBossRespawnT:7200;
+  else if(isRare)respawnBase=(BAL.rares&&BAL.rares.respawnT)!=null?BAL.rares.respawnT:3600;
   const m={type,name:dispName,level:mobLv,mesh,label,stats:st,loot:LOOT[T.loot],
     elite:isElite,
-    rare:!!(opts.rare||T.rare||isWB)&&!opts.minion,
+    rare:isRare,
     worldBoss:isWB,
     rareId:opts.rareId||null,
     group:group||null,labelY,zoneId,
-    hp:st.hp,hpMax:st.hp,state:"wander",home:{x,z},dest:null,wanderT:rand(0,3),
-    atkT:0,rootT:0,respawnT:0,corpseT:0,castCd:0,casting:null,moving:false,aura:null,
+    hp,hpMax:hp,state:"wander",home:{x,z},dest:null,wanderT:rand(0,3),
+    atkT:0,rootT:0,respawnT:0,respawnBase,corpseT:0,castCd:0,casting:null,moving:false,aura:null,
     attackAnim:0,
     armor:st.armor!=null?st.armor:(40+mobLv*12+(isElite?80:0)),
     variance:BAL.variance.mob,
@@ -996,7 +1014,9 @@ function requestCorpseDissolve(ent){
    STEP 5 泛化：数值/掉落/经验全部来自实体自身配置；精英走 eliteWeights 必掉优秀以上
    G1：有掉落则 awaitLoot，溶解推迟到拾取或尸体超时 */
 function mobDie(m){
-  m.state="dead"; m.respawnT=m.stats.respawnT; m.corpseT=BAL.loot.corpseT; m.moving=false;
+  m.state="dead";
+  m.respawnT=m.respawnBase!=null?m.respawnBase:m.stats.respawnT;
+  m.corpseT=BAL.loot.corpseT; m.moving=false;
   m.casting=null; m.awaitLoot=false;
   if(typeof clearCurrentTargetIf==="function")clearCurrentTargetIf(m);
   if(typeof clearThreat==="function")clearThreat(m);
@@ -1007,7 +1027,9 @@ function mobDie(m){
   if(typeof onRareKill==="function")onRareKill(m);
   else if(m.elite)announce(`${m.name} 被击败！`);
   const it=typeof rollMobLoot==="function"?rollMobLoot(m)
-    :rollLoot(m.loot,m.elite?BAL.loot.eliteWeights:null);
+    :rollLoot(m.loot,m.rare||m.worldBoss
+      ?(BAL.loot.rareWeights||BAL.loot.eliteWeights)
+      :(m.elite?BAL.loot.eliteWeights:null));
   if(it){
     m.awaitLoot=true;
     dropLoot(m.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),[it],m,
@@ -1098,7 +1120,22 @@ function openNpcQuestDialogue(npcId,title,idleText){
 }
 
 function tryInteract(){
-  if(!S.started||!S.p.alive)return;
+  if(!S.started)return;
+  /* C10：灵魂形态 —— 尸体复活 / 灵魂医者 */
+  if(S.p.ghost){
+    if(typeof nearPlayerCorpse==="function"&&nearPlayerCorpse()
+      &&typeof tryResurrectAtCorpse==="function"&&tryResurrectAtCorpse())return;
+    if(S.mode!=="world")return;
+    const R=BAL.economy.interactR||8;
+    const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore";
+    if(zid==="mulgore"&&spiritDist()<R){openSpiritDialogue();return;}
+    if(zid==="barrens"&&typeof barrensSpiritDist==="function"&&barrensSpiritDist()<R
+      &&typeof openBarrensSpiritDialogue==="function"){openBarrensSpiritDialogue();return;}
+    if(zid==="durotar"&&typeof durotarSpiritDist==="function"&&durotarSpiritDist()<R
+      &&typeof openDurotarSpiritDialogue==="function"){openDurotarSpiritDialogue();return;}
+    return;
+  }
+  if(!S.p.alive)return;
   if(tryLoot())return;
   if(typeof tryQuestGroundInteract==="function"&&tryQuestGroundInteract())return;
   if(S.mode==="raid"&&S.b.canLeave&&exitPortal&&player.position.distanceTo(EXIT_PORTAL_POS)<BAL.zones.exitPortalEnterR){
@@ -1119,9 +1156,16 @@ function openSpiritDialogue(){
   const nameEl=$("#dlg .dname");
   if(nameEl)nameEl.textContent="👻 灵魂医者 · 风语";
   dlg.style.display="block"; bts.innerHTML="";
-  tx.textContent="旅人，若你在战场上倒下，释放灵魂后我会在此接引你归来。大地母亲护佑着所有勇敢的灵魂。";
-  const b=document.createElement("button");
-  b.className="dbtn";b.textContent="感谢您，医者";b.onclick=closeDialogue;bts.appendChild(b);
+  const btn=(t,fn)=>{const b=document.createElement("button");
+    b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
+  if(S.p.ghost){
+    tx.textContent="我能将你强行拉回人间——但你会虚弱一段时间。若你还能跑回尸体，便不必受此苦。";
+    btn("在此复活（虚弱）",()=>{if(typeof resurrectAtSpiritHealer==="function")resurrectAtSpiritHealer();});
+    btn("我再想想",closeDialogue);
+  }else{
+    tx.textContent="旅人，若你在战场上倒下，释放灵魂后我会在此接引你归来。大地母亲护佑着所有勇敢的灵魂。";
+    btn("感谢您，医者",closeDialogue);
+  }
 }
 function closeDialogue(){
   $("#dlg").style.display="none";

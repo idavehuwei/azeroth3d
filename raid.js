@@ -20,7 +20,9 @@
           getDifficultyCfg getRaidLootWeights
           bossAI startCast spawnAdd addDamage addDie bossDie playerDie resetBoss
           releaseSpiritWorld releaseSpiritRaid releaseSpiritLeaveRaid resurrectPlayer
+          enterGhostForm clearGhostForm tryResurrectAtCorpse resurrectAtSpiritHealer
           showDeathUi hideDeathUi clearRaidHazards applyWipeEncounter
+          tickGhostWorld nearPlayerCorpse distToPlayerCorpse
           distToBoss bossTargetable BOSS_ENT DUNGEON DUNGEONS getDungeon
           buildRaidScene buildMoltenCoreZone
    ============================================================ */
@@ -1262,21 +1264,34 @@ function bossDie(){
   if(typeof saveGame==="function")saveGame(true);
 }
 function playerDie(){
-  if(!S.p.alive)return;
+  if(!S.p.alive||S.p.ghost)return;
   S.p.alive=false;
-  S.over=false;          /* STEP 15：不再锁死整局 */
+  S.over=false;
   S.deathUi=false;
   S.p.knock=null; S.p.fear=null;
+  S.p.sitting=false;
   if(typeof breakStealth==="function")breakStealth("death",true);
   if(typeof cancelConsume==="function")cancelConsume();
   clearBossCast();
+  /* C10：记下尸体，供跑尸复活 */
+  S.p.corpsePos={
+    x:player.position.x, y:player.position.y, z:player.position.z,
+    zone:S.zoneId||(typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore"),
+    face:S.p.face||0
+  };
   announce("你被击败了……");
-  log("你倒下了。释放灵魂即可在灵魂医者处重生。","lg-sys");
-  player.rotation.z=Math.PI/2; player.position.y=.5;
+  log(S.mode==="world"
+    ?"你倒下了。释放灵魂后将以灵魂形态前往墓地，再跑回尸体复活。"
+    :"你倒下了。释放灵魂即可在入口重整。","lg-sys");
+  player.rotation.z=Math.PI/2;
+  player.position.y=(typeof playerGroundY==="function"?playerGroundY(player.position.x,player.position.z):0)+.35;
+  if(typeof updateHumanoidAnim==="function"){
+    try{updateHumanoidAnim(player,0.05,{alive:false,moving:false,attackAnim:0,hitT:0,phase:0});}catch(e){/* ignore */}
+  }
   if(typeof checkPartyWipe==="function")checkPartyWipe();
   const delay=(BAL.death.corpseDelay||1.2)*1000;
   setTimeout(()=>{
-    if(S.p.alive)return;
+    if(S.p.alive||S.p.ghost)return;
     showDeathUi();
   },delay);
 }
@@ -1287,10 +1302,12 @@ function showDeathUi(){
   if(!ov)return;
   const world=S.mode==="world";
   $("#deathTitle").textContent="你 已 死 亡";
-  $("#deathSub").textContent=world?"灵魂将前往营地的灵魂医者处":"在"+T("zone.molten_core")+"中倒下了……";
+  $("#deathSub").textContent=world?"灵魂将前往最近的墓地":"在副本中倒下了……";
   $("#deathText").textContent=world
-    ?"释放灵魂后，你将在灵魂医者旁复活（短暂虚弱）。"
+    ?"释放灵魂 → 灵魂形态跑回尸体复活（半血半资源）。也可稍后在灵魂医者处直接复活（会虚弱）。"
     :"可选择在走廊入口重整旗鼓，或退出副本回到营地。";
+  const btnW=$("#btnReleaseWorld");
+  if(btnW)btnW.textContent=world?"释放灵魂 · 前往墓地":"释放灵魂";
   $("#btnReleaseWorld").style.display=world?"inline-block":"none";
   $("#btnReleaseRaid").style.display=world?"none":"inline-block";
   $("#btnLeaveRaidDead").style.display=world?"none":"inline-block";
@@ -1302,7 +1319,230 @@ function hideDeathUi(){
   if(ov)ov.classList.add("hide");
 }
 
-/** 清理副本危险物（投射物/红圈/小怪），不改 DUNGEON.stage */
+let _corpseMark=null;
+function clearCorpseMark(){
+  if(_corpseMark&&_corpseMark.parent)_corpseMark.parent.remove(_corpseMark);
+  if(_corpseMark){
+    _corpseMark.traverse(o=>{
+      if(o.geometry)o.geometry.dispose();
+      if(o.material&&!(o.material.userData&&o.material.userData.sharedMat)){
+        if(o.material.map)o.material.map.dispose();
+        o.material.dispose();
+      }
+    });
+  }
+  _corpseMark=null;
+}
+function spawnCorpseMark(pos){
+  clearCorpseMark();
+  if(!pos||typeof THREE==="undefined")return;
+  const scn=(typeof scene!=="undefined"&&scene)||(typeof sceneWorld!=="undefined"?sceneWorld:null);
+  if(!scn)return;
+  const g=new THREE.Group();
+  const ring=new THREE.Mesh(
+    new THREE.RingGeometry(1.1,1.55,24),
+    new THREE.MeshBasicMaterial({color:0x88aadd,transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false})
+  );
+  ring.rotation.x=-Math.PI/2; ring.position.y=.08; g.add(ring);
+  const lab=typeof makeLabel==="function"?makeLabel("尸体",5.2,"#a8c8ff","rgba(40,60,120,.9)"):null;
+  if(lab){lab.position.y=2.2;g.add(lab);}
+  const gy=(typeof heightAt==="function"?heightAt(pos.x,pos.z):0)||0;
+  g.position.set(pos.x,gy,pos.z);
+  scn.add(g);
+  _corpseMark=g;
+}
+
+function setGhostVisual(on){
+  if(typeof player==="undefined"||!player)return;
+  const op=on?(BAL.death.ghostOpacity!=null?BAL.death.ghostOpacity:.42):1;
+  player.traverse(o=>{
+    if(!o.isMesh||!o.material)return;
+    const mats=Array.isArray(o.material)?o.material:[o.material];
+    for(const m of mats){
+      if(!m)continue;
+      if(on){
+        if(m.userData._ghostPrev==null){
+          m.userData._ghostPrev={
+            transparent:!!m.transparent,
+            opacity:m.opacity!=null?m.opacity:1,
+            depthWrite:m.depthWrite!==false
+          };
+        }
+        m.transparent=true;
+        m.opacity=op;
+        m.depthWrite=false;
+        m.needsUpdate=true;
+      }else if(m.userData._ghostPrev){
+        const p=m.userData._ghostPrev;
+        m.transparent=p.transparent;
+        m.opacity=p.opacity;
+        m.depthWrite=p.depthWrite;
+        m.needsUpdate=true;
+        delete m.userData._ghostPrev;
+      }
+    }
+  });
+  if(typeof document!=="undefined"&&document.body){
+    document.body.classList.toggle("ghost-mode",!!on);
+  }
+  const ban=$("#ghostBanner");
+  if(ban)ban.style.display=on?"block":"none";
+}
+
+function enterGhostForm(spawn){
+  const D=BAL.death;
+  S.p.ghost=true;
+  S.p.alive=false;
+  S.over=false;
+  hideDeathUi();
+  player.rotation.z=0;
+  if(spawn){
+    const gy=(typeof heightAt==="function"?heightAt(spawn.x,spawn.z):0)||0;
+    player.position.set(spawn.x,gy,spawn.z);
+  }
+  setGhostVisual(true);
+  if(S.p.corpsePos)spawnCorpseMark(S.p.corpsePos);
+  announce("灵魂形态");
+  log(`你释放了灵魂。移速提升 ${Math.round(((D.ghostSpeedMul||1.5)-1)*100)}%。跑回发光尸体处复活，或找灵魂医者（会虚弱）。`,"lg-sys");
+  if(typeof saveGame==="function")saveGame(true);
+}
+
+function clearGhostForm(){
+  S.p.ghost=false;
+  setGhostVisual(false);
+  clearCorpseMark();
+  const hint=$("#corpseHint");
+  if(hint)hint.style.display="none";
+}
+
+function distToPlayerCorpse(){
+  const c=S.p.corpsePos;
+  if(!c||typeof player==="undefined"||!player)return Infinity;
+  if(c.zone&&S.zoneId&&c.zone!==S.zoneId)return Infinity;
+  return Math.hypot(player.position.x-c.x,player.position.z-c.z);
+}
+function nearPlayerCorpse(r){
+  const R=r!=null?r:((BAL.death&&BAL.death.corpseR)||4.5);
+  return distToPlayerCorpse()<=R;
+}
+
+function resurrectPlayer(spawn,opts){
+  opts=opts||{};
+  const D=BAL.death;
+  clearGhostForm();
+  S.p.alive=true;
+  S.over=false;
+  S.p.corpsePos=null;
+  if(typeof resetWipeFlag==="function")resetWipeFlag();
+  const hpPct=opts.hpPct!=null?opts.hpPct:(D.respawnHpPct!=null?D.respawnHpPct:.5);
+  const resPct=opts.resPct!=null?opts.resPct:(D.respawnResPct!=null?D.respawnResPct:.5);
+  S.p.hp=Math.max(1,Math.round(S.p.hpMax*hpPct));
+  S.p.rage=Math.max(0,Math.round(S.p.rageMax*resPct));
+  S.p.invuln=.8;
+  if(typeof clearAllBuffs==="function")clearAllBuffs("resurrect");
+  else{
+    S.p.absorb=0; S.p.absorbT=0;
+    if(typeof clearShieldVisual==="function")clearShieldVisual();
+    S.p.fear=null; S.p.eating=null; S.p.drinking=null;
+    if(S.p.whetstoneT>0&&S.p.whetstoneAdd){S.p.dmgMul-=S.p.whetstoneAdd;S.p.whetstoneAdd=0;S.p.whetstoneT=0;}
+  }
+  S.p.knock=null;
+  S.p.bandaging=null; S.p.gathering=null; S.p.sitting=false;
+  /* 跑尸复活默认不虚弱；医者远程 / 副本释放默认虚弱 */
+  const applyWeak=opts.weakness!==false&&!opts.noWeakness;
+  if(applyWeak){
+    if(typeof applyBuff==="function")applyBuff("weakness",{duration:D.weaknessT||0});
+    else S.p.weaknessT=D.weaknessT||0;
+  }else S.p.weaknessT=0;
+  player.rotation.z=0;
+  const gy=spawn&&typeof heightAt==="function"?heightAt(spawn.x,spawn.z):0;
+  if(spawn)player.position.set(spawn.x,gy||0,spawn.z);
+  else player.position.y=(typeof playerGroundY==="function"?playerGroundY(player.position.x,player.position.z):0);
+  hideDeathUi();
+  if(!(opts&&opts.silent)){
+    announce("你复活了！");
+    if(applyWeak)log(`复活成功。虚弱 ${D.weaknessT|0} 秒（移速与伤害降低）。`,"lg-heal");
+    else log("你在尸体旁苏醒了（半血半资源）。","lg-heal");
+    if(typeof VFX!=="undefined")VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.5)});
+  }
+  if(typeof saveGame==="function")saveGame(true);
+}
+
+/** 跑回尸体复活：无虚弱 */
+function tryResurrectAtCorpse(){
+  if(!S.p.ghost||S.p.alive)return false;
+  if(!nearPlayerCorpse()){log("你离尸体太远了。","lg-sys");return false;}
+  const c=S.p.corpsePos;
+  resurrectPlayer(c,{noWeakness:true,silent:false});
+  return true;
+}
+
+/** 灵魂医者处远程复活：带虚弱 */
+function resurrectAtSpiritHealer(){
+  if(!S.p.ghost&&S.p.alive){log("你还活着。","lg-sys");return false;}
+  if(!S.p.ghost&&!S.p.alive){log("请先释放灵魂。","lg-sys");return false;}
+  const zid=S.zoneId||"mulgore";
+  const sp=(BAL.death.spawns&&BAL.death.spawns[zid])||BAL.death.worldSpawn;
+  resurrectPlayer(sp,{weakness:true});
+  log("灵魂医者将你强行拉回人间……你感到一阵虚弱。","lg-sys");
+  if(typeof closeDialogue==="function")closeDialogue();
+  return true;
+}
+
+function releaseSpiritWorld(){
+  if(S.p.alive||S.mode!=="world")return;
+  if(S.p.ghost)return;
+  const zid=S.zoneId||"mulgore";
+  const sp=(BAL.death.spawns&&BAL.death.spawns[zid])||BAL.death.worldSpawn;
+  enterGhostForm(sp);
+}
+
+function releaseSpiritRaid(){
+  if(S.p.alive||S.mode!=="raid")return;
+  applyWipeEncounter();
+  const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
+  const sp=D.raidSpawn||BAL.death.raidSpawn;
+  /* 副本仍走即时复活（无跑尸地图） */
+  resurrectPlayer(sp,{weakness:true});
+  log("你在走廊入口重整旗鼓。当前副本分段已保留，遭遇已重置。","lg-sys");
+}
+
+function releaseSpiritLeaveRaid(){
+  if(S.p.alive||S.mode!=="raid")return;
+  clearRaidHazards();
+  hideDeathUi();
+  clearGhostForm();
+  const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
+  const hub=D.exitZone||"mulgore";
+  const gate=hub==="barrens"?"spirit":"spirit";
+  const worldSp=(BAL.death.spawns&&BAL.death.spawns[hub])||BAL.death.worldSpawn;
+  enterZone(hub,gate,{
+    afterEnter(){
+      resurrectPlayer(worldSp,{silent:true,weakness:true});
+      announce(hub==="barrens"?"你回到了"+T("poi.crossroads"):"你回到了营地");
+      log(hub==="barrens"
+        ?"你退出"+T("zone.wailing")+"，在"+T("poi.crossroads")+"灵魂医者旁苏醒。"
+        :"你退出"+T("zone.molten_core")+"，在灵魂医者旁苏醒。","lg-sys");
+    },
+  });
+}
+
+function tickGhostWorld(dt){
+  if(!S.p.ghost||!S.p.corpsePos)return;
+  if(_corpseMark){
+    _corpseMark.rotation.y+=(dt||0)*1.2;
+    const pulse=1+Math.sin((S.t||0)*3)*.08;
+    _corpseMark.scale.setScalar(pulse);
+  }
+  const hint=$("#corpseHint");
+  if(!hint)return;
+  if(nearPlayerCorpse()){
+    hint.style.display="block";
+    hint.textContent="按 F 在尸体处复活（半血半资源）";
+  }else hint.style.display="none";
+}
+
+/* 清理副本危险物（投射物/红圈/小怪），不改 DUNGEON.stage */
 function clearRaidHazards(){
   for(const a of S.adds){if(a.mesh&&a.mesh.parent)a.mesh.parent.remove(a.mesh);}
   S.adds.length=0;
@@ -1338,73 +1578,6 @@ function applyWipeEncounter(){
   }else if(D.stage==="bridge"){
     S.b.alive=false; if(boss)boss.visible=false;
   }
-}
-
-function resurrectPlayer(spawn,opts){
-  const D=BAL.death;
-  S.p.alive=true;
-  S.over=false;
-  if(typeof resetWipeFlag==="function")resetWipeFlag();
-  S.p.hp=Math.max(1,Math.round(S.p.hpMax*(D.respawnHpPct!=null?D.respawnHpPct:.5)));
-  S.p.rage=CLS.resStart;
-  S.p.invuln=.8;
-  if(typeof clearAllBuffs==="function")clearAllBuffs("resurrect");
-  else{
-    S.p.absorb=0; S.p.absorbT=0;
-    if(typeof clearShieldVisual==="function")clearShieldVisual();
-    S.p.fear=null;
-    S.p.eating=null;
-    if(S.p.whetstoneT>0&&S.p.whetstoneAdd){S.p.dmgMul-=S.p.whetstoneAdd;S.p.whetstoneAdd=0;S.p.whetstoneT=0;}
-  }
-  S.p.knock=null;
-  S.p.bandaging=null; S.p.gathering=null;
-  if(typeof applyBuff==="function")applyBuff("weakness",{duration:D.weaknessT||0});
-  else S.p.weaknessT=D.weaknessT||0;
-  player.rotation.z=0; player.position.y=0;
-  if(spawn)player.position.set(spawn.x,0,spawn.z);
-  hideDeathUi();
-  if(!(opts&&opts.silent)){
-    announce("你复活了！");
-    log(`复活成功。虚弱 ${D.weaknessT} 秒（移速降低）。`,"lg-heal");
-    VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.5)});
-  }
-  if(typeof saveGame==="function")saveGame(true);
-}
-
-function releaseSpiritWorld(){
-  if(S.p.alive||S.mode!=="world")return;
-  const zid=S.zoneId||"mulgore";
-  const sp=(BAL.death.spawns&&BAL.death.spawns[zid])||BAL.death.worldSpawn;
-  resurrectPlayer(sp);
-  log("灵魂医者的光芒包裹了你……","lg-sys");
-}
-
-function releaseSpiritRaid(){
-  if(S.p.alive||S.mode!=="raid")return;
-  applyWipeEncounter();
-  const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
-  const sp=D.raidSpawn||BAL.death.raidSpawn;
-  resurrectPlayer(sp);
-  log("你在走廊入口重整旗鼓。当前副本分段已保留，遭遇已重置。","lg-sys");
-}
-
-function releaseSpiritLeaveRaid(){
-  if(S.p.alive||S.mode!=="raid")return;
-  clearRaidHazards();
-  hideDeathUi();
-  const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
-  const hub=D.exitZone||"mulgore";
-  const gate=hub==="barrens"?"spirit":"spirit";
-  const worldSp=(BAL.death.spawns&&BAL.death.spawns[hub])||BAL.death.worldSpawn;
-  enterZone(hub,gate,{
-    afterEnter(){
-      resurrectPlayer(worldSp,{silent:true});
-      announce(hub==="barrens"?"你回到了"+T("poi.crossroads"):"你回到了营地");
-      log(hub==="barrens"
-        ?"你退出"+T("zone.wailing")+"，在"+T("poi.crossroads")+"灵魂医者旁苏醒。"
-        :"你退出"+T("zone.molten_core")+"，在灵魂医者旁苏醒。","lg-sys");
-    },
-  });
 }
 
 /* 重置遭遇：场景清理；进本时由 setStage("corridor") 重新开打 */

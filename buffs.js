@@ -20,6 +20,7 @@ const BUFF_DEFS={
   fear             :{kind:"debuff",icon:"fear",        name:"恐惧"},
   whetstone        :{kind:"buff",  icon:"whetstone",   name:"磨刀石"},
   eating           :{kind:"buff",  icon:"bread",       name:"进食"},
+  drinking         :{kind:"buff",  icon:"potion",      name:"饮水"},
 };
 
 function hasBuff(id){
@@ -29,6 +30,7 @@ function hasBuff(id){
   if(id==="fear")return !!(S.p.fear&&S.p.fear.t>0);
   if(id==="whetstone")return S.p.whetstoneT>0;
   if(id==="eating")return !!(S.p.eating&&S.p.eating.t>0);
+  if(id==="drinking")return !!(S.p.drinking&&S.p.drinking.t>0);
   return false;
 }
 
@@ -67,6 +69,13 @@ function applyBuff(id,opts){
         name:opts.name||def.name,
       };
       break;
+    case"drinking":
+      S.p.drinking={
+        t:duration,
+        manaPerSec:opts.manaPerSec||0,
+        name:opts.name||def.name,
+      };
+      break;
     default:return false;
   }
   syncBuffsFromLegacy();
@@ -102,6 +111,10 @@ function removeBuff(id,reason,silent){
       if(S.p.eating&&!silent&&reason==="interrupt")log("进食被打断。","lg-sys");
       S.p.eating=null;
       break;
+    case"drinking":
+      if(S.p.drinking&&!silent&&reason==="interrupt")log("饮水被打断。","lg-sys");
+      S.p.drinking=null;
+      break;
     default:break;
   }
   if(S.buffs)delete S.buffs[id];
@@ -133,6 +146,11 @@ function syncBuffsFromLegacy(){
     next.eating={id:"eating",kind:d.kind,icon:d.icon,
       name:S.p.eating.name||d.name,t:S.p.eating.t};
   }
+  if(S.p.drinking&&S.p.drinking.t>0){
+    const d=BUFF_DEFS.drinking;
+    next.drinking={id:"drinking",kind:d.kind,icon:d.icon,
+      name:S.p.drinking.name||d.name,t:S.p.drinking.t};
+  }
   S.buffs=next;
 }
 
@@ -142,6 +160,7 @@ function clearAllBuffs(reason){
   removeBuff("fear",reason,true);
   removeBuff("whetstone",reason,true);
   removeBuff("eating",reason,true);
+  removeBuff("drinking",reason,true);
 }
 
 /** 磨刀石倒计时（自 professions 迁入）+ 同步 HUD */

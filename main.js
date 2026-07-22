@@ -23,7 +23,7 @@
           rig.js 运行时（updateHumanoidAnim）
           items.js（updateDrops nearestDrop removeDropOf cancelConsume）
           vfx.js（VFX spawnBurst fireProjectile disposeVfxMesh tickVfx）
-          raid.js 运行时（bossAI distToBoss bossTargetable DUNGEON）
+          raid.js 运行时（bossAI distToBoss bossTargetable DUNGEON tickGhostWorld）
           world.js 运行时（heli sun fireflies FIREFLIES ffPhases）
           save.js 运行时（启程 / 继续冒险）
           map.js 运行时（updateMinimap）
@@ -318,8 +318,10 @@ function tick(){
         const dP=Math.hypot(player.position.x-m.mesh.position.x,player.position.z-m.mesh.position.z);
         const dH=Math.hypot(m.home.x-m.mesh.position.x,m.home.z-m.mesh.position.z);
         if(m.state==="wander"){
-          /* 主动仇恨：被动怪（陆行鸟 aggroR:0）永不主动 */
-          if(st.aggroR>0&&dP<st.aggroR*(typeof getPlayerAggroMul==="function"?getPlayerAggroMul():1)&&S.p.alive)aggroMob(m);
+          /* C11：主动仇恨 = 等级差半径；aggroR:0 中立 / 灰怪半径 0 */
+          const agR=typeof getMobAggroRadius==="function"?getMobAggroRadius(m)
+            :(st.aggroR>0?st.aggroR*(typeof getPlayerAggroMul==="function"?getPlayerAggroMul():1):0);
+          if(agR>0&&dP<agR&&S.p.alive)aggroMob(m);
           m.wanderT-=dt;
           if(m.wanderT<=0){
             m.wanderT=rand(2.5,5.5);
@@ -351,9 +353,10 @@ function tick(){
               m.atkT=st.atkCd;
               m.attackAnim=1;
               /* STEP 27：打仇恨最高者 */
+              const dmgRange=(m.stats&&m.stats.dmg)||st.dmg;
               if(typeof meleeHitFromThreat==="function")
-                meleeHitFromThreat(m,m.mesh.position,st.meleeR,R(st.dmg),m.name);
-              else playerHit(R(st.dmg),m.name);
+                meleeHitFromThreat(m,m.mesh.position,st.meleeR,R(dmgRange),m.name);
+              else playerHit(R(dmgRange),m.name);
             }
           }
         }else if(m.state==="return"){
@@ -412,8 +415,8 @@ function tick(){
         const nearR=BAL.economy.interactR;
         const nearCraft=typeof workbenchDist==="function"&&workbenchDist()<(BAL.professions.interactR||nearR);
         const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||nearR);
-        const nearNpc=S.p.alive&&((typeof nearMulgoreNpc==="function"&&nearMulgoreNpc(nearR))
-          ||nearCraft||nearGather);
+        const nearNpc=(S.p.alive||S.p.ghost)&&((typeof nearMulgoreNpc==="function"&&nearMulgoreNpc(nearR))
+          ||nearCraft||nearGather||(S.p.ghost&&typeof nearPlayerCorpse==="function"&&nearPlayerCorpse()));
         const dlgOpen=$("#dlg").style.display==="block";
         const vendOpen=$("#vendorPanel")&&$("#vendorPanel").style.display==="block";
         $("#interactBtn").style.display=(nearNpc&&!dlgOpen&&!vendOpen)?"block":"none";
@@ -438,7 +441,8 @@ function tick(){
         }
         const nearR=BAL.economy.interactR;
         const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||nearR);
-        const nearNpc=S.p.alive&&(nearBarrensNpc(nearR)||nearGather);
+        const nearNpc=(S.p.alive||S.p.ghost)&&(nearBarrensNpc(nearR)||nearGather
+          ||(S.p.ghost&&typeof nearPlayerCorpse==="function"&&nearPlayerCorpse()));
         const dlgOpen=$("#dlg").style.display==="block";
         const vendOpen=$("#vendorPanel")&&$("#vendorPanel").style.display==="block";
         $("#interactBtn").style.display=(nearNpc&&!dlgOpen&&!vendOpen)?"block":"none";
@@ -458,9 +462,10 @@ function tick(){
         }
         const nearR=BAL.economy.interactR;
         const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||nearR);
-        const nearNpc=S.p.alive&&(ochreOutpostDist()<nearR||durotarSpiritDist()<nearR
+        const nearNpc=(S.p.alive||S.p.ghost)&&(ochreOutpostDist()<nearR||durotarSpiritDist()<nearR
           ||(typeof ochreVendorDist==="function"&&ochreVendorDist()<nearR)
-          ||(typeof ochreGuardDist==="function"&&ochreGuardDist()<nearR)||nearGather);
+          ||(typeof ochreGuardDist==="function"&&ochreGuardDist()<nearR)||nearGather
+          ||(S.p.ghost&&typeof nearPlayerCorpse==="function"&&nearPlayerCorpse()));
         const dlgOpen=$("#dlg").style.display==="block";
         const vendOpen=$("#vendorPanel")&&$("#vendorPanel").style.display==="block";
         $("#interactBtn").style.display=(nearNpc&&!dlgOpen&&!vendOpen)?"block":"none";
@@ -472,8 +477,8 @@ function tick(){
     /* ---- 掉落动画 & 拾取按钮（世界/副本通用，STEP 2） ---- */
     updateDrops(dt);
     const nd=nearestDrop(BAL.loot.pickupR), ib=$("#interactBtn");
-    if(nd){ib.textContent="✨ 拾 取（F）";ib.style.display="block";}
-    else if(S.mode==="raid"&&S.b.canLeave&&exitPortal&&player.position.distanceTo(EXIT_PORTAL_POS)<BAL.zones.exitPortalEnterR){
+    if(nd&&!S.p.ghost){ib.textContent="✨ 拾 取（F）";ib.style.display="block";}
+    else if(!S.p.ghost&&S.mode==="raid"&&S.b.canLeave&&exitPortal&&player.position.distanceTo(EXIT_PORTAL_POS)<BAL.zones.exitPortalEnterR){
       ib.textContent="🚪 走进传送门";ib.style.display="block";
     }else{
       const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore";
@@ -496,7 +501,13 @@ function tick(){
       ib.textContent=nearGather?(nearestGatherNode(BAL.professions.interactR).kind==="ore"?"⛏ 开采（F）":"🌿 采集（F）")
         :nearCraft?"🔨 制作（F）"
         :nearS?"👻 灵魂医者（F）":nearV?"🛒 交易（F）":nearC?"💬 对 话（F）":"💬 对 话（F）";
-      if(S.mode!=="world"||!S.p.alive)ib.style.display="none";
+      if(S.p.ghost){
+        if(typeof nearPlayerCorpse==="function"&&nearPlayerCorpse()){
+          ib.textContent="✦ 复活（F）"; ib.style.display="block";
+        }else if(nearS){
+          ib.textContent="👻 灵魂医者（F）"; ib.style.display="block";
+        }else ib.style.display="none";
+      }else if(S.mode!=="world"||!S.p.alive)ib.style.display="none";
       if($("#vendorPanel")&&$("#vendorPanel").style.display==="block")ib.style.display="none";
     }
     /* ---- 玩家移动（plan-V3 C1：意图层 · 朝向相对 · 跳跃） ---- */
@@ -505,12 +516,13 @@ function tick(){
     const intent=typeof getMoveIntent==="function"?getMoveIntent()
       :{forward:0,back:0,strafeL:0,strafeR:0,turnL:0,turnR:0,jump:false};
     let turn=0, strafe=0, forward=0;
-    if(S.p.alive&&!S.p.knock&&!S.p.fear){
+    const canSteer=(S.p.alive||S.p.ghost)&&!S.p.knock&&!S.p.fear;
+    if(canSteer){
       turn=(intent.turnL||0)-(intent.turnR||0);
       strafe=(intent.strafeR||0)-(intent.strafeL||0);
       forward=(intent.forward||0)-(intent.back||0);
       if(turn)S.p.face+=turn*(Cam.turnSpd||2.6)*dt;
-      if(intent.jump&&S.p.grounded){
+      if(S.p.alive&&intent.jump&&S.p.grounded){
         S.p.vy=Move.jumpVel!=null?Move.jumpVel:9.2;
         S.p.grounded=false;
       }
@@ -547,17 +559,29 @@ function tick(){
       moveSpd*=BAL.death.moveSpeedMul;
       if(S.p.weaknessT<=0)log("虚弱效果结束。","lg-sys");
     }
-    /* 进食 / 包扎 / 采集：移动打断（STEP 13 / 23） */
-    if(S.p.alive&&(S.p.eating||S.p.bandaging||S.p.gathering)&&ml>.12&&!S.p.knock&&!S.p.fear)cancelConsume();
+    if(S.p.ghost)moveSpd*=(BAL.death.ghostSpeedMul!=null?BAL.death.ghostSpeedMul:1.5);
+    /* 进食 / 饮水 / 包扎 / 采集：移动打断（STEP 13 / C10） */
+    if(S.p.alive&&(S.p.eating||S.p.drinking||S.p.bandaging||S.p.gathering)&&ml>.12&&!S.p.knock&&!S.p.fear)cancelConsume();
     if(S.p.alive&&S.p.eating){
       S.p.eating.t-=dt;
       S.p.hp=Math.min(S.p.hpMax,S.p.hp+S.p.eating.healPerSec*dt);
       if(S.p.eating.t<=0){
         log(`【${S.p.eating.name}】食用完毕。`,"lg-heal");
         S.p.eating=null;
+        if(!S.p.drinking)S.p.sitting=false;
         VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.4)});
       }
-    }else if(S.p.alive&&S.p.bandaging){
+    }
+    if(S.p.alive&&S.p.drinking){
+      S.p.drinking.t-=dt;
+      S.p.rage=Math.min(S.p.rageMax,S.p.rage+S.p.drinking.manaPerSec*dt);
+      if(S.p.drinking.t<=0){
+        log(`【${S.p.drinking.name}】饮用完毕。`,"lg-heal");
+        S.p.drinking=null;
+        if(!S.p.eating)S.p.sitting=false;
+      }
+    }
+    if(S.p.alive&&S.p.bandaging){
       S.p.bandaging.t-=dt;
       if(S.p.bandaging.t<=0){
         const h=S.p.bandaging.heal;
@@ -569,7 +593,8 @@ function tick(){
       }
     }
     if(typeof tickGatherNodes==="function")tickGatherNodes(dt);
-    if(!S.p.alive){
+    if(typeof tickGhostWorld==="function")tickGhostWorld(dt);
+    if(!S.p.alive&&!S.p.ghost){
       /* 死亡倒地：不处理位移 */
     }else if(S.p.knock){
       player.position.add(S.p.knock.dir.clone().multiplyScalar(dt*28));
@@ -592,35 +617,60 @@ function tick(){
     }else{
       S.p.walkPhase*=1-dt*8;
     }
-    if(S.p.alive)player.rotation.y=S.p.face;
-    /* 贴地 + 跳跃（plan-V3 C1 · heightAt 落地） */
-    if(S.p.alive){
+    if(S.p.alive||S.p.ghost)player.rotation.y=S.p.face;
+    /* 贴地 + 跳跃 / 摔落（plan-V3 C1 / C10） */
+    if(S.p.alive||S.p.ghost){
       const gY=playerGroundY(player.position.x,player.position.z);
       const eps=Move.groundEps!=null?Move.groundEps:.06;
       const grav=Move.gravity!=null?Move.gravity:26;
-      if(!S.p.grounded||S.p.vy>0){
+      if(S.p.ghost){
+        player.position.y=gY;
+        S.p.vy=0; S.p.grounded=true; S.p.fallPeakY=null;
+      }else if(!S.p.grounded||S.p.vy>0){
+        if(S.p.fallPeakY==null)S.p.fallPeakY=player.position.y;
+        else S.p.fallPeakY=Math.max(S.p.fallPeakY,player.position.y);
         S.p.vy-=grav*dt;
         player.position.y+=S.p.vy*dt;
         if(player.position.y<=gY+eps){
+          const drop=(S.p.fallPeakY!=null?S.p.fallPeakY:player.position.y)-gY;
           player.position.y=gY;
           S.p.vy=0;
           S.p.grounded=true;
+          S.p.fallPeakY=null;
+          const safe=Move.fallSafe!=null?Move.fallSafe:5;
+          if(drop>safe){
+            const excess=drop-safe;
+            let fd=Math.round(excess*(Move.fallDmgPer!=null?Move.fallDmgPer:32));
+            const cap=Math.round(S.p.hpMax*(Move.fallDmgMaxPct!=null?Move.fallDmgMaxPct:.65));
+            fd=Math.min(fd,cap);
+            if(fd>0){
+              playerHit(fd,"摔落");
+              log(`从高处摔下，受到 ${fd} 点摔落伤害。`,"lg-sys");
+            }
+          }
         }
       }else{
-        player.position.y=gY;
-        S.p.vy=0;
+        /* 台地边缘：脚下高度突然变低时进入下落，走摔落结算 */
+        if(player.position.y>gY+eps*3){
+          S.p.grounded=false;
+          if(S.p.fallPeakY==null)S.p.fallPeakY=player.position.y;
+        }else{
+          player.position.y=gY;
+          S.p.vy=0;
+          S.p.fallPeakY=null;
+        }
       }
     }
     /* 人形 Anim 状态机（plan-V2 · R5） */
-    if(S.p.alive&&typeof updateHumanoidAnim==="function"){
+    if((S.p.alive||S.p.ghost)&&typeof updateHumanoidAnim==="function"){
       if(S.p.attackAnim>0)S.p.attackAnim=Math.max(0,S.p.attackAnim-dt*(BAL.anim.attackDecay||4));
       const style=(player.userData.anim&&player.userData.anim.style)
         ||(typeof CLASS_LOOK_META!=="undefined"&&CLS&&CLS.key&&CLASS_LOOK_META[CLS.key]&&CLASS_LOOK_META[CLS.key].animStyle)
         ||"melee1h";
       updateHumanoidAnim(player,dt,{
         moving:ml>.1||!!S.p.fear,
-        speedMul:S.p.sprintT>0?1.4:1,
-        attackAnim:S.p.attackAnim||0,
+        speedMul:S.p.ghost?1.25:(S.p.sprintT>0?1.4:1),
+        attackAnim:S.p.alive?(S.p.attackAnim||0):0,
         hitT:S.p.animHitT||0,
         alive:true,
         phase:S.p.walkPhase,
@@ -705,7 +755,7 @@ function tick(){
     if(typeof tickBuffs==="function")tickBuffs(dt);
     if(typeof tickRestXp==="function")tickRestXp(dt);
     if(typeof tickResources==="function"&&S.res){
-      const sitting=!!(S.p.eating||(keys&&(keys.x||keys["x"])));
+      const sitting=!!(S.p.eating||S.p.drinking||(keys&&(keys.x||keys["x"])));
       tickResources(S.p,S.res,{
         dt,
         resKind:typeof playerResKind==="function"?playerResKind():(CLS.resKind||"rage"),

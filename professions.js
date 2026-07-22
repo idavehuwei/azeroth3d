@@ -309,7 +309,7 @@ function finishGather(node){
 
 function tryGather(){
   if(!S.started||!S.p.alive||S.mode!=="world")return false;
-  if(S.p.eating||S.p.bandaging||S.p.gathering){log("你正在忙碌中。","lg-sys");return true;}
+  if(S.p.eating||S.p.drinking||S.p.bandaging||S.p.gathering){log("你正在忙碌中。","lg-sys");return true;}
   const n=nearestGatherNode(BAL.professions.interactR);
   if(!n)return false;
   S.p.gathering={t:BAL.professions.gatherCast|0, node:n, name:MATS[n.matId].name};

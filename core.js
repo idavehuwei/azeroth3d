@@ -160,7 +160,7 @@ const BALANCE={
     bird    :{level:2, hp:380, dmg:[28,42],  atkCd:1.6, meleeR:2.2, aggroR:0,  leashR:28, wanderSpd:4.5,chaseSpd:8,   respawnT:22,  xp:45,  copper:[4,10]},
     youngBoar:{level:3, hp:420, dmg:[35,55], atkCd:2.0, meleeR:2.2, aggroR:6,  leashR:28, wanderSpd:3.2,chaseSpd:5.2, respawnT:22,  xp:55,  copper:[5,12]},
     bristleback:{level:3, hp:480, dmg:[40,60], atkCd:2.0, meleeR:2.4, aggroR:8, leashR:30, wanderSpd:2.8,chaseSpd:5.4, respawnT:24, xp:65, copper:[6,14]},
-    wolf    :{level:4, hp:520, dmg:[42,65],  atkCd:1.8, meleeR:2.3, aggroR:9,  leashR:34, wanderSpd:3.5,chaseSpd:6.5, respawnT:26,  xp:70,  socialR:16, copper:[8,16]},
+    wolf    :{level:5, hp:560, dmg:[45,70],  atkCd:1.8, meleeR:2.3, aggroR:9,  leashR:34, wanderSpd:3.5,chaseSpd:6.5, respawnT:26,  xp:75,  socialR:16, copper:[8,16]},
     plainslion:{level:6, hp:780, dmg:[58,88], atkCd:1.7, meleeR:2.5, aggroR:10, leashR:36, wanderSpd:3.4,chaseSpd:6.8, respawnT:28, xp:110, socialR:14, copper:[12,24]},
     boar    :{level:6, hp:720, dmg:[55,85],  atkCd:2.2, meleeR:2.4, aggroR:7,  leashR:34, wanderSpd:3,  chaseSpd:5.5, respawnT:25,  xp:95,  copper:[10,20]},
     thunderhawk:{level:6, hp:680, dmg:[50,78], atkCd:1.7, meleeR:2.3, aggroR:8, leashR:36, wanderSpd:4.2,chaseSpd:7.5, respawnT:28, xp:100, copper:[12,24]},
@@ -177,12 +177,12 @@ const BALANCE={
     windfury:{level:10, hp:1050,dmg:[78,115], atkCd:1.8, meleeR:2.8, aggroR:11, leashR:42, wanderSpd:2.8,chaseSpd:5.8, respawnT:34, xp:170, socialR:18, copper:[22,42],
               cast:{name:"风怒之矢",dmg:[140,200],dur:1.3,cd:7,range:18,speed:15,hitR:2.8}},
     oasisHarpy:{level:13, hp:1200,dmg:[80,115], atkCd:1.8, meleeR:2.7, aggroR:10, leashR:40, wanderSpd:2.8,chaseSpd:5.8, respawnT:30, xp:160, socialR:16, copper:[20,36]},
-    quilboarElder:{level:15, hp:3200,dmg:[110,155], atkCd:2.2, meleeR:3.0, aggroR:12, leashR:42, wanderSpd:2.4,chaseSpd:5.2, respawnT:50, xp:320, copper:[50,90]},
+    quilboarElder:{level:15, hp:3200,dmg:[110,155], atkCd:2.2, meleeR:3.0, aggroR:12, leashR:42, wanderSpd:2.4,chaseSpd:5.2, respawnT:50, xp:320, copper:[50,90], eliteBaked:true},
     barrensLion:{level:12, hp:1100,dmg:[78,112], atkCd:1.7, meleeR:2.6, aggroR:10, leashR:38, wanderSpd:3.2,chaseSpd:6.6, respawnT:28, xp:145, socialR:14, copper:[16,30]},
     barrensBristle:{level:11, hp:980, dmg:[72,105], atkCd:2.0, meleeR:2.5, aggroR:9, leashR:34, wanderSpd:2.8,chaseSpd:5.6, respawnT:26, xp:130, copper:[14,28]},
-    harpy   :{level:11, hp:4200,dmg:[90,130], atkCd:2.4, meleeR:3.2, aggroR:12, leashR:44, wanderSpd:2.5,chaseSpd:5,   respawnT:60,  xp:450, copper:[80,140], socialR:24,
+    harpy   :{level:11, hp:4200,dmg:[90,130], atkCd:2.4, meleeR:3.2, aggroR:12, leashR:44, wanderSpd:2.5,chaseSpd:5,   respawnT:60,  xp:450, copper:[80,140], socialR:24, eliteBaked:true,
               cast:{name:"女妖之火",dmg:[220,300],dur:1.5,cd:6,range:20,speed:16,hitR:3}},
-    boarKing:{level:9, hp:3200,dmg:[110,160],atkCd:2.4, meleeR:3.2, aggroR:8,  leashR:40, wanderSpd:2.2,chaseSpd:5,   respawnT:120, xp:500, copper:[120,200], socialR:22},
+    boarKing:{level:9, hp:3200,dmg:[110,160],atkCd:2.4, meleeR:3.2, aggroR:8,  leashR:40, wanderSpd:2.2,chaseSpd:5,   respawnT:120, xp:500, copper:[120,200], socialR:22, eliteBaked:true},
     /* —— STEP 18 枯原荒地 —— */
     quilboar:{level:11, hp:1200,dmg:[75,110], atkCd:2.0, meleeR:2.6, aggroR:8,  leashR:36, wanderSpd:2.8,chaseSpd:5.8, respawnT:28,  xp:140, copper:[18,35]},
     centaur :{level:13, hp:1800,dmg:[95,140], atkCd:2.2, meleeR:3.0, aggroR:10, leashR:40, wanderSpd:2.6,chaseSpd:5.5, respawnT:35,  xp:180, copper:[28,50], socialR:20},
@@ -192,17 +192,27 @@ const BALANCE={
     /* —— V1-B1 赭岩谷 —— */
     scorp     :{level:12, hp:1100,dmg:[80,115], atkCd:1.9, meleeR:2.5, aggroR:9,  leashR:34, wanderSpd:2.6,chaseSpd:6.0, respawnT:26,  xp:150, copper:[20,38]},
     razorback :{level:13, hp:1600,dmg:[95,135], atkCd:2.1, meleeR:2.8, aggroR:9,  leashR:38, wanderSpd:2.5,chaseSpd:5.6, respawnT:32,  xp:190, copper:[26,48]},
-    cliffHarpy:{level:14, hp:5200,dmg:[110,155],atkCd:2.3, meleeR:3.3, aggroR:13, leashR:46, wanderSpd:2.4,chaseSpd:5.2, respawnT:70,  xp:520, copper:[100,160], socialR:24,
+    cliffHarpy:{level:14, hp:5200,dmg:[110,155],atkCd:2.3, meleeR:3.3, aggroR:13, leashR:46, wanderSpd:2.4,chaseSpd:5.2, respawnT:70,  xp:520, copper:[100,160], socialR:24, eliteBaked:true,
               cast:{name:"崖风火矢",dmg:[260,340],dur:1.4,cd:5.5,range:22,speed:17,hitR:3.1}},
     /* —— STEP 24 世界 Boss —— */
     centaurHerald:{level:16, hp:9000,dmg:[140,200],atkCd:2.1,meleeR:3.4,aggroR:14,leashR:48,
-      wanderSpd:2.2,chaseSpd:5.2,respawnT:240,xp:900,copper:[200,320],socialR:26,
+      wanderSpd:2.2,chaseSpd:5.2,respawnT:240,xp:900,copper:[200,320],socialR:26,eliteBaked:true,
       cast:{name:"战矛投掷",dmg:[280,360],dur:1.4,cd:7,range:22,speed:18,hitR:3.2}},
   },
   /* 脱战回巢（STEP 5 规范化）：回巢途中每秒回复最大生命的百分比，且免疫伤害 */
   leash:{regenPct:.5},
-  /* 精英外观与随从（体型放大 / 脚下光环 / 周边小弟） */
+  /* plan-V3 C11：按等级差缩放主动仇恨半径（灰怪不主动） */
+  aggro:{
+    greySkip:true,          /* isGreyMob → 半径 0 */
+    perLevelAbove:.15,      /* 怪每高 1 级：半径 +15% */
+    perLevelBelow:.1,       /* 怪每低 1 级：半径 -10% */
+    minMul:.4,
+    maxMul:2.4,
+  },
+  /* 精英外观与随从（体型放大 / 脚下光环 / 周边小弟）+ C11 运行时倍率 */
   elite:{
+    hpMul:2.3,                /* C11：相对同级普通怪生命 */
+    dmgMul:1.5,               /* C11：相对同级普通怪伤害 */
     scaleMul:1.25,            /* 在模型 size 之上再放大 */
     labelYBonus:1.4,
     worldBossScaleMul:1.45,
@@ -217,22 +227,29 @@ const BALANCE={
       centaurHerald:{type:"centaur", count:2, radius:9},
     },
   },
-  /* 稀有 / 世界 Boss（STEP 24）：刷新公告开关 */
+  /* 稀有 / 世界 Boss（STEP 24 / C11）：长刷新 + 金色姓名板 */
   rares:{
     announceSpawn:true,
     announceKill:true,
     gold:"#ffd700",
     elitePink:"#ff9ad0",
+    respawnT:3600,            /* C11：稀有默认 1 小时 */
+    worldBossRespawnT:7200,   /* 世界 Boss 默认 2 小时 */
   },
-  /* 死亡与复活（STEP 15） */
+  /* 死亡与复活（STEP 15 / plan-V3 C10） */
   death:{
     respawnHpPct:.5,          /* 复活时生命比例 */
-    weaknessT:10,             /* 虚弱秒数 */
-    moveSpeedMul:.7,          /* 虚弱移速倍率（-30%） */
-    worldSpawn:{x:0,z:58},    /* 灵魂医者旁（赤蹄草甸默认） */
-    raidSpawn:{x:0,z:18},     /* 副本走廊入口 */
-    corpseDelay:1.2,          /* 倒地后弹出死亡面板延迟 */
-    spawns:{                  /* 分区复活点（STEP 18） */
+    respawnResPct:.5,         /* 复活时资源（法力/怒气/能量）比例 */
+    weaknessT:45,             /* 医者远程复活：虚弱秒数（C10 加重） */
+    weaknessStatMul:.7,       /* 虚弱：伤害倍率叠乘 */
+    moveSpeedMul:.7,          /* 虚弱移速倍率 */
+    ghostSpeedMul:1.5,        /* 灵魂形态移速 */
+    ghostOpacity:.42,         /* 灵魂半透明 */
+    corpseR:4.5,              /* 靠近尸体可复活半径 */
+    worldSpawn:{x:0,z:58},
+    raidSpawn:{x:0,z:18},
+    corpseDelay:1.2,
+    spawns:{
       mulgore:{x:0,z:58},
       barrens:{x:-8,z:5},
       durotar:{x:0,z:6},
@@ -479,6 +496,7 @@ const BALANCE={
   /* 掉落与尸体拾取（STEP 2）：品质权重 70/25/5 · 尸体停留秒数 · 拾取距离 */
   loot:{weights:{poor:8,common:62,uncommon:25,rare:5}, corpseT:8, pickupR:3.5,
         eliteWeights:{uncommon:72,rare:28},   /* 精英必掉优秀以上（STEP 5） */
+        rareWeights:{uncommon:55,rare:45},    /* C11：稀有必掉优秀以上，偏紫 */
         questDropChance:.95},                  /* 进行中交付任务物品的优先掉落率 */
   /* 背包（STEP 4）：格数 */
   bag:{size:36, cols:6},
@@ -486,18 +504,19 @@ const BALANCE={
   economy:{
     copperPerSilver:100,
     copperPerGold:10000,
-    vendorStock:["plain_bread","linen_bandage","minor_potion"],
+    vendorStock:["plain_bread","spring_water","linen_bandage","minor_potion"],
     vendorStockByNpc:{
-      vendor:["plain_bread","linen_bandage","minor_potion","whetstone"],
-      varg:["plain_bread","linen_bandage","minor_potion","whetstone"],
-      barrens_vendor:["plain_bread","linen_bandage","minor_potion","whetstone"],
-      barrens_armor:["plain_bread","linen_bandage","minor_potion"],
-      ochre_vendor:["plain_bread","linen_bandage","minor_potion","whetstone"],
+      vendor:["plain_bread","spring_water","linen_bandage","minor_potion","whetstone"],
+      varg:["plain_bread","spring_water","linen_bandage","minor_potion","whetstone"],
+      barrens_vendor:["plain_bread","spring_water","linen_bandage","minor_potion","whetstone"],
+      barrens_armor:["plain_bread","spring_water","linen_bandage","minor_potion"],
+      ochre_vendor:["plain_bread","spring_water","linen_bandage","minor_potion","whetstone"],
     },
-    food:{healPct:.35,duration:6},       /* 坐下进食：持续回复最大生命比例 */
-    bandage:{healPct:.28,cast:1.6},      /* 绷带：引导施放 */
-    minorPotion:{healPct:.18},           /* 初级药水：瞬时回复（STEP 23） */
-    whetstone:{dmgMulAdd:.08,duration:120}, /* 磨刀石：临时伤害加成 */
+    food:{healPct:.35,duration:18},      /* C10：坐下进食 18 秒回血 */
+    drink:{manaPct:.45,duration:18},     /* C10：饮水回法力/能量类资源 */
+    bandage:{healPct:.28,cast:1.6},
+    minorPotion:{healPct:.18},
+    whetstone:{dmgMulAdd:.08,duration:120},
     interactR:8,
   },
   /* 专业技能（STEP 23）：采集点 + 营地制作 */
@@ -612,11 +631,14 @@ const BALANCE={
     collision:true,
     collisionMargin:.45,
   },
-  /* 移动物理（plan-V3 C1） */
+  /* 移动物理（plan-V3 C1 / C10 摔落） */
   move:{
     jumpVel:9.2,
     gravity:26,
     groundEps:.06,
+    fallSafe:5,           /* 安全下落高度（米） */
+    fallDmgPer:32,        /* 超出后每米摔伤 */
+    fallDmgMaxPct:.65,    /* 单次摔伤不超过最大生命此比例 */
   },
   /* 头顶姓名板（血条 + 等级）· plan-V2 R7 / plan-V3 C2 */
   nameplate:{
