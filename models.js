@@ -119,6 +119,22 @@ const WEAPONS={
       {g:'cone',a:[.08,.35,5],p:[-.18,2.55,0],r:[0,0,.6],m:'feather'},
     ],
     light:{c:0x44e0c0,i:.5,d:5,p:[0,2.3,0]}},
+  /* 德鲁伊法杖：木杆 + 翠叶晶 + 鹿角叉 */
+  druid_staff:{mats:{wood:{c:0x3a5028,r:.9}, bark:{c:0x5a4030,r:.95},
+                 leaf:{c:0x60d050,r:.55,mt:.4}, orb:{c:0xa8ff70,basic:true},
+                 antler:{c:0xb09060,r:.75}},
+    parts:[
+      {g:'cyl',a:[.05,.07,2.85,7],p:[0,.55,0],m:'wood'},
+      {g:'cyl',a:[.09,.11,.4,7],p:[0,1.85,0],m:'bark'},
+      {g:'ico',a:[.18,0],p:[0,2.3,0],m:'orb'},
+      {g:'cone',a:[.1,.32,5],p:[.16,2.55,0],r:[0,0,-.55],m:'leaf'},
+      {g:'cone',a:[.1,.32,5],p:[-.16,2.55,0],r:[0,0,.55],m:'leaf'},
+      {g:'cone',a:[.05,.28,5],p:[.22,2.72,0],r:[0,0,-.7],m:'antler'},
+      {g:'cone',a:[.05,.28,5],p:[-.22,2.72,0],r:[0,0,.7],m:'antler'},
+    ],
+    glow:{c:0x70e060,o:.28,phase:1.2,
+      parts:[{g:'sph',a:[.26,8,6],p:[0,2.3,0],s:1.25}]},
+    light:{c:0x70e050,i:.55,d:5.5,p:[0,2.3,0]}},
   /* 匕首（V1-C2 盗贼默认） */
   dagger:{mats:{gold:{c:0xa09070,r:.35,mt:.85},
                blade:{c:0xb8c4d4,mt:.95,r:.12,e:0x445566,ei:.15}},
@@ -366,7 +382,7 @@ const HUMANOIDS={
     armExtraL:[{g:'cone',a:[.12,.35,6],p:[-.05,-.95,.1],m:'leaf'}],
     leg:{x:.2,y:.6,mesh:null},
     cape:{a:[.95,1.85],p:[0,1.9,-.38],rx:.1,m:'capeM'},
-    weapon:'shaman_staff', weaponMount:'armR', weaponPos:[.05,-.85,.12],
+    weapon:'druid_staff', weaponMount:'armR', weaponPos:[.05,-.85,.12],
   },
   /* ✝️ 人类圣骑士：白金板甲 + 圣锤 */
   paladin:{

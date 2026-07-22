@@ -178,7 +178,7 @@ var SIM_CONTENT={
       dur:12, tick:3, maxStacks:1, healPerSec:48
     },
     rooted:{
-      name:"定身", kind:"debuff", type:"crowd", flag:"rooted", icon:"frost",
+      name:"定身", kind:"debuff", type:"crowd", flag:"rooted", icon:"entangling",
       dur:4, maxStacks:1
     },
     ice_block:{
@@ -204,6 +204,10 @@ var SIM_CONTENT={
     moonfire:{
       name:"月火", kind:"debuff", type:"dot", icon:"moonfire",
       dur:12, tick:3, maxStacks:1, dmgPerTick:48
+    },
+    barkskin:{
+      name:"树皮术", kind:"buff", type:"stat", icon:"barkskin",
+      dur:12, maxStacks:1, dmgTakenMul:.7
     },
     poison_arrow:{
       name:"毒箭", kind:"debuff", type:"dot", icon:"tusk",

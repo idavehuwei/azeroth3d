@@ -45,7 +45,7 @@ function listAuras(ent){
 
 /**
  * 施加 / 刷新光环。
- * opts: {duration, stacks, absorb, dmgPerTick, healPerSec, dmgMulAdd, maxStacks, silent, speedMul}
+ * opts: {duration, stacks, absorb, dmgPerTick, healPerSec, dmgMulAdd, dmgTakenMul, maxStacks, silent, speedMul, refresh}
  * @returns {object|null} aura 实例
  */
 function applyAura(ent,id,opts){
@@ -75,17 +75,19 @@ function applyAura(ent,id,opts){
       dmgPerTick:opts.dmgPerTick!=null?+opts.dmgPerTick:(def.dmgPerTick!=null?+def.dmgPerTick:0),
       healPerSec:opts.healPerSec!=null?+opts.healPerSec:(def.healPerSec!=null?+def.healPerSec:0),
       dmgMulAdd:opts.dmgMulAdd!=null?+opts.dmgMulAdd:(def.dmgMulAdd!=null?+def.dmgMulAdd:0),
+      dmgTakenMul:opts.dmgTakenMul!=null?+opts.dmgTakenMul:(def.dmgTakenMul!=null?+def.dmgTakenMul:null),
       speedMul:opts.speedMul!=null?+opts.speedMul:(def.speedMul!=null?+def.speedMul:null),
       flag:def.flag||null
     };
     list.push(a);
   }else{
-    a.remaining=Math.max(a.remaining,dur);
+    a.remaining=opts.refresh?Math.max(0,dur):Math.max(a.remaining,dur);
     a.durMax=Math.max(a.durMax,dur);
     a.stacks=Math.min(maxSt,(a.stacks|0)+addStacks);
     if(opts.dmgPerTick!=null)a.dmgPerTick=+opts.dmgPerTick;
     if(opts.healPerSec!=null)a.healPerSec=+opts.healPerSec;
     if(opts.dmgMulAdd!=null)a.dmgMulAdd=+opts.dmgMulAdd;
+    if(opts.dmgTakenMul!=null)a.dmgTakenMul=+opts.dmgTakenMul;
     if(opts.speedMul!=null)a.speedMul=+opts.speedMul;
   }
 

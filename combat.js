@@ -27,7 +27,7 @@
           firePlayerShot
           useSkill hitEntity dmgBoss pickTarget firePlayerShot playerHit
           beginPlayerCast cancelPlayerCast tickPlayerCast finishSkillUse
-          onArcherShotHit makeArrowShotMesh
+          onArcherShotHit onDruidShotHit makeArrowShotMesh makeNatureBoltMesh
           showUnitCastBar hideUnitCastBar setUnitCastBarProgress skillTargetOutOfRange
           isTargetAlive setCurrentTarget getFocusTarget clearCurrentTargetIf
           resolveSkillTarget cycleHostileTargets
@@ -201,7 +201,7 @@ const CLASSES={
       return buildShaman();
     },
     barCss:"linear-gradient(180deg,#90e070,#2a7040 60%,#104020)",
-    tip:"提示：法力自动恢复；【月火】挂 DoT，【回春】持续自疗，【纠缠根须】定身敌人。",
+    tip:"提示：【愤怒】投自然矢；【月火】DoT；【回春】/【愈合】自疗；危急开【树皮】减伤，【根须】控场。",
     skills:[
       {name:"愤怒",      icon:"wrath",      cd:5,  rage:26,fn:null, bal:"wrath",school:"spell",unlock:1,
        desc:"投出自然怒火，对目标造成伤害。",range:28,cast:1.8},
@@ -210,7 +210,11 @@ const CLASSES={
       {name:"回春术",    icon:"rejuvenation",cd:8, rage:28,fn:null, bal:"rejuvenation",unlock:6,
        desc:"为自己施加自然愈合，持续恢复生命。"},
       {name:"纠缠根须",  icon:"entangling", cd:12, rage:20,fn:null, bal:"entanglingRoots",school:"spell",unlock:8,
-       desc:"根须缠绕目标，短暂定身。",range:26}]},
+       desc:"根须缠绕目标，短暂定身。",range:26},
+      {name:"愈合术",    icon:"healing_touch",cd:10,rage:40,fn:null, bal:"healingTouch",unlock:10,
+       desc:"引导自然之力，大量恢复自身生命。",cast:2.2},
+      {name:"树皮术",    icon:"barkskin",   cd:28, rage:0, fn:null, bal:"barkskin",unlock:12,
+       desc:"树皮硬化，短时间内大幅降低所受伤害。"}]},
   paladin:{title:"✝️ 你 · 人类圣骑士",hp:4800,resMax:100,resStart:100,resName:"法力",resKind:"mana",
     regen:6,hitGain:0,speed:10.2,ranged:false,range:8,sfx:"holy",
     autoMin:155,autoMax:210,autoSpd:1.55,shotColor:0xffe080,
@@ -920,6 +924,12 @@ function hitEntity(ent,amount,label,opts){
   /* —— 受击方向：玩家 / 队友（plan-v4 基线 #1） —— */
   if(opts.incoming){
     if(typeof markCombat==="function")markCombat(S.res);
+    /* 树皮术：受击减伤（先于吸收盾） */
+    if(typeof hasAura==="function"&&hasAura(ent,"barkskin")){
+      const ba=typeof getAura==="function"?getAura(ent,"barkskin"):null;
+      const mul=ba&&ba.dmgTakenMul!=null?ba.dmgTakenMul:.7;
+      amount=Math.max(1,Math.round(amount*mul));
+    }
     /* STEP 19 / STEP 14/16：吸收盾纯结算（玩家或带 absorb 的实体） */
     if(opts.applyAbsorb||(ent&&ent.absorb>0)){
       const owner=opts.absorbOwner||ent||S.p;
@@ -1364,6 +1374,8 @@ function firePlayerShot(tgt,dmg,label,scale=1,opts){
   let m;
   if(opts.arrow||(CLS&&CLS.key==="archer"&&opts.arrow!==false)){
     m=makeArrowShotMesh(col,scale);
+  }else if(opts.natureBolt||(opts.skillId==="wrath"&&CLS&&CLS.key==="druid")){
+    m=makeNatureBoltMesh(col,scale);
   }else{
     const coreGeo=typeof VFX_GEO!=="undefined"?VFX_GEO.sphere(.3*scale,6):new THREE.SphereGeometry(.3*scale,6,6);
     const glowGeo=typeof VFX_GEO!=="undefined"?VFX_GEO.sphere(.55*scale,6):new THREE.SphereGeometry(.55*scale,6,6);
@@ -1388,6 +1400,7 @@ function firePlayerShot(tgt,dmg,label,scale=1,opts){
     school:opts.school||(CLS.ranged&&CLS.resKind==="mana"?"spell":"physical"),
     skillId:opts.skillId,sourceKey:opts.sourceKey,
     arrow:!!(opts.arrow||(CLS&&CLS.key==="archer")),
+    natureBolt:!!(opts.natureBolt||(opts.skillId==="wrath"&&CLS&&CLS.key==="druid")),
     poison:opts.poison!==false,
     slowMul:opts.slowMul,slowDur:opts.slowDur,
   });
@@ -1404,6 +1417,28 @@ function makeArrowShotMesh(color,scale){
   const fletch=new THREE.Mesh(new THREE.BoxGeometry(.18*scale,.02*scale,.22*scale),
     new THREE.MeshBasicMaterial({color:0xa8e060}));
   fletch.position.z=-.55*scale; g.add(fletch);
+  return g;
+}
+/** 德鲁伊愤怒：细长绿矢 + 叶尖 */
+function makeNatureBoltMesh(color,scale){
+  scale=scale||1;
+  const g=new THREE.Group();
+  const c=color!=null?color:0x60d080;
+  const shaft=new THREE.Mesh(
+    new THREE.CylinderGeometry(.04*scale,.06*scale,1.2*scale,6),
+    new THREE.MeshBasicMaterial({color:c})
+  );
+  shaft.rotation.x=Math.PI/2; g.add(shaft);
+  const tip=new THREE.Mesh(
+    new THREE.ConeGeometry(.12*scale,.36*scale,5),
+    new THREE.MeshBasicMaterial({color:0xc8ff90})
+  );
+  tip.rotation.x=Math.PI/2; tip.position.z=.68*scale; g.add(tip);
+  const leaf=new THREE.Mesh(
+    new THREE.SphereGeometry(.16*scale,6,5),
+    new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:.45})
+  );
+  leaf.scale.set(1,.45,1.4); leaf.position.z=-.35*scale; g.add(leaf);
   return g;
 }
 /** 箭矢命中：毒箭天赋 DoT / 震荡减速 */
@@ -1428,6 +1463,21 @@ function onArcherShotHit(ent,sh){
       ent.slowMul=sh.slowMul;
     }
   }
+}
+/** 愤怒命中：天赋刷新月火 */
+function onDruidShotHit(ent,sh){
+  if(!ent||!sh||sh.skillId!=="wrath")return;
+  if(!((S.p.talentFx&&S.p.talentFx.refreshMoon)|0))return;
+  if(typeof hasAura!=="function"||!hasAura(ent,"moonfire"))return;
+  if(typeof applyAura!=="function")return;
+  const bal=typeof getSkillBal==="function"?getSkillBal("moonfire"):null;
+  if(!bal)return;
+  const cur=typeof getAura==="function"?getAura(ent,"moonfire"):null;
+  applyAura(ent,"moonfire",{
+    duration:bal.duration,
+    dmgPerTick:cur&&cur.dmgPerTick!=null?cur.dmgPerTick:bal.dmgPerTick,
+    refresh:true,
+  });
 }
 
 /* ---------------- 法师技能 ---------------- */
@@ -1610,9 +1660,10 @@ function flashHeal(){
 function castRenew(){
   const bal=getSkillBal("renew");
   if(typeof applyAura!=="function"){log("无法施加恢复术。","lg-sys");return false;}
+  const mul=1+((S.p.talentFx&&S.p.talentFx.healMul)||0);
   applyAura(S.p,"renew",{
     duration:bal.duration,
-    healPerSec:bal.healPerSec,
+    healPerSec:Math.round((bal.healPerSec||0)*mul),
   });
   S.p.attackAnim=.4;
   spawnBurst(player.position.clone().setY(1.5),0xffe080,12,1.3);
@@ -1767,7 +1818,9 @@ function wrath(){
   const t=resolveSkillTarget(CLS.range);
   if(!t)return false;
   S.p.attackAnim=1;
-  firePlayerShot(t,R(getSkillBal("wrath").dmg),"愤怒",1.4,{school:"spell",skillId:"wrath"});
+  firePlayerShot(t,R(getSkillBal("wrath").dmg),"愤怒",1.4,{
+    school:"spell",skillId:"wrath",natureBolt:true,color:0x70e050,speed:34,
+  });
   if(typeof SFX!=="undefined")SFX.play(CLS.sfx||"nature");
   log("你唤来自然之怒！","lg-me");
   return true;
@@ -1775,12 +1828,13 @@ function wrath(){
 function castMoonfire(){
   const t=resolveSkillTarget(CLS.range);
   if(!t)return false;
-  let ent=null, label="目标";
-  if(t.type==="mob"&&t.m){ent=t.m;label=t.m.name||"野怪";}
-  else if(t.type==="add"&&t.a){ent=t.a;label=t.a.name||"小怪";}
+  let ent=null, label="目标", hitPos=null;
+  if(t.type==="mob"&&t.m){ent=t.m;label=t.m.name||"野怪";hitPos=t.m.mesh.position;}
+  else if(t.type==="add"&&t.a){ent=t.a;label=t.a.name||"小怪";hitPos=t.a.mesh.position;}
   else if(t.type==="boss"&&typeof BOSS_ENT!=="undefined"){
     ent=BOSS_ENT;
     label=(typeof targetDisplayInfo==="function"&&targetDisplayInfo(t)||{}).name||"首领";
+    hitPos=boss&&boss.position;
   }
   if(!ent||typeof applyAura!=="function"){log("无法月火该目标。","lg-sys");return false;}
   const bal=getSkillBal("moonfire");
@@ -1788,6 +1842,7 @@ function castMoonfire(){
     duration:bal.duration,
     dmgPerTick:bal.dmgPerTick,
     stacks:bal.stacks!=null?bal.stacks:1,
+    refresh:true,
   });
   if(bal.impact){
     if(t.type==="mob"&&typeof mobDamage==="function")mobDamage(ent,R(bal.impact),"月火术");
@@ -1796,6 +1851,7 @@ function castMoonfire(){
   }
   S.p.attackAnim=.55;
   spawnBurst(player.position.clone().setY(1.6),0x80c0ff,10,1.2);
+  if(hitPos)spawnBurst(hitPos.clone().setY(1.4),0xa0d0ff,16,1.6);
   if(typeof SFX!=="undefined")SFX.play(CLS.sfx||"nature");
   log(`【月火术】灼烧了${label}！`,"lg-me");
   return true;
@@ -1803,9 +1859,10 @@ function castMoonfire(){
 function castRejuvenation(){
   const bal=getSkillBal("rejuvenation");
   if(typeof applyAura!=="function"){log("无法施加回春。","lg-sys");return false;}
+  const mul=1+((S.p.talentFx&&S.p.talentFx.healMul)||0);
   applyAura(S.p,"rejuvenation",{
     duration:bal.duration,
-    healPerSec:bal.healPerSec,
+    healPerSec:Math.round((bal.healPerSec||0)*mul),
   });
   S.p.attackAnim=.4;
   spawnBurst(player.position.clone().setY(1.5),0x60e090,12,1.3);
@@ -1819,28 +1876,54 @@ function entanglingRoots(){
   if(!t)return false;
   const bal=getSkillBal("entanglingRoots");
   const rootDur=bal.rootT!=null?bal.rootT:4;
-  let ent=null, label="目标", any=false;
-  if(t.type==="mob"&&t.m){ent=t.m;label=t.m.name||"野怪";}
-  else if(t.type==="add"&&t.a){ent=t.a;label=t.a.name||"小怪";}
+  let ent=null, label="目标", any=false, hitPos=null;
+  if(t.type==="mob"&&t.m){ent=t.m;label=t.m.name||"野怪";hitPos=t.m.mesh.position;}
+  else if(t.type==="add"&&t.a){ent=t.a;label=t.a.name||"小怪";hitPos=t.a.mesh.position;}
   else if(t.type==="boss"){
     /* Boss 仅造成伤害，不定身 */
     dmgBoss(R(bal.dmg||[200,280]),"纠缠根须");
     any=true;
+    hitPos=boss&&boss.position;
   }
   if(ent){
     if(bal.dmg){
       if(t.type==="mob"&&typeof mobDamage==="function")mobDamage(ent,R(bal.dmg),"纠缠根须");
       else if(t.type==="add"&&typeof addDamage==="function")addDamage(ent,R(bal.dmg));
     }
-    if(typeof applyAura==="function")applyAura(ent,"rooted",{duration:rootDur});
+    if(typeof applyAura==="function")applyAura(ent,"rooted",{duration:rootDur,refresh:true});
     else ent.rootT=rootDur;
     any=true;
   }
   S.p.attackAnim=.5;
   spawnBurst(player.position.clone().setY(.6),0x40a060,14,1.5);
+  if(hitPos)spawnBurst(hitPos.clone().setY(.3),0x50b050,18,1.8);
   if(typeof SFX!=="undefined")SFX.play(CLS.sfx||"nature");
   log(any?`纠缠根须缠住了${label}！`:"根须破土，但没有缠住目标。","lg-me");
   return any;
+}
+function healingTouch(){
+  return applyHeal(R(getSkillBal("healingTouch").heal),"愈合术");
+}
+function barkskin(){
+  const bal=getSkillBal("barkskin");
+  const dur=bal.duration!=null?bal.duration:12;
+  const mul=bal.dmgTakenMul!=null?bal.dmgTakenMul:.7;
+  if(typeof applyAura==="function"){
+    applyAura(S.p,"barkskin",{duration:dur,dmgTakenMul:mul,refresh:true});
+  }
+  S.p.attackAnim=.35;
+  const p=player;
+  const aura=new THREE.Mesh(
+    new THREE.IcosahedronGeometry(1.7,0),
+    new THREE.MeshBasicMaterial({color:0x4a8040,transparent:true,opacity:.35,wireframe:true})
+  );
+  aura.position.y=1.6; p.add(aura);
+  setTimeout(()=>{if(aura.parent)p.remove(aura);},Math.round(dur*1000));
+  spawnBurst(player.position.clone().setY(1.4),0x6a9040,14,1.4);
+  if(typeof SFX!=="undefined")SFX.play(CLS.sfx||"nature");
+  const pct=Math.round((1-mul)*100);
+  log(`树皮术！${dur} 秒内所受伤害降低 ${pct}%。`,"lg-heal");
+  return true;
 }
 (function bindDruidSkills(){
   const sk=CLASSES.druid&&CLASSES.druid.skills;
@@ -1849,6 +1932,8 @@ function entanglingRoots(){
   sk[1].fn=castMoonfire;
   sk[2].fn=castRejuvenation;
   sk[3].fn=entanglingRoots;
+  if(sk[4])sk[4].fn=healingTouch;
+  if(sk[5])sk[5].fn=barkskin;
 })();
 
 /* ---------------- 圣骑士技能 ---------------- */

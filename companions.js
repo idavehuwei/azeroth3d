@@ -206,7 +206,7 @@ function recruitCompanion(classKey,opts){
 
 function guessRole(classKey){
   if(classKey==="warrior")return"tank";
-  if(classKey==="priest"||classKey==="shaman")return"healer";
+  if(classKey==="priest"||classKey==="shaman"||classKey==="druid")return"healer";
   return"dps";
 }
 
@@ -378,15 +378,16 @@ function companionMoveToward(c,dest,spd,dt){
 function companionTryHeal(c,dt){
   const C=BAL.companion;
   const T=BAL.threat||{};
-  if((c.classKey!=="priest"&&c.classKey!=="shaman")||c.healCd>0)return false;
+  if((c.classKey!=="priest"&&c.classKey!=="shaman"&&c.classKey!=="druid")||c.healCd>0)return false;
   const tankPct=T.healTankHpPct!=null?T.healTankHpPct:.30;
   const selfPct=T.healSelfHpPct!=null?T.healSelfHpPct:.40;
   const dpsPct=T.healDpsHpPct!=null?T.healDpsHpPct:.50;
   const isShaman=c.classKey==="shaman";
-  const bigHeal=getSkillBal(isShaman?"healingWave":"heal");
-  const smallHeal=getSkillBal(isShaman?"healingWave":"flashHeal");
-  const bigLabel=isShaman?"治疗波":"治疗术";
-  const smallLabel=isShaman?"治疗波":"快速治疗";
+  const isDruid=c.classKey==="druid";
+  const bigHeal=getSkillBal(isDruid?"healingTouch":isShaman?"healingWave":"heal");
+  const smallHeal=getSkillBal(isDruid?"healingTouch":isShaman?"healingWave":"flashHeal");
+  const bigLabel=isDruid?"愈合术":isShaman?"治疗波":"治疗术";
+  const smallLabel=isDruid?"愈合术":isShaman?"治疗波":"快速治疗";
 
   /* 找坦克职责同伴；若无坦克槽则战士玩家视为坦克 */
   let tank=null;
@@ -632,6 +633,7 @@ function openRecruitDialogue(){
       btn("⚔️ 补招战士（坦克）",()=>{recruitCompanion("warrior",{role:"tank"});closeDialogue();});
       btn("✨ 补招牧师（治疗）",()=>{recruitCompanion("priest",{role:"healer"});closeDialogue();});
       btn("🌀 补招萨满（治疗）",()=>{recruitCompanion("shaman",{role:"healer"});closeDialogue();});
+      btn("🌿 补招德鲁伊（治疗）",()=>{recruitCompanion("druid",{role:"healer"});closeDialogue();});
       btn("🔮 补招法师（输出）",()=>{recruitCompanion("mage",{role:"dps"});closeDialogue();});
       btn("🏹 补招弓箭手（输出）",()=>{recruitCompanion("archer",{role:"dps"});closeDialogue();});
       btn("🗡 补招盗贼（输出）",()=>{recruitCompanion("rogue",{role:"dps"});closeDialogue();});
@@ -648,6 +650,7 @@ function openRecruitDialogue(){
   btn("🏹 招募弓箭手",()=>{recruitCompanion("archer",{role:"dps"});closeDialogue();});
   btn("✨ 招募牧师",()=>{recruitCompanion("priest",{role:"healer"});closeDialogue();});
   btn("🌀 招募萨满",()=>{recruitCompanion("shaman",{role:"healer"});closeDialogue();});
+  btn("🌿 招募德鲁伊",()=>{recruitCompanion("druid",{role:"healer"});closeDialogue();});
   btn("🗡 招募盗贼",()=>{recruitCompanion("rogue",{role:"dps"});closeDialogue();});
   btn("返回",()=>{closeDialogue();if(typeof openDialogue==="function")openDialogue();});
 }

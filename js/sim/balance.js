@@ -186,6 +186,16 @@ const BALANCE={
       {minLevel:8, rootT:4.5, dmg:[188,260]},
       {minLevel:14, rootT:5, dmg:[218,300]}
     ]},
+    healingTouch:{ranks:[
+      {minLevel:1, heal:[1280,1580]},
+      {minLevel:8, heal:[1510,1864]},
+      {minLevel:14, heal:[1740,2149]}
+    ]},
+    barkskin:{ranks:[
+      {minLevel:1, duration:12, dmgTakenMul:.70},
+      {minLevel:8, duration:12, dmgTakenMul:.65},
+      {minLevel:14, duration:14, dmgTakenMul:.60}
+    ]},
     /* —— 圣骑士 —— */
     crusaderStrike:{ranks:[
       {minLevel:1, dmg:[540,700], addDmg:[520,670], reach:4.8, addReach:4.5, bossReach:10},
@@ -912,7 +922,7 @@ const BALANCE={
     druid:{
       starlight      :{dmgMul:.05},
       improved_moon  :{skillCd:{i:1,mul:.90}},
-      wrath_mastery  :{dmgMul:.04,skillCd:{i:0,mul:.95}},
+      wrath_mastery  :{dmgMul:.04,skillCd:{i:0,mul:.95},fx:{refreshMoon:1}},
       gift_of_nature :{fx:{healMul:.06}},
       improved_rejuv :{skillCd:{i:2,mul:.90}},
       natural_spirit :{fx:{healMul:.05},hpMaxMul:.04},
@@ -1103,7 +1113,7 @@ const BALANCE={
   /* 仇恨与职责（STEP 27） */
   threat:{
     perDmg:1,
-    flat:{heroicStrike:120, whirlwind:50, charge:80, taunt:200, companionAuto:0, shadowBolt:90, corruption:40, drainLife:25, wrath:85, moonfire:35, crusaderStrike:110, judgement:95, aimedShot:95, multiShot:55, concussiveShot:70, poisonArrow:30},
+    flat:{heroicStrike:120, whirlwind:50, charge:80, taunt:200, companionAuto:0, shadowBolt:90, corruption:40, drainLife:25, wrath:85, moonfire:35, healingTouch:0, barkskin:0, crusaderStrike:110, judgement:95, aimedShot:95, multiShot:55, concussiveShot:70, poisonArrow:30},
     roleMul:{player:1, playerTank:1.55, tank:1.6, dps:1, healer:.75},
     tauntDur:4,
     tauntMargin:50000,

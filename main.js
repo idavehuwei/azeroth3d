@@ -1140,17 +1140,20 @@ function tickFrame(){
         if(sh.tgt.type==="boss"){
           dmgBoss(sh.dmg,sh.label,thr);
           if(typeof onArcherShotHit==="function"&&typeof BOSS_ENT!=="undefined")onArcherShotHit(BOSS_ENT,sh);
+          if(typeof onDruidShotHit==="function"&&typeof BOSS_ENT!=="undefined")onDruidShotHit(BOSS_ENT,sh);
         }else if(sh.tgt.type==="mob"){
           mobDamage(sh.tgt.m,sh.dmg,sh.label,thr);
           if(typeof onArcherShotHit==="function")onArcherShotHit(sh.tgt.m,sh);
+          if(typeof onDruidShotHit==="function")onDruidShotHit(sh.tgt.m,sh);
         }else{
           addDamage(sh.tgt.a,sh.dmg*rand(.92,1.08),thr);
           if(typeof onArcherShotHit==="function")onArcherShotHit(sh.tgt.a,sh);
+          if(typeof onDruidShotHit==="function")onDruidShotHit(sh.tgt.a,sh);
         }
         scene.remove(sh.mesh);disposeVfxMesh(sh.mesh);S.pShots.splice(i,1);continue;
       }
       dir.normalize();
-      if(sh.arrow&&sh.mesh.lookAt)sh.mesh.lookAt(tp);
+      if((sh.arrow||sh.natureBolt)&&sh.mesh.lookAt)sh.mesh.lookAt(tp);
       sh.mesh.position.add(dir.multiplyScalar(sh.speed*dt));
     }
 
