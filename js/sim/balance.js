@@ -241,6 +241,11 @@ const BALANCE={
     razorback :{level:13, hp:1600,dmg:[95,135], atkCd:2.1, meleeR:2.8, aggroR:9,  leashR:38, wanderSpd:2.5,chaseSpd:5.6, respawnT:32,  xp:190, copper:[26,48]},
     cliffHarpy:{level:14, hp:5200,dmg:[110,155],atkCd:2.3, meleeR:3.3, aggroR:13, leashR:46, wanderSpd:2.4,chaseSpd:5.2, respawnT:70,  xp:520, copper:[100,160], socialR:24, eliteBaked:true,
               cast:{name:"崖风火矢",dmg:[260,340],dur:1.4,cd:5.5,range:22,speed:17,hitR:3.1}},
+    /* —— plan-v4 STEP 22 · 灰烬峡谷 —— */
+    ashboar   :{level:7,  hp:780, dmg:[58,88],  atkCd:2.1, meleeR:2.4, aggroR:8,  leashR:34, wanderSpd:2.8,chaseSpd:5.6, respawnT:26,  xp:105, copper:[12,24]},
+    cinderwolf:{level:9,  hp:980, dmg:[72,108], atkCd:1.8, meleeR:2.5, aggroR:10, leashR:36, wanderSpd:3.2,chaseSpd:6.4, respawnT:28,  xp:135, socialR:14, copper:[16,30]},
+    slagimp   :{level:10, hp:1050,dmg:[78,115], atkCd:1.9, meleeR:2.6, aggroR:9,  leashR:36, wanderSpd:2.6,chaseSpd:5.5, respawnT:30,  xp:150, copper:[18,34]},
+    scorchtusk:{level:11, hp:3600,dmg:[115,165],atkCd:2.3, meleeR:3.2, aggroR:10, leashR:42, wanderSpd:2.2,chaseSpd:5.0, respawnT:120, xp:520, copper:[120,200], socialR:22, eliteBaked:true},
     /* —— STEP 24 世界 Boss —— */
     centaurHerald:{level:16, hp:9000,dmg:[140,200],atkCd:2.1,meleeR:3.4,aggroR:14,leashR:48,
       wanderSpd:2.2,chaseSpd:5.2,respawnT:240,xp:900,copper:[200,320],socialR:26,eliteBaked:true,
@@ -269,6 +274,7 @@ const BALANCE={
     minions:{
       harpy   :{type:"windfury", count:3, radius:7},
       cliffHarpy:{type:"scorp", count:2, radius:8},
+      scorchtusk:{type:"ashboar", count:3, radius:8},
       boarKing:{type:"boar", count:3, radius:8},
       ashmane :{type:"boar", count:3, radius:8},
       centaurHerald:{type:"centaur", count:2, radius:9},
@@ -302,6 +308,7 @@ const BALANCE={
       mulgore:{x:0,z:58},
       barrens:{x:-8,z:5},
       durotar:{x:0,z:6},
+      ashen_canyon:{x:0,z:8},
     },
   },
   /* plan-v1 · V1-A5 音效（可关） */
@@ -403,6 +410,7 @@ const BALANCE={
   quest:{boarKills:5, rewardHp:600, rewardDmgMul:1.15, rewardCopper:150,
     barrens:{quilboarKills:8, rewardXp:400, rewardCopper:200},
     durotar:{scorpKills:5, rewardXp:380, rewardCopper:180},
+    ashen:{ashboarKills:6, rewardXp:320, rewardCopper:140},
     side:{
       hawkwind_totem:{xp:80,copper:30,kills:1},
       hunt_continues:{xp:140,copper:60,kills:5},
@@ -510,6 +518,12 @@ const BALANCE={
       runner_escort:{xp:320,copper:130,kills:1},
       razor_extra:{xp:240,copper:100,kills:4},
       west_canyon:{xp:140,copper:50,kills:1},
+      ash_ember_path:{xp:180,copper:70,kills:6},
+      cinder_pelts:{xp:220,copper:90,kills:5},
+      slag_purge:{xp:240,copper:100,kills:4},
+      scorchtusk_bounty:{xp:360,copper:150,kills:1},
+      rift_scout:{xp:160,copper:60,kills:1},
+      crypt_seal:{xp:200,copper:80,kills:1},
       sting_bundle:{xp:170,copper:70,kills:3},
       outpost_horn:{xp:145,copper:55,kills:1},
       sacred_pool_main:{xp:200,copper:80,kills:1},
@@ -542,6 +556,15 @@ const BALANCE={
     hemiSky:0xffd0a0, hemiGround:0x8a4020, hemiIntensity:1.0,
     sunColor:0xffc880, sunIntensity:1.2,
   },
+  /* plan-v4 STEP 22 · 灰烬峡谷（6–12）：枯木 / 焦土 / 熔岩裂隙 */
+  ashenCanyon:{
+    radius:320,
+    minLevel:6,
+    cryptMinLevel:12,
+    ground:0x4a3228, dirt:0x3a2218, sky:0xc87848, fog:0x8a4828, fogDensity:0.0064,
+    hemiSky:0xe09060, hemiGround:0x3a2010, hemiIntensity:.95,
+    sunColor:0xff9040, sunIntensity:1.15,
+  },
   /* 掉落与尸体拾取（STEP 2）：品质权重 70/25/5 · 尸体停留秒数 · 拾取距离 */
   loot:{weights:{poor:8,common:62,uncommon:25,rare:5}, corpseT:8, pickupR:5,
         eliteWeights:{uncommon:72,rare:28},   /* 精英必掉优秀以上（STEP 5） */
@@ -568,6 +591,7 @@ const BALANCE={
       barrens_vendor:["camp_shortsword","camp_wood_mace","barrens_cleaver","whetstone"],
       barrens_armor:["camp_leather_vest","plains_boots","hide_bracers","linen_bandage"],
       ochre_vendor:["plain_bread","spring_water","linen_bandage","minor_potion","whetstone"],
+      ember_vendor:["plain_bread","spring_water","linen_bandage","minor_potion","whetstone"],
     },
     food:{healPct:.35,duration:18},      /* C10：坐下进食 18 秒回血 */
     drink:{manaPct:.45,duration:18},     /* C10：饮水回法力/能量类资源 */
@@ -582,16 +606,16 @@ const BALANCE={
     gatherCast:1.5,
     respawn:75,
     yieldMin:1, yieldMax:2,
-    herbCount:{mulgore:10, barrens:9, durotar:9},
-    oreCount:{mulgore:9, barrens:10, durotar:9},
+    herbCount:{mulgore:10, barrens:9, durotar:9, ashen_canyon:8},
+    oreCount:{mulgore:9, barrens:10, durotar:9, ashen_canyon:10},
     campR:24,          /* 采集点避开营地半径 */
     portalR:14,        /* 避开传送门 */
     matsMax:99,
     nodeGap:6,
     placeTries:40,
     workbench:{x:-8,z:48},
-    herbChance:{mulgore:.55, barrens:.5, durotar:.48},
-    oreChance:{mulgore:.7, barrens:.45, durotar:.5},
+    herbChance:{mulgore:.55, barrens:.5, durotar:.48, ashen_canyon:.5},
+    oreChance:{mulgore:.7, barrens:.45, durotar:.5, ashen_canyon:.55},
   },
   /* 上帝模式（首页勾选）：玩家每次攻击的固定伤害 */
   god:{dmg:5000},
@@ -648,6 +672,7 @@ const BALANCE={
       mulgore:"clear",
       barrens:"dust",
       durotar:"dust",
+      ashen_canyon:"dust",
       molten_core:"clear",
       wailing_caverns:"mist",
       onyxias_lair:"clear",
@@ -726,13 +751,13 @@ const BALANCE={
     meleeAutoR:5.5,          /* 贴身普攻距离（全职业挥砍） */
     showTot:true,            /* 目标的目标小框 */
   },
-  npcLevel:{hawkwind:10,grull:8,grayhorn:12,raoul:6,vera:5,whiterock:10,baine:40,bloodhoof_elder:35,tark:18,mull:16,haru:18,mara:14,kur:15,aska:20,cairne:60,stonetalon:40,seen:22,pala:20,hamya:24,magatha:50,runetotem:45,thunderhorn_guard:12,winterhoof_guard:10,windfury_sentinel:25,elder:40,vendor:25,varg:25,weaponsmith:26,hunter:18,cook:20,spirit:55,crossroads:30,darsok:28,kag:26,mankrik:30,thom:27,kil:24,serra:25,lal:28,zinge:26,scriven:22,innkeeper:22,flightmaster:25,barrens_vendor:24,barrens_armor:24,ochre:28,ochre_guard:26,ochre_vendor:24,companion:null},
+  npcLevel:{hawkwind:10,grull:8,grayhorn:12,raoul:6,vera:5,whiterock:10,baine:40,bloodhoof_elder:35,tark:18,mull:16,haru:18,mara:14,kur:15,aska:20,cairne:60,stonetalon:40,seen:22,pala:20,hamya:24,magatha:50,runetotem:45,thunderhorn_guard:12,winterhoof_guard:10,windfury_sentinel:25,elder:40,vendor:25,varg:25,weaponsmith:26,hunter:18,cook:20,spirit:55,crossroads:30,darsok:28,kag:26,mankrik:30,thom:27,kil:24,serra:25,lal:28,zinge:26,scriven:22,innkeeper:22,flightmaster:25,barrens_vendor:24,barrens_armor:24,ochre:28,ochre_guard:26,ochre_vendor:24,ember_scout:22,ember_vendor:20,companion:null},
   /* 营地 NPC 外观：体型缩放 + 姓名板高度（相对缩放后头顶） */
   npc:{scale:.72, labelY:4.05, labelW:6.2,
     /* 任务标记（魔兽式头顶 ! / ?）：更大、更高、轻弹跳 */
     markerY:6.55, questMarkW:5.6, questMarkAspect:1.15, questMarkBob:.42},
   /* 经验与等级（STEP 3 / G2 / plan-V3 C6）：曲线来自 SIM_CONTENT.xp.XP_CURVE */
-  levels:{max:20, xp:{quest:300, boss:2000, magmadar:800, barrensQuest:400, durotarQuest:380, cobrahn:900, verdan:1600, onyxia:2200, oggleflint:850, taragaman:1500},
+  levels:{max:20, xp:{quest:300, boss:2000, magmadar:800, barrensQuest:400, durotarQuest:380, ashenQuest:320, cobrahn:900, verdan:1600, onyxia:2200, oggleflint:850, taragaman:1500},
     /* xpMax 在 core 末尾由 XP_CURVE 覆盖；此处为回退表 */
     xpMax:[400,900,1400,2100,2800,3600,4500,5600,6900,8400,10000,12000,14400,17200,20400,24000,28000,32000,36000],
     perLevel:{dmgMul:.05, hpMax:.08},
@@ -916,9 +941,10 @@ const BALANCE={
     terrainThumbN:72,       /* C13：mulgore 高度场降采样边长 */
     /* C13：大陆拼贴布局（归一化 0–1 相对世界地图画布） */
     continental:[
-      {id:"mulgore",  x:.06,y:.08,w:.48,h:.55},
-      {id:"barrens",  x:.52,y:.18,w:.42,h:.48},
-      {id:"durotar",  x:.52,y:.68,w:.42,h:.26},
+      {id:"mulgore",  x:.06,y:.08,w:.42,h:.55},
+      {id:"ashen_canyon", x:.48,y:.06,w:.28,h:.32},
+      {id:"barrens",  x:.52,y:.28,w:.42,h:.40},
+      {id:"durotar",  x:.52,y:.70,w:.42,h:.24},
     ],
     splashMs:2800,          /* 区域名淡入停留 */
   },

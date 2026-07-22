@@ -641,6 +641,23 @@ assert(saveSrc.includes('"durotar"')||saveSrc.includes("durotar"),"save 识别 d
 assert(questsSrc.includes("ochre_sting"),"赭岩入口任务");
 assert(deedsSrc.includes("enter_durotar"),"进区功绩");
 
+/* plan-v4 STEP 22 · 灰烬峡谷冒烟 */
+const ashenSrc=fs.readFileSync(path.join(__dirname,"ashen_canyon.js"),"utf8");
+assert(html.includes('src="ashen_canyon.js"'),"game.html 加载 ashen_canyon.js");
+assert(ashenSrc.includes('id:"ashen_canyon"')&&ashenSrc.includes("buildAshenZone"),"ashen_canyon.js 注册并建造");
+assert(ashenSrc.includes("ASHEN_PORTAL_E")&&ashenSrc.includes("to_mulgore_from_ashen"),"灰烬东口回草甸山口");
+assert(ashenSrc.includes("to_hollow_crypt")&&ashenSrc.includes("autoEnter:false"),"西口地穴 stub 不自动进");
+assert(worldSrc.includes("PORTAL_ASHEN")&&worldSrc.includes("to_ashen_canyon"),"莫高雷西口山口→灰烬");
+assert(coreSrc.includes("ashenCanyon:")&&coreSrc.includes("minLevel:6"),"BALANCE.ashenCanyon 6–12");
+assert(coreSrc.includes("ashboar")&&coreSrc.includes("cinderwolf")&&coreSrc.includes("slagimp")&&coreSrc.includes("scorchtusk"),"BALANCE 含灰烬峡谷怪");
+assert(worldSrc.includes("ashboar")&&worldSrc.includes("cinderwolf")&&worldSrc.includes("slagimp"),"MOB_TYPES 含灰烬怪");
+assert(mapSrc.includes("ashen_canyon"),"MAP_ZONES 含灰烬峡谷");
+assert(saveSrc.includes("ashen_canyon"),"save 识别 ashen_canyon");
+assert(questsSrc.includes("ash_ember_path")&&questsSrc.includes("crypt_seal"),"灰烬 6 节支线");
+assert(deedsSrc.includes("enter_ashen"),"进灰烬功绩");
+assert(raresSrc.includes("scorchtusk_ashen")||fs.readFileSync(path.join(__dirname,"rares.js"),"utf8").includes("scorchtusk_ashen"),"稀有焦牙");
+assert(stringsSrc.includes("ashen_canyon")||fs.readFileSync(path.join(__dirname,"js/sim/strings.js"),"utf8").includes('ashen_canyon:"灰烬峡谷"'),"strings 含灰烬峡谷");
+
 /* plan-v1 · V1-B3 怒焰裂谷冒烟 */
 const ragefireSrc=fs.readFileSync(path.join(__dirname,"ragefire.js"),"utf8");
 assert(html.includes('src="ragefire.js"'),"game.html 加载 ragefire.js");

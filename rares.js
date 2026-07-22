@@ -21,6 +21,9 @@ const RARES=[
   {id:"ashmane_barrens", type:"ashmane", zone:"barrens",
     x:-192, z:152, rare:true, label:"灰蹄野猪王",
     name:"灰蹄野猪王", respawnT:3600},
+  {id:"scorchtusk_ashen", type:"scorchtusk", zone:"ashen_canyon",
+    x:-150, z:-100, rare:true, label:T("mob.scorchtusk"),
+    name:T("mob.scorchtusk"), respawnT:3600},
   /* 粉色精英也走表，便于小地图统一 · 风啸岗（非稀有，短刷新） */
   {id:"harpy_mulgore", type:"harpy", zone:"mulgore",
     x:62, z:-300, rare:false, label:"鹰身女妖"},

@@ -431,6 +431,26 @@ const LOOT={
     uncommon:["wind_blade","harpy_charm","ochre_fang","wind_pauldrons"],
     rare    :["plains_blade","mesa_guard","war_shoulders"],
   },
+  ashboar:{
+    common  :["boar_meat","boar_tusk","boar_hide","sulf_ash"],
+    uncommon:["hide_vest","tusk_blade","boar_belt","ash_charm"],
+    rare    :["plains_blade","ash_treads"],
+  },
+  cinderwolf:{
+    common  :["wolf_pelt","wolf_fang","sulf_ash"],
+    uncommon:["wolf_gauntlets","hide_bracers","ash_charm"],
+    rare    :["plains_blade","mesa_helm"],
+  },
+  slagimp:{
+    common  :["sulf_ash","sulf_ash","wind_essence"],
+    uncommon:["ash_charm","hide_vest","tusk_blade"],
+    rare    :["ash_treads","plains_blade"],
+  },
+  scorchtusk:{
+    common  :["boar_meat","boar_tusk","sulf_ash"],
+    uncommon:["tusk_blade","hide_vest","ash_charm","ochre_plate"],
+    rare    :["ash_treads","plains_blade","mesa_guard"],
+  },
   centaur:{
     common  :["wolf_pelt","bird_feather"],
     uncommon:["wind_blade","hide_vest","barrens_cuirass","war_shoulders"],

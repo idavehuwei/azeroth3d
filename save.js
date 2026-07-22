@@ -32,6 +32,7 @@ function normalizeSaveZoneId(z){
   if(z==="ragefire_chasm"||z==="ragefire")return "ragefire_chasm";
   if(z==="barrens")return "barrens";
   if(z==="durotar")return "durotar";
+  if(z==="ashen_canyon"||z==="ashen")return "ashen_canyon";
   if(z==="mulgore"||z==="world"||!z)return "mulgore";
   return(typeof ZONES!=="undefined"&&ZONES[z])?z:"mulgore";
 }

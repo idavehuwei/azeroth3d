@@ -47,6 +47,7 @@ const MAP_ZONES={
       {id:"spirit", label:"灵魂医者", color:"#a8d8ff", kind:"npc"},
       {id:"portal",  label:T("zone.molten_core"),   x:0,   z:-344,color:"#ff8a4a", kind:"portal"},
       {id:"barrens", label:T("zone.barrens"),   x:0,   z:344, color:"#e8c898", kind:"portal"},
+      {id:"ashen",   label:T("zone.ashen_canyon"), x:-344, z:0, color:"#ff9060", kind:"portal"},
     ],
     elites:[],
     outline:[
@@ -62,6 +63,7 @@ const MAP_ZONES={
         ["camp","thunder"],
         ["thunder","portal"],
         ["camp","barrens"],
+        ["camp","ashen"],
         ["camp","lake"],
         ["camp","winterhoof"],
         ["camp","palemane"],
@@ -150,6 +152,30 @@ const MAP_ZONES={
       fill:"rgba(160,70,30,.42)",
       stroke:"rgba(220,120,60,.55)",
       road:[["ochre_outpost","portal_e"],["ochre_outpost","portal_w"]],
+    },
+  },
+  ashen_canyon:{
+    id:"ashen_canyon",
+    name:T("zone.ashen_canyon"),
+    radius:()=>typeof ASHEN_R==="number"?ASHEN_R:(BAL.ashenCanyon&&BAL.ashenCanyon.radius)||320,
+    landmarks:[
+      {id:"ember_camp",label:"烬营",x:0,z:0,color:"#ff9060",kind:"camp"},
+      {id:"portal_e",label:T("zone.mulgore"),x:310,z:0,color:"#e8c898",kind:"portal"},
+      {id:"portal_w",label:T("zone.hollow_crypt"),x:-310,z:6,color:"#ff6030",kind:"portal"},
+      {id:"spirit",label:"灵魂医者",x:-6,z:20,color:"#a8d8ff",kind:"npc"},
+      {id:"ember_vendor",label:"商人",x:-12,z:-10,color:"#8aff9a",kind:"npc"},
+      {id:"scorchtusk",label:T("mob.scorchtusk"),x:-150,z:-100,color:"#ffd700",kind:"elite"},
+    ],
+    elites:[],
+    outline:[
+      [0,-1],[.4,-.9],[.75,-.55],[.98,0],[.8,.5],[.45,.88],[0,.98],
+      [-.4,.88],[-.75,.5],[-.98,0],[-.8,-.45],[-.4,-.85],
+    ],
+    terrain:{
+      bg:"#140806",
+      fill:"rgba(120,50,28,.45)",
+      stroke:"rgba(255,100,40,.5)",
+      road:[["ember_camp","portal_e"],["ember_camp","portal_w"]],
     },
   },
   ragefire_chasm:{

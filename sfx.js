@@ -70,6 +70,8 @@ const MUSIC={
          scale:[294,330,370,440,494,587,659]},
   durotar:{tempo:920, wave:"triangle", vol:.12, noteDur:1.4, chance:.78,
          scale:[330,370,392,494,554,659]},
+  ashen:{tempo:860, wave:"sawtooth", vol:.1, noteDur:1.2, chance:.7,
+         scale:[196,233,262,311,349,392]},
   raid :{tempo:600,  wave:"sawtooth", vol:.1,  noteDur:.4, kick:true,
          scale:[65,73,82]},
 };

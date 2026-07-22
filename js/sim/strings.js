@@ -15,10 +15,12 @@ const NAMES={
     mulgore:"赤蹄草甸",
     barrens:"枯原荒地",
     durotar:"赭岩谷",
+    ashen_canyon:"灰烬峡谷",
     molten_core:"炽心熔窟",
     wailing:"泣息洞窟",
     ragefire:"焰怒深渊",
-    onyxia:"黑曜巢穴"
+    onyxia:"黑曜巢穴",
+    hollow_crypt:"灰烬地穴"
   },
   boss:{
     ragnaros:"熔渊之王 · 卡尔戈",
@@ -38,6 +40,10 @@ const NAMES={
     youngBoar:"小野猪",
     quilboar:"野豕斥候",
     bristleback:"刺背野豕",
+    ashboar:"灰烬野猪",
+    cinderwolf:"烬狼",
+    slagimp:"熔渣小鬼",
+    scorchtusk:"焦牙野猪王",
     quilboarElder:"野豕长老",
     razorback:"刺脊野豕",
     boarKing:"老灰鬃",
@@ -99,6 +105,7 @@ const TEXTS={
     zone_sub_mulgore:"圣山草原 · 蹄人之家",
     zone_sub_barrens:"岔路镇 · 尘土与刺背",
     zone_sub_durotar:"赭岩哨站 · 焦土谷地",
+    zone_sub_ashen_canyon:"烬营 · 枯木与熔岩裂隙",
     zone_sub_raid:"地下城",
     submerged:"—— 潜入岩浆 ·先消灭火裔 ——",
     death_raid:"在炽心熔窟中倒下了……",

@@ -58,6 +58,7 @@
 | `zones.js` | 多场景注册表 | ZONES, registerZone, enterZone, ensureAllZonesBuilt |
 | `barrens.js` | 贫瘠之地 | sceneBarrens, BARRENS_QUEST, buildBarrensZone |
 | `durotar.js` | 赭岩谷 | sceneDurotar, buildDurotarZone, tryInteractDurotar |
+| `ashen_canyon.js` | 灰烬峡谷（6–12） | sceneAshen, buildAshenZone, tryInteractAshen |
 | `raid.js` | 副本系统 | BOSSES, createBoss, bossAI, DUNGEON, DUNGEONS, getDungeon, buildRaidScene, spawnAdd |
 | `wailing.js` | 哀嚎洞穴 | sceneWailing, WAILING_DUNGEON, buildWailingZone |
 | `ragefire.js` | 怒焰裂谷 | sceneRagefire, RAGEFIRE_DUNGEON, buildRagefireZone |

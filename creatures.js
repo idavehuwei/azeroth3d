@@ -75,6 +75,13 @@ const QUADS={
   /* G6：熔岩巨兽 = 炎喉 Boss 体型（与 magmadar 配方对齐） */
   lavabeast:{fur:0x8a2208,furD:0x3a1008,accent:0xff6020,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:5.1,style:"wolf",glow:0xff4400,
             head:"wolf",bulk:1.4,gait:{freq:1.6,lift:.14}},
+  /* plan-v4 STEP 22 · 灰烬峡谷 */
+  ashboar:{fur:0x4a3830,furD:0x2a2018,accent:0x8a5030,tusks:true,mane:true,ears:true,tail:'short',size:1.05,style:"boar",
+            head:"boar",gait:{freq:2.1,lift:.17},glow:0xff6020},
+  cinderwolf:{fur:0x3a3030,furD:0x1a1414,accent:0xa84828,snoutLong:true,ears:true,mane:true,tail:'bushy',size:1.08,style:"wolf",
+            head:"wolf",gait:{freq:2.5,lift:.2},glow:0xff5010},
+  scorchtusk:{fur:0x5a3830,furD:0x2a1810,accent:0xff7030,tusks:true,tuskBig:true,mane:true,ears:true,tail:'short',size:2.05,style:"boar",
+            head:"boar",gait:{freq:1.75,lift:.15},glow:0xff6020},
 };
 
 /** plan-V2 R6 名称：与 QUADS 同一对象，加四足怪 = MOB_LOOK.xxx */
@@ -105,6 +112,7 @@ const ELEMENTALS={
   water:{color:0x5090e0,emissive:0x2870c0,size:1.05,flame:false,rocks:4,light:0x4080e0},
   earth:{color:0xa08050,emissive:0x705828,size:1.1,flame:false,rocks:5,light:0xa08050},
   oasis:{color:0x3a7a58,emissive:0x1a5030,size:1.15,flame:false,rocks:4,light:0x3a8a58},
+  slag:{color:0x6a4030,emissive:0xff5020,size:1.0,flame:true,rocks:5,light:0xff6020},
 };
 
 /* ============================================================

@@ -799,6 +799,7 @@ const BUILD_PAL={
   mulgore:{wood:0x6a4a28,woodD:0x3a2810,roof:0x8a5a30,hide:0xc9a06a,flag:0xc04020,stake:0x4a3020},
   barrens:{wood:0x7a5a30,woodD:0x4a3020,roof:0xa87840,hide:0xb89050,flag:0xc04020,stake:0x5a3820},
   durotar:{wood:0x6a3a18,woodD:0x3a1e0c,roof:0x8a4820,hide:0xc07040,flag:0xd03018,stake:0x4a2810},
+  ashen:{wood:0x3a2a20,woodD:0x1a120c,roof:0x5a3020,hide:0x8a5040,flag:0xc02810,stake:0x2a1810},
 };
 
 function placeProp(root,mesh,x,z,rotY){

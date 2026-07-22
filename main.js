@@ -140,7 +140,7 @@ function resolveCamCollision(anchor,yaw,pitch,dist){
 function zoneFootSurface(zid){
   const id=zid||(typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore");
   if(id==="molten_core"||id==="onyxias_lair"||id==="wailing_caverns")return "stone";
-  if(id==="durotar")return "stone";
+  if(id==="durotar"||id==="ashen_canyon")return "stone";
   if(id==="mulgore"&&typeof player!=="undefined"&&BAL.sfx&&BAL.sfx.woodPts){
     for(const pt of BAL.sfx.woodPts){
       const r=pt[2]!=null?pt[2]:8;
@@ -504,6 +504,28 @@ function tick(){
         if(ochreOutpostDist()>8&&durotarSpiritDist()>8
           &&!(typeof ochreVendorDist==="function"&&ochreVendorDist()<=8)
           &&!(typeof ochreGuardDist==="function"&&ochreGuardDist()<=8)&&!nearGather)closeDialogue();
+      }else if(zid==="ashen_canyon"&&typeof emberScoutDist==="function"){
+        if(emberScout){
+          emberScout.rotation.y=Math.PI+Math.sin(S.t*.7)*.08;
+          emberScout.position.y=Math.sin(S.t*1.5)*.04;
+        }
+        {
+          const base=(BAL.npc&&BAL.npc.markerY)||6.55;
+          const y=typeof questMarkBobY==="function"?questMarkBobY(base,S.t,.2):base+Math.sin(S.t*2.65)*.42;
+          if(ashenMarkerExcl)ashenMarkerExcl.position.y=y;
+          if(ashenMarkerExclGrey)ashenMarkerExclGrey.position.y=y;
+          if(ashenMarkerQ)ashenMarkerQ.position.y=y;
+        }
+        const nearR=BAL.economy.interactR;
+        const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||nearR);
+        const nearNpc=(S.p.alive||S.p.ghost)&&(emberScoutDist()<nearR||ashenSpiritDist()<nearR
+          ||(typeof emberVendorDist==="function"&&emberVendorDist()<nearR)||nearGather
+          ||(S.p.ghost&&typeof nearPlayerCorpse==="function"&&nearPlayerCorpse()));
+        const dlgOpen=$("#dlg").style.display==="block";
+        const vendOpen=$("#vendorPanel")&&$("#vendorPanel").style.display==="block";
+        $("#interactBtn").style.display=(nearNpc&&!dlgOpen&&!vendOpen)?"block":"none";
+        if(emberScoutDist()>8&&ashenSpiritDist()>8
+          &&!(typeof emberVendorDist==="function"&&emberVendorDist()<=8)&&!nearGather)closeDialogue();
       }
     }
     /* ---- 掉落动画 & 拾取按钮（世界/副本通用，STEP 2） ---- */
@@ -524,12 +546,16 @@ function tick(){
         ?barrensSpiritDist()<R
         :(zid==="durotar"&&typeof durotarSpiritDist==="function"
           ?durotarSpiritDist()<R
-          :spiritDist()<R);
+          :(zid==="ashen_canyon"&&typeof ashenSpiritDist==="function"
+            ?ashenSpiritDist()<R
+            :spiritDist()<R));
       const nearV=(zid==="mulgore"&&vendorDist()<R)
         ||(zid==="barrens"&&typeof barrensVendorDist==="function"&&barrensVendorDist()<R)
-        ||(zid==="durotar"&&typeof ochreVendorDist==="function"&&ochreVendorDist()<R);
+        ||(zid==="durotar"&&typeof ochreVendorDist==="function"&&ochreVendorDist()<R)
+        ||(zid==="ashen_canyon"&&typeof emberVendorDist==="function"&&emberVendorDist()<R);
       const nearC=(zid==="barrens"&&typeof nearBarrensNpc==="function"&&nearBarrensNpc(R))
         ||(zid==="durotar"&&typeof ochreOutpostDist==="function"&&ochreOutpostDist()<R)
+        ||(zid==="ashen_canyon"&&typeof emberScoutDist==="function"&&emberScoutDist()<R)
         ||(zid==="mulgore"&&typeof hunterDist==="function"&&hunterDist()<R)
         ||(zid==="durotar"&&typeof ochreGuardDist==="function"&&ochreGuardDist()<R)
         ||(zid==="mulgore"&&elderDist()<R);

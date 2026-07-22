@@ -276,6 +276,67 @@ const QUESTS=[
     readyAnnounce:"信使已安全抵达 · 回赤牙处",
     completeAnnounce:"赤牙信使 · 完成"},
 
+  /* ===== plan-v4 STEP 22 · 灰烬峡谷支线（6 节 → 地穴口） ===== */
+  {id:"ash_ember_path", title:"烬营开路",
+    chapter:"side", zone:"ashen_canyon", sort:200,
+    minLevel:6, prereq:[],
+    giver:"ember_scout", turnIn:"ember_scout",
+    objectives:[{type:"kill", mob:"ashboar", countKey:"ash_ember_path"}],
+    rewards:{sideKey:"ash_ember_path"},
+    acceptLog:"接受任务【烬营开路】：清剿灰烬野猪，为烬营腾出营地周围。",
+    readyAnnounce:"野猪已退 · 回烬羽处",
+    completeAnnounce:"烬营开路 · 完成",
+    next:"cinder_pelts"},
+  {id:"cinder_pelts", title:"烬狼之皮",
+    chapter:"side", zone:"ashen_canyon", sort:202,
+    minLevel:7, prereq:["ash_ember_path"],
+    giver:"ember_scout", turnIn:"ember_scout",
+    objectives:[{type:"kill", mob:"cinderwolf", countKey:"cinder_pelts"}],
+    rewards:{sideKey:"cinder_pelts"},
+    acceptLog:"接受任务【烬狼之皮】：猎杀烬狼，取回焦黑毛皮。",
+    readyAnnounce:"毛皮已齐 · 回烬羽处",
+    completeAnnounce:"烬狼之皮 · 完成",
+    next:"slag_purge"},
+  {id:"slag_purge", title:"熔渣肃清",
+    chapter:"side", zone:"ashen_canyon", sort:204,
+    minLevel:8, prereq:["cinder_pelts"],
+    giver:"ember_scout", turnIn:"ember_scout",
+    objectives:[{type:"kill", mob:"slagimp", countKey:"slag_purge"}],
+    rewards:{sideKey:"slag_purge"},
+    acceptLog:"接受任务【熔渣肃清】：驱散峡谷中的熔渣小鬼。",
+    readyAnnounce:"熔渣已散 · 回烬羽处",
+    completeAnnounce:"熔渣肃清 · 完成",
+    next:"scorchtusk_bounty"},
+  {id:"scorchtusk_bounty", title:"焦牙悬赏",
+    chapter:"side", zone:"ashen_canyon", sort:206,
+    minLevel:9, prereq:["slag_purge"],
+    giver:"ember_scout", turnIn:"ember_scout",
+    objectives:[{type:"kill", mob:"scorchtusk", countKey:"scorchtusk_bounty"}],
+    rewards:{sideKey:"scorchtusk_bounty", items:["ash_treads"]},
+    acceptLog:"接受任务【焦牙悬赏】：击杀稀有精英 "+T("mob.scorchtusk")+"。",
+    readyAnnounce:"焦牙已除 · 回烬羽处",
+    completeAnnounce:"焦牙悬赏 · 完成",
+    next:"rift_scout"},
+  {id:"rift_scout", title:"裂隙侦察",
+    chapter:"side", zone:"ashen_canyon", sort:208,
+    minLevel:10, prereq:["scorchtusk_bounty"],
+    giver:"ember_scout", turnIn:"ember_scout",
+    objectives:[{type:"arrive", x:-280, z:6, r:22, label:T("zone.hollow_crypt")+"口"}],
+    rewards:{sideKey:"rift_scout"},
+    acceptLog:"接受任务【裂隙侦察】：前往西侧"+T("zone.hollow_crypt")+"入口侦察。",
+    readyAnnounce:"裂隙已探明 · 回烬羽处",
+    completeAnnounce:"裂隙侦察 · 完成",
+    next:"crypt_seal"},
+  {id:"crypt_seal", title:"地穴封印",
+    chapter:"side", zone:"ashen_canyon", sort:210,
+    minLevel:11, prereq:["rift_scout"],
+    giver:"ember_scout", turnIn:"ember_scout",
+    objectives:[{type:"arrive", x:-310, z:6, r:14, label:"封印石门"}],
+    rewards:{sideKey:"crypt_seal", items:["ash_charm"]},
+    acceptLog:"接受任务【地穴封印】：靠近西口封印，确认裂隙仍被压住。",
+    readyAnnounce:"封印完好 · 回烬羽处复命",
+    completeAnnounce:"地穴封印 · 完成（第二副本筹备中）"},
+
   /* ===== 赤蹄草甸支线（按经典表 · ≥10） ===== */
   {id:"earthmother_gift", title:"大地之母的恩赐",
     chapter:"side", zone:"mulgore", sort:100,
@@ -785,6 +846,7 @@ function objectiveCount(obj){
   if(obj.countKey==="boar")return BAL.quest.boarKills|0;
   if(obj.countKey==="quilboar")return(BAL.quest.barrens&&BAL.quest.barrens.quilboarKills)|0;
   if(obj.countKey==="scorp")return(BAL.quest.durotar&&BAL.quest.durotar.scorpKills)|0;
+  if(obj.countKey==="ash_ember_path")return(BAL.quest.ashen&&BAL.quest.ashen.ashboarKills)|0;
   if(obj.countKey==="boss")return 1;
   if(type==="use"||type==="arrive"||type==="escort"||type==="enter"||type==="interact")return 1;
   if(type==="deliver")return(obj.count!=null?obj.count:1)|0;
@@ -865,6 +927,8 @@ const QUEST_NPC_NAMES={
   ochre_outpost:"斥候 · 赤牙",
   ochre_guard:"卫士 · 焦刺",
   ochre_vendor:"商人 · 赤蹄",
+  ember_scout:"斥候 · 烬羽",
+  ember_vendor:"商人 · 焦炭",
 };
 function questNpcLabel(npcId){
   if(!npcId)return "任务人";
@@ -1024,6 +1088,7 @@ function applyQuestRewards(q,opts){
     else if(r.copperKey==="boarCopper")copper=BAL.quest.rewardCopper|0;
     else if(r.copperKey==="barrensCopper")copper=(BAL.quest.barrens&&BAL.quest.barrens.rewardCopper)|0;
     else if(r.copperKey==="durotarCopper")copper=(BAL.quest.durotar&&BAL.quest.durotar.rewardCopper)|0;
+    else if(r.copperKey==="ashenCopper")copper=(BAL.quest.ashen&&BAL.quest.ashen.rewardCopper)|0;
     if(copper&&typeof gainCopper==="function")gainCopper(copper,{noSave:true});
   }
   if(!opts.skipStats){

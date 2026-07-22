@@ -29,7 +29,7 @@
           leaveRaid resetBoss spawnExitPortal removeExitPortal exitPortal
           fireflies FIREFLIES ffPhases elder baine hawkwind grull mull harken morin ruul varg
           elderDist vendor vendorDist hunter hunterDist nearestMulgoreNpcDist nearMulgoreNpc
-          spiritHealer spiritDist spawnMob MOBS MOB_TYPES PORTAL_BARRENS
+          spiritHealer spiritDist spawnMob MOBS MOB_TYPES PORTAL_BARRENS PORTAL_ASHEN
           appendNpcQuestButtons pickNearestNpc updateNpcQuestMarkers setMarker
           openHawkwindDialogue openGrullDialogue openNpcQuestDialogue placeTalkNpc registerNpcInteract
    ============================================================ */
@@ -323,13 +323,35 @@ southPortalLabel.position.set(PORTAL_BARRENS.x,_bg+12.2,PORTAL_BARRENS.z); scene
 const southPortalLabel2=makeLabel(`${T("poi.crossroads")} · 需要 Lv.${BAL.barrens.minLevel}+`,7,"#ffb060","rgba(160,80,20,.9)");
 southPortalLabel2.position.set(PORTAL_BARRENS.x,_bg+10.8,PORTAL_BARRENS.z); sceneWorld.add(southPortalLabel2);
 
+/* plan-v4 STEP 22：西侧山口 → 灰烬峡谷（石门通道，无旋涡传送门） */
+const PORTAL_ASHEN=new THREE.Vector3(-(WORLD_R-8),0,0);
+const _ag=_gy(PORTAL_ASHEN.x,PORTAL_ASHEN.z);
+const ashenPassMat=MAT.get("rock.ashen_pass",{color:0x3a2a22,roughness:.95,flatShading:true,
+  emissive:0x5a2810,emissiveIntensity:.22});
+const aPlat=new THREE.Mesh(new THREE.BoxGeometry(10,1.2,14),ashenPassMat);
+aPlat.position.set(PORTAL_ASHEN.x,_ag+.4,PORTAL_ASHEN.z); aPlat.receiveShadow=true; sceneWorld.add(aPlat);
+[[-5.5],[5.5]].forEach(([sz])=>{
+  const cliff=new THREE.Mesh(new THREE.BoxGeometry(4.5,11,6),ashenPassMat);
+  cliff.position.set(PORTAL_ASHEN.x-1,_ag+5.5,PORTAL_ASHEN.z+sz); cliff.castShadow=true; sceneWorld.add(cliff);
+});
+const aArch=new THREE.Mesh(new THREE.BoxGeometry(3.2,2.2,12),ashenPassMat);
+aArch.position.set(PORTAL_ASHEN.x-1,_ag+11.2,PORTAL_ASHEN.z); sceneWorld.add(aArch);
+/* 山口阴影口（非旋涡）：深色竖面表示通道 */
+const aMouth=new THREE.Mesh(new THREE.PlaneGeometry(7.5,9),
+  MAT.get("pass.mouth",{color:0x1a0c06,roughness:1,emissive:0x401808,emissiveIntensity:.35,side:THREE.DoubleSide}));
+aMouth.position.set(PORTAL_ASHEN.x+.2,_ag+5.2,PORTAL_ASHEN.z); aMouth.rotation.y=Math.PI/2; sceneWorld.add(aMouth);
+const westPassLabel=makeLabel(T("zone.ashen_canyon"),12,"#ffb080","rgba(100,40,15,.9)");
+westPassLabel.position.set(PORTAL_ASHEN.x,_ag+13.4,PORTAL_ASHEN.z); sceneWorld.add(westPassLabel);
+const westPassLabel2=makeLabel(`山口通道 · Lv.${BAL.ashenCanyon.minLevel}+`,7,"#e09060","rgba(80,30,10,.9)");
+westPassLabel2.position.set(PORTAL_ASHEN.x,_ag+12,PORTAL_ASHEN.z); sceneWorld.add(westPassLabel2);
+
 /* STEP 23：营地制作台 + 赤蹄草甸采集点（在传送门坐标定义之后） */
 if(typeof buildWorkbench==="function")buildWorkbench(sceneWorld);
 if(typeof spawnGatherNodesForZone==="function"){
   spawnGatherNodesForZone("mulgore",sceneWorld,{
     radius:WORLD_R,
     camp:BLOODHOOF,
-    portals:[{x:PORTAL_POS.x,z:PORTAL_POS.z},{x:PORTAL_BARRENS.x,z:PORTAL_BARRENS.z}],
+    portals:[{x:PORTAL_POS.x,z:PORTAL_POS.z},{x:PORTAL_BARRENS.x,z:PORTAL_BARRENS.z},{x:PORTAL_ASHEN.x,z:PORTAL_ASHEN.z}],
   });
 }
 
@@ -390,6 +412,7 @@ registerZone({
     camp:CAMP_NARACHE,
     from_raid:BLOODHOOF,
     from_barrens:{x:0,z:WORLD_R-22},   /* 远离南口传送门，避免进出乒乓 */
+    from_ashen:{x:-(WORLD_R-22),z:0}, /* 西侧山口回落点 */
     spirit:{x:BLOODHOOF.x,z:BLOODHOOF.z+22},
     bloodhoof:BLOODHOOF,
     thunder_bluff:MULGORE.thunderBluff,
@@ -419,6 +442,20 @@ registerZone({
     lockedAnnounce:()=>`等级不足！需要 Lv.${BAL.barrens.minLevel}`,
     lockedLog:()=>`${T("zone.barrens")} · ${T("poi.crossroads")}需要更强的勇士——当前 Lv.${S.p.level}，升到 Lv.${BAL.barrens.minLevel} 后再来。`,
     targetZone:"barrens",
+    targetGate:"from_mulgore",
+  },{
+    id:"to_ashen_canyon",
+    pos:()=>PORTAL_ASHEN,
+    hintR:()=>BAL.zones.portalHintR,
+    enterR:()=>(BAL.zones.portalEnterR||4.5)+1.2,
+    announce:T("zone.ashen_canyon")+" · 山口通道",
+    logHint:"西侧山口焦土味扑鼻……走进石门即可进入"+T("zone.ashen_canyon")+"。",
+    requireAlive:true,
+    autoEnter:true,
+    minLevel:()=>(BAL.ashenCanyon&&BAL.ashenCanyon.minLevel)||6,
+    lockedAnnounce:()=>`等级不足！需要 Lv.${(BAL.ashenCanyon&&BAL.ashenCanyon.minLevel)||6}`,
+    lockedLog:()=>`${T("zone.ashen_canyon")}危机四伏——当前 Lv.${S.p.level}，升到 Lv.${(BAL.ashenCanyon&&BAL.ashenCanyon.minLevel)||6} 后再穿越山口。`,
+    targetZone:"ashen_canyon",
     targetGate:"from_mulgore",
   }],
   lights:{heli,sun,flames:worldFlames,fireflies,fill:_mulgoreSkyInit&&_mulgoreSkyInit.fill},
@@ -797,6 +834,12 @@ const MOB_TYPES={
   razorback :{name:T("mob.razorback"),  build:()=>buildQuadruped(QUADS.razorback),stats:"razorback",loot:"razorback",labelW:5.8,labelY:3.2},
   cliffHarpy:{name:"崖风鹰身",    build:()=>buildHumanoidMob(MOB_HUMANOIDS.cliffHarpy),stats:"cliffHarpy",loot:"cliffHarpy",
     labelW:9,labelY:6.0,elite:true,color:"#ff9a70",auraColor:0xff7040},
+  /* plan-v4 STEP 22 · 灰烬峡谷 */
+  ashboar   :{name:T("mob.ashboar"),   build:()=>buildQuadruped(QUADS.ashboar),   stats:"ashboar",   loot:"ashboar",   labelW:4.8,labelY:2.7},
+  cinderwolf:{name:T("mob.cinderwolf"),build:()=>buildQuadruped(QUADS.cinderwolf),stats:"cinderwolf",loot:"cinderwolf",labelW:4.6,labelY:2.8},
+  slagimp   :{name:T("mob.slagimp"),   build:()=>buildElemental(ELEMENTALS.slag), stats:"slagimp",   loot:"slagimp",   labelW:4.4,labelY:3.0},
+  scorchtusk:{name:T("mob.scorchtusk"),build:()=>buildQuadruped(QUADS.scorchtusk),stats:"scorchtusk",loot:"scorchtusk",
+    labelW:9,labelY:5.8,elite:true,rare:true,color:"#ffd700",auraColor:0xff8030},
   /* STEP 24 世界 Boss */
   centaurHerald:{name:"半人马战争使者",build:()=>buildCentaur(MOB_HUMANOIDS.centaurHerald),
     stats:"centaurHerald",loot:"centaurHerald",labelW:11,labelY:7.2,
@@ -1155,6 +1198,8 @@ function tryInteract(){
       &&typeof openBarrensSpiritDialogue==="function"){openBarrensSpiritDialogue();return;}
     if(zid==="durotar"&&typeof durotarSpiritDist==="function"&&durotarSpiritDist()<R
       &&typeof openDurotarSpiritDialogue==="function"){openDurotarSpiritDialogue();return;}
+    if(zid==="ashen_canyon"&&typeof ashenSpiritDist==="function"&&ashenSpiritDist()<R
+      &&typeof openAshenSpiritDialogue==="function"){openAshenSpiritDialogue();return;}
     return;
   }
   if(!S.p.alive)return;
@@ -1169,6 +1214,8 @@ function tryInteract(){
     &&typeof tryInteractBarrens==="function"){tryInteractBarrens();return;}
   if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="durotar"
     &&typeof tryInteractDurotar==="function"){tryInteractDurotar();return;}
+  if(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="ashen_canyon"
+    &&typeof tryInteractAshen==="function"){tryInteractAshen();return;}
   const near=pickNearestNpc(_mulgoreInteractNpcs);
   if(near)near.open();
 }
