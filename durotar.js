@@ -33,7 +33,7 @@ let ochreOutpost=null,ochreOutpostLabel=null;
 let durotarSpirit=null,durotarSpiritLabel=null;
 let ochreVendor=null,ochreVendorLabel=null;
 let ochreGuard=null,ochreGuardLabel=null;
-let durotarMarkerExcl=null,durotarMarkerQ=null;
+let durotarMarkerExcl=null,durotarMarkerExclGrey=null,durotarMarkerQ=null;
 let durotarPortalUni=null,durotarRagefirePortalUni=null;
 
 function buildDurotarZone(scn){
@@ -195,9 +195,11 @@ function buildDurotarZone(scn){
   durotarSpiritLabel.position.set(-8,_npcLy,22); root.add(durotarSpiritLabel);
   updateNameplateHp(durotarSpiritLabel,1,1);
 
-  durotarMarkerExcl=makeLabel("❗",2.8,"#ffd76a","rgba(0,0,0,.55)");
+  durotarMarkerExcl=makeQuestMark("offer");
   durotarMarkerExcl.position.set(4,_npcMy,-4); root.add(durotarMarkerExcl);
-  durotarMarkerQ=makeLabel("❓",2.8,"#ffd76a","rgba(0,0,0,.55)");
+  durotarMarkerExclGrey=makeQuestMark("low");
+  durotarMarkerExclGrey.position.copy(durotarMarkerExcl.position); durotarMarkerExclGrey.visible=false; root.add(durotarMarkerExclGrey);
+  durotarMarkerQ=makeQuestMark("turnin");
   durotarMarkerQ.position.copy(durotarMarkerExcl.position); durotarMarkerQ.visible=false; root.add(durotarMarkerQ);
 
   /* 野怪：巨蝎谷、刺脊、崖风巢（V2 坐标×2） */
@@ -225,6 +227,8 @@ function buildDurotarZone(scn){
 
 function updateDurotarMarkers(){
   if(!durotarMarkerExcl)return;
+  const m={npcId:"ochre_outpost",excl:durotarMarkerExcl,exclGrey:durotarMarkerExclGrey,q:durotarMarkerQ};
+  if(typeof applyNpcQuestMarkerVisual==="function"){applyNpcQuestMarkerVisual(m);return;}
   if(typeof npcHasQuestOffer==="function"){
     durotarMarkerExcl.visible=npcHasQuestOffer("ochre_outpost");
     durotarMarkerQ.visible=npcHasQuestTurnIn("ochre_outpost");
@@ -257,6 +261,7 @@ function ochreGuardDist(){
 }
 
 function tryInteractDurotar(){
+  if(typeof tryQuestGroundInteract==="function"&&tryQuestGroundInteract())return;
   const near=pickNearestNpc([
     {mesh:durotarSpirit,open:openDurotarSpiritDialogue},
     {mesh:ochreOutpost,open:openOchreDialogue},

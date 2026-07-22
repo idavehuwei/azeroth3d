@@ -396,8 +396,19 @@ function tick(){
         }
         spiritHealer.rotation.y=Math.PI+Math.sin(S.t*.6)*.06;
         spiritHealer.position.y=sg+Math.sin(S.t*1.4+1)*.05;
-        markerExcl.position.y=eg+((BAL.npc&&BAL.npc.markerY)||5.15)+Math.sin(S.t*2.4)*.25;
-        markerQ.position.y=markerExcl.position.y;
+        /* 全图 NPC 任务标记弹跳（魔兽式） */
+        if(typeof _mulgoreNpcMarkers!=="undefined"){
+          for(const m of _mulgoreNpcMarkers){
+            const base=m.baseY!=null?m.baseY:((typeof heightAt==="function"?heightAt(m.x,m.z):0)+((BAL.npc&&BAL.npc.markerY)||6.55));
+            const y=typeof questMarkBobY==="function"?questMarkBobY(base,S.t,(m.x||0)*.07):base;
+            if(m.excl)m.excl.position.y=y;
+            if(m.exclGrey)m.exclGrey.position.y=y;
+            if(m.q)m.q.position.y=y;
+          }
+        }else if(markerExcl){
+          markerExcl.position.y=eg+((BAL.npc&&BAL.npc.markerY)||6.55)+Math.sin(S.t*2.65)*.42;
+          if(markerQ)markerQ.position.y=markerExcl.position.y;
+        }
         const nearR=BAL.economy.interactR;
         const nearCraft=typeof workbenchDist==="function"&&workbenchDist()<(BAL.professions.interactR||nearR);
         const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||nearR);
@@ -413,8 +424,18 @@ function tick(){
           crossroadsSentinel.rotation.y=Math.PI+Math.sin(S.t*.7)*.08;
           crossroadsSentinel.position.y=Math.sin(S.t*1.5)*.04;
         }
-        if(barrensMarkerExcl)barrensMarkerExcl.position.y=((BAL.npc&&BAL.npc.markerY)||5.15)+Math.sin(S.t*2.4)*.25;
-        if(barrensMarkerQ)barrensMarkerQ.position.y=barrensMarkerExcl?barrensMarkerExcl.position.y:((BAL.npc&&BAL.npc.markerY)||5.15);
+        if(typeof _barrensNpcMarkers!=="undefined"){
+          for(const m of _barrensNpcMarkers){
+            const base=m.baseY!=null?m.baseY:((BAL.npc&&BAL.npc.markerY)||6.55);
+            const y=typeof questMarkBobY==="function"?questMarkBobY(base,S.t,(m.x||0)*.07):base;
+            if(m.excl)m.excl.position.y=y;
+            if(m.exclGrey)m.exclGrey.position.y=y;
+            if(m.q)m.q.position.y=y;
+          }
+        }else{
+          if(barrensMarkerExcl)barrensMarkerExcl.position.y=((BAL.npc&&BAL.npc.markerY)||6.55)+Math.sin(S.t*2.65)*.42;
+          if(barrensMarkerQ)barrensMarkerQ.position.y=barrensMarkerExcl?barrensMarkerExcl.position.y:((BAL.npc&&BAL.npc.markerY)||6.55);
+        }
         const nearR=BAL.economy.interactR;
         const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||nearR);
         const nearNpc=S.p.alive&&(nearBarrensNpc(nearR)||nearGather);
@@ -428,8 +449,13 @@ function tick(){
           ochreOutpost.rotation.y=Math.PI+Math.sin(S.t*.7)*.08;
           ochreOutpost.position.y=Math.sin(S.t*1.5)*.04;
         }
-        if(durotarMarkerExcl)durotarMarkerExcl.position.y=((BAL.npc&&BAL.npc.markerY)||5.15)+Math.sin(S.t*2.4)*.25;
-        if(durotarMarkerQ)durotarMarkerQ.position.y=durotarMarkerExcl?durotarMarkerExcl.position.y:((BAL.npc&&BAL.npc.markerY)||5.15);
+        {
+          const base=(BAL.npc&&BAL.npc.markerY)||6.55;
+          const y=typeof questMarkBobY==="function"?questMarkBobY(base,S.t,.2):base+Math.sin(S.t*2.65)*.42;
+          if(durotarMarkerExcl)durotarMarkerExcl.position.y=y;
+          if(durotarMarkerExclGrey)durotarMarkerExclGrey.position.y=y;
+          if(durotarMarkerQ)durotarMarkerQ.position.y=y;
+        }
         const nearR=BAL.economy.interactR;
         const nearGather=typeof nearestGatherNode==="function"&&!!nearestGatherNode(BAL.professions.interactR||nearR);
         const nearNpc=S.p.alive&&(ochreOutpostDist()<nearR||durotarSpiritDist()<nearR

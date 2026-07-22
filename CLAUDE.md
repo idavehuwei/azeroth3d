@@ -50,7 +50,7 @@
 | `threat.js` | 仇恨与职责 | addThreat, getTopThreatActor, meleeHitFromThreat, checkPartyWipe |
 | `talents.js` | 天赋数据层 | TALENTS, spendTalent, getSkillCd, cheatTalent |
 | `panels.js` | HUD 面板 | toggleCharPanel, toggleSpellPanel, toggleQuestLog |
-| `quests.js` | 任务枢纽 | QUESTS, acceptQuest, turnInQuest, onQuestMobKill, getQuestLogEntries |
+| `quests.js` | 任务枢纽 | QUESTS(=QUEST_DB), acceptQuest, turnInQuest, onQuestMobKill, getQuestLogEntries, tryQuestGroundInteract |
 | `professions.js` | 采集 / 制作 | MATS, RECIPES, tryGather, tryCraft, buildWorkbench |
 | `rares.js` | 稀有 / 世界 Boss | RARES, WORLD_BOSSES, spawnRaresForZone, getRareMapEntries |
 | `deeds.js` | 功绩之书 | DEEDS, grantDeed, toggleDeedsPanel, updatePlayerNameplate |
@@ -77,7 +77,7 @@
 
 - 已执行账本：`plan-merged.md`（STEP 0–29 / v4.0 完成）
 - **plan-V2 已完成：R0–R8 + G1–G7（M1–M5）**（见 `plan-V2.md`）
-- **plan-V3：C0–C8 已完成**；下一步 C9 任务数据化（见 `plan-V3.md`）
+- **plan-V3：C0–C9 已完成**；下一步 C10 死亡墓地（见 `plan-V3.md`）
 - 公式单测：`node test_formulas.js`
 - 后续可对照 `plan-v1.md` 打磨内容；默认不做联机
 

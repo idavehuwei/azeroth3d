@@ -1,24 +1,28 @@
 /* ============================================================
    炽心 · quests.js
-   任务枢纽（STEP 22 / V1-B2）：QUESTS[] · 交付/使用/到达/护送 · 存档 flags
+   任务枢纽（STEP 22 / plan-V3 C9）：QUESTS(=QUEST_DB) 数据驱动
+   目标：kill / collect(=deliver) / explore(=arrive) / interact / use / escort…
    ------------------------------------------------------------
    [依赖] THREE · core.js（BAL clamp makeLabel）
           combat.js（S · gainXP gainCopper log announce）
           items.js 运行时（ITEMS）
           world.js / barrens.js 运行时（QUEST BARRENS_QUEST 兼容别名 · player scene）
-          save.js / panels.js 运行时（saveGame renderQuestLog）
-   [导出] QUESTS getQuestDef questStatus questProgress
+          save.js / panels.js / map.js 运行时
+   [导出] QUESTS QUEST_DB getQuestDef questStatus questProgress
           acceptQuest turnInQuest abandonQuest completeQuestObjective
           onQuestMobKill onQuestBossKill onQuestZoneEnter
           onQuestUseItem canUseQuestItem tickQuestWorld clearQuestEscort
           canAcceptQuest canTurnInQuest canAbandonQuest questsForNpc
-          npcHasQuestOffer npcHasQuestTurnIn
-          getActiveQuestEntries getQuestLogEntries
+          npcHasQuestOffer npcHasQuestTurnIn npcHasQuestOfferLowLevel
+          getActiveQuestEntries getQuestLogEntries countActiveQuests
           collectQuestSave applyQuestSave resetAllQuests
-          syncLegacyQuestAliases applyQuestRewards
+          syncLegacyQuestAliases applyQuestRewards claimQuestRewardChoice
           updateQuestTracker updateQuest countInvItem
           refreshDeliverObjectives syncQuestNpcBindings
           questNpcLabel questTurnInId questGiverId
+          normalizeObjectiveType getObjective0
+          tryQuestGroundInteract spawnQuestGroundObjects clearQuestGroundObjects
+          resolveQuestMapFocus setQuestMapFocus getQuestMapFocus
    ============================================================ */
 "use strict";
 
@@ -67,6 +71,21 @@ const QUESTS=[
     readyAnnounce:"补给在身 · 交给贝恩",
     completeAnnounce:"猎蹄的补给 · 完成",
     next:"bloodhoof_journey"},
+  /* C9 样例：地面闪光箱 + 职业可选奖励（只加数据，走通用 interact/choice） */
+  {id:"camp_cache", title:"营地旧箱", subtitle:"灰角的嘱托",
+    chapter:"side", zone:"mulgore", sort:17,
+    minLevel:1, prereq:["hunt_continues"],
+    giver:"grayhorn", turnIn:"grayhorn",
+    objectives:[{type:"interact", x:0, z:0, r:3.5, label:"旧木箱",
+      liveOffsetNpc:"grayhorn", ox:6, oz:-5}],
+    rewards:{xp:60, copper:25, choice:[
+      {id:"plains_boots", prefer:["warrior","rogue","shaman"]},
+      {id:"plains_cloak", prefer:["mage","priest","archer"]},
+      {id:"plains_band"}
+    ]},
+    acceptLog:"接受任务【营地旧箱】：在营地附近找回旧木箱（闪光物件），带回给长者灰角。",
+    readyAnnounce:"木箱已寻 · 回长者灰角处",
+    completeAnnounce:"营地旧箱 · 完成"},
   {id:"bloodhoof_journey", title:T("poi.bloodhoof")+"之旅", subtitle:"向贝恩报到",
     chapter:"main", zone:"mulgore", sort:18,
     minLevel:5, prereq:["raoul_supply"],
@@ -733,16 +752,36 @@ const QUESTS=[
 
 const QUEST_BY_ID={};
 QUESTS.forEach(q=>{QUEST_BY_ID[q.id]=q;});
+/** plan-V3 C9：QUEST_DB 即 QUESTS（保留大表于 quests.js，不搬进 sim/content） */
+const QUEST_DB=QUESTS;
+
+/** C9 目标类型别名：collect→deliver · explore→arrive */
+function normalizeObjectiveType(type){
+  if(type==="collect")return "deliver";
+  if(type==="explore")return "arrive";
+  return type;
+}
+function getObjective0(q){
+  const obj=q&&q.objectives&&q.objectives[0];
+  if(!obj)return null;
+  if(obj._normType)return obj;
+  const t=normalizeObjectiveType(obj.type);
+  if(t===obj.type)return obj;
+  const o=Object.assign({},obj,{type:t,_normType:true});
+  return o;
+}
 
 /** 目标数量：优先 BAL，其次定义表 */
 function objectiveCount(obj){
+  if(!obj)return 1;
+  const type=normalizeObjectiveType(obj.type);
   if(obj.count!=null)return obj.count|0;
   if(obj.countKey==="boar")return BAL.quest.boarKills|0;
   if(obj.countKey==="quilboar")return(BAL.quest.barrens&&BAL.quest.barrens.quilboarKills)|0;
   if(obj.countKey==="scorp")return(BAL.quest.durotar&&BAL.quest.durotar.scorpKills)|0;
   if(obj.countKey==="boss")return 1;
-  if(obj.type==="use"||obj.type==="arrive"||obj.type==="escort"||obj.type==="enter")return 1;
-  if(obj.type==="deliver")return(obj.count!=null?obj.count:1)|0;
+  if(type==="use"||type==="arrive"||type==="escort"||type==="enter"||type==="interact")return 1;
+  if(type==="deliver")return(obj.count!=null?obj.count:1)|0;
   if(obj.countKey&&BAL.quest.side&&BAL.quest.side[obj.countKey]!=null&&BAL.quest.side[obj.countKey].kills!=null)
     return BAL.quest.side[obj.countKey].kills|0;
   return 1;
@@ -867,14 +906,18 @@ function questProgress(id){
 
 function questStatus(id){return questProgress(id).status;}
 
-function prereqMet(q){
+function prereqQuestsMet(q){
   if(!q)return false;
-  if(q.minLevel&&S.p.level<(q.minLevel|0))return false;
   const pre=q.prereq||[];
   for(const id of pre){
     if(questStatus(id)!=="done")return false;
   }
   return true;
+}
+function prereqMet(q){
+  if(!q)return false;
+  if(q.minLevel&&S.p.level<(q.minLevel|0))return false;
+  return prereqQuestsMet(q);
 }
 
 function canAcceptQuest(id){
@@ -883,13 +926,29 @@ function canAcceptQuest(id){
   if(questStatus(id)!=="none")return false;
   return prereqMet(q);
 }
+/** 前置已满足但等级不够（灰色感叹号） */
+function canAcceptQuestLowLevel(id){
+  const q=getQuestDef(id);
+  if(!q||questStatus(id)!=="none")return false;
+  if(!prereqQuestsMet(q))return false;
+  return !!(q.minLevel&&S.p.level<(q.minLevel|0));
+}
 
 function canTurnInQuest(id){
   return questStatus(id)==="ready";
 }
 
+function countActiveQuests(){
+  let n=0;
+  for(const q of QUESTS){
+    const st=questStatus(q.id);
+    if(st==="active"||st==="ready")n++;
+  }
+  return n;
+}
+
 function objectiveProgressText(q,prog){
-  const obj=q.objectives&&q.objectives[0];
+  const obj=getObjective0(q);
   if(!obj)return "";
   if(obj.type==="kill"){
     const need=objectiveCount(obj);
@@ -927,6 +986,11 @@ function objectiveProgressText(q,prog){
   }
   if(obj.type==="arrive"){
     return(prog.kills|0)>=1?`已抵达${obj.label||"目标地点"}`:`前往${obj.label||"目标地点"}`;
+  }
+  if(obj.type==="interact"){
+    return(prog.kills|0)>=1||prog.status==="ready"
+      ?`已调查${obj.label||"目标"}`
+      :`调查${obj.label||"闪光物件"}`;
   }
   if(obj.type==="escort"){
     return(prog.kills|0)>=1?`护送完成（${obj.label||"目的地"}）`:`护送${obj.name||"NPC"}至${obj.label||"目的地"}`;
@@ -973,11 +1037,18 @@ function applyQuestRewards(q,opts){
       if(bits.length)log(`奖励：${bits.join("，")}！`,"lg-heal");
     }
   }
-  if(!opts.skipItems&&Array.isArray(r.items)){
-    for(const id of r.items){
-      if(ITEMS[id]&&S.inv.length<BAL.bag.size&&!S.inv.includes(id)&&!isItemEquipped(id))
+  if(!opts.skipItems){
+    if(opts.choiceItem&&ITEMS[opts.choiceItem]){
+      const id=opts.choiceItem;
+      if(S.inv.length<BAL.bag.size&&!S.inv.includes(id)&&!(typeof isItemEquipped==="function"&&isItemEquipped(id)))
         S.inv.push(id);
+    }else if(Array.isArray(r.items)){
+      for(const id of r.items){
+        if(ITEMS[id]&&S.inv.length<BAL.bag.size&&!S.inv.includes(id)&&!(typeof isItemEquipped==="function"&&isItemEquipped(id)))
+          S.inv.push(id);
+      }
     }
+    if(typeof renderBag==="function")renderBag();
   }
 }
 
@@ -992,10 +1063,11 @@ function abandonQuest(id,opts){
   const q=getQuestDef(id);
   if(!q||!canAbandonQuest(id))return false;
   if(S.questEscort&&S.questEscort.questId===id)clearQuestEscort();
+  clearQuestGroundForQuest(id);
   /* 回收 grantItems 与 deliver/use 目标上的任务物品 */
   const dropIds=new Set();
   if(Array.isArray(q.grantItems))q.grantItems.forEach(x=>dropIds.add(x));
-  const obj=q.objectives&&q.objectives[0];
+  const obj=getObjective0(q);
   if(obj&&(obj.type==="deliver"||obj.type==="use")&&obj.item){
     const it=ITEMS[obj.item];
     if(it&&it.quest)dropIds.add(obj.item);
@@ -1028,6 +1100,14 @@ function acceptQuest(id,opts){
   opts=opts||{};
   const q=getQuestDef(id);
   if(!q||!canAcceptQuest(id))return false;
+  const cap=(BAL.quest&&BAL.quest.activeMax)|0;
+  if(cap>0&&countActiveQuests()>=cap){
+    if(!opts.silent){
+      log(`任务日志已满（最多 ${cap} 条进行中）。请先完成或放弃部分任务。`,"lg-sys");
+      announce("任务日志已满");
+    }
+    return false;
+  }
   const prog=questProgress(id);
   prog.status="active";
   prog.kills=0;
@@ -1036,11 +1116,13 @@ function acceptQuest(id,opts){
   if(q.grantItems)grantQuestItems(q.grantItems);
   if(q.acceptLog&&!opts.silent)log(q.acceptLog,"lg-sys");
   if(!opts.silent)announce(`接受任务 · ${q.title}`);
-  const obj0=q.objectives&&q.objectives[0];
+  const obj0=getObjective0(q);
   if(obj0&&obj0.type==="escort")startQuestEscort(q.id,obj0);
   if(obj0&&obj0.type==="deliver")refreshDeliverObjectives({noSave:true});
+  if(obj0&&obj0.type==="interact")spawnQuestGroundForQuest(q.id);
   syncLegacyQuestAliases();
   updateQuestTracker();
+  if(typeof updateNpcQuestMarkers==="function")updateNpcQuestMarkers();
   if(!opts.noSave&&typeof saveGame==="function")saveGame(true);
   return true;
 }
@@ -1070,6 +1152,7 @@ function finishQuest(id,opts){
   if(prog.status!=="active"&&prog.status!=="ready")return false;
   prog.status="done";
   if(S.questEscort&&S.questEscort.questId===id)clearQuestEscort();
+  clearQuestGroundForQuest(id);
   if(!opts.skipRewards)applyQuestRewards(q,opts);
   if(q.completeAnnounce&&!opts.silent)announce(q.completeAnnounce);
   if(q.completeLog&&!opts.silent)log(q.completeLog,"lg-sys");
@@ -1082,16 +1165,75 @@ function finishQuest(id,opts){
 }
 
 function turnInQuest(id,opts){
+  opts=opts||{};
   if(!canTurnInQuest(id))return false;
   const q=getQuestDef(id);
-  const obj=q&&q.objectives&&q.objectives[0];
+  const obj=getObjective0(q);
   if(obj&&obj.type==="deliver"){
     const need=objectiveCount(obj);
     if(countInvItem(obj.item)<need){log("交付物品不足。","lg-sys");return false;}
-    removeInvItems(obj.item,need);
+  }
+  if(q.rewards&&Array.isArray(q.rewards.choice)&&q.rewards.choice.length&&!opts.choiceItem&&!opts.skipChoice){
+    openQuestRewardChoice(id);
+    return "choice";
+  }
+  if(obj&&obj.type==="deliver"){
+    removeInvItems(obj.item,objectiveCount(obj));
     if(typeof renderBag==="function")renderBag();
   }
+  clearQuestGroundForQuest(id);
   return finishQuest(id,opts);
+}
+
+function openQuestRewardChoice(questId){
+  const q=getQuestDef(questId);
+  if(!q||!q.rewards||!q.rewards.choice)return;
+  const dlg=$("#dlg"),tx=$("#dlgText"),bts=$("#dlgBtns");
+  if(!dlg||!tx||!bts){
+    /* 无对话框时取本职业优先或第一项 */
+    const pick=pickPreferredQuestChoice(q.rewards.choice);
+    turnInQuest(questId,{choiceItem:pick,skipChoice:true});
+    return;
+  }
+  const nameEl=$("#dlg .dname");
+  if(nameEl)nameEl.textContent="✦ 选择奖励";
+  dlg.style.display="block";
+  bts.innerHTML="";
+  tx.textContent=`任务【${q.title}】完成。请选择一件奖励：`;
+  const cls=(typeof CLS!=="undefined"&&CLS&&CLS.key)||"";
+  const list=q.rewards.choice.slice().sort((a,b)=>{
+    const ap=questChoicePreferred(a,cls)?0:1;
+    const bp=questChoicePreferred(b,cls)?0:1;
+    return ap-bp;
+  });
+  const btn=(t,fn)=>{const b=document.createElement("button");
+    b.className="dbtn";b.textContent=t;b.onclick=fn;bts.appendChild(b);};
+  for(const ch of list){
+    const id=typeof ch==="string"?ch:ch.id;
+    const it=ITEMS[id]; if(!it)continue;
+    const pref=questChoicePreferred(ch,cls)?" ★":"";
+    btn(`${it.name}${pref}`,()=>{
+      claimQuestRewardChoice(questId,id);
+      if(typeof closeDialogue==="function")closeDialogue();
+    });
+  }
+  btn("稍后再选",()=>{if(typeof closeDialogue==="function")closeDialogue();});
+}
+function questChoicePreferred(ch,cls){
+  if(!ch||typeof ch==="string")return false;
+  const pref=ch.prefer||ch.classes||[];
+  return !!(cls&&pref.includes(cls));
+}
+function pickPreferredQuestChoice(choice){
+  const cls=(typeof CLS!=="undefined"&&CLS&&CLS.key)||"";
+  for(const ch of choice){
+    if(questChoicePreferred(ch,cls))return typeof ch==="string"?ch:ch.id;
+  }
+  const first=choice[0];
+  return typeof first==="string"?first:first.id;
+}
+function claimQuestRewardChoice(questId,itemId){
+  return turnInQuest(questId,{choiceItem:itemId,skipChoice:true});
 }
 
 function completeQuestObjective(id,amount,opts){
@@ -1163,11 +1305,19 @@ function questsForNpc(npcId){
   }).sort((a,b)=>(a.sort||0)-(b.sort||0));
 }
 
-/** 该 NPC 是否有可接任务（感叹号） */
+/** 该 NPC 是否有可接任务（金色感叹号） */
 function npcHasQuestOffer(npcId){
   if(!npcId)return false;
   for(const q of QUESTS){
     if(q.giver===npcId&&canAcceptQuest(q.id))return true;
+  }
+  return false;
+}
+/** 前置满足但等级不够（灰色感叹号） */
+function npcHasQuestOfferLowLevel(npcId){
+  if(!npcId)return false;
+  for(const q of QUESTS){
+    if(q.giver===npcId&&canAcceptQuestLowLevel(q.id))return true;
   }
   return false;
 }
@@ -1178,6 +1328,21 @@ function npcHasQuestTurnIn(npcId){
     if(questTurnInId(q)===npcId&&canTurnInQuest(q.id))return true;
   }
   return false;
+}
+/** 统一刷新单个 NPC 任务标记（offer / grey / turnin） */
+function applyNpcQuestMarkerVisual(m){
+  if(!m)return;
+  const offer=typeof npcHasQuestOffer==="function"&&npcHasQuestOffer(m.npcId);
+  const low=typeof npcHasQuestOfferLowLevel==="function"&&npcHasQuestOfferLowLevel(m.npcId);
+  const turn=typeof npcHasQuestTurnIn==="function"&&npcHasQuestTurnIn(m.npcId);
+  if(m.q)m.q.visible=!!turn;
+  if(m.exclGrey){
+    m.excl.visible=!!offer;
+    m.exclGrey.visible=!!low&&!offer;
+  }else if(m.excl){
+    m.excl.visible=!!(offer||low);
+    if(m.excl.material)m.excl.material.opacity=offer?1:(low?.55:1);
+  }
 }
 
 function getActiveQuestEntries(){
@@ -1273,8 +1438,9 @@ function applyQuestSave(rawQuests,legacy){
       st[id]={status,kills:Math.max(0,r.kills|0),flags,
         giver:r.giver!=null?r.giver:null, turnIn:r.turnIn!=null?r.turnIn:null};
       if(status==="active"){
-        const q=QUEST_BY_ID[id], obj=q&&q.objectives&&q.objectives[0];
+        const q=QUEST_BY_ID[id], obj=getObjective0(q);
         if(obj&&obj.type==="escort")startQuestEscort(id,obj,{silent:true});
+        if(obj&&obj.type==="interact")spawnQuestGroundForQuest(id);
       }
     }
   }else if(legacy){
@@ -1360,7 +1526,7 @@ function refreshDeliverObjectives(opts){
   let changed=false;
   for(const q of QUESTS){
     if(questStatus(q.id)!=="active")continue;
-    const obj=q.objectives&&q.objectives[0];
+    const obj=getObjective0(q);
     if(!obj||obj.type!=="deliver")continue;
     const need=objectiveCount(obj);
     if(countInvItem(obj.item)>=need){
@@ -1380,11 +1546,160 @@ function resolveArriveTarget(obj){
       if(mesh&&mesh.position)return {x:mesh.position.x,z:mesh.position.z};
     }catch(e){/* ignore */}
   }
+  if(obj.liveOffsetNpc){
+    const base=resolveNpcWorldPos(obj.liveOffsetNpc);
+    if(base)return {x:base.x+(+obj.ox||0),z:base.z+(+obj.oz||0)};
+  }
   if(obj.livePoi&&typeof MULGORE!=="undefined"&&MULGORE[obj.livePoi])
     return {x:MULGORE[obj.livePoi].x,z:MULGORE[obj.livePoi].z};
   if(obj.livePoi&&typeof BARRENS!=="undefined"&&BARRENS[obj.livePoi])
     return {x:BARRENS[obj.livePoi].x,z:BARRENS[obj.livePoi].z};
   return {x:+obj.x,z:+obj.z};
+}
+
+function resolveNpcWorldPos(npcId){
+  if(!npcId)return null;
+  const lists=[];
+  if(typeof _mulgoreNpcMarkers!=="undefined")lists.push(_mulgoreNpcMarkers);
+  if(typeof _barrensNpcMarkers!=="undefined")lists.push(_barrensNpcMarkers);
+  for(const list of lists){
+    for(const m of list){
+      if(m.npcId===npcId)return {x:m.x!=null?m.x:m.excl&&m.excl.position.x,z:m.z!=null?m.z:m.excl&&m.excl.position.z};
+    }
+  }
+  try{
+    const mesh=(typeof globalThis!=="undefined"?globalThis[npcId]:null)
+      ||(typeof window!=="undefined"?window[npcId]:null);
+    if(mesh&&mesh.position)return {x:mesh.position.x,z:mesh.position.z};
+  }catch(e){/* ignore */}
+  return null;
+}
+
+/* ---- C9 地面闪光任务物件 ---- */
+const _questGround=[];
+function clearQuestGroundForQuest(questId){
+  for(let i=_questGround.length-1;i>=0;i--){
+    const g=_questGround[i];
+    if(questId&&g.questId!==questId)continue;
+    if(g.mesh&&g.mesh.parent)g.mesh.parent.remove(g.mesh);
+    if(g.mesh){
+      g.mesh.traverse(o=>{
+        if(o.geometry)o.geometry.dispose();
+        if(o.material&&!(o.material.userData&&o.material.userData.sharedMat)){
+          if(o.material.map)o.material.map.dispose();
+          o.material.dispose();
+        }
+      });
+    }
+    _questGround.splice(i,1);
+  }
+}
+function clearQuestGroundObjects(){clearQuestGroundForQuest(null);}
+function spawnQuestGroundForQuest(questId){
+  const q=getQuestDef(questId);
+  if(!q||questStatus(questId)!=="active")return;
+  const obj=getObjective0(q);
+  if(!obj||obj.type!=="interact")return;
+  clearQuestGroundForQuest(questId);
+  const pos=resolveArriveTarget(obj);
+  if(!pos||pos.x==null||isNaN(pos.x))return;
+  const scn=(typeof scene!=="undefined"&&scene)||(typeof sceneWorld!=="undefined"?sceneWorld:null);
+  if(!scn||typeof THREE==="undefined")return;
+  const g=new THREE.Group();
+  const col=(obj.color!=null?obj.color:0xffd76a);
+  const box=new THREE.Mesh(
+    new THREE.BoxGeometry(.9,.7,.9),
+    MAT.get("quest.crate",{color:0x6a4420,emissive:col,emissiveIntensity:.35,roughness:.7,flatShading:true})
+  );
+  box.position.y=.4; g.add(box);
+  const glow=new THREE.Mesh(
+    new THREE.SphereGeometry(.55,10,8),
+    new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.28,depthWrite:false})
+  );
+  glow.position.y=.9; g.add(glow);
+  const lab=makeLabel(obj.label||"任务物件",5.5,"#ffd76a","rgba(80,40,10,.85)");
+  lab.position.y=1.8; g.add(lab);
+  const gy=(typeof heightAt==="function"?heightAt(pos.x,pos.z):0)||0;
+  g.position.set(pos.x,gy,pos.z);
+  scn.add(g);
+  _questGround.push({questId,mesh:g,x:pos.x,z:pos.z,r:obj.r!=null?+obj.r:((BAL.quest&&BAL.quest.groundPickupR)||3.5),glow});
+}
+function spawnQuestGroundObjects(){
+  for(const q of QUESTS){
+    if(questStatus(q.id)==="active")spawnQuestGroundForQuest(q.id);
+  }
+}
+function tryQuestGroundInteract(){
+  if(!S||!S.started||!S.p||!S.p.alive||typeof player==="undefined"||!player)return false;
+  let best=null,bestD=Infinity;
+  for(const g of _questGround){
+    if(questStatus(g.questId)!=="active")continue;
+    const d=Math.hypot(player.position.x-g.x,player.position.z-g.z);
+    const R=g.r||3.5;
+    if(d<=R&&d<bestD){bestD=d;best=g;}
+  }
+  if(!best)return false;
+  const q=getQuestDef(best.questId);
+  announce(`调查 · ${(getObjective0(q)&&getObjective0(q).label)||"物件"}`);
+  log(`你调查了【${q.title}】的目标。`,"lg-sys");
+  completeQuestObjective(best.questId,1);
+  clearQuestGroundForQuest(best.questId);
+  if(typeof VFX!=="undefined"&&VFX.spawn)
+    VFX.spawn("loot_spark",{pos:player.position.clone().setY(1.2),color:0xffd76a,count:16,spread:1.2});
+  if(typeof SFX!=="undefined")SFX.play("pickup");
+  return true;
+}
+function tickQuestGroundFx(dt){
+  const t=(S&&S.t)||0;
+  for(const g of _questGround){
+    if(g.glow)g.glow.scale.setScalar(1+Math.sin(t*4)*.12);
+    if(g.mesh)g.mesh.rotation.y+=dt*.6;
+  }
+}
+
+/* ---- C9 任务日志 → 地图标记 ---- */
+function resolveQuestMapFocus(qOrId){
+  const q=typeof qOrId==="string"?getQuestDef(qOrId):qOrId;
+  if(!q)return null;
+  const st=questStatus(q.id);
+  const obj=getObjective0(q);
+  if(st==="active"&&obj){
+    if(obj.type==="arrive"||obj.type==="interact"){
+      const p=resolveArriveTarget(obj);
+      if(p)return {x:p.x,z:p.z,zone:q.zone,label:obj.label||q.title,kind:"objective"};
+    }
+  }
+  const turn=(st==="ready"||st==="active")?questTurnInId(q):null;
+  if(turn){
+    const p=resolveNpcWorldPos(turn);
+    if(p)return {x:p.x,z:p.z,zone:q.zone,label:questNpcLabel(turn),kind:"turnin"};
+  }
+  const giver=questGiverId(q);
+  if(giver){
+    const p=resolveNpcWorldPos(giver);
+    if(p)return {x:p.x,z:p.z,zone:q.zone,label:questNpcLabel(giver),kind:"giver"};
+  }
+  return null;
+}
+function setQuestMapFocus(qOrId){
+  const focus=resolveQuestMapFocus(qOrId);
+  if(!focus){log("该任务暂无地图坐标。","lg-sys");return null;}
+  S.questMapFocus={
+    x:focus.x,z:focus.z,zone:focus.zone||"mulgore",
+    label:focus.label||"任务",kind:focus.kind||"objective",
+    until:(S.t||0)+90
+  };
+  announce(`地图标记 · ${focus.label}`);
+  if(typeof toggleWorldMap==="function"&&typeof worldMapOpen==="function"&&!worldMapOpen())
+    toggleWorldMap(true);
+  if(typeof drawWorldMap==="function")drawWorldMap();
+  return S.questMapFocus;
+}
+function getQuestMapFocus(){
+  const f=S&&S.questMapFocus;
+  if(!f)return null;
+  if(f.until!=null&&(S.t||0)>f.until){S.questMapFocus=null;return null;}
+  return f;
 }
 
 function canUseQuestItem(itemId){
@@ -1467,10 +1782,11 @@ function startQuestEscort(questId,obj,opts){
 
 function tickQuestWorld(dt){
   if(!S||!S.started||typeof player==="undefined"||!player)return;
-  /* arrive */
+  tickQuestGroundFx(dt||0);
+  /* arrive / explore */
   for(const q of QUESTS){
     if(questStatus(q.id)!=="active")continue;
-    const obj=q.objectives&&q.objectives[0];
+    const obj=getObjective0(q);
     if(!obj||obj.type!=="arrive")continue;
     const t=resolveArriveTarget(obj);
     if(!t)continue;

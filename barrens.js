@@ -79,11 +79,15 @@ function registerBarrensInteract(mesh,open){
   _barrensInteractNpcs.push({mesh,open});
 }
 function registerBarrensQuestMarker(npcId,x,z,root){
-  const _npcMy=(BAL.npc&&BAL.npc.markerY)||5.15;
-  const excl=makeLabel("❗",2.6); excl.position.set(x,_npcMy,z); excl.visible=false; root.add(excl);
-  const q=makeLabel("❓",2.6); q.position.copy(excl.position); q.visible=false; root.add(q);
-  _barrensNpcMarkers.push({npcId,excl,q});
-  return {excl,q};
+  const _npcMy=(BAL.npc&&BAL.npc.markerY)||6.55;
+  const excl=makeQuestMark("offer");
+  excl.position.set(x,_npcMy,z); excl.visible=false; root.add(excl);
+  const exclGrey=makeQuestMark("low");
+  exclGrey.position.copy(excl.position); exclGrey.visible=false; root.add(exclGrey);
+  const q=makeQuestMark("turnin");
+  q.position.copy(excl.position); q.visible=false; root.add(q);
+  _barrensNpcMarkers.push({npcId,excl,exclGrey,q,x,z,baseY:_npcMy});
+  return {excl,exclGrey,q};
 }
 function placeBarrensTalkNpc(root,mesh,x,z,rotY,name,level,color,npcId,openFn){
   const ly=(BAL.npc&&BAL.npc.labelY)||4.05, lw=(BAL.npc&&BAL.npc.labelW)||6.2;
@@ -447,7 +451,8 @@ function buildBarrensZone(scn){
 
 function updateBarrensMarkers(){
   for(const m of _barrensNpcMarkers){
-    if(typeof npcHasQuestOffer==="function"){
+    if(typeof applyNpcQuestMarkerVisual==="function")applyNpcQuestMarkerVisual(m);
+    else if(typeof npcHasQuestOffer==="function"){
       m.excl.visible=npcHasQuestOffer(m.npcId);
       m.q.visible=npcHasQuestTurnIn(m.npcId);
     }else{
@@ -493,6 +498,7 @@ function nearBarrensNpc(r){
   return nearestBarrensNpcDist()<R;
 }
 function tryInteractBarrens(){
+  if(typeof tryQuestGroundInteract==="function"&&tryQuestGroundInteract())return;
   const near=pickNearestNpc(_barrensInteractNpcs);
   if(near)near.open();
 }

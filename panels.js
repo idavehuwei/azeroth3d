@@ -371,6 +371,13 @@ function questRewardLines(q){
       const it=ITEMS[id]; if(it)lines.push(`物品：${it.name}`);
     }
   }
+  if(Array.isArray(r.choice)&&r.choice.length){
+    const names=r.choice.map(ch=>{
+      const id=typeof ch==="string"?ch:ch.id;
+      return(ITEMS[id]&&ITEMS[id].name)||id;
+    }).filter(Boolean);
+    if(names.length)lines.push(`自选一件：${names.join(" / ")}`);
+  }
   return lines;
 }
 
@@ -412,10 +419,19 @@ function renderQuestDetail(e){
     html+=`<div class="ql-d-reward">${rewards.map(x=>`· ${x}`).join("<br>")}</div>`;
   }
   if(e.tip&&st!=="done")html+=`<div class="ql-d-tip">${e.tip}</div>`;
-  if(abandonable){
-    html+=`<div class="ql-acts"><button type="button" class="ql-abandon" data-qid="${e.id}">放弃任务</button></div>`;
+  html+=`<div class="ql-acts">`;
+  if(st!=="done"&&typeof setQuestMapFocus==="function"){
+    html+=`<button type="button" class="ql-map" data-qid="${e.id}">在地图上标记</button>`;
   }
+  if(abandonable){
+    html+=`<button type="button" class="ql-abandon" data-qid="${e.id}">放弃任务</button>`;
+  }
+  html+=`</div>`;
   detail.innerHTML=html;
+  const mapBtn=detail.querySelector(".ql-map");
+  if(mapBtn)mapBtn.addEventListener("click",()=>{
+    setQuestMapFocus(mapBtn.dataset.qid);
+  });
   const btn=detail.querySelector(".ql-abandon");
   if(btn)btn.addEventListener("click",()=>{
     const id=btn.dataset.qid;
@@ -439,20 +455,29 @@ function renderQuestLog(){
     return;
   }
   if(!_questLogSel||!list.some(e=>e.id===_questLogSel))_questLogSel=list[0].id;
-  let html="", lastZone="";
-  for(const e of list){
-    if(e.zone&&e.zone!==lastZone){
-      lastZone=e.zone;
-      html+=`<div class="ql-zone">${QUEST_ZONE_NAME[e.zone]||e.zone}</div>`;
+  const active=list.filter(e=>e.status!=="done");
+  const done=list.filter(e=>e.status==="done");
+  let html="";
+  const renderGroup=(title,arr)=>{
+    if(!arr.length)return;
+    html+=`<div class="ql-zone">${title}</div>`;
+    let lastZone="";
+    for(const e of arr){
+      if(e.zone&&e.zone!==lastZone){
+        lastZone=e.zone;
+        html+=`<div class="ql-zone-sub">${QUEST_ZONE_NAME[e.zone]||e.zone}</div>`;
+      }
+      const ic=e.status==="done"?"✔":e.status==="ready"?"❓":"❗";
+      const cls=["ql-row"];
+      if(e.id===_questLogSel)cls.push("sel");
+      if(e.status==="ready")cls.push("ready");
+      if(e.status==="done")cls.push("done-row");
+      html+=`<div class="${cls.join(" ")}" data-qid="${e.id}" role="button" tabindex="0">`+
+        `<span class="ql-ic">${ic}</span><span class="ql-nm">${e.title}</span></div>`;
     }
-    const ic=e.status==="done"?"✔":e.status==="ready"?"❓":"❗";
-    const cls=["ql-row"];
-    if(e.id===_questLogSel)cls.push("sel");
-    if(e.status==="ready")cls.push("ready");
-    if(e.status==="done")cls.push("done-row");
-    html+=`<div class="${cls.join(" ")}" data-qid="${e.id}" role="button" tabindex="0">`+
-      `<span class="ql-ic">${ic}</span><span class="ql-nm">${e.title}</span></div>`;
-  }
+  };
+  renderGroup(`进行中（${active.length}）`,active);
+  renderGroup(`已完成（${done.length}）`,done);
   listEl.innerHTML=html;
   listEl.querySelectorAll(".ql-row").forEach(row=>{
     row.addEventListener("click",()=>{

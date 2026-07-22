@@ -518,12 +518,14 @@ function _placeFriendlyNpc(mesh,x,z,rotY,name,level,color){
 }
 function registerNpcQuestMarker(npcId,x,z){
   const gy=_gy(x,z);
-  const excl=makeLabel("❗",2.6);
+  const excl=makeQuestMark("offer");
   excl.position.set(x,gy+_npcMy,z); excl.visible=false; sceneWorld.add(excl);
-  const q=makeLabel("❓",2.6);
+  const exclGrey=makeQuestMark("low");
+  exclGrey.position.copy(excl.position); exclGrey.visible=false; sceneWorld.add(exclGrey);
+  const q=makeQuestMark("turnin");
   q.position.copy(excl.position); q.visible=false; sceneWorld.add(q);
-  _mulgoreNpcMarkers.push({npcId,excl,q,x,z});
-  return {excl,q};
+  _mulgoreNpcMarkers.push({npcId,excl,exclGrey,q,x,z,baseY:gy+_npcMy});
+  return {excl,exclGrey,q};
 }
 /** 放置友好 NPC：姓名板 + 任务感叹号 + F 对话（缺一不可） */
 function placeTalkNpc(mesh,x,z,rotY,name,level,color,npcId,openFn){
@@ -673,7 +675,8 @@ placeTalkNpc(windfurySentinel,_pWfS.x,_pWfS.z,Math.PI*.5,T("poi.freewind")+"哨�
 
 function setMarker(){
   for(const m of _mulgoreNpcMarkers){
-    if(typeof npcHasQuestOffer==="function"){
+    if(typeof applyNpcQuestMarkerVisual==="function")applyNpcQuestMarkerVisual(m);
+    else if(typeof npcHasQuestOffer==="function"){
       m.excl.visible=npcHasQuestOffer(m.npcId);
       m.q.visible=npcHasQuestTurnIn(m.npcId);
     }else{
@@ -1066,7 +1069,11 @@ function appendNpcQuestButtons(npcId,btn,refreshFn,skipIds){
   const skip=skipIds||[];
   for(const q of questsForNpc(npcId)){
     if(skip.indexOf(q.id)>=0)continue;
-    if(canTurnInQuest(q.id))btn(`✦ 交任务：${q.title}`,()=>{turnInQuest(q.id);if(refreshFn)refreshFn();else closeDialogue();});
+    if(canTurnInQuest(q.id))btn(`✦ 交任务：${q.title}`,()=>{
+      const r=turnInQuest(q.id);
+      if(r==="choice")return;
+      if(refreshFn)refreshFn();else closeDialogue();
+    });
     else if(canAcceptQuest(q.id))btn(`✦ 接受：${q.title}`,()=>{
       acceptQuest(q.id);
       if(typeof updateNpcQuestMarkers==="function")updateNpcQuestMarkers();
@@ -1093,6 +1100,7 @@ function openNpcQuestDialogue(npcId,title,idleText){
 function tryInteract(){
   if(!S.started||!S.p.alive)return;
   if(tryLoot())return;
+  if(typeof tryQuestGroundInteract==="function"&&tryQuestGroundInteract())return;
   if(S.mode==="raid"&&S.b.canLeave&&exitPortal&&player.position.distanceTo(EXIT_PORTAL_POS)<BAL.zones.exitPortalEnterR){
     leaveRaid(); return;
   }

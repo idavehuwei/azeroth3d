@@ -453,7 +453,9 @@ const BALANCE={
       cliff_beacon_main:{xp:200,copper:80,kills:1},
       runner_main:{xp:280,copper:120,kills:1},
     },
-    trackerMax:5},
+    trackerMax:5,
+    activeMax:5,   /* C9：同时进行中（active+ready）上限 */
+    groundPickupR:3.5},
   /* 枯原荒地（STEP 18）· V2 半径再×2（相对 V1-B2） */
   barrens:{
     radius:368,
@@ -642,7 +644,9 @@ const BALANCE={
   },
   npcLevel:{hawkwind:10,grull:8,grayhorn:12,raoul:6,vera:5,whiterock:10,baine:40,bloodhoof_elder:35,tark:18,mull:16,haru:18,mara:14,kur:15,aska:20,cairne:60,stonetalon:40,seen:22,pala:20,hamya:24,magatha:50,runetotem:45,thunderhorn_guard:12,winterhoof_guard:10,windfury_sentinel:25,elder:40,vendor:25,varg:25,hunter:18,cook:20,spirit:55,crossroads:30,darsok:28,kag:26,mankrik:30,thom:27,kil:24,serra:25,lal:28,zinge:26,scriven:22,innkeeper:22,flightmaster:25,barrens_vendor:24,barrens_armor:24,ochre:28,ochre_guard:26,ochre_vendor:24,companion:null},
   /* 营地 NPC 外观：体型缩放 + 姓名板高度（相对缩放后头顶） */
-  npc:{scale:.72, labelY:4.05, markerY:5.15, labelW:6.2},
+  npc:{scale:.72, labelY:4.05, labelW:6.2,
+    /* 任务标记（魔兽式头顶 ! / ?）：更大、更高、轻弹跳 */
+    markerY:6.55, questMarkW:5.6, questMarkAspect:1.15, questMarkBob:.42},
   /* 经验与等级（STEP 3 / G2 / plan-V3 C6）：曲线来自 SIM_CONTENT.xp.XP_CURVE */
   levels:{max:20, xp:{quest:300, boss:2000, magmadar:800, barrensQuest:400, durotarQuest:380, cobrahn:900, verdan:1600, onyxia:2200, oggleflint:850, taragaman:1500},
     /* xpMax 在 core 末尾由 XP_CURVE 覆盖；此处为回退表 */
@@ -931,6 +935,66 @@ function makeLabel(text,w,color="#ffd9a0",glow="rgba(255,90,0,.95)"){
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),
     transparent:true,depthWrite:false}));
   sp.scale.set(w,w/4,1); return sp;
+}
+
+/**
+ * 魔兽式任务标记：金色 !（可接）/ ?（可交）/ 灰色 !（等级不够）
+ * kind: "offer" | "turnin" | "low"
+ */
+function makeQuestMark(kind){
+  const N=BAL.npc||{};
+  const w=N.questMarkW!=null?+N.questMarkW:5.6;
+  const aspect=N.questMarkAspect!=null?+N.questMarkAspect:1.15;
+  const cv=document.createElement("canvas");
+  cv.width=256; cv.height=320;
+  const cx=cv.getContext("2d");
+  const ch=kind==="turnin"?"?":"!";
+  const fill=kind==="low"?"#b0b0b0":"#ffcc00";
+  const glow=kind==="low"?"rgba(60,60,60,.85)":"rgba(255,170,0,1)";
+  cx.clearRect(0,0,256,320);
+  cx.textAlign="center";
+  cx.textBaseline="middle";
+  cx.font="900 210px Georgia,'Arial Black',Impact,sans-serif";
+  cx.lineJoin="round";
+  cx.lineCap="round";
+  /* 外发光 */
+  cx.shadowColor=glow;
+  cx.shadowBlur=kind==="low"?18:36;
+  /* 粗黑描边（魔兽剪影感） */
+  cx.strokeStyle=kind==="low"?"#2a2a2a":"#1a1200";
+  cx.lineWidth=28;
+  cx.strokeText(ch,128,175);
+  cx.shadowBlur=0;
+  /* 主体填充 */
+  cx.fillStyle=fill;
+  cx.fillText(ch,128,175);
+  /* 高光一点，更像经典黄标 */
+  if(kind!=="low"){
+    cx.fillStyle="rgba(255,255,210,.55)";
+    cx.font="900 210px Georgia,'Arial Black',Impact,sans-serif";
+    cx.save();
+    cx.beginPath();
+    cx.rect(40,40,100,140);
+    cx.clip();
+    cx.fillText(ch,128,175);
+    cx.restore();
+  }
+  const tex=new THREE.CanvasTexture(cv);
+  tex.needsUpdate=true;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({
+    map:tex, transparent:true, depthWrite:false, sizeAttenuation:true
+  }));
+  sp.scale.set(w,w*aspect,1);
+  sp.userData.questMark=kind||"offer";
+  sp.center.set(.5,.15); /* 锚点靠下，像钉在头顶上方 */
+  return sp;
+}
+
+/** 任务标记弹跳高度（世界 Y） */
+function questMarkBobY(baseY,t,phase){
+  const N=BAL.npc||{};
+  const amp=N.questMarkBob!=null?+N.questMarkBob:.42;
+  return baseY+Math.sin((t||0)*2.65+(phase||0))*amp;
 }
 
 /** 纯色精灵（姓名板血条） */

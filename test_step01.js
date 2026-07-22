@@ -225,6 +225,14 @@ assert(itemsSrc.includes("serpent_fang")&&itemsSrc.includes("moss_mantle"),"哀�
 const questsSrc=fs.readFileSync(path.join(__dirname,"quests.js"),"utf8");
 assert(html.includes('src="quests.js"'),"game.html 加载 quests.js");
 assert(questsSrc.includes("const QUESTS=")&&questsSrc.includes('id:"elder_boars"'),"quests.js 有 QUESTS 注册表");
+assert(questsSrc.includes("QUEST_DB"),"C9 QUEST_DB 别名");
+assert(coreSrc.includes("activeMax:5")&&questsSrc.includes("countActiveQuests"),"C9 同时任务上限");
+assert(questsSrc.includes("normalizeObjectiveType")&&questsSrc.includes("interact"),"C9 目标别名/interact");
+assert(questsSrc.includes("npcHasQuestOfferLowLevel")&&questsSrc.includes("applyNpcQuestMarkerVisual"),"C9 灰色感叹号");
+assert(questsSrc.includes("tryQuestGroundInteract")&&questsSrc.includes("spawnQuestGroundForQuest"),"C9 地面闪光物");
+assert(questsSrc.includes("openQuestRewardChoice"),"C9 职业自选奖励");
+assert(questsSrc.includes("setQuestMapFocus"),"C9 日志地图标记 API");
+assert(questsSrc.includes('id:"camp_cache"'),"C9 样例任务 camp_cache");
 assert(questsSrc.includes('id:"crossroads_trouble"')&&questsSrc.includes('id:"ragnaros_whisper"'),"主线贯通三章 id");
 assert(questsSrc.includes("function acceptQuest")&&questsSrc.includes("function turnInQuest"),"quests.js 有接交 API");
 assert(questsSrc.includes("function onQuestMobKill")&&questsSrc.includes("function onQuestBossKill"),"quests.js 有击杀钩子");
@@ -267,6 +275,7 @@ const saveSrc=fs.readFileSync(path.join(__dirname,"save.js"),"utf8");
 const panelsSrc=fs.readFileSync(path.join(__dirname,"panels.js"),"utf8");
 assert(saveSrc.includes("collectQuestSave")&&saveSrc.includes("applyQuestSave"),"save.js 读写 quests");
 assert(panelsSrc.includes("getQuestLogEntries"),"panels.js 多条目任务日志");
+assert(panelsSrc.includes("在地图上标记")&&panelsSrc.includes("进行中")&&panelsSrc.includes("已完成"),"C9 日志分组与地图按钮");
 assert(zonesSrc.includes("onQuestZoneEnter"),"zones.js 切入触发区域任务");
 
 /* STEP 23 专业技能冒烟 */

@@ -462,15 +462,15 @@ function drawCompassN(ctx,size){
 
 function drawQuestMark(ctx,u,v,kind){
   ctx.save();
-  ctx.font="bold 12px Georgia,serif";
+  ctx.font="bold 16px Georgia,'Arial Black',serif";
   ctx.textAlign="center";
   ctx.textBaseline="middle";
-  ctx.lineWidth=2;
+  ctx.lineWidth=3;
   ctx.strokeStyle="#1a1008";
-  ctx.fillStyle=kind==="turnin"?"#ffd060":"#ffe040";
+  ctx.fillStyle=kind==="turnin"?"#ffcc00":kind==="offerLow"?"#9a9a9a":"#ffcc00";
   const ch=kind==="turnin"?"?":"!";
-  ctx.strokeText(ch,u,v-9);
-  ctx.fillText(ch,u,v-9);
+  ctx.strokeText(ch,u,v-11);
+  ctx.fillText(ch,u,v-11);
   ctx.restore();
 }
 
@@ -567,6 +567,7 @@ function paintMap(ctx,size,opts){
     if(enrich&&BAL.map.miniQuest!==false&&lm.kind==="npc"&&typeof npcHasQuestOffer==="function"){
       if(npcHasQuestTurnIn(lm.id))qk="turnin";
       else if(npcHasQuestOffer(lm.id))qk="offer";
+      else if(typeof npcHasQuestOfferLowLevel==="function"&&npcHasQuestOfferLowLevel(lm.id))qk="offerLow";
     }
     if(qk)drawQuestMark(ctx,p.u,p.v,qk);
 
@@ -610,6 +611,25 @@ function paintMap(ctx,size,opts){
     ctx.beginPath(); ctx.arc(p.u,p.v,10,0,Math.PI*2); ctx.stroke();
     ctx.restore();
     drawPlayerArrow(ctx,p.u,p.v,playerMapFace(),"#7ab8ff");
+  }
+
+  /* C9：任务日志地图焦点 */
+  if(typeof getQuestMapFocus==="function"){
+    const f=getQuestMapFocus();
+    if(f&&(!f.zone||f.zone===(zone&&zone.id)||!zone)){
+      const fp=to(f.x,f.z);
+      ctx.save();
+      ctx.strokeStyle="#ffd76a";
+      ctx.fillStyle="rgba(255,215,100,.25)";
+      ctx.lineWidth=2;
+      const pulse=6+Math.sin(((typeof S!=="undefined"&&S.t)||0)*4)*2;
+      ctx.beginPath(); ctx.arc(fp.u,fp.v,pulse,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle="#ffe9a0";
+      ctx.font="9px 'Noto Sans SC','Microsoft YaHei',sans-serif";
+      ctx.textAlign="left";
+      ctx.fillText(f.label||"任务",fp.u+8,fp.v-4);
+      ctx.restore();
+    }
   }
 
   if(opts.compass)drawCompassN(ctx,size);
