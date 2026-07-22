@@ -373,7 +373,16 @@ function buildBarrensZone(scn){
 
   barrensSpirit=buildSpiritHealer();
   {const p=_bAt(50,29,-14,12);barrensSpiritLabel=placeBarrensTalkNpc(root,barrensSpirit,p.x,p.z,Math.PI*.6,
-    "灵魂医者 · 尘语",BAL.npcLevel.spirit,"#c8e8ff",null,()=>openBarrensSpiritDialogue());}
+    "灵魂医者 · 尘语",BAL.npcLevel.spirit,"#c8e8ff",null,()=>openBarrensSpiritDialogue());
+    /* STEP 17：十字路口墓地 + 哀嚎/奥妮门口墓地 */
+    placeProp(root,buildGraveyard(),p.x+3.2,p.z+2.0,Math.PI*.4);
+    registerGraveyard("barrens",p.x+3.2,p.z+2.0,"camp");
+    if(BAL.death&&BAL.death.spawns)BAL.death.spawns.barrens={x:p.x+3.2,z:p.z+2.0};
+  }
+  placeProp(root,buildGraveyard({size:.9}),BARRENS_PORTAL_S.x+7,BARRENS_PORTAL_S.z+10,0);
+  registerGraveyard("barrens",BARRENS_PORTAL_S.x+7,BARRENS_PORTAL_S.z+10,"portal_wailing");
+  placeProp(root,buildGraveyard({size:.9}),BARRENS_PORTAL_E.x-10,BARRENS_PORTAL_E.z+6,Math.PI/2);
+  registerGraveyard("barrens",BARRENS_PORTAL_E.x-10,BARRENS_PORTAL_E.z+6,"portal_onyxia");
 
   {const p=_bAt(52,30);
   crossroadsSentinel=tintNpcCloth(buildVendor(),0x6a5030);

@@ -194,6 +194,12 @@ function buildDurotarZone(scn){
   durotarSpiritLabel=makeNameplate("灵魂医者 · 焦风",BAL.npcLevel.spirit,{w:_npcLw+.2,friendly:true,color:"#a8d8ff",glow:"rgba(40,80,120,.9)"});
   durotarSpiritLabel.position.set(-8,_npcLy,22); root.add(durotarSpiritLabel);
   updateNameplateHp(durotarSpiritLabel,1,1);
+  /* STEP 17：哨站墓地 + 怒焰门口墓地 */
+  placeProp(root,buildGraveyard(),-5,24,Math.PI*.3);
+  registerGraveyard("durotar",-5,24,"camp");
+  if(BAL.death&&BAL.death.spawns)BAL.death.spawns.durotar={x:-5,z:24};
+  placeProp(root,buildGraveyard({size:.9}),DUROTAR_PORTAL_W.x+9,DUROTAR_PORTAL_W.z+6,0);
+  registerGraveyard("durotar",DUROTAR_PORTAL_W.x+9,DUROTAR_PORTAL_W.z+6,"portal_ragefire");
 
   durotarMarkerExcl=makeQuestMark("offer");
   durotarMarkerExcl.position.set(4,_npcMy,-4); root.add(durotarMarkerExcl);

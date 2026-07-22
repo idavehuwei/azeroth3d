@@ -50,6 +50,7 @@ function b64ToUtf8(b64){
 function collectSaveData(){
   const inWorld=S.mode==="world";
   const zoneId=normalizeSaveZoneId(S.zoneId||(S.mode==="raid"?"molten_core":"mulgore"));
+  const corpse=S.p.corpsePos;
   return {
     v:BAL.save.version,
     classKey:typeof talentClassKey==="function"?talentClassKey():"warrior",
@@ -78,6 +79,19 @@ function collectSaveData(){
     companion:typeof getCompanionSave==="function"?getCompanionSave():null,
     mats:typeof collectMatsSave==="function"?collectMatsSave():{},
     deeds:typeof collectDeedsSave==="function"?collectDeedsSave():{},
+    /* STEP 17：死亡 / 灵魂 / 虚弱 */
+    death:{
+      alive:!!S.p.alive,
+      ghost:!!S.p.ghost,
+      weaknessT:Math.max(0,+(S.p.weaknessT||0).toFixed(2)),
+      corpsePos:corpse?{
+        x:+corpse.x.toFixed(2),
+        y:+(corpse.y||0).toFixed(2),
+        z:+corpse.z.toFixed(2),
+        zone:corpse.zone||null,
+        face:+(corpse.face||0)
+      }:null
+    },
     savedAt:Date.now(),
     actionBar:(S.actionBar||[]).map(v=>v==null?null:(v|0)),
   };
@@ -179,6 +193,26 @@ function validateSave(raw){
     if(typeof raw.deeds.activeTitle==="string")deeds.activeTitle=raw.deeds.activeTitle;
     if(typeof raw.deeds.activeBorder==="string")deeds.activeBorder=raw.deeds.activeBorder;
   }
+  /* STEP 17：死亡态（可选；旧档无此字段） */
+  let death=null;
+  if(raw.death&&typeof raw.death==="object"){
+    let corpsePos=null;
+    const c=raw.death.corpsePos;
+    if(c&&typeof c==="object"&&typeof c.x==="number"&&typeof c.z==="number"&&isFinite(c.x)&&isFinite(c.z)){
+      corpsePos={
+        x:c.x, z:c.z,
+        y:typeof c.y==="number"&&isFinite(c.y)?c.y:0,
+        zone:typeof c.zone==="string"?c.zone:null,
+        face:typeof c.face==="number"&&isFinite(c.face)?c.face:0
+      };
+    }
+    death={
+      alive:!!raw.death.ghost?false:(raw.death.alive!==false),
+      ghost:!!raw.death.ghost,
+      weaknessT:Math.max(0,+(raw.death.weaknessT||0)),
+      corpsePos
+    };
+  }
   return {
     ok:true,
     data:{
@@ -195,6 +229,7 @@ function validateSave(raw){
       quests,
       mats,
       deeds,
+      death,
       zone:zoneId==="molten_core"?"raid":"world",
       zoneId,
       pos:{x,z},
@@ -334,7 +369,8 @@ function applySaveData(data){
   S.p.ghost=false; S.p.corpsePos=null; S.p.sitting=false; S.p.fallPeakY=null;
   if(typeof clearGhostForm==="function")clearGhostForm();
   S.p.rage=CLS.resStart;
-  S.p.hp=data.hp!=null?clamp(data.hp,1,S.p.hpMax):S.p.hpMax;
+  S.p.hp=data.hp!=null?clamp(data.hp,0,S.p.hpMax):S.p.hpMax;
+  if(S.p.hp<=0)S.p.hp=1;
   S.p.knock=null;
   S.p.bandaging=null; S.p.gathering=null;
   if(typeof clearAllBuffs==="function")clearAllBuffs("load");
@@ -347,6 +383,16 @@ function applySaveData(data){
 
   player.position.set(data.pos.x,0,data.pos.z);
   player.rotation.y=0;
+
+  /* STEP 17：恢复死亡 / 灵魂 / 虚弱 */
+  const death=data.death;
+  let restoredDeath=false;
+  if(death&&typeof restoreDeathFromSave==="function")
+    restoredDeath=!!restoreDeathFromSave(death);
+  if(!restoredDeath&&death&&death.weaknessT>0){
+    if(typeof applyBuff==="function")applyBuff("weakness",{duration:death.weaknessT});
+    else S.p.weaknessT=death.weaknessT;
+  }
 
   updateLevelUI();
   if(typeof updateSkillBarStats==="function")updateSkillBarStats();

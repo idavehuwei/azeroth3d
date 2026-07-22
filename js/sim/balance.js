@@ -220,11 +220,12 @@ const BALANCE={
     respawnT:3600,            /* C11：稀有默认 1 小时 */
     worldBossRespawnT:7200,   /* 世界 Boss 默认 2 小时 */
   },
-  /* 死亡与复活（STEP 15 / plan-V3 C10） */
+  /* 死亡与复活（STEP 15 / plan-V3 C10 / plan-v4 STEP 17） */
   death:{
     respawnHpPct:.5,          /* 复活时生命比例 */
     respawnResPct:.5,         /* 复活时资源（法力/怒气/能量）比例 */
-    weaknessT:45,             /* 医者远程复活：虚弱秒数（C10 加重） */
+    weaknessT:45,             /* 医者远程 / 副本释放：虚弱秒数 */
+    corpseWeaknessT:15,       /* 跑尸复活：较短虚弱（仍惩罚，但优于医者） */
     weaknessStatMul:.7,       /* 虚弱：伤害倍率叠乘 */
     moveSpeedMul:.7,          /* 虚弱移速倍率 */
     ghostSpeedMul:1.5,        /* 灵魂形态移速 */
@@ -233,6 +234,7 @@ const BALANCE={
     worldSpawn:{x:0,z:58},
     raidSpawn:{x:0,z:18},
     corpseDelay:1.2,
+    /* 回退落点；运行时优先 nearestGraveyardSpawn（墓地注册表） */
     spawns:{
       mulgore:{x:0,z:58},
       barrens:{x:-8,z:5},
@@ -621,7 +623,7 @@ const BALANCE={
     collision:true,
     collisionMargin:.45,
   },
-  /* 移动物理（plan-V3 C1 / C10 摔落） */
+  /* 移动物理（plan-V3 C1 / C10 摔落 / plan-v4 STEP 17 游泳） */
   move:{
     jumpVel:9.2,
     gravity:26,
@@ -629,6 +631,9 @@ const BALANCE={
     fallSafe:5,           /* 安全下落高度（米） */
     fallDmgPer:32,        /* 超出后每米摔伤 */
     fallDmgMaxPct:.65,    /* 单次摔伤不超过最大生命此比例 */
+    swimMul:.55,          /* 水中移速倍率 */
+    swimBlend:.55,        /* TERRAIN.lakeBlend.w 超过此值视为入水 */
+    oasisSwimR:14,        /* 贫瘠死水绿洲入水半径（装饰水面） */
   },
   /* 头顶姓名板（血条 + 等级）· plan-V2 R7 / plan-V3 C2 */
   nameplate:{

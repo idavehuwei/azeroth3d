@@ -292,10 +292,18 @@ assert(itemsSrc.includes('use:"drink"')&&itemsSrc.includes("spring_water"),"item
 assert(buffsSrc.includes("drinking"),"buffs 含饮水");
 assert(raidSrc.includes("enterGhostForm")&&raidSrc.includes("tryResurrectAtCorpse")&&raidSrc.includes("resurrectAtSpiritHealer"),"raid 含灵魂/跑尸/医者复活");
 assert(raidSrc.includes("tickGhostWorld")&&raidSrc.includes("spawnCorpseMark"),"raid 含尸体标记与幽灵 tick");
+assert(raidSrc.includes("restoreDeathFromSave")&&raidSrc.includes("nearestGraveyardSpawn"),"STEP 17 读档死亡态 + 最近墓地");
+assert(coreSrc.includes("corpseWeaknessT")&&coreSrc.includes("swimMul"),"BALANCE 含跑尸短虚弱与游泳");
+assert(fs.existsSync(path.join(__dirname,"test_death.js")),"test_death.js 存在");
 assert(mainSrc.includes("tickGhostWorld")&&mainSrc.includes("fallPeakY")&&mainSrc.includes("S.p.ghost"),"main 驱动幽灵移动/摔落");
+assert(mainSrc.includes("playerInWater"),"main 含游泳判定");
+assert(fs.readFileSync(path.join(__dirname,"models.js"),"utf8").includes("buildGraveyard"),"models 含墓地石碑");
 assert(mainSrc.includes("S.p.drinking")&&combatSrc.includes("cancelConsume"),"进食饮水受击/主循环");
 assert(html.includes("ghostBanner")&&html.includes("corpseHint")&&html.includes("ghost-mode"),"HUD 含灵魂横幅/尸体提示/灰阶");
+assert(html.includes('id="btnReleaseRaid"')&&/btnReleaseRaid[^>]*>释放灵魂</.test(html),"副本死亡主按钮=释放灵魂");
+assert(fs.readFileSync(path.join(__dirname,"save.js"),"utf8").includes("death:{")&&fs.readFileSync(path.join(__dirname,"save.js"),"utf8").includes("restoreDeathFromSave"),"存档含死亡态");
 assert(worldSrc.includes("在此复活（虚弱）"),"灵魂医者远程虚弱复活");
+assert(worldSrc.includes("registerGraveyard"),"莫高雷注册墓地");
 
 assert(barrensSrc.includes("nearBarrensNpc")&&mainSrc.includes("nearBarrensNpc"),"贫瘠全量 NPC F 提示");
 assert(questsSrc.includes('id:"crossroads_trouble"')&&questsSrc.includes('T("mob.quilboar")')&&questsSrc.includes("darsok"),"贫瘠刺背威胁主线");

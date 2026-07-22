@@ -4,9 +4,10 @@
    [依赖] THREE · core.js（rand）· palette.js（PALETTE · MAT）· rig.js（assembleHumanoidRig）
    [导出] buildHumanoid buildWeapon setWeapon HUMANOIDS WEAPONS CLASS_LOOK buildFromClassLook
           buildPlayer buildMage buildArcher buildPriest buildShaman buildRogue buildBoss buildOnyxia
-          buildElder buildVendor buildSpiritHealer tintNpcCloth
+          buildElder buildVendor buildSpiritHealer buildGraveyard tintNpcCloth
           buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem buildMarketStall buildCratePile
-          BUILD_PAL placeProp（plan-v1 · V1-A1；R3 升级 tent/totem/campfire）
+          BUILD_PAL placeProp GRAVEYARDS registerGraveyard nearestGraveyardSpawn
+          （plan-v1 · V1-A1；R3 升级 tent/totem/campfire；STEP 17 墓地）
    ------------------------------------------------------------
    配方表：职业 HUMANOIDS / 武器 WEAPONS / NPC · Boss · 建筑。
    野怪族群工厂见 creatures.js（plan-V2 · R6）。
@@ -651,6 +652,62 @@ function buildSpiritHealer(){
     else if(h===0xe8e0c8){o.material.color.setHex(0xffffff);o.material.emissive=new THREE.Color(0x88aacc);o.material.emissiveIntensity=.25;}
   });
   return g;
+}
+
+/* 墓地石碑 + 幽光（plan-v4 STEP 17） */
+function buildGraveyard(cfg){
+  const c=Object.assign({size:1},cfg||{});
+  const g=new THREE.Group();
+  const stone=MAT.get("stone.grave",{color:0x6a7080,roughness:.95,flatShading:true});
+  const slab=new THREE.Mesh(new THREE.BoxGeometry(1.2,.14,1.7),stone);
+  slab.position.y=.07; g.add(slab);
+  const upright=new THREE.Mesh(new THREE.BoxGeometry(.72,1.55,.24),stone);
+  upright.position.y=.88; g.add(upright);
+  const cap=new THREE.Mesh(new THREE.BoxGeometry(.85,.22,.32),stone);
+  cap.position.y=1.72; g.add(cap);
+  const glow=new THREE.Mesh(
+    new THREE.SphereGeometry(.5,10,8),
+    new THREE.MeshBasicMaterial({color:0x88bbff,transparent:true,opacity:.38,depthWrite:false})
+  );
+  glow.position.set(0,1.35,.55); g.add(glow);
+  const ring=new THREE.Mesh(
+    new THREE.RingGeometry(.95,1.25,20),
+    new THREE.MeshBasicMaterial({color:0x6688cc,transparent:true,opacity:.42,side:THREE.DoubleSide,depthWrite:false})
+  );
+  ring.rotation.x=-Math.PI/2; ring.position.y=.04; g.add(ring);
+  g.scale.setScalar(c.size);
+  g.userData.building="graveyard";
+  g.traverse(o=>{
+    if(!o.isMesh)return;
+    if(o.material&&o.material.transparent){o.castShadow=false;o.receiveShadow=false;}
+    else{o.castShadow=true;o.receiveShadow=true;}
+  });
+  return g;
+}
+
+/** 灵魂落点注册表（营地 / 副本门口）；releaseSpirit 选最近 */
+const GRAVEYARDS=[];
+function registerGraveyard(zoneId,x,z,kind){
+  const k=kind||"camp";
+  for(let i=GRAVEYARDS.length-1;i>=0;i--){
+    if(GRAVEYARDS[i].zoneId===zoneId&&GRAVEYARDS[i].kind===k)GRAVEYARDS.splice(i,1);
+  }
+  GRAVEYARDS.push({zoneId,x:+x,z:+z,kind:k});
+}
+function nearestGraveyardSpawn(zoneId,fromX,fromZ){
+  const zid=zoneId||"mulgore";
+  const list=GRAVEYARDS.filter(g=>g.zoneId===zid);
+  if(!list.length){
+    return (typeof BAL!=="undefined"&&BAL.death&&BAL.death.spawns&&BAL.death.spawns[zid])
+      ||(BAL.death&&BAL.death.worldSpawn)||{x:0,z:0};
+  }
+  let best=list[0], bestD=Infinity;
+  const hasFrom=fromX!=null&&fromZ!=null&&isFinite(fromX)&&isFinite(fromZ);
+  for(const g of list){
+    const d=hasFrom?Math.hypot(fromX-g.x,fromZ-g.z):0;
+    if(d<bestD){bestD=d;best=g;}
+  }
+  return {x:best.x,z:best.z,kind:best.kind};
 }
 
 /* ============================================================

@@ -28,7 +28,7 @@
           save.js 运行时（启程 / 继续冒险）
           map.js 运行时（updateMinimap）
           debug.js 运行时（tickDebugHud · 在 script 链末尾加载）
-   [导出] clampArena tick chosenClass toggleFps playerGroundY resolveCamCollision getMoveIntent(via combat)
+   [导出] clampArena tick chosenClass toggleFps playerGroundY playerInWater resolveCamCollision getMoveIntent(via combat)
    ============================================================ */
 "use strict";
 /* ============================================================
@@ -49,6 +49,22 @@ function playerGroundY(x,z){
     return heightAt(x,z);
   }
   return 0;
+}
+/** STEP 17：是否在可游泳水面（莫高雷湖 / 贫瘠绿洲） */
+function playerInWater(){
+  if(S.mode!=="world"||!player)return false;
+  const px=player.position.x, pz=player.position.z;
+  const th=(BAL.move&&BAL.move.swimBlend!=null)?BAL.move.swimBlend:.55;
+  if(typeof TERRAIN!=="undefined"&&typeof TERRAIN.lakeBlend==="function"){
+    if(TERRAIN.lakeBlend(px,pz).w>th)return true;
+  }
+  const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():S.zoneId;
+  if(zid==="barrens"&&typeof BARRENS!=="undefined"&&BARRENS.deadOasis){
+    const o=BARRENS.deadOasis;
+    const r=(BAL.move&&BAL.move.oasisSwimR!=null)?BAL.move.oasisSwimR:14;
+    if(Math.hypot(px-o.x,pz-o.z)<r)return true;
+  }
+  return false;
 }
 let _camRay=null,_camFrom=null,_camTo=null,_camDir=null,_camMeshes=null;
 function camDesiredOffset(yaw,pitch,dist){
@@ -576,6 +592,9 @@ function tick(){
       if(S.p.weaknessT<=0)log("虚弱效果结束。","lg-sys");
     }
     if(S.p.ghost)moveSpd*=(BAL.death.ghostSpeedMul!=null?BAL.death.ghostSpeedMul:1.5);
+    /* STEP 17：游泳减速（石牛湖 / 死水绿洲） */
+    if(!S.p.ghost&&typeof playerInWater==="function"&&playerInWater())
+      moveSpd*=(BAL.move&&BAL.move.swimMul!=null?BAL.move.swimMul:.55);
     /* 进食 / 饮水 / 包扎 / 采集：移动打断（STEP 13 / C10） */
     if(S.p.alive&&(S.p.eating||S.p.drinking||S.p.bandaging||S.p.gathering)&&ml>.12&&!S.p.knock&&!S.p.fear)cancelConsume();
     /* Track E：施法条移动打断 */

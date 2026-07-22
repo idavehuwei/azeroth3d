@@ -692,11 +692,23 @@ function updateNpcQuestMarkers(){
 /* 灵魂医者（STEP 15） */
 const spiritHealer=buildSpiritHealer();
 spiritHealer.position.set(_pBaine.x,_gy(_pBaine.x,_pBaine.z+24),_pBaine.z+24); spiritHealer.rotation.y=Math.PI; sceneWorld.add(spiritHealer);
-const spiritLabel=makeNameplate("灵魂医者 · 风语",BAL.npcLevel.spirit,{w:_npcLw+.2,friendly:true,color:"#c8e8ff",glow:"rgba(80,160,255,.95)"});
+const spiritLabel=makeNameplate("灵魂医者 · 风语",BAL.npcLevel.spirit,{w:_npcLw+.2,friendly:true,color:"#a8d8ff",glow:"rgba(40,80,120,.9)"});
 spiritLabel.position.set(_pBaine.x,_gy(_pBaine.x,_pBaine.z+24)+_npcLy,_pBaine.z+24); sceneWorld.add(spiritLabel);
 updateNameplateHp(spiritLabel,1,1);
 registerNpcInteract(spiritHealer,()=>openSpiritDialogue());
 function spiritDist(){return Math.hypot(player.position.x-spiritHealer.position.x,player.position.z-spiritHealer.position.z);}
+
+/* STEP 17：营地墓地（医者旁）+ 熔火门口墓地 */
+(function placeMulgoreGraveyards(){
+  const sx=spiritHealer.position.x-3.5, sz=spiritHealer.position.z+2.5;
+  placeProp(sceneWorld,buildGraveyard(),sx,sz,Math.PI*.2);
+  registerGraveyard("mulgore",sx,sz,"camp");
+  const gx=PORTAL_POS.x+6, gz=PORTAL_POS.z+11;
+  placeProp(sceneWorld,buildGraveyard({size:.95}),gx,gz,-Math.PI*.15);
+  registerGraveyard("mulgore",gx,gz,"portal");
+  if(BAL.death&&BAL.death.spawns)BAL.death.spawns.mulgore={x:sx,z:sz};
+  if(BAL.death)BAL.death.worldSpawn={x:sx,z:sz};
+})();
 
 /* ---------------- 赤蹄村 + 岩蹄 + 雷岩台建筑 ---------------- */
 (function placeMulgoreCampBuildings(){
