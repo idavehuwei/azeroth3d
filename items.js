@@ -14,6 +14,7 @@
           normalizeEquipment reclaimUnequippedGear
           rollLoot rollMobLoot questLootNeedsFromTable dropLoot updateDrops nearestDrop
           tryLoot removeDropOf logLoot DROPS
+          openLootPanel closeLootPanel lootPanelOpen renderLootPanel
           equipItem unequipItem toggleBag ensureBagOpen renderBag applyEquipStats
           getPlayerWeaponRange getPlayerAutoSpeed bagOpen
           itemTitle showItemTip hideItemTip bindItemTip itemTipHtml
@@ -526,6 +527,7 @@ function nearestDrop(r){
   return hit;
 }
 function removeDrop(d){
+  if(_lootDrop===d)closeLootPanel();
   d.scn.remove(d.grp);
   const i=DROPS.indexOf(d); if(i>=0)DROPS.splice(i,1);
 }
@@ -536,12 +538,94 @@ function removeDropOf(owner){
 }
 
 /* ---------------- 拾取（F 键 → tryInteract 优先调这里） ---------------- */
+let _lootDrop=null;
+function lootPanelOpen(){
+  const p=$("#lootPanel");
+  return !!(p&&p.style.display==="block");
+}
+function closeLootPanel(){
+  _lootDrop=null;
+  const p=$("#lootPanel");
+  if(p){p.style.display="none";p.setAttribute("aria-hidden","true");}
+  if(typeof hideTip==="function")hideTip();
+}
+function takeLootItem(d,idx){
+  if(!d||!d.items||idx<0||idx>=d.items.length)return false;
+  if(S.inv.length>=BAL.bag.size){log("背包已满！（B 键打开背包整理）","lg-sys");return false;}
+  const it=d.items[idx];
+  S.inv.push(it.id);
+  fct(d.grp.position.clone().setY(2),`获得【${it.name}】`,"#ffd76a",16);
+  logLoot(it);
+  d.items.splice(idx,1);
+  SFX.play("pickup");
+  if(typeof VFX!=="undefined")VFX.spawn("loot_spark",{pos:d.grp.position.clone().setY(1)});
+  renderBag();
+  if(typeof refreshDeliverObjectives==="function")refreshDeliverObjectives({noSave:true});
+  if(!d.items.length){
+    removeDrop(d);
+    if(d.onLooted)d.onLooted();
+    closeLootPanel();
+    if(typeof saveGame==="function")saveGame(true);
+    return true;
+  }
+  renderLootPanel();
+  if(typeof saveGame==="function")saveGame(true);
+  return true;
+}
+function takeAllLoot(d){
+  if(!d||!d.items||!d.items.length){closeLootPanel();return false;}
+  if(S.inv.length+d.items.length>BAL.bag.size){
+    log("背包空间不足，无法全部拾取。","lg-sys");
+    /* 尽量逐件拾取到满 */
+    while(d.items.length&&S.inv.length<BAL.bag.size)takeLootItem(d,0);
+    return true;
+  }
+  while(d.items.length){
+    if(!takeLootItem(d,0))break;
+  }
+  return true;
+}
+function renderLootPanel(){
+  const list=$("#lootList"); if(!list)return;
+  list.innerHTML="";
+  const d=_lootDrop;
+  if(!d||!d.items||!d.items.length){closeLootPanel();return;}
+  d.items.forEach((it,idx)=>{
+    const q=QUALITY[it.quality]||QUALITY.common;
+    const row=document.createElement("div");
+    row.className="loot-row";
+    row.style.borderColor=q.color;
+    const img=document.createElement("img");
+    img.src=Icons.get(it.icon,q.color); img.style.borderColor=q.color; img.alt="";
+    const name=document.createElement("span");
+    name.style.color=q.color; name.style.flex="1"; name.textContent=it.name;
+    row.appendChild(img); row.appendChild(name);
+    row.addEventListener("click",()=>takeLootItem(d,idx));
+    if(typeof bindTipHtml==="function")bindTipHtml(row,()=>itemTipHtml(it,"点击拾取"));
+    list.appendChild(row);
+  });
+}
+function openLootPanel(d){
+  if(!d||!d.items||!d.items.length)return false;
+  _lootDrop=d;
+  const p=$("#lootPanel"); if(!p)return false;
+  p.style.display="block";
+  p.setAttribute("aria-hidden","false");
+  renderLootPanel();
+  return true;
+}
 function tryLoot(){
   const d=nearestDrop(BAL.loot.pickupR);
   if(!d)return false;
+  /* Track E：默认打开拾取窗；BAL.loot.panel===false 时一键真空 */
+  if(BAL.loot&&BAL.loot.panel!==false){
+    if(_lootDrop===d&&lootPanelOpen())return true;
+    openLootPanel(d);
+    return true;
+  }
   if(S.inv.length+d.items.length>BAL.bag.size){log("背包已满！（B 键打开背包整理）","lg-sys");return true;}
   for(const it of d.items){
-    S.inv.push(it.id);          /* 纯数据入包，STEP 4 背包 UI 消费 */
+    S.inv.push(it.id);
     fct(d.grp.position.clone().setY(2),`获得【${it.name}】`,"#ffd76a",16);
     logLoot(it);
   }
@@ -932,3 +1016,10 @@ function renderBag(){
 /* 关闭按钮 / 移动端背包按钮 */
 $("#bagClose").addEventListener("click",toggleBag);
 $("#bagBtn").addEventListener("pointerdown",()=>toggleBag());
+(function wireLootPanel(){
+  const close=()=>closeLootPanel();
+  const all=()=>{if(_lootDrop)takeAllLoot(_lootDrop);};
+  const c=$("#lootClose"); if(c)c.addEventListener("click",close);
+  const c2=$("#lootCloseBtn"); if(c2)c2.addEventListener("click",close);
+  const a=$("#lootAll"); if(a)a.addEventListener("click",all);
+})();

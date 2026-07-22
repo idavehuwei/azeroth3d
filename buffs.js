@@ -5,9 +5,10 @@
    本模块：applyBuff 写入字段 · tickBuffs 同步 HUD · 磨刀石倒计时迁入此处
    ------------------------------------------------------------
    [依赖] core.js（BAL $）· combat.js（S）· icons.js（Icons）
+          js/ui/tooltip.js 运行时（bindTipHtml）
           运行时：clearShieldVisual · log
    [导出] BUFF_DEFS applyBuff removeBuff hasBuff tickBuffs
-          renderBuffHud syncBuffsFromLegacy clearAllBuffs
+          renderBuffHud syncBuffsFromLegacy clearAllBuffs buffTipHtml
    ============================================================ */
 "use strict";
 
@@ -177,6 +178,18 @@ function tickBuffs(dt){
   renderBuffHud();
 }
 
+function buffTipHtml(b){
+  if(!b)return "";
+  const kind=b.kind==="debuff"?"减益":"增益";
+  const col=b.kind==="debuff"?"#ff8a7a":"#ffd76a";
+  const sec=Math.max(0,b.t||0);
+  let html=`<div class="it-name" style="color:${col}">${b.name||b.id}</div>`;
+  html+=`<div class="it-meta">${kind} · 剩余 ${sec.toFixed(1)}s</div>`;
+  if(b.absorb!=null&&b.absorb>0)
+    html+=`<div class="it-line it-stat">吸收伤害 ${Math.round(b.absorb)}</div>`;
+  if(b.desc)html+=`<div class="it-line">${b.desc}</div>`;
+  return html;
+}
 function renderBuffHud(){
   const row=typeof $==="function"?$("#buffRow"):document.getElementById("buffRow");
   if(!row)return;
@@ -190,7 +203,6 @@ function renderBuffHud(){
     const el=document.createElement("div");
     el.className="buff-ic"+(b.kind==="debuff"?" debuff":" buff");
     const sec=Math.max(1,Math.ceil(b.t));
-    el.title=(b.name||b.id)+" · "+sec+"s"+(b.absorb!=null?" · 吸收 "+Math.round(b.absorb):"");
     const img=document.createElement("img");
     img.alt=b.name||"";
     const border=b.kind==="debuff"?"#c04040":"#e8b34a";
@@ -206,6 +218,8 @@ function renderBuffHud(){
       st.textContent=String(Math.round(b.absorb));
       el.appendChild(st);
     }
+    if(typeof bindTipHtml==="function")bindTipHtml(el,()=>buffTipHtml(b));
+    else el.title=(b.name||b.id)+" · "+sec+"s";
     row.appendChild(el);
   }
 }

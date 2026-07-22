@@ -345,6 +345,19 @@ assert(html.includes("worldMapTitle")&&html.includes("ui.world_map"),"世界地�
 assert(coreSrc.includes("minLevel:6")&&barrensSrc.includes("levelRange:[6,13]"),"C13 贫瘠 6–13 入口/等级带");
 assert(coreSrc.includes("miniGather")&&coreSrc.includes("zoneSplash"),"BALANCE.map/zoneSplash C13 参数");
 
+/* plan-V3 · Track E UI 收口 */
+assert(html.includes('id="pCastShell"')&&html.includes('id="pCastFill"'),"Track E 玩家施法条 DOM");
+assert(html.includes('id="lootPanel"')&&html.includes('id="lootAll"'),"Track E 拾取窗 DOM");
+assert(html.includes("fct-miss")&&html.includes("fct-dodge")&&html.includes("fct-parry"),"Track E 飘字分型 CSS");
+assert(combatSrc.includes("function beginPlayerCast")&&combatSrc.includes("function tickPlayerCast"),"combat 玩家读条");
+assert(combatSrc.includes("function cancelPlayerCast")&&mainSrc.includes("tickPlayerCast"),"读条打断 + main tick");
+assert(combatSrc.includes('kind:"miss"')||combatSrc.includes('kind:outcome'),"fct miss/dodge 分型接线");
+assert(coreSrc.includes("moveInterrupt")&&coreSrc.includes("panel:true"),"BALANCE.cast / loot.panel");
+assert(panelsSrc.includes("function closeTopHudPanel"),"Esc 逐层 closeTopHudPanel");
+assert(combatSrc.includes("closeTopHudPanel"),"combat Esc 调 closeTopHudPanel");
+assert(itemsSrc.includes("function openLootPanel")&&itemsSrc.includes("function closeLootPanel"),"items 拾取窗 API");
+assert(buffsSrc.includes("buffTipHtml")&&buffsSrc.includes("bindTipHtml"),"Buff 金边 tip");
+
 assert(mapSrc.includes("Math.PI-")&&mapSrc.includes("playerMapFace"),"小地图箭头对齐角色面向");
 assert(coreSrc.includes("miniRadius:")||mapSrc.includes("miniRadius"),"小地图本地视野半径");
 assert(mapSrc.includes("collectNearbyMobs")&&mapSrc.includes("drawQuestMark"),"小地图含野怪与任务标记");

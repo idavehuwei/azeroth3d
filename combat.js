@@ -26,6 +26,7 @@
           resolveSkillTarget cycleHostileTargets listHostileTargets targetDisplayInfo
           firePlayerShot
           useSkill hitEntity dmgBoss pickTarget firePlayerShot playerHit
+          beginPlayerCast cancelPlayerCast tickPlayerCast finishSkillUse
           isTargetAlive setCurrentTarget getFocusTarget clearCurrentTargetIf
           resolveSkillTarget cycleHostileTargets
           gainXP updateLevelUI gainCopper spendCopper formatCopperText updateGoldUI
@@ -354,10 +355,18 @@ function fct(worldPos,text,color,size=17,opts){
   v3.copy(worldPos).project(camera);
   if(v3.z>1)return;
   const el=document.createElement("div");
-  el.className="fct"+(opts&&opts.crit?" fct-crit":"");
+  const kind=opts&&opts.kind;
+  let cls="fct";
+  if(opts&&opts.crit)cls+=" fct-crit";
+  if(kind==="miss")cls+=" fct-miss";
+  else if(kind==="dodge")cls+=" fct-dodge";
+  else if(kind==="parry")cls+=" fct-parry";
+  else if(kind==="glancing")cls+=" fct-glancing";
+  el.className=cls;
   el.style.left=((v3.x*.5+.5)*innerWidth+rand(-18,18))+"px";
   el.style.top =((-v3.y*.5+.5)*innerHeight)+"px";
-  el.style.color=color;
+  if(color&&!kind)el.style.color=color;
+  else if(color&&(kind==="hit"||!kind))el.style.color=color;
   const sz=opts&&opts.crit?Math.round(size*((BAL.vfx&&BAL.vfx.critSizeMul)||1.45)):size;
   el.style.fontSize=sz+"px";
   el.textContent=opts&&opts.crit?`${text}!`:text;
@@ -433,6 +442,7 @@ addEventListener("keydown",e=>{
   if(e.shiftKey&&k==="z"&&typeof toggleDeedsPanel==="function"){e.preventDefault();toggleDeedsPanel();}
   if(e.shiftKey&&k==="i"&&typeof toggleDungeonFinderPanel==="function"){e.preventDefault();toggleDungeonFinderPanel();}
   if(e.key==="Escape"){
+    if(typeof closeTopHudPanel==="function"&&closeTopHudPanel())return;
     if(typeof worldMapOpen==="function"&&worldMapOpen()){closeWorldMap();return;}
     if(typeof anyHudPanelOpen==="function"&&anyHudPanelOpen()){
       if(typeof closeAllHudPanels==="function")closeAllHudPanels();
@@ -615,6 +625,8 @@ function getSkillBal(balKey){
 }
 function useSkill(i){
   if(!S.started||S.over||!S.p.alive)return;
+  if(S.p.ghost)return;
+  if(S.p.casting){log("你正在施法。","lg-sys");return;}
   const skillIdx=getBarSkillIndex(i);
   if(skillIdx==null)return;
   const sk=SKILLS[skillIdx]; if(!sk)return;
@@ -625,17 +637,81 @@ function useSkill(i){
   }
   if(S.cds[skillIdx]>0)return;
   if(S.p.rage<sk.rage){log(`${CLS.resName}不足！（${sk.name} 需要 ${sk.rage} ${CLS.resName}）`,"lg-sys");return;}
-  if(sk.fn()){
-    S.p.rage-=sk.rage;
-    S.cds[skillIdx]=typeof getSkillCd==="function"?getSkillCd(skillIdx):sk.cd;
-    const g=typeof gcdDuration==="function"?gcdDuration(playerResKind()):1.5;
-    S.gcd=g;
-    if(playerResKind()==="mana"&&typeof applyManaSpend==="function")applyManaSpend(S.res);
-    if(typeof markCombat==="function")markCombat(S.res);
-    if(sk.combo&&typeof addComboPoints==="function"){
-      const n=addComboPoints(S.res,sk.combo|0);
-      if(n>0)log(`连击点 · ${n}`,"lg-me");
-    }
+  /* Track E：读条技能先进入 casting，完成后再结算 */
+  const castDur=sk.cast>0?+sk.cast:0;
+  if(castDur>0){
+    beginPlayerCast(sk,skillIdx,i,castDur);
+    return;
+  }
+  finishSkillUse(sk,skillIdx);
+}
+function beginPlayerCast(sk,skillIdx,barSlot,dur){
+  const channel=!!sk.channel;
+  S.p.casting={
+    sk, skillIdx, barSlot,
+    name:sk.name, t:0, dur,
+    channel,
+    interruptible:true,
+  };
+  showPlayerCastUi(sk.name,channel);
+  log(`开始施放【${sk.name}】…`,"lg-me");
+}
+function showPlayerCastUi(name,channel){
+  const shell=$("#pCastShell"), fill=$("#pCastFill"), tx=$("#pCastText");
+  if(!shell)return;
+  shell.classList.add("show");
+  shell.classList.toggle("channel",!!channel);
+  shell.setAttribute("aria-hidden","false");
+  if(fill)fill.style.transform="scaleX(0)";
+  if(tx)tx.textContent=name||"施法";
+}
+function hidePlayerCastUi(){
+  const shell=$("#pCastShell");
+  if(!shell)return;
+  shell.classList.remove("show","channel");
+  shell.setAttribute("aria-hidden","true");
+}
+function finishSkillUse(sk,skillIdx){
+  if(!sk||!sk.fn)return false;
+  if(!sk.fn())return false;
+  S.p.rage-=sk.rage;
+  S.cds[skillIdx]=typeof getSkillCd==="function"?getSkillCd(skillIdx):sk.cd;
+  const g=typeof gcdDuration==="function"?gcdDuration(playerResKind()):1.5;
+  S.gcd=g;
+  if(playerResKind()==="mana"&&typeof applyManaSpend==="function")applyManaSpend(S.res);
+  if(typeof markCombat==="function")markCombat(S.res);
+  if(sk.combo&&typeof addComboPoints==="function"){
+    const n=addComboPoints(S.res,sk.combo|0);
+    if(n>0)log(`连击点 · ${n}`,"lg-me");
+  }
+  return true;
+}
+function cancelPlayerCast(reason){
+  if(!S.p.casting)return false;
+  const nm=S.p.casting.name||"法术";
+  S.p.casting=null;
+  hidePlayerCastUi();
+  if(reason==="move")log(`移动打断了【${nm}】。`,"lg-sys");
+  else if(reason==="hit")log(`受击打断了【${nm}】。`,"lg-sys");
+  else log(`【${nm}】被打断。`,"lg-sys");
+  return true;
+}
+function tickPlayerCast(dt){
+  const c=S.p&&S.p.casting;
+  if(!c){hidePlayerCastUi();return;}
+  if(!S.p.alive||S.over){cancelPlayerCast("death");return;}
+  c.t+=dt;
+  const k=Math.min(1,c.t/c.dur);
+  const fill=$("#pCastFill"), tx=$("#pCastText"), shell=$("#pCastShell");
+  if(shell&&!shell.classList.contains("show"))showPlayerCastUi(c.name,c.channel);
+  if(fill)fill.style.transform=`scaleX(${c.channel?1-k:k})`;
+  if(tx)tx.textContent=`${c.name}  ${Math.max(0,c.dur-c.t).toFixed(1)}`;
+  if(c.t>=c.dur){
+    const sk=c.sk, idx=c.skillIdx;
+    S.p.casting=null;
+    hidePlayerCastUi();
+    if(S.p.rage<(sk.rage|0)){log(`${CLS.resName}不足，施法失败。`,"lg-sys");return;}
+    finishSkillUse(sk,idx);
   }
 }
 /* bossTargetable 在 raid.js 定义 */
@@ -692,13 +768,13 @@ function hitEntity(ent,amount,label,opts){
   const outcome=result.outcome||"hit";
   if(outcome==="miss"||outcome==="dodge"||outcome==="parry"){
     const msg=typeof T==="function"?T("combat."+outcome):(outcome==="miss"?"未命中":outcome==="dodge"?"被躲闪":"被招架");
-    fct(ent.fctPos(),msg,"#e8e8e8",ent.fctSize?ent.fctSize(label):14);
+    fct(ent.fctPos(),msg,"#e8e8e8",ent.fctSize?ent.fctSize(label):14,{kind:outcome});
     return;
   }
 
   amount=result.damage|0;
   if(amount<=0&&outcome==="glancing"){
-    fct(ent.fctPos(),typeof T==="function"?T("combat.glancing"):"偏斜","#a0a0a0",12);
+    fct(ent.fctPos(),typeof T==="function"?T("combat.glancing"):"偏斜","#a0a0a0",12,{kind:"glancing"});
     return;
   }
   ent.hp=Math.max(0,ent.hp-amount);
@@ -1486,8 +1562,10 @@ function playerHit(amount,source){
   if(S.p.ghost)return; /* 灵魂形态不受伤 */
   if(!S.p.alive||S.p.invuln>0)return;
   if(typeof markCombat==="function")markCombat(S.res);
-  /* C10：受击打断进食/饮水/包扎 */
+  /* C10：受击打断进食/饮水/包扎；Track E：打断读条 */
   if((S.p.eating||S.p.drinking||S.p.bandaging)&&typeof cancelConsume==="function")cancelConsume();
+  if(S.p.casting&&BAL.cast&&BAL.cast.hitInterrupt!==false&&typeof cancelPlayerCast==="function")
+    cancelPlayerCast("hit");
   amount=Math.round(amount*R(BAL.variance.player));
   /* C4：玩家护甲减伤 */
   if(typeof armorReduction==="function"){

@@ -70,6 +70,17 @@
   #castFill{position:absolute;inset:1px;transform-origin:left;background:linear-gradient(180deg,#ffe9a0,#d19a2a)}
   #castText{position:absolute;inset:0;font-size:10px;display:flex;align-items:center;justify-content:center;
     color:#fff2d0;text-shadow:0 1px 2px #000;letter-spacing:2px}
+  /* Track E：玩家施法 / 引导条（屏幕中下） */
+  #pCastShell{position:fixed;left:50%;bottom:168px;transform:translateX(-50%);z-index:12;
+    width:min(280px,70vw);height:18px;border:1px solid rgba(255,190,90,.55);background:rgba(0,0,0,.72);
+    display:none;overflow:hidden;box-shadow:0 0 14px rgba(0,0,0,.55),inset 0 0 8px rgba(0,0,0,.7)}
+  #pCastShell.show{display:block}
+  #pCastShell.channel{border-color:rgba(120,200,255,.7)}
+  #pCastFill{position:absolute;inset:1px;transform-origin:left;transform:scaleX(0);
+    background:linear-gradient(180deg,#ffe9a0,#d19a2a)}
+  #pCastShell.channel #pCastFill{background:linear-gradient(180deg,#a8d8ff,#3a7ec9)}
+  #pCastText{position:absolute;inset:0;font-size:11px;display:flex;align-items:center;justify-content:center;
+    color:#fff2d0;text-shadow:0 1px 2px #000;letter-spacing:2px;font-weight:700}
  
   /* ---------- 玩家面板 ---------- */
   #playerFrame{position:fixed;left:16px;bottom:110px;width:min(300px,44vw);z-index:10}
@@ -426,6 +437,15 @@
   /* ---------- 商人购买面板 ---------- */
   #vendorPanel{position:fixed;left:14px;bottom:150px;width:min(340px,90vw);z-index:23;display:none;
     padding:12px 14px;max-height:min(74vh,560px);overflow:auto}
+  /* Track E：轻量拾取窗 */
+  #lootPanel{position:fixed;left:50%;bottom:200px;transform:translateX(-50%);z-index:23;display:none;
+    width:min(320px,88vw);padding:12px 14px;max-height:min(50vh,360px);overflow:auto}
+  #lootPanel .loot-row{display:flex;align-items:center;gap:8px;padding:6px 8px;margin-top:4px;
+    cursor:pointer;background:var(--slot-bg);border:1px solid rgba(232,179,74,.22);font:inherit;color:inherit;width:100%;text-align:left}
+  #lootPanel .loot-row:hover{border-color:var(--gold-bright)}
+  #lootPanel .loot-row img{width:32px;height:32px;flex:0 0 auto;border:1px solid}
+  #lootPanel .loot-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  #lootPanel .loot-actions .dbtn{flex:1;min-width:100px}
   #vendorGold{font-size:12px;letter-spacing:1px;margin-bottom:10px;padding:8px 10px;
     background:rgba(0,0,0,.28);border:1px solid rgba(232,179,74,.22);color:var(--parchment)}
   #vendorGold b{color:var(--gold-bright)}
@@ -454,6 +474,11 @@
     animation:fct 1.1s ease-out forwards;white-space:nowrap}
   .fct-crit{animation:fctCrit 1.25s ease-out forwards;filter:saturate(1.25);
     text-shadow:0 0 8px rgba(255,200,80,.85),0 1px 3px #000}
+  .fct-miss,.fct-dodge,.fct-parry{font-size:13px!important;letter-spacing:1px;opacity:.95}
+  .fct-miss{color:#e8e8e8!important}
+  .fct-dodge{color:#a8d8ff!important}
+  .fct-parry{color:#ffe9a0!important}
+  .fct-glancing{color:#a0a0a0!important;font-size:13px!important}
   @keyframes fctCrit{0%{transform:translate(-50%,0) scale(.6) rotate(-4deg);opacity:0}
     12%{opacity:1;transform:translate(calc(-50% + 3px),-10px) scale(1.45) rotate(3deg)}
     28%{transform:translate(calc(-50% - 2px),-22px) scale(1.35) rotate(-2deg)}
@@ -630,6 +655,10 @@
   </div>
   <div id="buffRow" aria-label="增益与减益"></div>
 </div>
+<div id="pCastShell" aria-hidden="true">
+  <div id="pCastFill"></div>
+  <div id="pCastText"></div>
+</div>
 <div id="partyFrame">
   <div class="party-slot" id="partySlot0">
     <div class="pname">同伴</div>
@@ -738,6 +767,14 @@
   <div id="vendorQuests"></div>
   <div id="vendorStock"></div>
   <div class="ph-hint">点击购买 · 背包自动打开可右键出售 · 关背包结束交易</div>
+</div>
+<div id="lootPanel" class="hudPanel" aria-hidden="true">
+  <div class="bag-title">✨ 拾取<span class="bag-close" id="lootClose">✕</span></div>
+  <div id="lootList"></div>
+  <div class="loot-actions">
+    <button type="button" class="dbtn" id="lootAll">全部拾取</button>
+    <button type="button" class="dbtn" id="lootCloseBtn">关闭</button>
+  </div>
 </div>
 <div id="dlg"><div class="dname" data-t="npc.elder_dlg">🐂 长老 · 岩蹄</div><div id="dlgText"></div><div id="dlgBtns"></div></div>
  

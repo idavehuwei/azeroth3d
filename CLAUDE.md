@@ -77,7 +77,7 @@
 
 - 已执行账本：`plan-merged.md`（STEP 0–29 / v4.0 完成）
 - **plan-V2 已完成：R0–R8 + G1–G7（M1–M5）**（见 `plan-V2.md`）
-- **plan-V3：C0–C11、C13 已完成**；下一步见 `plan-V3.md`（C12 等）
+- **plan-V3：C0–C11、C13、Track E 已完成**；下一步见 `plan-V3.md`（C12 等）
 - 公式单测：`node test_formulas.js`
 - 后续可对照 `plan-v1.md` 打磨内容；默认不做联机
 

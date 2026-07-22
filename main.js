@@ -12,7 +12,7 @@
             portalMinLevel portalLevelLocked）
           combat.js（S CLS SKILLS keys joy setClass bossAI bossTargetable distToBoss
           pickTarget firePlayerShot dmgBoss addDamage mobDamage playerHit
-          setCurrentTarget log announce fct）
+          setCurrentTarget log announce fct tickPlayerCast cancelPlayerCast）
           companions.js 运行时（tickCompanion companionAlive companionHit COMPANION）
           buffs.js 运行时（tickBuffs）
           anim.js 运行时（updateMobAnim updateBossWingAnim updateBossHammerAnim）
@@ -562,6 +562,10 @@ function tick(){
     if(S.p.ghost)moveSpd*=(BAL.death.ghostSpeedMul!=null?BAL.death.ghostSpeedMul:1.5);
     /* 进食 / 饮水 / 包扎 / 采集：移动打断（STEP 13 / C10） */
     if(S.p.alive&&(S.p.eating||S.p.drinking||S.p.bandaging||S.p.gathering)&&ml>.12&&!S.p.knock&&!S.p.fear)cancelConsume();
+    /* Track E：施法条移动打断 */
+    if(S.p.alive&&S.p.casting&&ml>.12&&!S.p.knock&&!S.p.fear
+      &&!(BAL.cast&&BAL.cast.moveInterrupt===false)
+      &&typeof cancelPlayerCast==="function")cancelPlayerCast("move");
     if(S.p.alive&&S.p.eating){
       S.p.eating.t-=dt;
       S.p.hp=Math.min(S.p.hpMax,S.p.hp+S.p.eating.healPerSec*dt);
@@ -753,6 +757,7 @@ function tick(){
     }
     if(typeof tickTotems==="function")tickTotems(dt);
     if(typeof tickBuffs==="function")tickBuffs(dt);
+    if(typeof tickPlayerCast==="function")tickPlayerCast(dt);
     if(typeof tickRestXp==="function")tickRestXp(dt);
     if(typeof tickResources==="function"&&S.res){
       const sitting=!!(S.p.eating||S.p.drinking||(keys&&(keys.x||keys["x"])));

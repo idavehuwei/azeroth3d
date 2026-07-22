@@ -10,7 +10,7 @@
           map.js 运行时（worldMapOpen；关闭世界地图）
    [导出] toggleCharPanel toggleSpellPanel toggleQuestLog
           renderCharPanel renderSpellPanel renderQuestLog
-          closeAllHudPanels equipScore itemScore
+          closeAllHudPanels closeTopHudPanel anyHudPanelOpen equipScore itemScore
    ============================================================ */
 "use strict";
 
@@ -30,6 +30,29 @@ function closeAllHudPanels(except){
     const ov=$("#worldMapOv"); if(ov)ov.classList.remove("show");
   }
   if(except!=="vendor"&&typeof closeVendorPanel==="function")closeVendorPanel();
+  if(except!=="loot"&&typeof closeLootPanel==="function")closeLootPanel();
+  if(except!=="dlg"&&typeof closeDialogue==="function")closeDialogue();
+}
+/** Track E：Esc 逐层关闭（LIFO），返回是否关掉了某层 */
+function closeTopHudPanel(){
+  if($("#dlg")&&$("#dlg").style.display==="block"){
+    if(typeof closeDialogue==="function")closeDialogue();
+    return true;
+  }
+  if(typeof lootPanelOpen==="function"&&lootPanelOpen()){closeLootPanel();return true;}
+  if($("#vendorPanel")&&$("#vendorPanel").style.display==="block"){
+    if(typeof closeVendorPanel==="function")closeVendorPanel();
+    return true;
+  }
+  if(typeof worldMapOpen==="function"&&worldMapOpen()){closeWorldMap();return true;}
+  if(panelOpen("#finderPanel")){setPanel("#finderPanel",false);return true;}
+  if(panelOpen("#deedsPanel")){setPanel("#deedsPanel",false);return true;}
+  if(panelOpen("#questLog")){setPanel("#questLog",false);return true;}
+  if(panelOpen("#spellPanel")){setPanel("#spellPanel",false);return true;}
+  if(panelOpen("#charPanel")){setPanel("#charPanel",false);return true;}
+  if(typeof talentOpen==="function"&&talentOpen()){closeTalentPanel();return true;}
+  if(typeof bagOpen==="function"&&bagOpen()){$("#bag").style.display="none";return true;}
+  return false;
 }
 function anyHudPanelOpen(){
   if(panelOpen("#charPanel")||panelOpen("#spellPanel")||panelOpen("#questLog"))return true;
@@ -38,6 +61,7 @@ function anyHudPanelOpen(){
   if(typeof talentOpen==="function"&&talentOpen())return true;
   if(typeof worldMapOpen==="function"&&worldMapOpen())return true;
   if($("#vendorPanel")&&$("#vendorPanel").style.display==="block")return true;
+  if(typeof lootPanelOpen==="function"&&lootPanelOpen())return true;
   if($("#dlg")&&$("#dlg").style.display==="block")return true;
   return false;
 }

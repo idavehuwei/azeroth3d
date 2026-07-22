@@ -497,7 +497,13 @@ const BALANCE={
   loot:{weights:{poor:8,common:62,uncommon:25,rare:5}, corpseT:8, pickupR:3.5,
         eliteWeights:{uncommon:72,rare:28},   /* 精英必掉优秀以上（STEP 5） */
         rareWeights:{uncommon:55,rare:45},    /* C11：稀有必掉优秀以上，偏紫 */
-        questDropChance:.95},                  /* 进行中交付任务物品的优先掉落率 */
+        questDropChance:.95,                  /* 进行中交付任务物品的优先掉落率 */
+        panel:true},                          /* Track E：拾取窗（false=一键真空） */
+  /* Track E：玩家施法条 */
+  cast:{
+    moveInterrupt:true,   /* 移动打断读条 */
+    hitInterrupt:true,    /* 受击打断读条 */
+  },
   /* 背包（STEP 4）：格数 */
   bag:{size:36, cols:6},
   /* 金币经济 + 商人（STEP 13）：铜为最小单位；1金=100银=10000铜 */
