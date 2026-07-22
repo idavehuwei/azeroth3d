@@ -1,13 +1,12 @@
 /* ============================================================
-   炽心 · terrain.js
-   高度场地形 + 顶点着色 + 多段马路（plan-V2 · R2 / 经典赤蹄草甸地貌）
+   炽心 · terrain.js V3
+   魔兽级高度场 + 多段道路 + 生物群系顶点着色 + 花草种子
    ------------------------------------------------------------
    [依赖] THREE · core.js（WORLD_SEED · hashZoneId）· palette.js（PALETTE）
           textures.js（可选 Tex.get）
    [导出] heightAt buildMulgoreTerrain TERRAIN
-          heightAt(x,z) → number（与网格同一公式，确定性）
-          TERRAIN.slopeAt / roadWeight / lakeBlend（props 植被筛选）
-          buildMulgoreTerrain(cfg) → {mesh, size, segs}
+          heightAt(x,z) → number
+          TERRAIN.slopeAt / roadWeight / lakeBlend / flowerSeed
    ============================================================ */
 "use strict";
 
@@ -39,8 +38,15 @@ const TERRAIN=(function(){
     }
     return sum/norm;
   }
+  /* 多层噪声：大尺度起伏 + 中尺度丘陵 + 小尺度碎石 */
+  function multiOctaveNoise(x,z){
+    const n1=(fbm(x/110,z/110,5)-.5)*2;  /* 大尺度山脊 */
+    const n2=(fbm(x/28+17.3,z/28+9.1,4)-.5)*2;  /* 中尺度丘陵 */
+    const n3=(fbm(x/7+41.7,z/7+3.9,3)-.5)*2;  /* 小尺度碎石 */
+    const n4=(fbm(x/2.2+9.7,z/2.2+11.3,2)-.5)*.8;  /* 微细节 */
+    return n1*CFG.ampLarge+n2*CFG.ampMid+n3*CFG.ampDetail+n4*.12;
+  }
 
-  /* 配置由 buildMulgoreTerrain 写入；heightAt 读取 */
   let CFG={
     ready:false,
     camp:{x:-36,z:40},
@@ -51,17 +57,14 @@ const TERRAIN=(function(){
     mesas:[],
     pits:[],
     roads:[],
-    roadHalfW:5.2,
-    ampLarge:2.6,
-    ampMid:1.1,
-    ampDetail:.32,
+    roadHalfW:5.5,
+    ampLarge:3.2,
+    ampMid:1.4,
+    ampDetail:.38,
   };
 
   function heightRaw(x,z){
-    const n1=(fbm(x/95,z/95,4)-.5)*2;
-    const n2=(fbm(x/22+17.3,z/22+9.1,3)-.5)*2;
-    const n3=(fbm(x/5.5+41.7,z/5.5+3.9,2)-.5)*2;
-    return n1*CFG.ampLarge+n2*CFG.ampMid+n3*CFG.ampDetail;
+    return multiOctaveNoise(x,z);
   }
 
   function distFade(x,z,cx,cz,inner,outer){
@@ -71,7 +74,6 @@ const TERRAIN=(function(){
     return smoothstep(inner,outer,d);
   }
 
-  /** 平顶山 / 台地抬升（红云台地·雷岩台·风啸岗） */
   function mesaLift(x,z){
     let lift=0;
     const list=CFG.mesas||[];
@@ -80,26 +82,29 @@ const TERRAIN=(function(){
       const d=Math.hypot(x-m.x,z-m.z);
       const ri=m.rInner!=null?m.rInner:(m.r||40)*.55;
       const ro=m.rOuter!=null?m.rOuter:(m.r||40);
-      const h=m.h!=null?m.h:8;
+      const h=m.h!=null?m.h:10;
       if(d>=ro)continue;
       const w=d<=ri?1:1-smoothstep(ri,ro,d);
-      /* 峭壁：外圈陡升 */
-      const cliff=m.cliff!=null?m.cliff:1.35;
+      const cliff=m.cliff!=null?m.cliff:1.5;
       const shaped=Math.pow(w,1/cliff);
       if(shaped*h>lift)lift=shaped*h;
+      /* 外缘加一点陡升预兆 */
+      if(d>ri&&d<ro){
+        const edgeBump=(1-smoothstep(ri,ro,d))*h*.12*(1+Math.sin(x*0.3+z*0.2)*.3);
+        if(edgeBump>lift)lift=edgeBump;
+      }
     }
     return lift;
   }
 
-  /** 矿洞 / 挖掘场凹陷 */
   function pitDepth(x,z){
     let depth=0;
     const list=CFG.pits||[];
     for(let i=0;i<list.length;i++){
       const p=list[i];
       const d=Math.hypot(x-p.x,z-p.z);
-      const ri=p.rInner!=null?p.rInner:8;
-      const ro=p.rOuter!=null?p.rOuter:18;
+      const ri=p.rInner!=null?p.rInner:10;
+      const ro=p.rOuter!=null?p.rOuter:22;
       const dep=p.depth!=null?p.depth:4.5;
       if(d>=ro)continue;
       const w=d<=ri?1:1-smoothstep(ri,ro,d);
@@ -113,7 +118,7 @@ const TERRAIN=(function(){
     const flats=CFG.flats||[];
     for(let i=0;i<flats.length;i++){
       const f=flats[i];
-      m=Math.min(m,distFade(x,z,f.x,f.z,f.inner||24,f.outer||42));
+      m=Math.min(m,distFade(x,z,f.x,f.z,f.inner||34,f.outer||58));
     }
     if(!flats.length&&CFG.camp){
       m=Math.min(m,distFade(x,z,CFG.camp.x,CFG.camp.z,40,70));
@@ -145,23 +150,12 @@ const TERRAIN=(function(){
         if(d<best)best=d;
       }
     }
-    /* 兼容旧单贝塞尔 */
-    if(CFG.road&&CFG.road.p0&&(!roads.length)){
-      const R=CFG.road;
-      for(let i=0;i<=64;i++){
-        const t=i/64,u=1-t;
-        const px=u*u*R.p0.x+2*u*t*R.p1.x+t*t*R.p2.x;
-        const pz=u*u*R.p0.z+2*u*t*R.p1.z+t*t*R.p2.z;
-        const d=Math.hypot(x-px,z-pz);
-        if(d<best)best=d;
-      }
-    }
     return best;
   }
 
   function roadHalfAt(x,z){
     const roads=CFG.roads||[];
-    let best=1e9, hw=CFG.roadHalfW||5.2;
+    let best=1e9, hw=CFG.roadHalfW||5.5;
     for(let r=0;r<roads.length;r++){
       const pts=roads[r].pts;
       if(!pts||pts.length<2)continue;
@@ -170,11 +164,10 @@ const TERRAIN=(function(){
         const d=distPointSeg(x,z,a.x,a.z,b.x,b.z);
         if(d<best){
           best=d;
-          hw=roads[r].halfW!=null?roads[r].halfW:(CFG.roadHalfW||5.2);
+          hw=roads[r].halfW!=null?roads[r].halfW:(CFG.roadHalfW||5.5);
         }
       }
     }
-    if(CFG.road&&CFG.road.halfW!=null&&(!roads.length))hw=CFG.road.halfW;
     return{d:best,halfW:hw};
   }
 
@@ -183,10 +176,18 @@ const TERRAIN=(function(){
     if(info.d>=info.halfW)return 0;
     return 1-smoothstep(0,info.halfW,info.d);
   }
+  /** 道路边缘渐变（用于路肩碎石） */
+  function roadShoulder(x,z){
+    const info=roadHalfAt(x,z);
+    const shoulder=info.halfW*.35;
+    if(info.d>=info.halfW+shoulder)return 0;
+    if(info.d<=info.halfW)return 0;
+    return smoothstep(info.halfW,info.halfW+shoulder,info.d);
+  }
 
   function lakeBlend(x,z){
     const lakes=CFG.lakes||[];
-    let bestW=0, bestDepth=0;
+    let bestW=0, bestDepth=0, bestIdx=-1;
     for(let i=0;i<lakes.length;i++){
       const L=lakes[i];
       const d=Math.hypot(x-L.x,z-L.z);
@@ -197,12 +198,20 @@ const TERRAIN=(function(){
       if(w>bestW){
         bestW=w;
         bestDepth=L.depth!=null?L.depth:.55;
+        bestIdx=i;
       }
     }
-    return{w:bestW,depth:bestDepth};
+    return{w:bestW,depth:bestDepth,idx:bestIdx};
   }
 
-  /** 与网格顶点同一公式 —— 任何时刻同参同结果 */
+  /** 草地小花种子（0-1，用于 props 放置彩色花簇） */
+  function flowerSeed(x,z){
+    const h=hash2(Math.floor(x*2.3),Math.floor(z*2.3));
+    if(h<.05)return 1; /* 花簇中心 */
+    if(h<.12)return 2; /* 花簇边缘 */
+    return 0;
+  }
+
   function heightAt(x,z){
     if(!CFG.ready)return 0;
     let h=heightRaw(x,z)*flattenMask(x,z);
@@ -210,7 +219,6 @@ const TERRAIN=(function(){
     h-=pitDepth(x,z);
     const rw=roadWeight(x,z);
     if(rw>0){
-      /* 马路压到当地台地高度（平原≈0；台顶保持抬升） */
       const base=mesaLift(x,z);
       h=lerp(h,base,rw*rw);
     }
@@ -238,57 +246,79 @@ const TERRAIN=(function(){
     ];
   }
 
+  /** 生物群系顶点着色 —— 仿 WoW 莫高雷风格 */
   function vertexColor(x,z,h,slope){
-    const grass=hexRgb(PALETTE.grass.base);
-    const grassD=hexRgb(PALETTE.grass.dark);
-    const dirt=hexRgb(PALETTE.dirt.base);
-    const sand=hexRgb(PALETTE.dirt.light);
-    const rock=hexRgb(PALETTE.rock.base);
-    const rockD=hexRgb(PALETTE.rock.dark);
-    const redRock=hexRgb(0xa86840);
+    const grass=hexRgb(PALETTE.grass.base);      /* 0x6f9e46 标准草绿 */
+    const grassD=hexRgb(PALETTE.grass.dark);     /* 0x4a7a2e 深草 */
+    const grassL=hexRgb(0x8abe5a);               /* 亮草 */
+    const dirt=hexRgb(PALETTE.dirt.base);        /* 0x8a7a5a 土路 */
+    const dirtL=hexRgb(PALETTE.dirt.light);      /* 0xb8a880 浅土 */
+    const sand=hexRgb(0xd4c090);                 /* 沙地 */
+    const rock=hexRgb(PALETTE.rock.base);        /* 0x5a5a5a 岩石 */
+    const rockD=hexRgb(PALETTE.rock.dark);       /* 0x3a3a3a 深岩 */
+    const redRock=hexRgb(0xa86840);              /* 红岩（台地峭壁） */
+    const darkRed=hexRgb(0x6a3828);              /* 深红岩 */
+    const moss=hexRgb(0x5a8a3a);                 /* 苔藓 */
 
-    let col=mix3(grass,dirt,smoothstep(.2,3.2,h));
-    col=mix3(col,grassD,smoothstep(-.2,.6,-h)*.35);
+    let col=mix3(grass,dirt,smoothstep(.15,3.5,h));
+    col=mix3(col,grassD,smoothstep(-.3,.6,-h)*.4);
 
-    /* 台地顶草 / 峭壁红岩 */
+    /* 台地顶：亮草 / 峭壁：红岩 */
     const ml=mesaLift(x,z);
-    if(ml>2){
-      col=mix3(col,grass,smoothstep(2,6,ml)*.55);
-      col=mix3(col,redRock,smoothstep(.4,.75,slope)*.85);
+    if(ml>1.5){
+      col=mix3(col,grassL,smoothstep(1.5,6,ml)*.5);
+      const cliffW=smoothstep(.3,.8,slope);
+      col=mix3(col,redRock,cliffW*.85);
+      if(cliffW>.5)col=mix3(col,darkRed,(cliffW-.5)*.6);
     }
 
-    const sandW=1-smoothstep(.05,.55,h);
-    col=mix3(col,sand,sandW*.85);
+    /* 低洼沙地（湖边） */
+    const sandW=1-smoothstep(.05,.65,h);
+    col=mix3(col,sand,sandW*.8);
 
-    const rockW=smoothstep(.32,.58,slope);
-    col=mix3(col,mix3(rock,rockD,.4),rockW);
+    /* 陡坡岩石 */
+    const rockW=smoothstep(.28,.62,slope);
+    col=mix3(col,mix3(rock,rockD,.5),rockW);
 
-    /* 矿洞内壁暗岩 */
+    /* 矿洞内壁 */
     const pd=pitDepth(x,z);
-    if(pd>.4)col=mix3(col,rockD,smoothstep(.4,3,pd)*.9);
+    if(pd>.4)col=mix3(col,rockD,smoothstep(.4,3.5,pd)*.9);
 
+    /* 道路 */
     const rw=roadWeight(x,z);
-    if(rw>0)col=mix3(col,dirt,rw*.94);
+    if(rw>0){
+      col=mix3(col,dirtL,rw*.92);
+      /* 路肩碎石 */
+      const rs=roadShoulder(x,z);
+      if(rs>0)col=mix3(col,mix3(dirt,rock,.5),rs*.6);
+    }
 
+    /* 湖边湿地过渡 */
     const lakes=CFG.lakes||[];
     for(let i=0;i<lakes.length;i++){
       const L=lakes[i];
       const d=Math.hypot(x-L.x,z-L.z);
       const lo=L.outer!=null?L.outer:36;
-      if(d<lo)col=mix3(col,sand,(1-smoothstep(lo*.35,lo,d))*.75);
+      if(d<lo){
+        const wet=1-smoothstep(lo*.2,lo,d);
+        col=mix3(col,grassD,wet*.4);
+        col=mix3(col,sand,Math.max(0,wet-.5)*.7);
+      }
     }
+
+    /* 树荫下苔藓点缀（近树区域暗绿） */
+    const treeShade=(fbm(x/15+5,z/15+8,2)-.5)*.3;
+    if(treeShade>0)col=mix3(col,moss,treeShade*.25);
 
     return col;
   }
 
-  /**
-   * cfg: worldR, camp, flats, mesas, pits, lakes, roads[{pts,halfW}], …
-   */
   function buildMulgoreTerrain(cfg){
     cfg=cfg||{};
     const worldR=cfg.worldR!=null?cfg.worldR:352;
     const size=cfg.size!=null?cfg.size:(worldR+50)*2;
-    const segs=cfg.segs!=null?cfg.segs:240;
+    /* 大幅提升分辨率以获得更细腻的地形 */
+    const segs=cfg.segs!=null?cfg.segs:320;
 
     CFG.camp=cfg.camp||{x:-36,z:40};
     CFG.portalMC=cfg.portalMC||{x:0,z:-(worldR-8)};
@@ -303,17 +333,7 @@ const TERRAIN=(function(){
       depth:.55,
     }]:[]);
     CFG.roads=cfg.roads||[];
-    CFG.roadHalfW=cfg.roadHalfW!=null?cfg.roadHalfW:5.2;
-    if(cfg.roadP0&&cfg.roadP2){
-      CFG.road={
-        p0:cfg.roadP0,
-        p1:cfg.roadP1||{x:0,z:(cfg.roadP0.z+cfg.roadP2.z)*.5},
-        p2:cfg.roadP2,
-        halfW:CFG.roadHalfW,
-      };
-    }else{
-      CFG.road=null;
-    }
+    CFG.roadHalfW=cfg.roadHalfW!=null?cfg.roadHalfW:5.5;
     if(cfg.ampLarge!=null)CFG.ampLarge=cfg.ampLarge;
     if(cfg.ampMid!=null)CFG.ampMid=cfg.ampMid;
     if(cfg.ampDetail!=null)CFG.ampDetail=cfg.ampDetail;
@@ -340,7 +360,7 @@ const TERRAIN=(function(){
 
     const matParams={
       vertexColors:true,
-      roughness:.95,
+      roughness:.92,
       color:0xffffff,
     };
     if(typeof Tex!=="undefined"&&Tex.get){
@@ -359,7 +379,9 @@ const TERRAIN=(function(){
     heightAt,
     slopeAt,
     roadWeight,
+    roadShoulder,
     lakeBlend,
+    flowerSeed,
     buildMulgoreTerrain,
     get cfg(){return CFG;},
     _arm(cfg){

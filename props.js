@@ -1,22 +1,21 @@
 /* ============================================================
-   炽心 · props.js
-   植被 / 水体 / 云 / 场景道具工厂（plan-V2 · R3）
+   炽心 · props.js V3
+   植被 / 水体 / 云 / 场景道具工厂 — 魔兽级密度
    ------------------------------------------------------------
    [依赖] THREE · core.js（BAL SeededRng WORLD_SEED hashZoneId）
           palette.js（PALETTE · MAT）· textures.js（Tex）
-          terrain.js（heightAt · TERRAIN.slopeAt / roadWeight / lakeBlend）
+          terrain.js（heightAt · TERRAIN.slopeAt / roadWeight / lakeBlend / flowerSeed）
    [导出] buildPine buildOak getTreeVariants buildRockGroup
           buildGrassField buildMirrorLake buildCloudField
           spawnMulgoreProps updateProps disposeProps
           PROPS（内部状态：uniforms / clouds / lakes）
-   说明：摆放用独立 SeededRng（props_mulgore），不污染 worldRng 流。
-         工厂不直接挂场景；spawnMulgoreProps(scene, ctx) 负责摆位。
    ============================================================ */
 "use strict";
 
 const PROPS=(function(){
   const state={
     grassUni:null,
+    flowerUni:null,
     lakeUnis:[],
     clouds:[],
     embers:[],
@@ -40,6 +39,17 @@ const PROPS=(function(){
     if(TERRAIN.roadWeight(x,z)>(bp.grassRoadMax!=null?bp.grassRoadMax:.15))return false;
     const lk=TERRAIN.lakeBlend(x,z);
     if(lk.w>(bp.grassLakeMax!=null?bp.grassLakeMax:.35))return false;
+    return true;
+  }
+
+  function isFlowerSpot(x,z,maxSlope){
+    if(typeof TERRAIN==="undefined"||!TERRAIN.cfg||!TERRAIN.cfg.ready)return false;
+    if(TERRAIN.slopeAt(x,z)>maxSlope)return false;
+    if(TERRAIN.roadWeight(x,z)>.1)return false;
+    if(TERRAIN.lakeBlend(x,z).w>.2)return false;
+    /* 只在平缓草地出花 */
+    const h=TERRAIN.heightAt(x,z);
+    if(h<-.2||h>2.5)return false;
     return true;
   }
 
@@ -82,22 +92,42 @@ const PROPS=(function(){
     return geo;
   }
 
+  /* —— 小花几何（十字花片） —— */
+  function makeFlowerGeo(w,h){
+    const hw=w*.5;
+    const pos=new Float32Array([
+      -hw,0,0,  hw,0,0,  hw,h,0,  -hw,0,0,  hw,h,0,  -hw,h,0,
+      0,0,-hw,  0,0,hw,  0,h,hw,  0,0,-hw,  0,h,hw,  0,h,-hw,
+    ]);
+    const uv=new Float32Array([
+      0,0,1,0,1,1, 0,0,1,1,0,1,
+      0,0,1,0,1,1, 0,0,1,1,0,1,
+    ]);
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute("position",new THREE.BufferAttribute(pos,3));
+    geo.setAttribute("uv",new THREE.BufferAttribute(uv,2));
+    geo.computeVertexNormals();
+    return geo;
+  }
+
   function buildGrassField(cfg){
     const P=BAL.props||{};
     const c=Object.assign({
-      count:isMobileProps()?(P.grassCountMobile||3000):(P.grassCount||8000),
-      radius:P.grassRadius||70,
+      count:isMobileProps()?(P.grassCountMobile||5000):(P.grassCount||15000),
+      radius:P.grassRadius||80,
       fadeStart:P.grassFadeStart||55,
-      fadeEnd:P.grassFadeEnd||70,
-      maxSlope:P.grassMaxSlope||.32,
+      fadeEnd:P.grassFadeEnd||75,
+      maxSlope:P.grassMaxSlope||.35,
       cx:0,cz:0,
       w:P.grassW||.22, h:P.grassH||.55,
     },cfg||{});
     const geo=makeGrassGeo(c.w,c.h);
     const col=new THREE.Color((PALETTE.grass&&PALETTE.grass.base)||0x6f9e46);
+    const colVar=new THREE.Color(0x88b85a);
     const uni={
       uTime:{value:0},
       uColor:{value:col},
+      uColorVar:{value:colVar},
       uFadeStart:{value:c.fadeStart},
       uFadeEnd:{value:c.fadeEnd},
       uOrigin:{value:new THREE.Vector2(c.cx,c.cz)},
@@ -115,6 +145,7 @@ const PROPS=(function(){
         "uniform vec2 uOrigin;",
         "varying float vFade;",
         "varying vec2 vUv;",
+        "varying float vColorMix;",
         "void main(){",
         "  vUv=uv;",
         "  float hW=clamp(position.y/max(0.01,float("+c.h.toFixed(3)+")),0.0,1.0);",
@@ -131,22 +162,27 @@ const PROPS=(function(){
         "    mat4 scaled=instanceMatrix;",
         "    scaled[0].xyz*=sc; scaled[1].xyz*=sc; scaled[2].xyz*=sc;",
         "    gl_Position=projectionMatrix*modelViewMatrix*scaled*vec4(transformed,1.0);",
+        "    vColorMix=instanceMatrix[0].x*0.3+instanceMatrix[2].z*0.3;",
         "  #else",
         "    vFade=1.0;",
+        "    vColorMix=0.5;",
         "    gl_Position=projectionMatrix*modelViewMatrix*vec4(transformed,1.0);",
         "  #endif",
         "}",
       ].join("\n"),
       fragmentShader:[
         "uniform vec3 uColor;",
+        "uniform vec3 uColorVar;",
         "varying float vFade;",
+        "varying float vColorMix;",
         "varying vec2 vUv;",
         "void main(){",
         "  float edge=smoothstep(0.0,0.12,vUv.x)*smoothstep(1.0,0.88,vUv.x);",
         "  float tip=smoothstep(0.0,0.2,vUv.y);",
         "  float a=edge*tip;",
         "  if(a<0.35||vFade<0.02)discard;",
-        "  vec3 col=uColor*(0.55+0.45*vUv.y);",
+        "  vec3 base=mix(uColor,uColorVar,vColorMix-floor(vColorMix));",
+        "  vec3 col=base*(0.5+0.5*vUv.y);",
         "  gl_FragColor=vec4(col,1.0);",
         "}",
       ].join("\n"),
@@ -166,10 +202,10 @@ const PROPS=(function(){
       const z=c.cz+Math.sin(a)*r;
       if(!isGrassSpot(x,z,c.maxSlope))continue;
       const gy=typeof heightAt==="function"?heightAt(x,z):0;
-      const sc=psrand(.75,1.25);
+      const sc=psrand(.7,1.3);
       dummy.position.set(x,gy,z);
       dummy.rotation.set(0,prand()*Math.PI*2,psrand(-.08,.08));
-      dummy.scale.set(sc,sc*psrand(.85,1.2),sc);
+      dummy.scale.set(sc,sc*psrand(.8,1.25),sc);
       dummy.updateMatrix();
       mesh.setMatrixAt(placed++,dummy.matrix);
     }
@@ -177,6 +213,65 @@ const PROPS=(function(){
     mesh.instanceMatrix.needsUpdate=true;
     state.grassUni=uni;
     return track(mesh,true);
+  }
+
+  /* —— 花簇：彩色小花散布 —— */
+  function buildFlowerField(cfg){
+    const c=Object.assign({
+      count:2000,
+      radius:70,
+      cx:0,cz:0,
+    },cfg||{});
+    const geo=makeFlowerGeo(.12,.2);
+    const colors=[0xff4466,0xffaa44,0xff66cc,0xcc44ff,0x44aaff,0xff8844,0xffee44];
+    const meshes=[];
+    /* 每色一个 InstancedMesh */
+    for(let ci=0;ci<colors.length;ci++){
+      const mat=new THREE.MeshBasicMaterial({
+        color:colors[ci],
+        transparent:true,
+        alphaTest:.3,
+        side:THREE.DoubleSide,
+        depthWrite:false,
+      });
+      const mesh=new THREE.InstancedMesh(geo,mat,Math.ceil(c.count/colors.length));
+      mesh.frustumCulled=false;
+      mesh.castShadow=false;
+      mesh.receiveShadow=false;
+      mesh.name="flower_"+ci;
+      meshes.push(mesh);
+    }
+    const dummy=new THREE.Object3D();
+    const perColor=Math.ceil(c.count/colors.length);
+    const counts=new Array(colors.length).fill(0);
+    let placed=0,guard=0;
+    while(placed<c.count&&guard++<c.count*10){
+      const a=prand()*Math.PI*2;
+      const r=Math.sqrt(prand())*c.radius;
+      const x=c.cx+Math.cos(a)*r;
+      const z=c.cz+Math.sin(a)*r;
+      if(!isFlowerSpot(x,z,.25))continue;
+      if(typeof TERRAIN.flowerSeed==="function"){
+        const fs=TERRAIN.flowerSeed(x,z);
+        if(fs===0)continue;
+      }
+      const gy=typeof heightAt==="function"?heightAt(x,z):0;
+      const ci=Math.floor(prand()*colors.length);
+      const idx=counts[ci];
+      if(idx>=perColor)continue;
+      dummy.position.set(x,gy,z);
+      dummy.rotation.set(0,prand()*Math.PI*2,psrand(-.15,.15));
+      dummy.scale.setScalar(psrand(.8,1.3));
+      dummy.updateMatrix();
+      meshes[ci].setMatrixAt(idx,dummy.matrix);
+      counts[ci]++; placed++;
+    }
+    for(let i=0;i<meshes.length;i++){
+      meshes[i].count=counts[i];
+      meshes[i].instanceMatrix.needsUpdate=true;
+      track(meshes[i],true);
+    }
+    return meshes;
   }
 
   /* —— 松 / 橡 —— */
@@ -230,7 +325,6 @@ const PROPS=(function(){
       const leaf=new THREE.Mesh(new THREE.SphereGeometry(rad,7,6),leafM);
       leaf.position.set(rs(-1.1,1.1),th+rs(.4,1.6),rs(-1.1,1.1));
       leaf.scale.y=rs(.65,.9);
-      if(leaf.geometry.attributes.color){/* noop */}
       g.add(leaf);
     }
     g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
@@ -240,8 +334,8 @@ const PROPS=(function(){
 
   let _pineVars=null,_oakVars=null;
   function getTreeVariants(){
-    const nP=(BAL.props&&BAL.props.pineVariants)||4;
-    const nO=(BAL.props&&BAL.props.oakVariants)||4;
+    const nP=(BAL.props&&BAL.props.pineVariants)||6;
+    const nO=(BAL.props&&BAL.props.oakVariants)||6;
     if(!_pineVars){
       _pineVars=[];
       for(let i=0;i<nP;i++)_pineVars.push(buildPine(0xA11E0000^(i*9973)));
@@ -255,7 +349,7 @@ const PROPS=(function(){
 
   function placeTrees(scene,ctx){
     const vars=getTreeVariants();
-    const n=(BAL.props&&BAL.props.treeCount)||48;
+    const n=(BAL.props&&BAL.props.treeCount)||80;
     const camps=ctx.avoid||[];
     const worldR=ctx.worldR||320;
     let placed=0,guard=0;
@@ -279,7 +373,7 @@ const PROPS=(function(){
       const src=pool[(prand()*pool.length)|0];
       const tree=src.clone(true);
       const gy=typeof heightAt==="function"?heightAt(x,z):0;
-      const sc=psrand(.85,1.25);
+      const sc=psrand(.85,1.35);
       tree.position.set(x,gy,z);
       tree.rotation.y=prand()*Math.PI*2;
       tree.scale.setScalar(sc);
@@ -311,18 +405,20 @@ const PROPS=(function(){
     const g=new THREE.Group();
     const mat=MAT.get("rock.boulder");
     const useN=!isMobileProps();
-    const bigGeo=perturbRock(new THREE.DodecahedronGeometry(rs(1.2,2.2),0),.15,rr);
+    /* 主岩 */
+    const bigGeo=perturbRock(new THREE.DodecahedronGeometry(rs(1.5,2.8),0),.18,rr);
     const big=new THREE.Mesh(bigGeo,mat);
-    big.position.y=rs(.5,1.0);
+    big.position.y=rs(.5,1.2);
     big.rotation.set(rr()*Math.PI,rr()*Math.PI,rr()*Math.PI);
     g.add(big);
-    const nSmall=bp.rocksPerGroup||[2,4];
+    /* 碎石 */
+    const nSmall=bp.rocksPerGroup||[3,6];
     const n=nSmall[0]+((rr()*(nSmall[1]-nSmall[0]+1))|0);
     for(let i=0;i<n;i++){
-      const s=rs(.45,1.0);
-      const geo=perturbRock(new THREE.DodecahedronGeometry(s,0),.15,rr);
+      const s=rs(.35,1.0);
+      const geo=perturbRock(new THREE.DodecahedronGeometry(s,0),.18,rr);
       const m=new THREE.Mesh(geo,mat);
-      const a=rr()*Math.PI*2,d=rs(1.2,2.6);
+      const a=rr()*Math.PI*2,d=rs(1.2,3.2);
       m.position.set(Math.cos(a)*d,s*.45,Math.sin(a)*d);
       m.rotation.set(rr(),rr(),rr());
       g.add(m);
@@ -342,7 +438,7 @@ const PROPS=(function(){
   }
 
   function placeRockGroups(scene,ctx){
-    const n=(BAL.props&&BAL.props.rockGroups)||14;
+    const n=(BAL.props&&BAL.props.rockGroups)||20;
     const camps=ctx.avoid||[];
     const worldR=ctx.worldR||320;
     let placed=0,guard=0;
@@ -365,7 +461,7 @@ const PROPS=(function(){
       const gy=typeof heightAt==="function"?heightAt(x,z):0;
       grp.position.set(x,gy,z);
       grp.rotation.y=prand()*Math.PI*2;
-      grp.scale.setScalar(psrand(.85,1.2));
+      grp.scale.setScalar(psrand(.85,1.3));
       scene.add(grp);
       track(grp,true);
       placed++;
@@ -449,9 +545,9 @@ const PROPS=(function(){
     const bp=P();
     const sw=bp.cloudSizeW||[28,55], sh=bp.cloudSizeH||[10,18];
     const c=Object.assign({
-      count:bp.clouds||10,
+      count:bp.clouds||15,
       y:bp.cloudY||70,
-      spread:bp.cloudSpread||280,
+      spread:bp.cloudSpread||300,
     },cfg||{});
     const group=new THREE.Group();
     group.name="cloudField";
@@ -481,17 +577,34 @@ const PROPS=(function(){
     const C=ctx||{};
     const avoid=C.avoid||[];
     const camp=C.camp||{x:0,z:0};
-    /* 镜湖：替换静态 Circle pond */
+
+    /* 镜湖 */
     const lakes=(typeof TERRAIN!=="undefined"&&TERRAIN.cfg&&TERRAIN.cfg.lakes)||C.lakes||[];
     for(let i=0;i<lakes.length;i++)scene.add(buildMirrorLake(lakes[i]));
-    /* 草 · 以主营地为圆心 */
+
+    /* 草地 */
     scene.add(buildGrassField({
       cx:camp.x,cz:camp.z,
-      radius:(BAL.props&&BAL.props.grassRadius)||70,
+      radius:(BAL.props&&BAL.props.grassRadius)||80,
     }));
+
+    /* 花簇 */
+    const flowers=buildFlowerField({
+      cx:camp.x,cz:camp.z,
+      count:2500,
+      radius:70,
+    });
+    for(let i=0;i<flowers.length;i++)scene.add(flowers[i]);
+
+    /* 树木 */
     placeTrees(scene,{worldR:C.worldR||320,avoid:avoid});
+
+    /* 岩石 */
     placeRockGroups(scene,{worldR:C.worldR||320,avoid:avoid});
+
+    /* 云 */
     scene.add(buildCloudField({}));
+
     return state;
   }
 
@@ -540,7 +653,6 @@ const PROPS=(function(){
     state.embers.length=0;
   }
 
-  /** 篝火火星挂到已有 flame 组（由升级后的 buildCampfire 调用） */
   function attachCampfireEmbers(group,ox,oz){
     const n=(P().embers!=null?P().embers:18)|0;
     const pos=new Float32Array(n*3);
