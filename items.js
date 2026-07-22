@@ -219,6 +219,7 @@ const LOOT={
     common  :["sulf_ash","sulf_core"],
     uncommon:["sulf_ring","ash_charm","hide_bracers"],
     rare    :["sulf_blade","sulf_orb","sulf_bracers"],
+    epic    :["sulf_blade","sulf_orb"],
   },
   wolf:{
     common  :["wolf_pelt","wolf_fang"],
@@ -254,6 +255,7 @@ const LOOT={
   wailing:{
     uncommon:["hide_vest","wind_blade","hide_leggings"],
     rare    :["serpent_fang","moss_mantle","serpent_sash"],
+    epic    :["serpent_fang","moss_mantle"],
   },
   onyxiaAdd:{
     common  :["sulf_ash","bird_feather"],
@@ -263,6 +265,7 @@ const LOOT={
   onyxia:{
     uncommon:["scale_cloak","whelp_claw","dragon_signet"],
     rare    :["onyxia_fang","dragonscale","dragon_helm","onyx_ember"],
+    epic    :["onyxia_fang","dragonscale","dragon_helm","onyx_ember"],
   },
   quilboar:{
     common  :["boar_meat","boar_tusk","boar_hide"],
@@ -301,19 +304,31 @@ const LOOT={
   ragefire:{
     uncommon:["rage_blade","cinder_vest","ember_band"],
     rare    :["slag_helm","ember_band","sulf_blade","ash_treads"],
+    epic    :["slag_helm","ember_band","sulf_blade"],
   },
 };
-/* 按权重掷品质档（可传 BAL.loot.eliteWeights 等），再从该档均匀取一件（玩法随机 → rand 路线） */
+/* 按权重掷品质档（可传 BAL.loot.eliteWeights / 英雄权重等），再从该档均匀取一件
+   跳过表中不存在的档，避免英雄 epic 权重砸空池 */
 function rollLoot(table,weights){
-  const w=weights||BAL.loot.weights;
-  let total=0; for(const k in w)total+=w[k];
+  if(!table)return null;
+  const src=weights||BAL.loot.weights;
+  const w={}; let total=0;
+  for(const k in src){
+    if(table[k]&&table[k].length){w[k]=src[k];total+=src[k];}
+  }
+  if(!total){
+    const keys=Object.keys(table).filter(k=>table[k]&&table[k].length);
+    if(!keys.length)return null;
+    const pool=table[keys[keys.length-1]];
+    return ITEMS[pool[(Math.random()*pool.length)|0]]||null;
+  }
   let r=rand(0,total);
   for(const k in w){
     r-=w[k];
-    if(r<0){const pool=table[k];return ITEMS[pool[(Math.random()*pool.length)|0]];}
+    if(r<0){const pool=table[k];return ITEMS[pool[(Math.random()*pool.length)|0]]||null;}
   }
-  const pool=table.common||table[Object.keys(table)[0]];   /* 浮点兜底 */
-  return ITEMS[pool[0]];
+  const fallback=table.common||table.uncommon||table.rare||table[Object.keys(table)[0]];
+  return ITEMS[fallback[0]]||null;
 }
 
 /* ============================================================

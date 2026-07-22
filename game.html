@@ -162,6 +162,15 @@
   .finder-item.locked{opacity:.55}
   .finder-item .finder-acts{margin-top:6px}
   .finder-item .ttl,.deed-item .ttl{display:flex;align-items:center;gap:8px}
+  .lfg-diffs{display:flex;gap:8px;margin:8px 0 12px;flex-wrap:wrap}
+  .lfg-diff{flex:1;min-width:120px;cursor:pointer;font-family:inherit;text-align:left;
+    padding:10px 12px;color:var(--parchment);background:rgba(0,0,0,.32);
+    border:1px solid rgba(232,179,74,.28);box-shadow:inset 0 0 10px rgba(0,0,0,.35)}
+  .lfg-diff:hover{border-color:rgba(232,179,74,.55)}
+  .lfg-diff.on{border-color:var(--gold-bright);background:rgba(100,55,20,.45);
+    box-shadow:inset 0 0 12px rgba(0,0,0,.4),0 0 10px rgba(255,160,40,.15)}
+  .lfg-diff b{display:block;font-size:13px;color:var(--gold-bright);letter-spacing:1px;margin-bottom:3px}
+  .lfg-diff span{font-size:10px;color:var(--parchment-muted);letter-spacing:1px}
   .finder-ic,.deed-ic{width:22px;height:22px;flex-shrink:0;border:1px solid rgba(232,179,74,.45);
     border-radius:2px;background:#0a0604;object-fit:contain}
 
@@ -556,7 +565,7 @@
 <div class="hudPanel" id="finderPanel">
   <div class="bag-title">🔍 地下城查找器<span class="bag-close" id="finderClose">✕</span></div>
   <div id="finderBody"></div>
-  <div class="ph-hint">Shift+I 开关 · 仅普通难度 · 一键填充 AI 职责并传送至入口</div>
+  <div class="ph-hint">Shift+I 开关 · 可选普通/英雄 · 一键填充 AI 职责并传送至入口</div>
 </div>
 <button id="bagBtn">🎒</button>
 <button id="muteBtn">🔊</button>

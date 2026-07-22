@@ -15,6 +15,7 @@
           combat.js 运行时（gainCopper rollCopperRange playerHit）
           companions.js 运行时（companionAlive companionHit COMPANION）
    [导出] BOSSES createBoss defineBoss getBossCfg armBossSkills activateRaidBoss mountBossMesh
+          getDifficultyCfg getRaidLootWeights
           bossAI startCast spawnAdd addDamage addDie bossDie playerDie resetBoss
           releaseSpiritWorld releaseSpiritRaid releaseSpiritLeaveRaid resurrectPlayer
           showDeathUi hideDeathUi clearRaidHazards applyWipeEncounter
@@ -655,12 +656,29 @@ defineBoss({
 
 function getBossCfg(){return BOSSES[S.b.id]||BOSSES.ragnaros;}
 function bossNum(){return BAL[getBossCfg().statsKey];}
-function skillBal(sk){return bossNum()[sk.bal];}
+/** V1-B4：当前副本难度倍率（世界门默认 normal） */
+function getDifficultyCfg(){
+  const id=(S.difficulty==="heroic")?"heroic":"normal";
+  const d=BAL.difficulty&&BAL.difficulty[id];
+  return d||{hpMul:1,dmgMul:1,lootWeights:null};
+}
+function getRaidLootWeights(){
+  const c=getDifficultyCfg();
+  return c.lootWeights||null;
+}
+function skillBal(sk){
+  const raw=bossNum()[sk.bal];
+  if(!raw)return raw;
+  const mul=getDifficultyCfg().dmgMul||1;
+  if(mul===1||!raw.dmg)return raw;
+  return Object.assign({},raw,{dmg:[raw.dmg[0]*mul,raw.dmg[1]*mul]});
+}
 
 function applyBossFrame(cfg){
   const n=$("#bossName .n"), t=$("#bossName .t");
-  if(n)n.textContent="🔥 "+cfg.name;
-  if(t)t.textContent=cfg.title;
+  const hero=S.difficulty==="heroic";
+  if(n)n.textContent="🔥 "+cfg.name+(hero?"（英雄）":"");
+  if(t)t.textContent=cfg.title+(hero?" · 英雄难度":"");
 }
 
 function armBossSkills(){
@@ -720,8 +738,9 @@ function createBoss(id){
   const cfg=BOSSES[id];
   if(!cfg){console.warn("createBoss: unknown",id);return null;}
   const st=BAL[cfg.statsKey];
+  const hpMul=getDifficultyCfg().hpMul||1;
   S.b.id=id;
-  S.b.hp=S.b.hpMax=st.hp;
+  S.b.hp=S.b.hpMax=Math.round(st.hp*hpMul);
   S.b.alive=true;
   S.b.phase=1;
   S.b.rising=!!cfg.intro;
@@ -1039,6 +1058,11 @@ function spawnAdd(x,z,opts){
   const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
   const conf=Object.assign({},D&&D.addCfg||{},opts);
   const bal=BAL[conf.balKey||"add"]||BAL.add;
+  const dm=getDifficultyCfg();
+  const hpMul=dm.hpMul||1, dmgMul=dm.dmgMul||1;
+  const hp=Math.round(bal.hp*hpMul);
+  const dmg=bal.dmg?[bal.dmg[0]*dmgMul,bal.dmg[1]*dmgMul]:bal.dmg;
+  const stats=Object.assign({},bal,{hp,hpMax:hp,dmg});
   const buildFn=conf.build||buildFlameSpawn;
   const mesh=typeof buildFn==="function"?buildFn():buildFlameSpawn();
   const Rlim=(D&&D.arenaR)!=null?D.arenaR:ARENA_R;
@@ -1046,8 +1070,8 @@ function spawnAdd(x,z,opts){
   scene.add(mesh);
   S.adds.push({
     mesh,name:conf.name||"烈焰之子",level:(bal.level!=null?bal.level:15),
-    hp:bal.hp,hpMax:bal.hp,atkT:0,corpseT:0,
-    stats:bal, moving:false, attackAnim:0, state:"alive",
+    hp,hpMax:hp,atkT:0,corpseT:0,
+    stats, moving:false, attackAnim:0, state:"alive",
     hitKind:conf.hitKind||"flame",
     lootTable:conf.lootTable||"add",
     dieLog:conf.dieLog||"一只烈焰之子被消灭了！",
@@ -1075,7 +1099,8 @@ function addDie(a){
   else{a.mesh.rotation.z=Math.PI/2; a.mesh.position.y=.25;}
   a.corpseT=BAL.loot.corpseT;
   const table=a.lootTable&&LOOT[a.lootTable]?a.lootTable:"add";
-  dropLoot(a.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),[rollLoot(LOOT[table])],a);
+  const dropped=rollLoot(LOOT[table],getRaidLootWeights());
+  if(dropped)dropLoot(a.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),[dropped],a);
   log(a.dieLog||"一只小怪被消灭了！","lg-me");
   const bal=BAL[(typeof getDungeon==="function"&&getDungeon().addCfg&&getDungeon().addCfg.balKey)||"add"]||BAL.add;
   const cu=rollCopperRange(bal.copper);
@@ -1128,8 +1153,8 @@ function bossDie(){
   if(D.lootId||D.lootTable){
     setTimeout(()=>{
       const p=D.lootPos||[0,0,-8];
-      const items=D.lootId?[ITEMS[D.lootId]]:[rollLoot(LOOT[D.lootTable])];
-      dropLoot(new THREE.Vector3(p[0],p[1],p[2]),items,null);
+      const items=D.lootId?[ITEMS[D.lootId]]:[rollLoot(LOOT[D.lootTable],getRaidLootWeights())].filter(Boolean);
+      if(items.length)dropLoot(new THREE.Vector3(p[0],p[1],p[2]),items,null);
       if(D.lootAnnounce)announce(D.lootAnnounce);
       if(D.lootLog)log(D.lootLog,"lg-sys");
     },dropDelay);

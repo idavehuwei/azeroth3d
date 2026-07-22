@@ -141,6 +141,12 @@ function enterZone(id,gateId,opts){
     if(typeof S!=="undefined"){
       S.zoneId=id;
       S.mode=to.mode||"world";
+      /* V1-B4：副本难度仅查找器传入；世界门进本默认普通；离开副本复位 */
+      if((to.mode||"world")==="raid"){
+        S.difficulty=(opts&&opts.difficulty==="heroic")?"heroic":"normal";
+      }else{
+        S.difficulty="normal";
+      }
       /* 防传送门乒乓：落点靠近回程门时短暂锁定 */
       S.portalLockT=Math.max(S.portalLockT||0,1.6);
     }

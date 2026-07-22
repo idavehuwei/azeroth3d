@@ -252,9 +252,15 @@ assert(finderSrc.includes("function queueDungeonFinder"),"finder.js 有 queueDun
 assert(finderSrc.includes("formParty")&&finderSrc.includes("enterZone"),"finder.js 组队+传送");
 assert(coreSrc.includes("molten_core")&&coreSrc.includes("wailing_caverns")&&coreSrc.includes("onyxias_lair")&&coreSrc.includes("ragefire_chasm"),"四副本均在 BAL.lfg 目录");
 assert(coreSrc.includes("lfg:")&&coreSrc.includes('difficulty:"normal"'),"BALANCE 含 lfg 表");
+assert(coreSrc.includes("difficulties")&&coreSrc.includes('"heroic"'),"LFG 支持英雄难度");
+assert(coreSrc.includes("difficulty:")&&coreSrc.includes("hpMul")&&coreSrc.includes("lootWeights"),"BALANCE.difficulty 英雄倍率表");
+assert(finderSrc.includes("setLfgDifficulty")||finderSrc.includes("lfgPick"),"finder 可选难度");
+assert(finderSrc.includes("heroic")&&finderSrc.includes("difficulty:S.difficulty"),"finder 进本传 difficulty");
+assert(raidSrc.includes("getDifficultyCfg")&&raidSrc.includes("getRaidLootWeights"),"raid 难度倍率 API");
+assert(raidSrc.includes("hpMul")&&raidSrc.includes("dmgMul"),"createBoss/spawnAdd 乘难度倍率");
+assert(combatSrc.includes('difficulty:"normal"'),"S 含 difficulty 运行时");
 assert(combatSrc.includes("toggleDungeonFinderPanel")&&combatSrc.includes('"i"'),"combat.js 绑定 Shift+I");
 assert(panelsSrc.includes('"finder"')||panelsSrc.includes("'finder'"),"panels.js closeAllHudPanels 含 finder");
-assert(finderSrc.includes("normal"),"仅普通难度");
 assert(finderSrc.includes("getLfgMinLevel")||finderSrc.includes("minLevel"),"等级门槛检查");
 
 /* plan-v1 · V1-A1 城镇建筑工厂冒烟 */
@@ -357,4 +363,4 @@ if(process.exitCode){
   console.error("\n部分断言失败");
   process.exit(1);
 }
-console.log("\n全部通过 · STEP 17–29 … / V1-A1–A5 · V1-B1–B3 冒烟");
+console.log("\n全部通过 · STEP 17–29 … / V1-A1–A5 · V1-B1–B4 冒烟");

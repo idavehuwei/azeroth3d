@@ -487,10 +487,20 @@ const BALANCE={
     },
     roleLabel:{tank:"坦克",healer:"治疗",dps:"输出"},
   },
-  /* 本地地下城查找器（STEP 29） */
+  /* 本地地下城查找器（STEP 29）· 难度档（V1-B4） */
+  difficulty:{
+    normal:{hpMul:1, dmgMul:1, lootWeights:null},
+    heroic:{
+      hpMul:1.55,
+      dmgMul:1.4,
+      /* 偏蓝；无对应档的池会被 rollLoot 跳过 */
+      lootWeights:{common:10, uncommon:30, rare:52, epic:8},
+    },
+  },
   lfg:{
     difficulty:"normal",
-    difficulties:["normal"],
+    difficulties:["normal","heroic"],
+    labels:{normal:"普通",heroic:"英雄"},
     entries:[
       {id:"molten_core",    name:"熔火之心",       blurb:"走廊 → 玛格曼达 → 拉戈斯", minLevel:0,  gate:"entrance", icon:"dungeon"},
       {id:"ragefire_chasm", name:"怒焰裂谷",       blurb:"燃刃兽人 → 奥格弗林特 → 饥饿者", minLevel:13, gate:"entrance", icon:"fireball"},

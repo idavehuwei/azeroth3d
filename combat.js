@@ -55,6 +55,8 @@ const S={
   vendorOpen:false,
   vendorNpcId:null, /* 当前商店 NPC id（对照 BAL.economy.vendorStockByNpc） */
   deathUi:false, /* STEP 15：死亡面板打开中 */
+  difficulty:"normal", /* V1-B4：本次副本难度 normal|heroic */
+  lfgPick:"normal",    /* 查找器当前选中的难度 */
 };
 /* ============================================================
    职业系统：战士 / 法师 / 弓箭手 / 牧师

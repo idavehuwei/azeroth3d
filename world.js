@@ -261,6 +261,7 @@ function enterRaid(){
 }
 function leaveRaid(){
   if(S.mode!=="raid")return;
+  S.difficulty="normal";
   const D=typeof getDungeon==="function"?getDungeon():null;
   const hub=(D&&D.exitZone)||"mulgore";
   const gate=(D&&D.exitGate)||"from_raid";
