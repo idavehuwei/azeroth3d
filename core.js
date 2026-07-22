@@ -616,15 +616,29 @@ const BALANCE={
     gravity:26,
     groundEps:.06,
   },
-  /* 头顶姓名板（血条 + 等级）· plan-V2 R7 打磨（性能优先：无每帧 raycast） */
+  /* 头顶姓名板（血条 + 等级）· plan-V2 R7 / plan-V3 C2 */
   nameplate:{
     barW:1.9, barH:.16,
     enemy:"#d84828", friend:"#3a9a48", bg:"#1a1208",
     enemyGlow:"rgba(180,40,20,.9)", friendGlow:"rgba(40,120,50,.9)",
-    eliteBorder:"#ffd76a",
+    eliteBorder:"#ffd76a", rareBorder:"#c0c8d8",
+    threatTint:0xff6060,     /* C2：仇恨中姓名板着色 */
     near:10, far:42,         /* 距离缩放区间；超出 far 直接隐藏 */
+    farShowAll:120,          /* V 全显时的远距上限 */
     minScale:.55, maxScale:1.1,
     farFade:.3,              /* 远处最低不透明度（距离衰减，非 raycast） */
+  },
+  /* 目标系统（plan-V3 C2） */
+  target:{
+    tabRange:48,             /* Tab 循环最大距离 */
+    tabConeCos:.15,          /* 视锥：dot(camForward, toTarget) 下限（放宽） */
+    tabNearSkip:8,           /* 近于此距离不做视锥裁剪 */
+    skillDefaultRange:30,    /* resolveSkillTarget 默认射程 */
+    totThreatR:80,           /* 目标的目标：Boss 仇恨查询半径 */
+    clickMaxDist:55,         /* 点击选取最大距离 */
+    clickDragPx:6,           /* 低于此像素位移视为点击（非拖镜头） */
+    meleeAutoR:4.5,
+    showTot:true,            /* 目标的目标小框 */
   },
   npcLevel:{hawkwind:10,grull:8,grayhorn:12,raoul:6,vera:5,whiterock:10,baine:40,bloodhoof_elder:35,tark:18,mull:16,haru:18,mara:14,kur:15,aska:20,cairne:60,stonetalon:40,seen:22,pala:20,hamya:24,magatha:50,runetotem:45,thunderhorn_guard:12,winterhoof_guard:10,windfury_sentinel:25,elder:40,vendor:25,varg:25,hunter:18,cook:20,spirit:55,crossroads:30,darsok:28,kag:26,mankrik:30,thom:27,kil:24,serra:25,lal:28,zinge:26,scriven:22,innkeeper:22,flightmaster:25,barrens_vendor:24,barrens_armor:24,ochre:28,ochre_guard:26,ochre_vendor:24,companion:null},
   /* 营地 NPC 外观：体型缩放 + 姓名板高度（相对缩放后头顶） */
@@ -968,14 +982,16 @@ function updateNameplateHp(root,hp,hpMax){
  * R7：姓名板距离缩放 / 远距淡出 / 超远隐藏（O(1)，无 raycast）
  * 遮挡 raycast 已撤下——全场景 traverse + 每板一次 intersect 会拖垮帧率。
  */
-function updateNameplatePresentation(root,worldPos){
+function updateNameplatePresentation(root,worldPos,opts){
   if(!root||!worldPos||!camera)return;
+  opts=opts||{};
   const NP=BAL.nameplate||{};
   const dx=worldPos.x-camera.position.x;
   const dy=worldPos.y-camera.position.y;
   const dz=worldPos.z-camera.position.z;
   const distSq=dx*dx+dy*dy+dz*dz;
-  const far=NP.far!=null?NP.far:42;
+  const showAll=!!(typeof S!=="undefined"&&S.nameplatesShowAll);
+  const far=showAll?(NP.farShowAll!=null?NP.farShowAll:120):(NP.far!=null?NP.far:42);
   const farSq=far*far;
   if(distSq>farSq){
     if(root.visible)root.visible=false;
@@ -996,17 +1012,26 @@ function updateNameplatePresentation(root,worldPos){
 
   const farFade=NP.farFade!=null?NP.farFade:.3;
   const fade=1-t*(1-farFade);
-  if(root.userData._npFade===fade)return;
-  root.userData._npFade=fade;
-  const U=root.userData;
-  const sprites=[U.lab,U.bg,U.fill,U.border];
-  for(let i=0;i<sprites.length;i++){
-    const sp=sprites[i];
-    if(!sp||!sp.material)continue;
-    const m=sp.material;
-    if(m.userData._npBaseOp==null)m.userData._npBaseOp=m.opacity!=null?m.opacity:1;
-    m.transparent=true;
-    m.opacity=m.userData._npBaseOp*fade;
+  if(root.userData._npFade!==fade){
+    root.userData._npFade=fade;
+    root.traverse(o=>{
+      if(o.material&&o.material.opacity!=null){
+        const base=o.userData&&o.userData.baseOp!=null?o.userData.baseOp:(root.userData.baseOp||1);
+        o.material.transparent=true;
+        o.material.opacity=base*fade;
+      }
+    });
+  }
+
+  /* C2：仇恨中姓名板偏红 */
+  const threat=!!opts.threat;
+  if(root.userData._npThreat!==threat){
+    root.userData._npThreat=threat;
+    const lab=root.userData.lab;
+    if(lab&&lab.material&&lab.material.color){
+      if(threat)lab.material.color.setHex(NP.threatTint!=null?NP.threatTint:0xff6060);
+      else lab.material.color.setHex(0xffffff);
+    }
   }
 }
 function disposeNameplate(root){

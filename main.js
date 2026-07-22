@@ -363,7 +363,7 @@ function tick(){
         m.label.position.set(m.mesh.position.x,gy+m.labelY,m.mesh.position.z);
         if(typeof updateNameplateHp==="function")updateNameplateHp(m.label,m.hp,m.hpMax);
         if(typeof updateNameplatePresentation==="function")
-          updateNameplatePresentation(m.label,m.label.position);
+          updateNameplatePresentation(m.label,m.label.position,{threat:m.state==="aggro"});
         /* 精英光环脉动 */
         if(m.elite&&m.aura&&m.state!=="dead"){
           const pulse=BAL.elite.aura.pulse||.3;
@@ -618,33 +618,30 @@ function tick(){
     if(S.eq.mainhand==="sulfuras_haft")
       player.traverse(o=>{if(o.userData.flame)o.scale.y=1+Math.sin(S.t*7+o.position.x*5)*.25;});
 
-    /* ---- 自动普攻（战士近战 / 法师火球 / 弓箭手射箭） ---- */
+    /* ---- 自动普攻（优先当前目标） ---- */
     S.p.atkTimer-=dt;
     if(S.p.alive&&S.p.atkTimer<=0){
       let did=false;
+      const autoR=(BAL.target&&BAL.target.meleeAutoR)||4.5;
       if(CLS.ranged){
-        const tgt=pickTarget(CLS.range);
+        const tgt=typeof resolveSkillTarget==="function"
+          ?resolveSkillTarget(CLS.range,{silent:true})
+          :pickTarget(CLS.range);
         if(tgt){S.p.attackAnim=1;firePlayerShot(tgt,rand(CLS.autoMin,CLS.autoMax),null);did=true;}
       }else{
-        if(S.mode==="world"){
-          const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore";
-          for(const m of MOBS){
-            if((m.zoneId||"mulgore")!==zid)continue;
-            if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<4.5){
-              S.p.attackAnim=1;setCurrentTarget({type:"mob",m});mobDamage(m,rand(CLS.autoMin,CLS.autoMax));did=true;break;
-            }
-          }
-        }else if(bossTargetable()&&distToBoss()<=10){
-          S.p.attackAnim=1;setCurrentTarget({type:"boss"});dmgBoss(rand(CLS.autoMin,CLS.autoMax));did=true;
-        }else{
-          for(const a of S.adds){
-            if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<4.5){
-              S.p.attackAnim=1;setCurrentTarget({type:"add",a});addDamage(a,rand(CLS.autoMin,CLS.autoMax));did=true;break;
-            }
-          }
+        let tgt=isTargetAlive(S.currentTarget)?S.currentTarget:null;
+        if(tgt&&targetDist(tgt)>autoR)tgt=null;
+        if(!tgt)tgt=pickTarget(autoR);
+        if(tgt){
+          setCurrentTarget(tgt);
+          S.p.attackAnim=1;
+          if(tgt.type==="mob")mobDamage(tgt.m,rand(CLS.autoMin,CLS.autoMax));
+          else if(tgt.type==="boss")dmgBoss(rand(CLS.autoMin,CLS.autoMax));
+          else if(tgt.type==="add")addDamage(tgt.a,rand(CLS.autoMin,CLS.autoMax));
+          did=true;
         }
       }
-      if(did&&!CLS.ranged)SFX.play("swing");   /* 近战普攻音效（远程在 firePlayerShot 里） */
+      if(did&&!CLS.ranged)SFX.play("swing");
       if(did&&CLS.hitGain)S.p.rage=Math.min(S.p.rageMax,S.p.rage+CLS.hitGain);
       if(did&&BAL.stealth&&BAL.stealth.breakOnAttack!==false&&typeof breakStealth==="function")breakStealth("attack");
       S.p.atkTimer=did?CLS.autoSpd:.3;
@@ -762,7 +759,7 @@ function tick(){
         a.label.position.set(a.mesh.position.x,2.8,a.mesh.position.z);
         if(typeof updateNameplateHp==="function")updateNameplateHp(a.label,a.hp,a.hpMax);
         if(typeof updateNameplatePresentation==="function")
-          updateNameplatePresentation(a.label,a.label.position);
+          updateNameplatePresentation(a.label,a.label.position,{threat:true});
       }
     }
 
@@ -888,6 +885,7 @@ function tick(){
 
   /* ---- UI 刷新 ---- */
   if(typeof refreshBossHpTicks==="function")refreshBossHpTicks();
+  if(typeof refreshTargetFrame==="function")refreshTargetFrame();
   if(S.mode==="raid"){
     const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
     if(D.stage==="corridor"||D.stage==="bridge"){

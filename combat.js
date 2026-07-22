@@ -22,9 +22,11 @@
    [导出] S SKILLS CLASSES CLS setClass applySkillBarIcons log announce fct hurtFlash keys joy
           getMoveIntent clearMoveTarget camApplyDrag
           hitEntity playerHit gainXP updateLevelUI useSkill pickTarget setCurrentTarget getFocusTarget
+          resolveSkillTarget cycleHostileTargets listHostileTargets targetDisplayInfo
           firePlayerShot
           useSkill hitEntity dmgBoss pickTarget firePlayerShot playerHit
           isTargetAlive setCurrentTarget getFocusTarget clearCurrentTargetIf
+          resolveSkillTarget cycleHostileTargets
           gainXP updateLevelUI gainCopper spendCopper formatCopperText updateGoldUI
           clearShieldVisual applyHeal clearAllTotems tickTotems
           breakStealth enterStealth getPlayerAggroMul isBehindTarget
@@ -38,7 +40,9 @@
 const S={
   started:false,over:false,t:0,mode:"world",zoneId:"mulgore",
   portalHinted:false,portalHints:{},portalLockT:0,
-  currentTarget:null,   /* STEP 20：玩家集火目标，供 AI 队友共用 */
+  currentTarget:null,   /* plan-V3 C2 / STEP 20：当前目标（技能与 AI 共用） */
+  target:null,          /* C2 别名，与 currentTarget 同步 */
+  nameplatesShowAll:false, /* C2：V 键姓名板全显 */
   quests:{},            /* STEP 22：任务运行时 {id:{status,kills,flags}} */
   mats:{},              /* STEP 23：采集材料堆叠 {matId:count} */
   deeds:null,           /* STEP 25：功绩之书（ensureDeeds 初始化） */
@@ -264,7 +268,7 @@ function getMoveIntent(){
 function clearMoveTarget(){
   if(S.currentTarget){
     setCurrentTarget(null);
-    log("取消目标。","lg-sys");
+    log(typeof T==="function"?T("combat.cancel_target"):"取消目标。","lg-sys");
     return true;
   }
   return false;
@@ -284,6 +288,16 @@ addEventListener("keydown",e=>{
   if(k==="r"&&!e.repeat&&S.started&&S.p&&S.p.alive){
     S.p.autoRun=!S.p.autoRun;
     log(S.p.autoRun?"自动奔跑 · 开":"自动奔跑 · 关","lg-sys");
+  }
+  if(k==="v"&&!e.repeat&&S.started){
+    S.nameplatesShowAll=!S.nameplatesShowAll;
+    log(S.nameplatesShowAll
+      ?(typeof T==="function"?T("combat.nameplates_on"):"姓名板 · 全显")
+      :(typeof T==="function"?T("combat.nameplates_off"):"姓名板 · 常规"),"lg-sys");
+  }
+  if(e.key==="Tab"){
+    e.preventDefault();
+    if(S.started&&S.p&&S.p.alive)cycleHostileTargets(!!e.shiftKey);
   }
   if(e.shiftKey&&k==="z"&&typeof toggleDeedsPanel==="function"){e.preventDefault();toggleDeedsPanel();}
   if(e.shiftKey&&k==="i"&&typeof toggleDungeonFinderPanel==="function"){e.preventDefault();toggleDungeonFinderPanel();}
@@ -514,21 +528,16 @@ function hitEntity(ent,amount,label,opts){
 /* Boss 受击：薄包装（保留旧调用方签名） → BOSS_ENT 在 raid.js 定义 */
 function dmgBoss(amount,label,opts){hitEntity(BOSS_ENT,amount,label,opts);}
 function heroicStrike(){
-  let hit=false;
+  const bal=getSkillBal("heroicStrike");
   const thr={skillId:"heroicStrike"};
-  if(S.mode==="world"){
-    for(const m of MOBS){
-      if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<getSkillBal("heroicStrike").reach){
-        mobDamage(m,R(getSkillBal("heroicStrike").dmg),"英勇打击",thr);hit=true;break;
-      }
-    }
-  }else{
-    if(distToBoss()<=getSkillBal("heroicStrike").bossReach){dmgBoss(R(getSkillBal("heroicStrike").dmg),"英勇打击",thr);hit=true;}
-    S.adds.forEach(a=>{
-      if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<getSkillBal("heroicStrike").addReach){addDamage(a,R(getSkillBal("heroicStrike").addDmg),thr);hit=true;}
-    });
-  }
-  if(!hit){log("没有目标在近战范围内。");return false;}
+  const tgt=resolveSkillTarget(bal.reach||5);
+  if(!tgt)return false;
+  setCurrentTarget(tgt);
+  if(tgt.type==="mob")mobDamage(tgt.m,R(bal.dmg),"英勇打击",thr);
+  else if(tgt.type==="boss"){
+    if(distToBoss()>(bal.bossReach||bal.reach||5)){log(typeof T==="function"?T("combat.target_oor"):"目标超出射程！");return false;}
+    dmgBoss(R(bal.dmg),"英勇打击",thr);
+  }else if(tgt.type==="add")addDamage(tgt.a,R(bal.addDmg||bal.dmg),thr);
   S.p.attackAnim=1;
   SFX.play("swing");
   return true;
@@ -555,42 +564,29 @@ function whirlwind(){
   return true;
 }
 function charge(){
-  let target=null,best=1e9;
-  if(S.mode==="world"){
-    MOBS.forEach(m=>{
-      if(!mobTargetable(m))return;
-      const d=player.position.distanceTo(m.mesh.position);
-      if(d<best){best=d;target=m.mesh.position.clone().setY(0);}
-    });
-  }else{
-    if(bossTargetable()){target=new THREE.Vector3(boss.position.x,0,boss.position.z);best=distToBoss();}
-    S.adds.forEach(a=>{
-      if(!addTargetable(a))return;
-      const d=player.position.distanceTo(a.mesh.position);
-      if(d<best){best=d;target=a.mesh.position.clone().setY(0);}
-    });
-  }
-  if(!target||best<getSkillBal("charge").minDist){log("没有可冲锋的目标。");return false;}
+  const bal=getSkillBal("charge");
+  const tgt=resolveSkillTarget(40);
+  if(!tgt)return false;
+  const pos=targetWorldPos(tgt);
+  if(!pos)return false;
+  const best=targetDist(tgt);
+  if(best<(bal.minDist||5)){log("目标太近，无法冲锋。");return false;}
+  setCurrentTarget(tgt);
+  const target=pos.clone().setY(0);
   const dir=target.clone().sub(player.position).normalize();
-  const dest=target.clone().sub(dir.clone().multiplyScalar(getSkillBal("charge").stopDist));
+  const dest=target.clone().sub(dir.clone().multiplyScalar(bal.stopDist||2.5));
   player.position.copy(clampArena(dest));
-  S.p.rage=Math.min(S.p.rageMax,S.p.rage+getSkillBal("charge").rageGain);
+  S.p.rage=Math.min(S.p.rageMax,S.p.rage+(bal.rageGain||15));
   spawnBurst(player.position.clone().setY(.6),0xffe9a0,18,1.2);
   /* STEP 27：冲锋产生瞬时仇恨 */
   if(typeof addThreat==="function"){
-    if(S.mode==="world"){
-      let nearest=null,nd=1e9;
-      for(const m of MOBS){
-        if(!mobTargetable(m))continue;
-        const d=player.position.distanceTo(m.mesh.position);
-        if(d<nd){nd=d;nearest=m;}
-      }
-      if(nearest)addThreat(nearest,"player",0,"charge");
-    }else if(bossTargetable())addThreat(BOSS_ENT,"player",0,"charge");
+    if(tgt.type==="mob")addThreat(tgt.m,"player",0,"charge");
+    else if(tgt.type==="boss"&&typeof BOSS_ENT!=="undefined")addThreat(BOSS_ENT,"player",0,"charge");
+    else if(tgt.type==="add")addThreat(tgt.a,"player",0,"charge");
   }
   /* V1-C5：冲锋落地后尝试打断读条 */
   tryInterrupt((getSkillBal("interrupt").range)||8,"冲锋");
-  log(`你向敌人发起冲锋！获得 ${getSkillBal("charge").rageGain} 点怒气。`,"lg-me");
+  log(`你向敌人发起冲锋！获得 ${bal.rageGain||15} 点怒气。`,"lg-me");
   return true;
 }
 function potion(){
@@ -634,31 +630,20 @@ function tryInterrupt(range,label){
 function taunt(){
   const bal=getSkillBal("taunt");
   const range=bal.range||16;
+  const tgt=resolveSkillTarget(range);
+  if(!tgt)return false;
+  setCurrentTarget(tgt);
   let victim=null,label="";
-  if(S.mode==="world"){
-    let best=null,bd=1e9;
-    for(const m of MOBS){
-      if(typeof mobTargetable==="function"&&!mobTargetable(m))continue;
-      const d=player.position.distanceTo(m.mesh.position);
-      if(d<range&&d<bd){bd=d;best=m;}
-    }
-    if(!best){log("附近没有可嘲讽的目标。");return false;}
-    victim=best; label=best.name||"敌人";
-    if(best.state==="wander"&&typeof aggroMob==="function")aggroMob(best);
-  }else{
-    if(typeof bossTargetable==="function"&&bossTargetable()
-      &&typeof distToBoss==="function"&&distToBoss()<=range){
-      victim=typeof BOSS_ENT!=="undefined"?BOSS_ENT:null;
-      label=(typeof getBossCfg==="function"&&getBossCfg().name)||"首领";
-    }
-    if(!victim&&S.adds){
-      for(const a of S.adds){
-        if(typeof addTargetable==="function"&&!addTargetable(a))continue;
-        if(player.position.distanceTo(a.mesh.position)<=range){victim=a;label="小怪";break;}
-      }
-    }
-    if(!victim){log("附近没有可嘲讽的目标。");return false;}
+  if(tgt.type==="mob"){
+    victim=tgt.m; label=tgt.m.name||"敌人";
+    if(tgt.m.state==="wander"&&typeof aggroMob==="function")aggroMob(tgt.m);
+  }else if(tgt.type==="boss"){
+    victim=typeof BOSS_ENT!=="undefined"?BOSS_ENT:null;
+    label=(typeof getBossCfg==="function"&&getBossCfg().name)||"首领";
+  }else if(tgt.type==="add"){
+    victim=tgt.a; label=tgt.a.name||"小怪";
   }
+  if(!victim){log(typeof T==="function"?T("combat.no_target"):"你没有目标。");return false;}
   if(typeof applyTaunt!=="function"){log("嘲讽系统未就绪。","lg-sys");return false;}
   applyTaunt(victim,"player",{dur:bal.dur,margin:bal.margin});
   S.p.attackAnim=1;
@@ -670,6 +655,7 @@ function taunt(){
 }
 
 /* ---------------- 远程职业通用：索敌 & 投射物 ---------------- */
+/* ---------------- 目标系统（plan-V3 C2） ---------------- */
 function pickTarget(range,fromPos){
   const origin=fromPos||player.position;
   let tgt=null,best=range;
@@ -702,21 +688,148 @@ function isTargetAlive(tgt){
   return false;
 }
 function setCurrentTarget(tgt){
-  if(tgt&&isTargetAlive(tgt))S.currentTarget=tgt;
-  else if(!tgt)S.currentTarget=null;
+  if(tgt&&isTargetAlive(tgt)){S.currentTarget=tgt;S.target=tgt;}
+  else{S.currentTarget=null;S.target=null;}
+  if(typeof refreshTargetFrame==="function")refreshTargetFrame();
 }
 function clearCurrentTargetIf(ent){
   const t=S.currentTarget;
   if(!t)return;
-  if(t.type==="mob"&&t.m===ent)S.currentTarget=null;
-  if(t.type==="add"&&t.a===ent)S.currentTarget=null;
-  if(t.type==="boss"&&ent&&ent.type==="boss")S.currentTarget=null;
+  if(t.type==="mob"&&t.m===ent)setCurrentTarget(null);
+  if(t.type==="add"&&t.a===ent)setCurrentTarget(null);
+  if(t.type==="boss"&&ent&&ent.type==="boss")setCurrentTarget(null);
+}
+function targetWorldPos(tgt){
+  if(!tgt)return null;
+  if(tgt.type==="mob"&&tgt.m&&tgt.m.mesh)return tgt.m.mesh.position;
+  if(tgt.type==="add"&&tgt.a&&tgt.a.mesh)return tgt.a.mesh.position;
+  if(tgt.type==="boss"&&typeof boss!=="undefined"&&boss)return boss.position;
+  return null;
+}
+function targetDist(tgt,fromPos){
+  const p=targetWorldPos(tgt);
+  if(!p)return Infinity;
+  const o=fromPos||player.position;
+  return o.distanceTo(p);
+}
+function targetDisplayInfo(tgt){
+  if(!isTargetAlive(tgt))return null;
+  if(tgt.type==="mob"){
+    const m=tgt.m;
+    return{
+      name:m.name||"敌人",level:m.level!=null?m.level:1,
+      hp:m.hp,hpMax:m.hpMax,elite:!!m.elite,rare:!!(m.rare||m.worldBoss),
+      kind:"mob",ent:m
+    };
+  }
+  if(tgt.type==="add"){
+    const a=tgt.a;
+    return{
+      name:a.name||T("mob.flame_spawn"),level:a.level!=null?a.level:15,
+      hp:a.hp,hpMax:a.hpMax,elite:!!a.elite,rare:false,kind:"add",ent:a
+    };
+  }
+  if(tgt.type==="boss"){
+    const cfg=typeof BOSSES!=="undefined"&&S.b&&BOSSES[S.b.id]?BOSSES[S.b.id]:null;
+    return{
+      name:cfg&&cfg.name?cfg.name:(typeof T==="function"?T("boss.ragnaros"):"Boss"),
+      level:S.b.level!=null?S.b.level:((BAL.boss&&BAL.boss.level)||20),
+      hp:S.b.hp,hpMax:S.b.hpMax,elite:true,rare:false,kind:"boss",ent:null,
+      title:cfg&&cfg.title?cfg.title:""
+    };
+  }
+  return null;
 }
 function getFocusTarget(range){
   const r=range!=null?range:(BAL.companion?BAL.companion.combatEngageR:24);
   if(isTargetAlive(S.currentTarget))return S.currentTarget;
-  S.currentTarget=null;
+  setCurrentTarget(null);
   return pickTarget(r);
+}
+/** 技能索敌：优先当前目标 → 自动最近 → 否则「你没有目标」 */
+function resolveSkillTarget(range,opts){
+  opts=opts||{};
+  const r=range!=null?range:((BAL.target&&BAL.target.skillDefaultRange)||30);
+  const msgNo=typeof T==="function"?T("combat.no_target"):"你没有目标。";
+  const msgOor=typeof T==="function"?T("combat.target_oor"):"目标超出射程！";
+  if(isTargetAlive(S.currentTarget)){
+    const d=targetDist(S.currentTarget);
+    if(d<=r)return S.currentTarget;
+    if(!opts.silent)log(msgOor);
+    return null;
+  }
+  if(opts.requireExplicit){
+    if(!opts.silent)log(msgNo);
+    return null;
+  }
+  const auto=pickTarget(r);
+  if(auto){setCurrentTarget(auto);return auto;}
+  if(!opts.silent)log(msgNo);
+  return null;
+}
+function listHostileTargets(maxRange){
+  const Tcfg=BAL.target||{};
+  const range=maxRange!=null?maxRange:(Tcfg.tabRange||48);
+  const list=[];
+  if(S.mode==="world"){
+    const zid=typeof getCurrentZoneId==="function"?getCurrentZoneId():"mulgore";
+    for(const m of MOBS){
+      if(!mobTargetable(m))continue;
+      if((m.zoneId||"mulgore")!==zid)continue;
+      const d=player.position.distanceTo(m.mesh.position);
+      if(d<=range)list.push({type:"mob",m,d,pos:m.mesh.position});
+    }
+  }else{
+    if(bossTargetable()){
+      const d=Math.hypot(player.position.x-boss.position.x,player.position.z-boss.position.z);
+      if(d<=range)list.push({type:"boss",d,pos:boss.position});
+    }
+    for(const a of S.adds){
+      if(!addTargetable(a))continue;
+      const d=player.position.distanceTo(a.mesh.position);
+      if(d<=range)list.push({type:"add",a,d,pos:a.mesh.position});
+    }
+  }
+  return list;
+}
+function cycleHostileTargets(reverse){
+  const Tcfg=BAL.target||{};
+  const cone=Tcfg.tabConeCos!=null?Tcfg.tabConeCos:.15;
+  const list=listHostileTargets();
+  if(!list.length){
+    log(typeof T==="function"?T("combat.no_target"):"你没有目标。");
+    return null;
+  }
+  /* 视锥：以相机朝向近似（face+yawOff） */
+  const yaw=S.p.face+(S.cam&&!(S.cam.rmb||S.cam.touchLook)?(S.cam.yawOff||0):0);
+  const fx=Math.sin(yaw), fz=Math.cos(yaw);
+  const scored=[];
+  for(const it of list){
+    const dx=it.pos.x-player.position.x, dz=it.pos.z-player.position.z;
+    const len=Math.hypot(dx,dz)||1;
+    const dot=(dx*fx+dz*fz)/len;
+    if(dot<cone&&it.d>((Tcfg.tabNearSkip!=null)?Tcfg.tabNearSkip:8))continue; /* 近距离放宽锥角 */
+    scored.push({tgt:it.type==="boss"?{type:"boss"}:it.type==="mob"?{type:"mob",m:it.m}:{type:"add",a:it.a}, d:it.d, dot});
+  }
+  const pool=scored.length?scored:list.map(it=>({
+    tgt:it.type==="boss"?{type:"boss"}:it.type==="mob"?{type:"mob",m:it.m}:{type:"add",a:it.a},
+    d:it.d,dot:1
+  }));
+  pool.sort((a,b)=>a.d-b.d||b.dot-a.dot);
+  let idx=0;
+  if(isTargetAlive(S.currentTarget)){
+    for(let i=0;i<pool.length;i++){
+      const t=pool[i].tgt, c=S.currentTarget;
+      if(t.type!==c.type)continue;
+      if(t.type==="boss"){idx=i;break;}
+      if(t.type==="mob"&&t.m===c.m){idx=i;break;}
+      if(t.type==="add"&&t.a===c.a){idx=i;break;}
+    }
+    idx=reverse?(idx-1+pool.length)%pool.length:(idx+1)%pool.length;
+  }else if(reverse)idx=pool.length-1;
+  const next=pool[idx].tgt;
+  setCurrentTarget(next);
+  return next;
 }
 function firePlayerShot(tgt,dmg,label,scale=1){
   setCurrentTarget(tgt);
@@ -744,8 +857,8 @@ function firePlayerShot(tgt,dmg,label,scale=1){
 
 /* ---------------- 法师技能 ---------------- */
 function pyroblast(){
-  const t=pickTarget(CLS.range);
-  if(!t){log("目标超出施法距离！");return false;}
+  const t=resolveSkillTarget(CLS.range);
+  if(!t)return false;
   S.p.attackAnim=1;
   firePlayerShot(t,R(getSkillBal("pyroblast").dmg),"炎爆术",1.7);
   log("你吟唱出巨大的炎爆术！","lg-me");
@@ -793,8 +906,8 @@ function iceBlock(){
 
 /* ---------------- 弓箭手技能 ---------------- */
 function aimedShot(){
-  const t=pickTarget(CLS.range);
-  if(!t){log("目标超出射程！");return false;}
+  const t=resolveSkillTarget(CLS.range);
+  if(!t)return false;
   tryInterrupt(CLS.range,"瞄准射击");
   S.p.attackAnim=1;
   firePlayerShot(t,R(getSkillBal("aimedShot").dmg),"瞄准射击",1.4);
@@ -866,8 +979,8 @@ function flashHeal(){
   return applyHeal(R(getSkillBal("flashHeal").heal),"快速治疗");
 }
 function smite(){
-  const t=pickTarget(CLS.range);
-  if(!t){log("目标超出施法距离！");return false;}
+  const t=resolveSkillTarget(CLS.range);
+  if(!t)return false;
   tryInterrupt(CLS.range,"神圣惩击");
   S.p.attackAnim=1;
   firePlayerShot(t,R(getSkillBal("smite").dmg),"神圣惩击",1.5);
@@ -895,8 +1008,8 @@ function powerWordShield(){
 
 /* ---- V1-C1 萨满技能 / 图腾 ---- */
 function lightningBolt(){
-  const t=pickTarget(CLS.range);
-  if(!t){log("目标超出施法距离！");return false;}
+  const t=resolveSkillTarget(CLS.range);
+  if(!t)return false;
   S.p.attackAnim=1;
   firePlayerShot(t,R(getSkillBal("lightningBolt").dmg),"闪电箭",1.45);
   if(typeof SFX!=="undefined")SFX.play("lightning");
@@ -904,8 +1017,8 @@ function lightningBolt(){
   return true;
 }
 function earthShock(){
-  const t=pickTarget(CLS.range);
-  if(!t){log("目标超出施法距离！");return false;}
+  const t=resolveSkillTarget(CLS.range);
+  if(!t)return false;
   tryInterrupt(CLS.range,"大地震击");
   S.p.attackAnim=1;
   firePlayerShot(t,R(getSkillBal("earthShock").dmg),"大地震击",1.15);
@@ -1065,25 +1178,17 @@ function isBehindTarget(targetPos,targetRotY,attackerPos,arc){
   return Math.abs(d)>Math.PI-half;
 }
 function sinisterStrike(){
-  let hit=false;
   const thr={skillId:"sinisterStrike"};
   const bal=getSkillBal("sinisterStrike");
   tryInterrupt((getSkillBal("interrupt").range)||8,"影袭");
-  if(S.mode==="world"){
-    for(const m of MOBS){
-      if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<bal.reach){
-        mobDamage(m,R(bal.dmg),"影袭",thr);hit=true;break;
-      }
-    }
-  }else{
-    if(distToBoss()<=bal.bossReach){dmgBoss(R(bal.dmg),"影袭",thr);hit=true;}
-    S.adds.forEach(a=>{
-      if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<bal.addReach){
-        addDamage(a,R(bal.addDmg),thr);hit=true;
-      }
-    });
-  }
-  if(!hit){log("没有目标在近战范围内。");return false;}
+  const tgt=resolveSkillTarget(bal.reach||5);
+  if(!tgt)return false;
+  setCurrentTarget(tgt);
+  if(tgt.type==="mob")mobDamage(tgt.m,R(bal.dmg),"影袭",thr);
+  else if(tgt.type==="boss"){
+    if(distToBoss()>(bal.bossReach||bal.reach||5)){log(typeof T==="function"?T("combat.target_oor"):"目标超出射程！");return false;}
+    dmgBoss(R(bal.dmg),"影袭",thr);
+  }else if(tgt.type==="add")addDamage(tgt.a,R(bal.addDmg||bal.dmg),thr);
   breakStealth("attack");
   S.p.attackAnim=1;
   SFX.play("swing");
@@ -1091,48 +1196,38 @@ function sinisterStrike(){
 }
 function backstab(){
   const bal=getSkillBal("backstab");
+  const reach=bal.reach||5;
+  const tgt=resolveSkillTarget(reach);
+  if(!tgt)return false;
   let targetMesh=null, deal=null;
-  if(S.mode==="world"){
-    let best=1e9,pick=null;
-    for(const m of MOBS){
-      if(!mobTargetable(m))continue;
-      const d=player.position.distanceTo(m.mesh.position);
-      if(d<bal.reach&&d<best){best=d;pick=m;}
-    }
-    if(!pick){log("没有目标在近战范围内。");return false;}
-    targetMesh=pick.mesh;
+  if(tgt.type==="mob"){
+    targetMesh=tgt.m.mesh;
     deal=()=>{
       let dmg=R(bal.dmg);
       if(S.p.stealth)dmg=Math.round(dmg*(bal.stealthMul||1.25)*(1+((S.p.talentFx&&S.p.talentFx.stealthDmg)||0)));
-      mobDamage(pick,dmg,"背刺",{skillId:"backstab"});
+      mobDamage(tgt.m,dmg,"背刺",{skillId:"backstab"});
     };
-  }else{
-    if(bossTargetable()&&distToBoss()<=bal.bossReach){
-      targetMesh=boss;
-      deal=()=>{
-        let dmg=R(bal.dmg);
-        if(S.p.stealth)dmg=Math.round(dmg*(bal.stealthMul||1.25)*(1+((S.p.talentFx&&S.p.talentFx.stealthDmg)||0)));
-        dmgBoss(dmg,"背刺",{skillId:"backstab"});
-      };
-    }else{
-      for(const a of S.adds){
-        if(!addTargetable(a))continue;
-        if(player.position.distanceTo(a.mesh.position)<bal.addReach){
-          targetMesh=a.mesh;
-          deal=()=>{
-            let dmg=R(bal.addDmg);
-            if(S.p.stealth)dmg=Math.round(dmg*(bal.stealthMul||1.25)*(1+((S.p.talentFx&&S.p.talentFx.stealthDmg)||0)));
-            addDamage(a,dmg,{skillId:"backstab"});
-          };
-          break;
-        }
-      }
-    }
+  }else if(tgt.type==="boss"){
+    if(distToBoss()>(bal.bossReach||reach)){log(typeof T==="function"?T("combat.target_oor"):"目标超出射程！");return false;}
+    targetMesh=boss;
+    deal=()=>{
+      let dmg=R(bal.dmg);
+      if(S.p.stealth)dmg=Math.round(dmg*(bal.stealthMul||1.25)*(1+((S.p.talentFx&&S.p.talentFx.stealthDmg)||0)));
+      dmgBoss(dmg,"背刺",{skillId:"backstab"});
+    };
+  }else if(tgt.type==="add"){
+    targetMesh=tgt.a.mesh;
+    deal=()=>{
+      let dmg=R(bal.addDmg||bal.dmg);
+      if(S.p.stealth)dmg=Math.round(dmg*(bal.stealthMul||1.25)*(1+((S.p.talentFx&&S.p.talentFx.stealthDmg)||0)));
+      addDamage(tgt.a,dmg,{skillId:"backstab"});
+    };
   }
-  if(!targetMesh||!deal){log("没有目标在近战范围内。");return false;}
+  if(!targetMesh||!deal)return false;
   if(!isBehindTarget(targetMesh.position,targetMesh.rotation.y,player.position,bal.behindArc)){
     log("背刺必须位于目标背后！","lg-sys");return false;
   }
+  setCurrentTarget(tgt);
   deal();
   breakStealth("attack");
   S.p.attackAnim=1;

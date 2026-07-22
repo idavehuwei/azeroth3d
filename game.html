@@ -29,6 +29,23 @@
   #bossFrame{position:fixed;top:14px;left:50%;transform:translateX(-50%);width:min(680px,92vw);z-index:10;
     opacity:0;transition:opacity .8s}
   #bossFrame.show{opacity:1}
+  /* plan-V3 C2：通用目标框 */
+  #targetFrame{position:fixed;top:14px;left:14px;width:min(280px,42vw);z-index:10;
+    opacity:0;pointer-events:none;transition:opacity .25s;
+    background:var(--panel-bg);border:1px solid var(--panel-border);
+    box-shadow:var(--panel-inset),0 6px 20px rgba(0,0,0,.45);padding:8px 10px 10px}
+  #targetFrame.show{opacity:1}
+  #targetFrame.elite{border-color:#c9a06a;box-shadow:0 0 14px rgba(232,179,74,.35),var(--panel-inset)}
+  #targetFrame.rare{border-color:#a8b0c8;box-shadow:0 0 14px rgba(180,190,220,.3),var(--panel-inset)}
+  #targetHead{display:flex;gap:8px;align-items:center;margin-bottom:5px}
+  #targetAvatar{width:36px;height:36px;border:1px solid var(--panel-border-hi);background:#1a1008;flex-shrink:0}
+  #targetMeta{min-width:0;flex:1}
+  #targetName{font-size:13px;font-weight:800;color:#ffd9a0;letter-spacing:1px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 2px #000}
+  #targetSub{font-size:10px;color:#c9a06a;letter-spacing:1px;margin-top:1px}
+  #totFrame{position:fixed;top:92px;left:28px;z-index:10;opacity:0;transition:opacity .25s;
+    background:rgba(14,8,5,.85);border:1px solid rgba(201,160,106,.4);padding:3px 8px;font-size:11px;color:#e8c898}
+  #totFrame.show{opacity:1}
   #bossName{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;
     text-shadow:0 0 12px rgba(255,90,0,.8),0 2px 3px #000}
   #bossName .n{font-size:20px;font-weight:900;letter-spacing:4px;color:#ffd9a0}
@@ -544,6 +561,17 @@
   <div class="barShell"><div class="barFill" id="bossHp"></div><div id="bossHpTicks"></div><div class="barText" id="bossHpTx"></div></div>
   <div id="castShell"><div id="castFill"></div><div id="castText"></div></div>
 </div>
+<div id="targetFrame" aria-label="当前目标">
+  <div id="targetHead">
+    <canvas id="targetAvatar" width="36" height="36"></canvas>
+    <div id="targetMeta">
+      <div id="targetName">—</div>
+      <div id="targetSub">敌对</div>
+    </div>
+  </div>
+  <div class="barShell"><div class="barFill" id="targetHp"></div><div class="barText" id="targetHpTx"></div></div>
+</div>
+<div id="totFrame"><span id="totName">→ —</span></div>
  
 <div id="playerFrame">
   <div class="pname" id="pName">⚔️ 你 · 人类战士</div>
@@ -717,8 +745,8 @@
       <button type="button" class="btn sm ghost" id="btnExportSave" style="display:none">导出存档码</button>
     </div>
   </div>
-  <div class="hint">W/S 进退 · A/D 转向（右键时横移）· Q/E 平移 · 右键视角 · 左键环绕 · 滚轮远近 · Space 跳跃 · R 自动跑 · Esc 取消目标<br>
-  1-4 技能 · F 交互 · B 背包 · N 天赋 · C 角色 · P 法术书 · L 任务 · M 地图 · Shift+Z 功绩 · Shift+I 查找器<br>
+  <div class="hint">W/S 进退 · A/D 转向（右键时横移）· Q/E 平移 · 右键视角 · 左键环绕 · 滚轮远近 · Space 跳跃 · R 自动跑<br>
+  Tab 选目标 · 左键点击选敌 · Esc 取消目标 · V 姓名板全显 · 1-4 技能 · F 交互 · B 背包 · N 天赋 · C 角色 · P 法术 · L 任务 · M 地图<br>
        <span data-t="start.hint">在赤蹄草甸沿土路北行，走进传送门旋涡即进入副本 · 副本内走出地面红圈躲避熔岩喷发</span></div>
 </div>
  
@@ -760,6 +788,8 @@
 <script src="barrens.js"></script>
 <script src="durotar.js"></script>
   <script src="combat.js"></script>
+  <script src="js/ui/frames.js"></script>
+  <script src="js/ui/target.js"></script>
   <script src="buffs.js"></script>
   <script src="quests.js"></script>
 <script src="companions.js"></script>

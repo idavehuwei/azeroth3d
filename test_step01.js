@@ -329,6 +329,21 @@ assert(mainSrc.includes("resolveCamCollision")&&mainSrc.includes("playerGroundY"
 assert(mainSrc.includes("firstPerson")||mainSrc.includes("firstPersonDist"),"C1 近距第一人称");
 assert(combatSrc.includes("touchLook")&&combatSrc.includes("pinch"),"C1 移动端右半屏视角 / 捏合缩放");
 assert(combatSrc.includes("clearMoveTarget")&&combatSrc.includes("Escape"),"C1 Esc 取消目标");
+/* plan-V3 · C2 目标系统 + 姓名板 + 目标框 */
+assert(combatSrc.includes("function resolveSkillTarget")&&combatSrc.includes("function cycleHostileTargets"),"C2 resolveSkillTarget / Tab 循环");
+assert(combatSrc.includes("S.currentTarget")&&combatSrc.includes("S.target"),"C2 currentTarget / target 别名");
+assert(combatSrc.includes('key==="Tab"')&&combatSrc.includes("nameplatesShowAll"),"C2 Tab 选目标 + V 姓名板全显");
+assert(combatSrc.includes('T("combat.no_target")')||combatSrc.includes("你没有目标"),"C2 无目标提示");
+assert(coreSrc.includes("target:")&&coreSrc.includes("tabRange")&&coreSrc.includes("threatTint"),"BALANCE.target / nameplate.threatTint");
+assert(mainSrc.includes("refreshTargetFrame"),"main.js 每帧刷新目标框");
+assert(fs.existsSync(path.join(__dirname,"js/ui/frames.js")),"js/ui/frames.js 存在");
+assert(fs.existsSync(path.join(__dirname,"js/ui/target.js")),"js/ui/target.js 存在");
+const framesSrc=fs.readFileSync(path.join(__dirname,"js/ui/frames.js"),"utf8");
+const targetUiSrc=fs.readFileSync(path.join(__dirname,"js/ui/target.js"),"utf8");
+assert(framesSrc.includes("function refreshTargetFrame")&&framesSrc.includes("totFrame"),"frames.js 目标框 + ToT");
+assert(targetUiSrc.includes("pickTargetAtScreen")&&targetUiSrc.includes("tryTargetContext"),"target.js 点击/右键选取");
+assert(html.includes('id="targetFrame"')&&html.includes('src="js/ui/frames.js"')&&html.includes('src="js/ui/target.js"'),"game.html 目标框 DOM + 脚本");
+assert(html.includes("Tab 选目标")&&html.includes("V 姓名板"),"登录提示含 Tab/V");
 assert(html.includes("Space 跳跃")&&html.includes("R 自动跑"),"登录提示含跳跃/自动跑");
 assert(html.includes('src="threat.js"'),"game.html 加载 threat.js");
 assert(threatSrc.includes("function addThreat")&&threatSrc.includes("function getTopThreatActor"),"threat.js 有 addThreat/getTopThreatActor");

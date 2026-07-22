@@ -86,7 +86,7 @@ const TEXTS={
     intro:"草原之风吹过赤蹄草甸的红岩台地。蹄人长老在营火旁低语：<br>\n     北方矗立着一道燃烧的传送门，通往地底深处的 <b style=\"color:#ff8a4a\">炽心熔窟</b>——<br>\n     讨伐熔渊之王 <b style=\"color:#ff8a4a\">卡尔戈</b>，或继续未竟的旅程。",
     hint:"在赤蹄草甸沿土路北行，走进传送门旋涡即进入副本 · 副本内走出地面红圈躲避熔岩喷发"
   },
-  ui:{
+    ui:{
     boss_name:"🔥 熔渊之王 · 卡尔戈",
     boss_title:"炽心熔窟 · 最终首领",
     world_map_mulgore:"🗺 世界地图 · 赤蹄草甸",
@@ -94,6 +94,13 @@ const TEXTS={
     submerged:"—— 潜入岩浆 ·先消灭火裔 ——",
     death_raid:"在炽心熔窟中倒下了……",
     death_world:"灵魂将前往营地的灵魂医者处"
+  },
+  combat:{
+    no_target:"你没有目标。",
+    target_oor:"目标超出射程！",
+    cancel_target:"取消目标。",
+    nameplates_on:"姓名板 · 全显",
+    nameplates_off:"姓名板 · 常规"
   },
   save:{
     wake_narache:"赤蹄草甸 · 岩蹄营地",
