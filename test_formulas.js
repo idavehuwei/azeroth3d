@@ -114,6 +114,22 @@ assert(combatSrc.includes("settleDamage")&&combatSrc.includes("playerResKind"),"
 assert(html.includes('src="js/sim/formulas.js"')&&html.includes('src="js/sim/resources.js"'),"game.html 加载 sim");
 assert(fs.existsSync(path.join(root,"js/sim/content.js")),"content.js 存在");
 
+/* ---- plan-V3 C6 经验 ---- */
+vm.runInContext(fs.readFileSync(path.join(root,"js/sim/xp.js"),"utf8"),ctx,{filename:"js/sim/xp.js"});
+const{
+  getXpCurve,xpToNext,isGreyMob,xpLevelMul,baseMobXp,scaledMobXp,applyRestXp,restFromOfflineHours
+}=ctx;
+assert(getXpCurve()[0]===400&&getXpCurve()[1]===900,"XP_CURVE 1→2=400, 2→3=900");
+assert(xpToNext(1)===400&&xpToNext(3)===1400,"xpToNext 对齐曲线");
+assert(isGreyMob(6,1)===true,"6 级打 1 级猪为灰色（零经验）");
+assert(isGreyMob(5,1)===false,"5 级打 1 级猪仍有经验");
+assert(scaledMobXp(6,1)===0,"灰色线 scaledMobXp=0");
+assert(baseMobXp(1)===50&&baseMobXp(10)===95,"基础野怪 XP = 45+5×Lv");
+assert(scaledMobXp(1,1)>0&&scaledMobXp(1,3)>scaledMobXp(1,1),"打高等级怪经验更高");
+const rested=applyRestXp(100,80,400);
+assert(rested.total===180&&rested.bonus===80&&rested.restLeft===0,"休息经验双倍消耗池");
+assert(restFromOfflineHours(10,1000)>0,"离线休息经验 > 0");
+
 console.log(failed?`\n失败 ${failed} 项`:"\n全部通过 · plan-V3 C3–C5 formulas");
 process.exitCode=failed?1:0;
 if(failed)process.exit(1);

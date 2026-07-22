@@ -820,14 +820,18 @@ assert(animSrc.includes("awaitLoot")&&animSrc.includes("requestCorpseDissolve"),
 assert(raidSrc.includes("awaitLoot")&&raidSrc.includes("requestCorpseDissolve"),"副本小怪同样延迟溶解");
 
 /* plan-V2 · G2 经验与等级 */
-assert(coreSrc.includes("levels:{max:18")||coreSrc.includes("max:18"),"BALANCE.levels.max=18");
+assert(coreSrc.includes("levels:{max:20")||coreSrc.includes("max:20")||coreSrc.includes("maxLevel:20"),"BALANCE.levels.max=20（C6）");
 assert(coreSrc.includes("xpMax:[")&&coreSrc.includes("perLevel:"),"含 xpMax 曲线与 perLevel 成长");
+assert(combatSrc.includes("gainMobXP")&&combatSrc.includes("tickRestXp"),"C6 gainMobXP / 休息经验");
+assert(html.includes("pXpRest")||html.includes("xpRest"),"经验条休息蓝段");
+assert(fs.existsSync(path.join(__dirname,"js/sim/xp.js")),"js/sim/xp.js 存在");
+assert(html.includes('src="js/sim/xp.js"'),"game.html 加载 xp.js");
 assert(coreSrc.includes("levelUp:")&&coreSrc.includes("burstCount"),"含升级金光参数");
 assert(coreSrc.includes("xp:120")||coreSrc.includes("add:{")&&coreSrc.includes("xp:"),"副本小怪 BAL.add 含 xp");
 assert(combatSrc.includes("function gainXP")&&combatSrc.includes("updateLevelUI"),"combat 含 gainXP/updateLevelUI");
 assert(combatSrc.includes("spawnBurst")&&combatSrc.includes("loot_spark"),"升级金光含 spawnBurst+loot_spark");
 assert(html.includes('id="pXp"')||html.includes("id=\"pXp\""),"HUD 含经验条 #pXp");
-assert(worldSrc.includes("gainXP(m.stats.xp)"),"野怪 onDeath 给经验");
+assert(worldSrc.includes("gainMobXP")||worldSrc.includes("gainXP(m.stats.xp)"),"野怪 onDeath 给经验");
 assert(raidSrc.includes("gainXP")&&raidSrc.includes("xpAdd"),"副本小怪 onDeath 给经验");
 assert(mainSrc.includes("pXp")||mainSrc.includes("#pXp")||mainSrc.includes("p.xp"),"main 刷新经验条");
 

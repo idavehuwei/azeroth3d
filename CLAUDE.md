@@ -31,7 +31,7 @@
 | `js/sim/stats.js` | 五属性派生 | hpFromStamina, attackPower, deriveStats… |
 | `js/sim/formulas.js` | 命中表 / 护甲 | rollAttack, armorReduction, meleeTable |
 | `js/sim/resources.js` | 怒气/法力/能量/GCD | tickResources, rageFromDamage, gcdDuration |
-| `js/sim/entity.js` | 纯结算 | settleDamage, buildAttackerCtx |
+| `js/sim/xp.js` | 经验曲线 / 灰色线 / 休息（C6） | scaledMobXp, applyRestXp, xpToNext, isGreyMob |
 | `js/ui/frames.js` | 目标框 HUD（C2） | refreshTargetFrame, hideTargetFrame |
 | `js/ui/target.js` | 点击/右键选取（C2） | pickTargetAtScreen, tryTargetClick, tryTargetContext |
 | `icons.js` | 图标画布工厂 | Icons.canvas, Icons.get |
@@ -76,7 +76,7 @@
 
 - 已执行账本：`plan-merged.md`（STEP 0–29 / v4.0 完成）
 - **plan-V2 已完成：R0–R8 + G1–G7（M1–M5）**（见 `plan-V2.md`）
-- **plan-V3：C0–C5 已完成**（文本 / 操作相机 / 目标 / sim 数学 / 命中表 / 资源）；下一步 C6（见 `plan-V3.md`）
+- **plan-V3：C0–C6 已完成**；下一步 C7 法术书（见 `plan-V3.md`）
 - 公式单测：`node test_formulas.js`
 - 后续可对照 `plan-v1.md` 打磨内容；默认不做联机
 

@@ -643,13 +643,13 @@ const BALANCE={
   npcLevel:{hawkwind:10,grull:8,grayhorn:12,raoul:6,vera:5,whiterock:10,baine:40,bloodhoof_elder:35,tark:18,mull:16,haru:18,mara:14,kur:15,aska:20,cairne:60,stonetalon:40,seen:22,pala:20,hamya:24,magatha:50,runetotem:45,thunderhorn_guard:12,winterhoof_guard:10,windfury_sentinel:25,elder:40,vendor:25,varg:25,hunter:18,cook:20,spirit:55,crossroads:30,darsok:28,kag:26,mankrik:30,thom:27,kil:24,serra:25,lal:28,zinge:26,scriven:22,innkeeper:22,flightmaster:25,barrens_vendor:24,barrens_armor:24,ochre:28,ochre_guard:26,ochre_vendor:24,companion:null},
   /* 营地 NPC 外观：体型缩放 + 姓名板高度（相对缩放后头顶） */
   npc:{scale:.72, labelY:4.05, markerY:5.15, labelW:6.2},
-  /* 经验与等级（STEP 3 / G2）：经验来源 / 升级曲线 / 每级成长；上限 18（区域门） */
-  levels:{max:18, xp:{quest:300, boss:2000, magmadar:800, barrensQuest:400, durotarQuest:380, cobrahn:900, verdan:1600, onyxia:2200, oggleflint:850, taragaman:1500},
-    /* 野怪经验在 mobs 表；副本小怪在 add/wailingAdd/…；xpMax[i] = 第 i+1 级升下一级所需（共 max-1 档） */
-    xpMax:[200,300,450,650,900,1200,1600,2100,2700,3500,4200,5000,5900,6900,8000,9200,10500],
+  /* 经验与等级（STEP 3 / G2 / plan-V3 C6）：曲线来自 SIM_CONTENT.xp.XP_CURVE */
+  levels:{max:20, xp:{quest:300, boss:2000, magmadar:800, barrensQuest:400, durotarQuest:380, cobrahn:900, verdan:1600, onyxia:2200, oggleflint:850, taragaman:1500},
+    /* xpMax 在 core 末尾由 XP_CURVE 覆盖；此处为回退表 */
+    xpMax:[400,900,1400,2100,2800,3600,4500,5600,6900,8400,10000,12000,14400,17200,20400,24000,28000,32000,36000],
     perLevel:{dmgMul:.05, hpMax:.08},
-    /* 升级金光（loot_spark + spawnBurst） */
-    levelUp:{color:0xffd76a, sparkSpread:2.2, burstCount:18, burstSpread:2.4}},
+    /* 升级金光（loot_spark + spawnBurst）+ 全屏微光 */
+    levelUp:{color:0xffd76a, sparkSpread:2.2, burstCount:18, burstSpread:2.4, flashOp:.55, flashMs:420}},
   /* 特效配方默认参数（STEP 9a / plan-V2 R7）：性能优先——默认关动态点光 */
   vfx:{
     useLights:false,                 /* PointLight 极贵；弹道/爆发默认只用自发光球 */
@@ -885,6 +885,11 @@ const BAL=BALANCE;
 /* plan-V3 C3–C5：合并 sim 内容表（js/sim/content.js 先于 core 加载） */
 if(typeof SIM_CONTENT!=="undefined")BALANCE.sim=SIM_CONTENT;
 else if(!BALANCE.sim)BALANCE.sim={};
+/* plan-V3 C6：用 XP_CURVE 覆盖升级曲线与等级上限 */
+if(BALANCE.sim&&BALANCE.sim.xp&&BALANCE.sim.xp.XP_CURVE){
+  BALANCE.levels.xpMax=BALANCE.sim.xp.XP_CURVE.slice();
+  if(BALANCE.sim.xp.maxLevel)BALANCE.levels.max=BALANCE.sim.xp.maxLevel|0;
+}
 
 /* ============================================================
    可播种随机器（STEP 0，参考 WoC 确定性 Rng）

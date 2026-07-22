@@ -1168,8 +1168,14 @@ function addDie(a){
   const bal=BAL[(typeof getDungeon==="function"&&getDungeon().addCfg&&getDungeon().addCfg.balKey)||"add"]||BAL.add;
   const cu=rollCopperRange(bal.copper);
   if(cu)gainCopper(cu);
-  /* G2：副本小怪 onDeath → gainXP（数值来自 BAL[addCfg.balKey].xp） */
-  const xpAdd=(a.stats&&a.stats.xp!=null)?a.stats.xp:(bal.xp|0);
+  /* G2 / C6：副本小怪经验（等级差 + 灰色线） */
+  const ml=(a.level!=null?a.level:((a.stats&&a.stats.level)|0))||((bal.level)|0)||10;
+  let xpAdd=0;
+  if(typeof scaledMobXp==="function"){
+    xpAdd=scaledMobXp(S.p.level,ml,{elite:!!a.elite});
+  }else{
+    xpAdd=(a.stats&&a.stats.xp!=null)?a.stats.xp:(bal.xp|0);
+  }
   if(xpAdd&&typeof gainXP==="function")gainXP(xpAdd);
   const D=typeof getDungeon==="function"?getDungeon():DUNGEON;
   if(D.stage==="corridor"){

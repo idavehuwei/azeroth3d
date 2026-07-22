@@ -60,7 +60,8 @@
     box-shadow:0 0 4px rgba(0,0,0,.8);transform:translateX(-50%)}
   .barFill.hpP{background:linear-gradient(180deg,#7cff6a,#1f9e2e 60%,#0c5a18)}
   .barFill.mpP{background:linear-gradient(180deg,#ffd76a,#c98a1f 60%,#7a4d0c)}
-  .barFill.xpP{background:linear-gradient(180deg,#c9a0ff,#7a4dc9 60%,#3d2a7a)}
+  .barFill.xpP{background:linear-gradient(180deg,#c9a0ff,#7a4dc9 60%,#3d2a7a);z-index:2}
+  .barFill.xpRest{background:linear-gradient(180deg,#7ec8ff,#3a7ec9 60%,#1a406a);z-index:1;opacity:.95}
   .barText{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     font-size:12px;font-weight:700;text-shadow:0 1px 2px #000;letter-spacing:1px}
   #castShell{margin-top:5px;height:12px;border:1px solid rgba(255,190,90,.4);background:rgba(0,0,0,.6);
@@ -578,7 +579,11 @@
   <div id="pGold"><span class="c">0铜</span></div>
   <div class="barShell"><div class="barFill hpP" id="pHp"></div><div class="barText" id="pHpTx"></div></div>
   <div class="barShell" style="height:11px"><div class="barFill mpP" id="pRage"></div><div class="barText" id="pRageTx" style="font-size:9px"></div></div>
-  <div class="barShell" style="height:10px;margin-top:4px"><div class="barFill xpP" id="pXp"></div><div class="barText" id="pXpTx" style="font-size:8px"></div></div>
+  <div class="barShell" style="height:10px;margin-top:4px">
+    <div class="barFill xpRest" id="pXpRest"></div>
+    <div class="barFill xpP" id="pXp"></div>
+    <div class="barText" id="pXpTx" style="font-size:8px"></div>
+  </div>
   <div id="buffRow" aria-label="增益与减益"></div>
 </div>
 <div id="partyFrame">
@@ -772,6 +777,7 @@
 <script src="js/sim/formulas.js"></script>
 <script src="js/sim/resources.js"></script>
 <script src="js/sim/entity.js"></script>
+<script src="js/sim/xp.js"></script>
 <script src="core.js"></script>
 <script src="palette.js"></script>
 <script src="textures.js"></script>

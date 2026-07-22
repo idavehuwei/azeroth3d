@@ -1010,7 +1010,7 @@ function mobDie(m){
     dropLoot(m.mesh.position.clone().add(new THREE.Vector3(1.2,0,.6)),[it],m,
       ()=>requestCorpseDissolve(m));
   }
-  gainXP(m.stats.xp);
+  gainMobXP(m);
   const cu=rollCopperRange(m.stats.copper);
   if(cu)gainCopper(cu);
   if(typeof onQuestMobKill==="function")onQuestMobKill(m);

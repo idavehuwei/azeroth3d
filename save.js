@@ -55,6 +55,8 @@ function collectSaveData(){
     classKey:typeof talentClassKey==="function"?talentClassKey():"warrior",
     level:S.p.level|0,
     xp:S.p.xp|0,
+    restXp:S.p.restXp|0,
+    lastSeenAt:Date.now(),
     hp:Math.round(S.p.hp),
     gold:S.p.gold|0,
     inv:S.inv.slice(),
@@ -182,6 +184,8 @@ function validateSave(raw){
       v:BAL.save.version,
       classKey:raw.classKey,
       level,xp,gold,
+      restXp:Math.max(0,raw.restXp|0),
+      lastSeenAt:raw.lastSeenAt|0,
       hp:typeof raw.hp==="number"&&isFinite(raw.hp)?raw.hp:null,
       inv,eq,
       talents:{spent,bonusPoints:Math.max(0,(raw.talents&&raw.talents.bonusPoints)|0)},
@@ -202,14 +206,15 @@ function validateSave(raw){
 /** 静默按等级重建基础成长（不触发 announce / 天赋点提示） */
 function rebuildLevelStats(level){
   const L=BAL.levels;
-  S.p.level=1; S.p.xp=0; S.p.xpMax=L.xpMax[0];
+  S.p.level=1; S.p.xp=0;
+  S.p.xpMax=(typeof xpToNext==="function"?xpToNext(1):null)||L.xpMax[0];
   S.p.dmgMul=1; S.p.hpMax=CLS.hp; S.p.hp=CLS.hp;
   for(let lv=2;lv<=level;lv++){
     S.p.level=lv;
     const hpGain=Math.round(CLS.hp*L.perLevel.hpMax);
     S.p.hpMax+=hpGain;
     S.p.dmgMul+=L.perLevel.dmgMul;
-    S.p.xpMax=L.xpMax[lv-1]||S.p.xpMax;
+    S.p.xpMax=(typeof xpToNext==="function"?xpToNext(lv):null)||L.xpMax[lv-1]||S.p.xpMax;
   }
 }
 
@@ -250,6 +255,12 @@ function applySaveData(data){
   rebuildLevelStats(data.level);
   if(data.level>=BAL.levels.max)S.p.xp=0;
   else S.p.xp=clamp(data.xp,0,S.p.xpMax);
+  S.p.restXp=Math.max(0,data.restXp|0);
+  if(typeof restPoolCap==="function")
+    S.p.restXp=Math.min(S.p.restXp,restPoolCap(S.p.xpMax));
+  S.p.lastSeenAt=data.lastSeenAt|0;
+  if(typeof applyOfflineRestXp==="function")applyOfflineRestXp();
+  S.p.lastSeenAt=Date.now();
 
   if(typeof applyQuestSave==="function"){
     applyQuestSave(data.quests,{quest:data.quest,barrensQuest:data.barrensQuest});

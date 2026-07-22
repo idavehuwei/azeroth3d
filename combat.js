@@ -51,7 +51,7 @@ const S={
      atkTimer:0,attackAnim:0,walkPhase:0,face:0,invuln:0,
      absorb:0,absorbT:0,shieldMesh:null,   /* STEP 19 真言术：盾 */
      stealth:false,sprintT:0,              /* V1-C2 潜行 / 疾步 */
-     level:1,xp:0,xpMax:BAL.levels.xpMax[0],gold:0,   /* 经验与等级（STEP 3）· 金币铜（STEP 13） */
+     level:1,xp:0,xpMax:BAL.levels.xpMax[0],gold:0,restXp:0,lastSeenAt:0,   /* C6 休息经验 */
      eating:null,bandaging:null,gathering:null,weaknessT:0,
      whetstoneT:0,whetstoneAdd:0,
      vy:0,grounded:true,autoRun:false,_wantJump:false, /* plan-V3 C1 */
@@ -1397,21 +1397,58 @@ function playerHit(amount,source){
 }
 
 /* ============================================================
-   经验与等级（STEP 3）：唯一入口 gainXP——只由 onDeath 与任务回调调用
-   升级：每级 +5% 基础伤害、+8% 生命上限（BALANCE.levels），金光 + 大字提示
+   经验与等级（STEP 3 / plan-V3 C6）
+   唯一入口 gainXP；野怪走 gainMobXP（等级差 + 灰色线 + 休息双倍）
    ============================================================ */
-function gainXP(amount){
+function gainMobXP(mob){
+  if(!mob)return;
+  const pl=S.p.level|0;
+  const ml=mob.level!=null?mob.level:((mob.stats&&mob.stats.level)|0)||1;
+  let amount;
+  if(typeof scaledMobXp==="function"){
+    amount=scaledMobXp(pl,ml,{
+      elite:!!(mob.elite&&!mob.worldBoss),
+      worldBoss:!!mob.worldBoss
+    });
+  }else{
+    amount=(mob.stats&&mob.stats.xp)|0;
+  }
+  if(amount<=0){
+    if(typeof isGreyMob==="function"&&isGreyMob(pl,ml))
+      log("目标等级过低，无法获得经验。","lg-sys");
+    return;
+  }
+  gainXP(amount,{fromMob:true});
+}
+function gainXP(amount,opts){
+  opts=opts||{};
   const P=S.p,L=BAL.levels;
   if(P.level>=L.max)return;
+  amount=Math.max(0,Math.round(amount));
+  if(!amount)return;
   if(typeof partyAliveCount==="function"&&partyAliveCount()>0&&BAL.party&&BAL.party.xpMul)
     amount=Math.round(amount*BAL.party.xpMul);
+
+  /* C6：休息经验双倍消耗池 */
+  let bonus=0;
+  if(typeof applyRestXp==="function"){
+    const r=applyRestXp(amount,P.restXp|0,P.xpMax);
+    amount=r.total; bonus=r.bonus; P.restXp=r.restLeft;
+  }
+
   P.xp+=amount;
-  fct(player.position.clone().setY(3.6),`+${amount} 经验`,"#c9a0ff",14);
+  const col=bonus>0?"#7ec8ff":"#c9a0ff";
+  const tx=bonus>0?`+${amount} 经验（休+${bonus}）`:`+${amount} 经验`;
+  fct(player.position.clone().setY(3.6),tx,col,14);
+
   while(P.level<L.max&&P.xp>=P.xpMax){
     P.xp-=P.xpMax; P.level++;
-    P.xpMax=L.xpMax[P.level-1]||P.xpMax;
+    P.xpMax=(typeof xpToNext==="function"?xpToNext(P.level):null)||L.xpMax[P.level-1]||P.xpMax;
     const hpGain=Math.round(CLS.hp*L.perLevel.hpMax);
-    P.hpMax+=hpGain; P.hp=Math.min(P.hpMax,P.hp+hpGain);
+    P.hpMax+=hpGain;
+    /* C6：升级满血满资源 */
+    P.hp=P.hpMax;
+    P.rage=P.rageMax;
     P.dmgMul+=L.perLevel.dmgMul;
     if(P.stats){
       P.stats.str=(P.stats.str|0)+2;
@@ -1420,16 +1457,32 @@ function gainXP(amount){
       if(typeof refreshPlayerDerived==="function")refreshPlayerDerived();
     }
     if(P.level>=L.max)P.xp=0;
+    /* 休息池上限随新 xpMax 收缩 */
+    if(typeof restPoolCap==="function")
+      P.restXp=Math.min(P.restXp|0,restPoolCap(P.xpMax));
+
     SFX.play("levelup");
     announce(`升 级 ！ Lv.${P.level}`);
-    log(`你升到了 ${P.level} 级！生命上限 +${hpGain}，基础伤害 +${Math.round(L.perLevel.dmgMul*100)}%。`,"lg-heal");
-    /* G2：升级金光——火花 + 径向爆发（数值来自 BAL.levels.levelUp） */
+    log(`你升到了 ${P.level} 级！生命与${CLS.resName}已回满。`,"lg-heal");
     const lu=L.levelUp||{};
     const luc=lu.color!=null?lu.color:0xffd76a;
     const pos=player.position.clone().setY(1.5);
     VFX.spawn("loot_spark",{pos:pos.clone(),color:luc,spread:lu.sparkSpread!=null?lu.sparkSpread:2.2});
     if(typeof spawnBurst==="function")
       spawnBurst(pos,luc,lu.burstCount!=null?lu.burstCount:18,lu.burstSpread!=null?lu.burstSpread:2.4);
+    /* 全屏微光 */
+    const flash=$("#hurtFlash")||$("#vignette");
+    if(flash){
+      const prev=flash.style.background;
+      flash.style.transition="none";
+      flash.style.background="radial-gradient(ellipse at center,rgba(255,220,120,.55),transparent 70%)";
+      flash.style.opacity=lu.flashOp!=null?String(lu.flashOp):".55";
+      setTimeout(()=>{
+        flash.style.transition="opacity .35s";
+        flash.style.opacity="0";
+        setTimeout(()=>{flash.style.background=prev||"";},400);
+      },lu.flashMs!=null?lu.flashMs:420);
+    }
     if(typeof grantTalentPointOnLevel==="function")grantTalentPointOnLevel(P.level);
     if(typeof onDeedLevelUp==="function")onDeedLevelUp(P.level);
     if(typeof renderSpellPanel==="function")renderSpellPanel();
@@ -1437,6 +1490,50 @@ function gainXP(amount){
   }
   updateLevelUI();
   if(typeof saveGame==="function")saveGame(true);
+}
+
+/** 营火 / 旅店附近或离线攒休息经验 */
+function tickRestXp(dt){
+  const P=S.p;
+  if(!P||P.level>=BAL.levels.max)return;
+  const cfg=(BAL.sim&&BAL.sim.xp&&BAL.sim.xp.rest)||{};
+  const cap=typeof restPoolCap==="function"?restPoolCap(P.xpMax):Math.round(P.xpMax*1.5);
+  if((P.restXp|0)>=cap)return;
+  const R=cfg.nearR!=null?cfg.nearR:14;
+  let rate=0;
+  /* 旅店 NPC */
+  if(typeof vendor!=="undefined"&&vendor&&player){
+    const d=Math.hypot(player.position.x-vendor.position.x,player.position.z-vendor.position.z);
+    if(d<R)rate=Math.max(rate,cfg.innPerSec!=null?cfg.innPerSec:5);
+  }
+  /* 营火：worldFlames 条目可能是 {fl,li} 或火焰 Mesh */
+  if(typeof worldFlames!=="undefined"&&worldFlames&&worldFlames.length&&player){
+    for(let i=0;i<worldFlames.length;i++){
+      const f=worldFlames[i];
+      const pos=f&&f.fl&&f.fl.position?f.fl.position:(f&&f.position?f.position:null);
+      if(!pos)continue;
+      const d=Math.hypot(player.position.x-pos.x,player.position.z-pos.z);
+      if(d<R){rate=Math.max(rate,cfg.campfirePerSec!=null?cfg.campfirePerSec:3);break;}
+    }
+  }
+  if(rate>0){
+    P.restXp=Math.min(cap,(P.restXp|0)+rate*dt);
+  }
+}
+function applyOfflineRestXp(){
+  const P=S.p;
+  if(!P||!P.lastSeenAt)return;
+  const hours=(Date.now()-P.lastSeenAt)/3600000;
+  if(hours<.05)return;
+  const add=typeof restFromOfflineHours==="function"
+    ?restFromOfflineHours(hours,P.xpMax)
+    :Math.round(P.xpMax*.08*Math.min(48,hours));
+  if(add<=0)return;
+  const cap=typeof restPoolCap==="function"?restPoolCap(P.xpMax):Math.round(P.xpMax*1.5);
+  const before=P.restXp|0;
+  P.restXp=Math.min(cap,before+add);
+  if(P.restXp>before)
+    log(`休息充足：休息经验 +${P.restXp-before}（离线约 ${hours.toFixed(1)} 小时）`,"lg-sys");
 }
 
 /* ---------------- 金币（STEP 13）：铜为最小单位 ---------------- */

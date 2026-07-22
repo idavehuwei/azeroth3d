@@ -123,5 +123,36 @@ var SIM_CONTENT={
   ranged:{
     minRange:5,
     tooCloseMsg:"目标太近，无法射击。"
+  },
+
+  /* ---- plan-V3 C6：经验曲线 / 灰色线 / 休息经验 ---- */
+  xp:{
+    /* XP_CURVE[i] = 从 (i+1) 级升到 (i+2) 所需；共 19 档 → 最高 20 级 */
+    XP_CURVE:[
+      400,900,1400,2100,2800,3600,4500,5600,6900,
+      8400,10000,12000,14400,17200,20400,24000,28000,32000,36000
+    ],
+    maxLevel:20,
+    /* 基础野怪经验：45 + 5×等级 */
+    mobBase:45,
+    mobPerLevel:5,
+    eliteMul:2,
+    worldBossMul:2.5,
+    /* 相对玩家等级：灰色线 = playerLevel - greyBelow（≥6 级时至少 greyBelow=5 → 6 级打 1 级猪归零） */
+    greyBelow:5,
+    /* 等级差倍率（mobLevel - playerLevel） */
+    diffMul:{
+      "3":1.4,"2":1.25,"1":1.1,"0":1,
+      "-1":.85,"-2":.65,"-3":.45,"-4":.25
+    },
+    /* 休息经验 */
+    rest:{
+      maxMulOfBar:1.5,     /* 池上限 = xpMax × 此值 */
+      offlinePerHour:.08,  /* 每离线小时攒 xpMax 的比例 */
+      offlineCapHours:48,
+      campfirePerSec:3,
+      innPerSec:5,
+      nearR:14
+    }
   }
 };

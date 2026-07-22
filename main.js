@@ -676,6 +676,7 @@ function tick(){
     }
     if(typeof tickTotems==="function")tickTotems(dt);
     if(typeof tickBuffs==="function")tickBuffs(dt);
+    if(typeof tickRestXp==="function")tickRestXp(dt);
     if(typeof tickResources==="function"&&S.res){
       const sitting=!!(S.p.eating||(keys&&(keys.x||keys["x"])));
       tickResources(S.p,S.res,{
@@ -941,7 +942,15 @@ function tick(){
   $("#pRage").style.transform=`scaleX(${S.p.rage/S.p.rageMax})`;
   $("#pRageTx").textContent=`${CLS.resName} ${Math.round(S.p.rage)}`;
   $("#pXp").style.transform=`scaleX(${S.p.level>=BAL.levels.max?1:S.p.xp/S.p.xpMax})`;
-  $("#pXpTx").textContent=S.p.level>=BAL.levels.max?"满 级":`经验 ${Math.floor(S.p.xp)} / ${S.p.xpMax}`;
+  const restEl=$("#pXpRest");
+  if(restEl){
+    const rested=S.p.level>=BAL.levels.max?0:Math.min(1,(S.p.xp+(S.p.restXp|0))/Math.max(1,S.p.xpMax));
+    restEl.style.transform=`scaleX(${rested})`;
+  }
+  const restN=S.p.restXp|0;
+  $("#pXpTx").textContent=S.p.level>=BAL.levels.max?"满 级"
+    :(restN>0?`经验 ${Math.floor(S.p.xp)} / ${S.p.xpMax} · 休 ${restN}`
+      :`经验 ${Math.floor(S.p.xp)} / ${S.p.xpMax}`);
   if(typeof updateMinimap==="function")updateMinimap();
 
   renderer.render(scene,camera);
