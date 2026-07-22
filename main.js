@@ -103,9 +103,17 @@ function tick(){
   /* 出口传送门动画 */
   if(exitPortal){exitPortal.discUni.value=S.t;exitPortal.glowPts.rotation.y+=dt*.8;}
 
-  portalLabel.position.y=13.6+Math.sin(S.t*1.5)*.25;
+  if(typeof portalLabel!=="undefined"&&portalLabel){
+    const pg=(typeof heightAt==="function"&&typeof PORTAL_POS!=="undefined")
+      ?heightAt(PORTAL_POS.x,PORTAL_POS.z):0;
+    portalLabel.position.y=pg+13.6+Math.sin(S.t*1.5)*.25;
+  }
   if(typeof southPortalUni!=="undefined"&&southPortalUni)southPortalUni.uTime.value=S.t;
-  if(typeof southPortalLabel!=="undefined"&&southPortalLabel)southPortalLabel.position.y=12.2+Math.sin(S.t*1.4)*.2;
+  if(typeof southPortalLabel!=="undefined"&&southPortalLabel){
+    const bg=(typeof heightAt==="function"&&typeof PORTAL_BARRENS!=="undefined")
+      ?heightAt(PORTAL_BARRENS.x,PORTAL_BARRENS.z):0;
+    southPortalLabel.position.y=bg+12.2+Math.sin(S.t*1.4)*.2;
+  }
   if(typeof barrensPortalUni!=="undefined"&&barrensPortalUni)barrensPortalUni.uTime.value=S.t;
   if(typeof durotarPortalUni!=="undefined"&&durotarPortalUni)durotarPortalUni.uTime.value=S.t;
   if(typeof durotarRagefirePortalUni!=="undefined"&&durotarRagefirePortalUni)durotarRagefirePortalUni.uTime.value=S.t;
@@ -308,9 +316,11 @@ function tick(){
           if(dH<1.2){m.state="wander";m.hp=m.hpMax;m.dest=null;}
         }
         const bobAmp=(BAL.anim&&BAL.anim.bobAmp)!=null?BAL.anim.bobAmp:.22;
-        m.mesh.position.y=m.moving?Math.abs(Math.sin(S.t*9+m.home.x))*bobAmp:0;
+        const gy=(m.zoneId==="mulgore"||!m.zoneId)&&typeof heightAt==="function"
+          ?heightAt(m.mesh.position.x,m.mesh.position.z):0;
+        m.mesh.position.y=gy+(m.moving?Math.abs(Math.sin(S.t*9+m.home.x))*bobAmp:0);
         if(typeof updateMobAnim==="function")updateMobAnim(m,dt);
-        m.label.position.set(m.mesh.position.x,m.labelY,m.mesh.position.z);
+        m.label.position.set(m.mesh.position.x,gy+m.labelY,m.mesh.position.z);
         if(typeof updateNameplateHp==="function")updateNameplateHp(m.label,m.hp,m.hpMax);
         /* 精英光环脉动 */
         if(m.elite&&m.aura&&m.state!=="dead"){
@@ -324,17 +334,21 @@ function tick(){
       }
       /* 长老 / 商人待机动画 & 任务标记浮动 */
       if(zid==="mulgore"){
+        const eg=typeof heightAt==="function"?heightAt(elder.position.x,elder.position.z):0;
+        const vg=typeof heightAt==="function"?heightAt(vendor.position.x,vendor.position.z):0;
+        const hg=typeof heightAt==="function"?heightAt(hunter.position.x,hunter.position.z):0;
+        const sg=typeof heightAt==="function"?heightAt(spiritHealer.position.x,spiritHealer.position.z):0;
         elder.rotation.y=Math.PI*.85+Math.sin(S.t*.8)*.08;
-        elder.position.y=Math.sin(S.t*1.6)*.04;
+        elder.position.y=eg+Math.sin(S.t*1.6)*.04;
         vendor.rotation.y=Math.PI*1.15+Math.sin(S.t*.7+1)*.08;
-        vendor.position.y=Math.sin(S.t*1.5+2)*.04;
+        vendor.position.y=vg+Math.sin(S.t*1.5+2)*.04;
         if(typeof hunter!=="undefined"&&hunter){
           hunter.rotation.y=Math.PI*1.05+Math.sin(S.t*.75+1.5)*.08;
-          hunter.position.y=Math.sin(S.t*1.55+1)*.04;
+          hunter.position.y=hg+Math.sin(S.t*1.55+1)*.04;
         }
         spiritHealer.rotation.y=Math.PI+Math.sin(S.t*.6)*.06;
-        spiritHealer.position.y=Math.sin(S.t*1.4+1)*.05;
-        markerExcl.position.y=((BAL.npc&&BAL.npc.markerY)||5.15)+Math.sin(S.t*2.4)*.25;
+        spiritHealer.position.y=sg+Math.sin(S.t*1.4+1)*.05;
+        markerExcl.position.y=eg+((BAL.npc&&BAL.npc.markerY)||5.15)+Math.sin(S.t*2.4)*.25;
         markerQ.position.y=markerExcl.position.y;
         const nearR=BAL.economy.interactR;
         const nearCraft=typeof workbenchDist==="function"&&workbenchDist()<(BAL.professions.interactR||nearR);
@@ -510,6 +524,11 @@ function tick(){
       S.p.walkPhase*=1-dt*8;
     }
     if(S.p.alive)player.rotation.y=S.p.face;
+    /* 莫高雷贴地（plan-V2 · R2） */
+    if(S.p.alive&&S.mode==="world"&&typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="mulgore"
+      &&typeof heightAt==="function"){
+      player.position.y=heightAt(player.position.x,player.position.z);
+    }
     /* 走路摆腿 & 披风 */
     const U=player.userData,sw=Math.sin(S.p.walkPhase)*.55;
     if(S.p.alive){
@@ -739,16 +758,24 @@ function tick(){
     const yaw=S.p.face+(S.cam.rmb?0:(S.cam.yawOff||0));
     const flat=Math.cos(pitch)*dist;
     const lift=(C.height||9.5)+Math.sin(pitch)*dist*.55;
+    let groundY=0;
+    if(S.mode==="world"&&typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="mulgore"
+      &&typeof heightAt==="function"){
+      const gy=heightAt(player.position.x,player.position.z);
+      if(S.cam._gy==null)S.cam._gy=gy;
+      S.cam._gy+=(gy-S.cam._gy)*(1-Math.exp(-8*dt));
+      groundY=S.cam._gy;
+    }else S.cam._gy=null;
     const camTarget=new THREE.Vector3(
       player.position.x-Math.sin(yaw)*flat,
-      lift,
+      groundY+lift,
       player.position.z-Math.cos(yaw)*flat
     );
     const followK=1-Math.exp(-(C.follow||12)*dt);
     camera.position.x+= (camTarget.x-camera.position.x)*followK;
     camera.position.y+= (camTarget.y-camera.position.y)*followK;
     camera.position.z+= (camTarget.z-camera.position.z)*followK;
-    camera.lookAt(player.position.x,C.lookY||2.2,player.position.z);
+    camera.lookAt(player.position.x,groundY+(C.lookY||2.2),player.position.z);
   }
 
   /* ---- UI 刷新 ---- */

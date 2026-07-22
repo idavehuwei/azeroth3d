@@ -1044,7 +1044,9 @@ const BUILD_PAL={
 
 function placeProp(root,mesh,x,z,rotY){
   if(!root||!mesh)return mesh;
-  mesh.position.set(x,0,z);
+  /* 莫高雷场景根贴 heightAt；其他 zone 保持平坦 y=0 */
+  const useH=typeof heightAt==="function"&&typeof sceneWorld!=="undefined"&&root===sceneWorld;
+  mesh.position.set(x,useH?heightAt(x,z):0,z);
   if(rotY!=null)mesh.rotation.y=rotY;
   root.add(mesh);
   return mesh;

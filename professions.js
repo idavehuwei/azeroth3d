@@ -226,11 +226,12 @@ function spawnGatherNodesForZone(zoneId,scene,opts){
     if(!found)return;
     const matId=pickMatForKind(kind,zoneId);
     const mesh=kind==="herb"?buildHerbMesh(matId):buildOreMesh(matId);
-    mesh.position.set(x,0,z);
+    const gy=(zoneId==="mulgore"&&typeof heightAt==="function")?heightAt(x,z):0;
+    mesh.position.set(x,gy,z);
     scene.add(mesh);
     const title=kind==="herb"?`🌿 ${MATS[matId].name}`:`⛏ ${MATS[matId].name}`;
     const label=makeLabel(title,4.2,MATS[matId].color,"rgba(0,0,0,.55)");
-    label.position.set(x,kind==="herb"?2.2:2.4,z);
+    label.position.set(x,gy+(kind==="herb"?2.2:2.4),z);
     scene.add(label);
     GATHER_NODES.push({
       id:`${zoneId}_${kind}_${GATHER_NODES.length}`,
@@ -263,10 +264,11 @@ function disposeWorkbench(){
 function buildWorkbench(scene){
   disposeWorkbench();
   WORKBENCH=buildWorkbenchMesh();
-  WORKBENCH.position.copy(WORKBENCH_POS);
+  const gy=(typeof heightAt==="function")?heightAt(WORKBENCH_POS.x,WORKBENCH_POS.z):0;
+  WORKBENCH.position.set(WORKBENCH_POS.x,gy,WORKBENCH_POS.z);
   scene.add(WORKBENCH);
   const lab=makeLabel("🔨 制作台",5,"#ffd76a","rgba(80,50,10,.9)");
-  lab.position.set(WORKBENCH_POS.x,2.6,WORKBENCH_POS.z);
+  lab.position.set(WORKBENCH_POS.x,gy+2.6,WORKBENCH_POS.z);
   scene.add(lab);
   WORKBENCH.userData.label=lab;
   return WORKBENCH;

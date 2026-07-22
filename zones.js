@@ -126,13 +126,14 @@ function enterZone(id,gateId,opts){
       if(player.parent)player.parent.remove(player);
       if(to.scene)to.scene.add(player);
       const gate=resolveGate(to,gateId);
-      player.position.set(gate.x,0,gate.z);
+      const gy=(id==="mulgore"&&typeof heightAt==="function")?heightAt(gate.x,gate.z):0;
+      player.position.set(gate.x,gy,gate.z);
       /* 换区后立刻对齐相机，避免仍停在旧区坐标看一片黑 */
       if(typeof camera!=="undefined"){
         if((to.mode||"world")==="raid"){
           camera.position.set(gate.x*.7,13,gate.z*.7+22);
         }else{
-          camera.position.set(gate.x,12,gate.z+17);
+          camera.position.set(gate.x,12+gy,gate.z+17);
         }
       }
       if(typeof transferCompanionZone==="function")transferCompanionZone(to.scene,gate);

@@ -477,9 +477,11 @@ function tickOneCompanion(c,dt){
     else U.armR.rotation.x=c.moving?Math.sin(c.walkPhase)*.3:0;
     U.armL.rotation.x=c.moving?-Math.sin(c.walkPhase)*.3:0;
   }
-  c.mesh.position.y=c.moving?Math.abs(Math.sin(S.t*9+c.walkPhase))*.12:0;
+  const gy=(typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="mulgore"&&typeof heightAt==="function")
+    ?heightAt(c.mesh.position.x,c.mesh.position.z):0;
+  c.mesh.position.y=gy+(c.moving?Math.abs(Math.sin(S.t*9+c.walkPhase))*.12:0);
   if(c.label){
-    c.label.position.set(c.mesh.position.x,3.6,c.mesh.position.z);
+    c.label.position.set(c.mesh.position.x,gy+3.6,c.mesh.position.z);
     if(typeof updateNameplateHp==="function")updateNameplateHp(c.label,c.hp,c.hpMax);
   }
 }

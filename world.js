@@ -3,7 +3,7 @@
    莫高雷世界：实体放置 / 草原与营地 / 传送门与进本 / 野怪与 NPC 任务系统
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ rand srand worldRng BAL makeLabel scene camera setZoneSeed）
-          palette.js（PALETTE · MAT）
+          palette.js（PALETTE · MAT）· terrain.js（heightAt · buildMulgoreTerrain）
           zones.js（registerZone enterZone）
           models.js（buildPlayer buildBoss buildElder buildVendor buildSpiritHealer
             tintNpcCloth buildHut buildTent buildFence buildWatchtower buildCampfire
@@ -52,21 +52,23 @@ sun.shadow.camera.left=-110;sun.shadow.camera.right=110;
 sun.shadow.camera.top=110;sun.shadow.camera.bottom=-110;
 sceneWorld.add(sun);
 
-/* 草原地面 + 通往传送门的土路 */
-const grass=new THREE.Mesh(new THREE.CircleGeometry(WORLD_R+50,64),
-  MAT.get("grass.ground"));
-grass.rotation.x=-Math.PI/2; grass.receiveShadow=true; sceneWorld.add(grass);
-const dirtMat=MAT.get("dirt.path");
-for(let i=0;i<15;i++){
-  const seg=new THREE.Mesh(new THREE.CircleGeometry(srand(2.6,3.4),10),dirtMat);
-  seg.rotation.x=-Math.PI/2;
-  seg.position.set(Math.sin(i*.7)*3,.03,48-i*7.6);
-  seg.receiveShadow=true; sceneWorld.add(seg);
-}
-/* 湖泊 */
+/* 高度场地形 + 顶点着色道路（plan-V2 · R2）；取代纯色圆盘与分段土路 Mesh */
+const _terrainBuilt=buildMulgoreTerrain({
+  worldR:WORLD_R,
+  camp:{x:0,z:52},
+  portalMC:{x:0,z:-(WORLD_R-8)},
+  portalBarrens:{x:0,z:WORLD_R-8},
+  lake:{x:-38,z:14},
+  roadP1:{x:10,z:-40},
+});
+sceneWorld.add(_terrainBuilt.mesh);
+function _gy(x,z){return heightAt(x,z);}
+
+/* 湖泊（贴地；盆底由 heightAt 压低） */
 const pond=new THREE.Mesh(new THREE.CircleGeometry(13,32),
   MAT.get("water.pond"));
-pond.rotation.x=-Math.PI/2; pond.position.set(-38,.05,14); sceneWorld.add(pond);
+pond.rotation.x=-Math.PI/2;
+pond.position.set(-38,_gy(-38,14)+.06,14); sceneWorld.add(pond);
 
 /* 环绕的红岩台地（莫高雷标志性平顶山） */
 const mesaMat=MAT.get("rock.mesa");
@@ -91,12 +93,13 @@ for(let i=0;i<14;i++){
   if(worldRng()<.65){
     const th=srand(3,5);
     const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.35,.5,th,6),trunkMat);
-    trunk.position.set(x,th/2,z); trunk.castShadow=true; sceneWorld.add(trunk);
+    const gy=_gy(x,z);
+    trunk.position.set(x,gy+th/2,z); trunk.castShadow=true; sceneWorld.add(trunk);
     const leaf=new THREE.Mesh(new THREE.SphereGeometry(srand(1.8,2.8),7,6),leafMat);
-    leaf.position.set(x,th+1.4,z); leaf.scale.y=.8; leaf.castShadow=true; sceneWorld.add(leaf);
+    leaf.position.set(x,gy+th+1.4,z); leaf.scale.y=.8; leaf.castShadow=true; sceneWorld.add(leaf);
   }else{
     const b=new THREE.Mesh(new THREE.DodecahedronGeometry(srand(1,2.4),0),boulderMat);
-    b.position.set(x,.6,z); b.castShadow=true; b.receiveShadow=true; sceneWorld.add(b);
+    b.position.set(x,_gy(x,z)+.6,z); b.castShadow=true; b.receiveShadow=true; sceneWorld.add(b);
   }
 }
 
@@ -104,11 +107,12 @@ for(let i=0;i<14;i++){
 const hideMat=MAT.get("fur.hide");
 const hideMat2=MAT.get("fur.hideDark");
 [[16,50],[-18,46],[10,66]].forEach(([x,z],i)=>{
+  const gy=_gy(x,z);
   const tent=new THREE.Mesh(new THREE.ConeGeometry(4.2,6.8,8),i%2?hideMat:hideMat2);
-  tent.position.set(x,3.4,z); tent.castShadow=true; sceneWorld.add(tent);
+  tent.position.set(x,gy+3.4,z); tent.castShadow=true; sceneWorld.add(tent);
   for(let k=0;k<3;k++){
     const pole=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,2.4,5),trunkMat);
-    pole.position.set(x+srand(-.5,.5),7.4,z+srand(-.5,.5));
+    pole.position.set(x+srand(-.5,.5),gy+7.4,z+srand(-.5,.5));
     pole.rotation.set(srand(-.3,.3),0,srand(-.3,.3)); sceneWorld.add(pole);
   }
 });
@@ -116,43 +120,46 @@ const hideMat2=MAT.get("fur.hideDark");
 const paintA=MAT.get("paint.red",{color:PALETTE.paintRed.base,roughness:.8});
 const paintB=MAT.get("paint.blue",{color:PALETTE.paintBlue.base,roughness:.8});
 [[-6,58],[22,60]].forEach(([x,z])=>{
+  const gy=_gy(x,z);
   const pole=new THREE.Mesh(new THREE.CylinderGeometry(.55,.7,7.5,7),trunkMat);
-  pole.position.set(x,3.75,z); pole.castShadow=true; sceneWorld.add(pole);
+  pole.position.set(x,gy+3.75,z); pole.castShadow=true; sceneWorld.add(pole);
   [[1.8,paintA],[3.6,paintB],[5.4,paintA]].forEach(([y,m])=>{
     const ring=new THREE.Mesh(new THREE.CylinderGeometry(.72,.72,.55,7),m);
-    ring.position.set(x,y,z); sceneWorld.add(ring);
+    ring.position.set(x,gy+y,z); sceneWorld.add(ring);
   });
   const wing=new THREE.Mesh(new THREE.BoxGeometry(3.4,.55,.25),paintB);
-  wing.position.set(x,7,z); sceneWorld.add(wing);
+  wing.position.set(x,gy+7,z); sceneWorld.add(wing);
 });
 /* 篝火（存引用做火光闪烁） */
 const worldFlames=[];
 [[0,55]].forEach(([x,z])=>{
+  const gy=_gy(x,z);
   for(let k=0;k<6;k++){
     const a=k/6*Math.PI*2;
     const st=new THREE.Mesh(new THREE.DodecahedronGeometry(.4,0),boulderMat);
-    st.position.set(x+Math.cos(a)*1.1,.3,z+Math.sin(a)*1.1); sceneWorld.add(st);
+    st.position.set(x+Math.cos(a)*1.1,gy+.3,z+Math.sin(a)*1.1); sceneWorld.add(st);
   }
   const fl=new THREE.Mesh(new THREE.ConeGeometry(.7,1.8,7),
     new THREE.MeshBasicMaterial({color:0xffa030,transparent:true,opacity:.92}));
-  fl.position.set(x,1.1,z); sceneWorld.add(fl);
-  const li=new THREE.PointLight(0xff8a30,1.4,22,1.8); li.position.set(x,2.2,z); sceneWorld.add(li);
+  fl.position.set(x,gy+1.1,z); sceneWorld.add(fl);
+  const li=new THREE.PointLight(0xff8a30,1.4,22,1.8); li.position.set(x,gy+2.2,z); sceneWorld.add(li);
   worldFlames.push({fl,li});
 });
 
 /* ---------------- 副本传送门：熔火之心入口 ---------------- */
 const PORTAL_POS=new THREE.Vector3(0,0,-(WORLD_R-8));
+const _pg=_gy(PORTAL_POS.x,PORTAL_POS.z);
 const obsidian=MAT.get("obsidian.gate");
 const pPlat=new THREE.Mesh(new THREE.CylinderGeometry(8,9.5,1,12),obsidian);
-pPlat.position.set(PORTAL_POS.x,.5,PORTAL_POS.z); pPlat.receiveShadow=true; sceneWorld.add(pPlat);
+pPlat.position.set(PORTAL_POS.x,_pg+.5,PORTAL_POS.z); pPlat.receiveShadow=true; sceneWorld.add(pPlat);
 [[-3.8],[3.8]].forEach(([sx])=>{
   const pil=new THREE.Mesh(new THREE.BoxGeometry(1.7,9.5,1.7),obsidian);
-  pil.position.set(PORTAL_POS.x+sx,5.7,PORTAL_POS.z); pil.castShadow=true; sceneWorld.add(pil);
+  pil.position.set(PORTAL_POS.x+sx,_pg+5.7,PORTAL_POS.z); pil.castShadow=true; sceneWorld.add(pil);
   const spike=new THREE.Mesh(new THREE.ConeGeometry(.8,2.2,5),obsidian);
-  spike.position.set(PORTAL_POS.x+sx,11.5,PORTAL_POS.z); sceneWorld.add(spike);
+  spike.position.set(PORTAL_POS.x+sx,_pg+11.5,PORTAL_POS.z); sceneWorld.add(spike);
 });
 const lintel=new THREE.Mesh(new THREE.BoxGeometry(10.4,1.7,1.9),obsidian);
-lintel.position.set(PORTAL_POS.x,10.4,PORTAL_POS.z); lintel.castShadow=true; sceneWorld.add(lintel);
+lintel.position.set(PORTAL_POS.x,_pg+10.4,PORTAL_POS.z); lintel.castShadow=true; sceneWorld.add(lintel);
 /* 旋涡传送门（Shader 动画） */
 const portalUni={uTime:{value:0}};
 const portalDisc=new THREE.Mesh(new THREE.CircleGeometry(3.1,40),new THREE.ShaderMaterial({
@@ -168,36 +175,37 @@ const portalDisc=new THREE.Mesh(new THREE.CircleGeometry(3.1,40),new THREE.Shade
       c+=vec3(1.,.6,.2)*smoothstep(.25,0.,r);
       gl_FragColor=vec4(c*1.25,smoothstep(1.,.9,r));
     }`}));
-portalDisc.position.set(PORTAL_POS.x,5.2,PORTAL_POS.z); sceneWorld.add(portalDisc);
+portalDisc.position.set(PORTAL_POS.x,_pg+5.2,PORTAL_POS.z); sceneWorld.add(portalDisc);
 /* 门前火盆 */
 [[-6.5],[6.5]].forEach(([sx])=>{
   const bz=new THREE.Mesh(new THREE.CylinderGeometry(.8,.5,1.4,7),obsidian);
-  bz.position.set(PORTAL_POS.x+sx,.9,PORTAL_POS.z+4); sceneWorld.add(bz);
+  bz.position.set(PORTAL_POS.x+sx,_pg+.9,PORTAL_POS.z+4); sceneWorld.add(bz);
   const fl=new THREE.Mesh(new THREE.ConeGeometry(.55,1.5,7),
     new THREE.MeshBasicMaterial({color:0xffa030,transparent:true,opacity:.92}));
-  fl.position.set(PORTAL_POS.x+sx,2.2,PORTAL_POS.z+4); sceneWorld.add(fl);
+  fl.position.set(PORTAL_POS.x+sx,_pg+2.2,PORTAL_POS.z+4); sceneWorld.add(fl);
   const li=new THREE.PointLight(0xff6a20,1.2,18,1.8);
-  li.position.set(PORTAL_POS.x+sx,2.6,PORTAL_POS.z+4); sceneWorld.add(li);
+  li.position.set(PORTAL_POS.x+sx,_pg+2.6,PORTAL_POS.z+4); sceneWorld.add(li);
   worldFlames.push({fl,li});
 });
 /* 门楣悬浮文字（makeLabel 已迁入 core.js，供掉落系统等全局复用） */
 const portalLabel=makeLabel("熔火之心",14);
-portalLabel.position.set(PORTAL_POS.x,13.6,PORTAL_POS.z); sceneWorld.add(portalLabel);
+portalLabel.position.set(PORTAL_POS.x,_pg+13.6,PORTAL_POS.z); sceneWorld.add(portalLabel);
 const portalLabel2=makeLabel("· 副本入口 ·",8);
-portalLabel2.position.set(PORTAL_POS.x,12,PORTAL_POS.z); sceneWorld.add(portalLabel2);
+portalLabel2.position.set(PORTAL_POS.x,_pg+12,PORTAL_POS.z); sceneWorld.add(portalLabel2);
 
 /* ---------------- 贫瘠之地传送门（营地南，STEP 18）：Lv10+ 可见可进 ---------------- */
 const PORTAL_BARRENS=new THREE.Vector3(0,0,WORLD_R-8);
+const _bg=_gy(PORTAL_BARRENS.x,PORTAL_BARRENS.z);
 const barrensGateMat=MAT.get("wood.gate",{color:0x5a4028,roughness:.9,flatShading:true,
   emissive:0x6a4a20,emissiveIntensity:.18});
 const bPlat=new THREE.Mesh(new THREE.CylinderGeometry(7,8.5,1,12),barrensGateMat);
-bPlat.position.set(PORTAL_BARRENS.x,.5,PORTAL_BARRENS.z); bPlat.receiveShadow=true; sceneWorld.add(bPlat);
+bPlat.position.set(PORTAL_BARRENS.x,_bg+.5,PORTAL_BARRENS.z); bPlat.receiveShadow=true; sceneWorld.add(bPlat);
 [[-3.4],[3.4]].forEach(([sx])=>{
   const pil=new THREE.Mesh(new THREE.BoxGeometry(1.5,8.5,1.5),barrensGateMat);
-  pil.position.set(PORTAL_BARRENS.x+sx,4.8,PORTAL_BARRENS.z); pil.castShadow=true; sceneWorld.add(pil);
+  pil.position.set(PORTAL_BARRENS.x+sx,_bg+4.8,PORTAL_BARRENS.z); pil.castShadow=true; sceneWorld.add(pil);
 });
 const bLintel=new THREE.Mesh(new THREE.BoxGeometry(9.2,1.4,1.6),barrensGateMat);
-bLintel.position.set(PORTAL_BARRENS.x,9.2,PORTAL_BARRENS.z); bLintel.castShadow=true; sceneWorld.add(bLintel);
+bLintel.position.set(PORTAL_BARRENS.x,_bg+9.2,PORTAL_BARRENS.z); bLintel.castShadow=true; sceneWorld.add(bLintel);
 const southPortalUni={uTime:{value:0}};
 const barrensPortalDisc=new THREE.Mesh(new THREE.CircleGeometry(2.8,36),new THREE.ShaderMaterial({
   uniforms:southPortalUni,transparent:true,side:THREE.DoubleSide,depthWrite:false,
@@ -211,11 +219,11 @@ const barrensPortalDisc=new THREE.Mesh(new THREE.CircleGeometry(2.8,36),new THRE
       c=mix(c,vec3(.12,.06,0.),smoothstep(.7,1.,r));
       gl_FragColor=vec4(c*1.1,smoothstep(1.,.88,r));
     }`}));
-barrensPortalDisc.position.set(PORTAL_BARRENS.x,4.6,PORTAL_BARRENS.z); sceneWorld.add(barrensPortalDisc);
+barrensPortalDisc.position.set(PORTAL_BARRENS.x,_bg+4.6,PORTAL_BARRENS.z); sceneWorld.add(barrensPortalDisc);
 const southPortalLabel=makeLabel("贫瘠之地",12,"#e8c898","rgba(160,100,40,.9)");
-southPortalLabel.position.set(PORTAL_BARRENS.x,12.2,PORTAL_BARRENS.z); sceneWorld.add(southPortalLabel);
+southPortalLabel.position.set(PORTAL_BARRENS.x,_bg+12.2,PORTAL_BARRENS.z); sceneWorld.add(southPortalLabel);
 const southPortalLabel2=makeLabel(`十字路口 · 需要 Lv.${BAL.barrens.minLevel}+`,7,"#ffb060","rgba(160,80,20,.9)");
-southPortalLabel2.position.set(PORTAL_BARRENS.x,10.8,PORTAL_BARRENS.z); sceneWorld.add(southPortalLabel2);
+southPortalLabel2.position.set(PORTAL_BARRENS.x,_bg+10.8,PORTAL_BARRENS.z); sceneWorld.add(southPortalLabel2);
 
 /* STEP 23：营地制作台 + 莫高雷采集点（在传送门坐标定义之后） */
 if(typeof buildWorkbench==="function")buildWorkbench(sceneWorld);
@@ -233,7 +241,7 @@ const fireflyGeo=new THREE.BufferGeometry();
 const ffPos=new Float32Array(FIREFLIES*3), ffPhases=new Float32Array(FIREFLIES);
 for(let i=0;i<FIREFLIES;i++){
   const a=srand(0,6.28),r=srand(5,WORLD_R-8);
-  ffPos[i*3]=Math.cos(a)*r; ffPos[i*3+1]=srand(1,4); ffPos[i*3+2]=Math.sin(a)*r;
+  ffPos[i*3]=Math.cos(a)*r; ffPos[i*3+1]=_gy(Math.cos(a)*r,Math.sin(a)*r)+srand(1,4); ffPos[i*3+2]=Math.sin(a)*r;
   ffPhases[i]=srand(0,6.28);
 }
 fireflyGeo.setAttribute("position",new THREE.BufferAttribute(ffPos,3));
@@ -244,9 +252,9 @@ sceneWorld.add(fireflies);
 
 /* 玩家移入莫高雷出生点（营地旁），当前场景切换为外部世界 */
 sceneRaid.remove(player); sceneWorld.add(player);
-player.position.set(0,0,52);
+player.position.set(0,_gy(0,52),52);
 scene=sceneWorld;
-camera.position.set(0,14,72);
+camera.position.set(0,14+_gy(0,52),72);
 
 /* ---------------- 进入 / 离开副本（薄包装 → enterZone，STEP 17） ---------------- */
 function fadeTo(op,cb){
@@ -391,11 +399,11 @@ const QUEST={state:0,kills:0};   /* 0未接 1猎杀野猪 2讨伐拉戈斯 3完�
 /* 长老 NPC + 头顶名字与任务标记 */
 const _npcLy=(BAL.npc&&BAL.npc.labelY)||4.05, _npcMy=(BAL.npc&&BAL.npc.markerY)||5.15, _npcLw=(BAL.npc&&BAL.npc.labelW)||6.2;
 const elder=buildElder();
-elder.position.set(8,0,48); elder.rotation.y=Math.PI*.85; sceneWorld.add(elder);
+elder.position.set(8,_gy(8,48),48); elder.rotation.y=Math.PI*.85; sceneWorld.add(elder);
 const elderLabel=makeNameplate("长老 · 岩蹄",BAL.npcLevel.elder,{w:_npcLw,friendly:true});
-elderLabel.position.set(8,_npcLy,48); sceneWorld.add(elderLabel);
+elderLabel.position.set(8,_gy(8,48)+_npcLy,48); sceneWorld.add(elderLabel);
 const markerExcl=makeLabel("❗",2.6);
-markerExcl.position.set(8,_npcMy,48); sceneWorld.add(markerExcl);
+markerExcl.position.set(8,_gy(8,48)+_npcMy,48); sceneWorld.add(markerExcl);
 const markerQ=makeLabel("❓",2.6);
 markerQ.position.copy(markerExcl.position); markerQ.visible=false; sceneWorld.add(markerQ);
 function setMarker(){
@@ -418,21 +426,21 @@ function updateNpcQuestMarkers(){
 }
 /* 营地商人（STEP 13） */
 const vendor=buildVendor();
-vendor.position.set(-16,0,48); vendor.rotation.y=Math.PI*1.15; sceneWorld.add(vendor);
+vendor.position.set(-16,_gy(-16,48),48); vendor.rotation.y=Math.PI*1.15; sceneWorld.add(vendor);
 const vendorLabel=makeNameplate("商人 · 火蹄",BAL.npcLevel.vendor,{w:_npcLw,friendly:true,color:"#a8e8c0"});
-vendorLabel.position.set(-16,_npcLy,48); sceneWorld.add(vendorLabel);
+vendorLabel.position.set(-16,_gy(-16,48)+_npcLy,48); sceneWorld.add(vendorLabel);
 updateNameplateHp(vendorLabel,1,1);
 /* 猎手：狩猎类支线 */
 const hunter=tintNpcCloth(buildElder(),0x5a6a38);
-hunter.position.set(18,0,54); hunter.rotation.y=Math.PI*1.05; sceneWorld.add(hunter);
+hunter.position.set(18,_gy(18,54),54); hunter.rotation.y=Math.PI*1.05; sceneWorld.add(hunter);
 const hunterLabel=makeNameplate("猎手 · 迅羽",BAL.npcLevel.hunter,{w:_npcLw,friendly:true,color:"#d0e8a0"});
-hunterLabel.position.set(18,_npcLy,54); sceneWorld.add(hunterLabel);
+hunterLabel.position.set(18,_gy(18,54)+_npcLy,54); sceneWorld.add(hunterLabel);
 updateNameplateHp(hunterLabel,1,1);
 /* 灵魂医者（STEP 15） */
 const spiritHealer=buildSpiritHealer();
-spiritHealer.position.set(0,0,64); spiritHealer.rotation.y=Math.PI; sceneWorld.add(spiritHealer);
+spiritHealer.position.set(0,_gy(0,64),64); spiritHealer.rotation.y=Math.PI; sceneWorld.add(spiritHealer);
 const spiritLabel=makeNameplate("灵魂医者 · 风语",BAL.npcLevel.spirit,{w:_npcLw+.2,friendly:true,color:"#c8e8ff",glow:"rgba(80,160,255,.95)"});
-spiritLabel.position.set(0,_npcLy,64); sceneWorld.add(spiritLabel);
+spiritLabel.position.set(0,_gy(0,64)+_npcLy,64); sceneWorld.add(spiritLabel);
 updateNameplateHp(spiritLabel,1,1);
 updateNameplateHp(elderLabel,1,1);
 function spiritDist(){return Math.hypot(player.position.x-spiritHealer.position.x,player.position.z-spiritHealer.position.z);}
@@ -527,7 +535,9 @@ function spawnMob(type,x,z,group,opts){
   opts=opts||{};
   const zoneId=opts.zoneId||"mulgore";
   const T=MOB_TYPES[type], st=BAL.mobs[T.stats];
-  const mesh=T.build(); mesh.position.set(x,0,z);
+  const mesh=T.build();
+  const gy=(zoneId==="mulgore"&&typeof heightAt==="function")?heightAt(x,z):0;
+  mesh.position.set(x,gy,z);
   mesh.rotation.y=srand(0,6.28);
   let labelY=T.labelY;
   const isWB=!!(opts.worldBoss||T.worldBoss)&&!opts.minion;
@@ -543,7 +553,7 @@ function spawnMob(type,x,z,group,opts){
   const nameColor=opts.color||T.color||(isWB||opts.rare||T.rare?(BAL.rares&&BAL.rares.gold)||"#ffd700":"#ffd9a0");
   const mobLv=st.level!=null?st.level:1;
   const label=makeNameplate(dispName,mobLv,{w:T.labelW+(isWB?1.5:0),color:nameColor,glow:nameColor});
-  label.position.set(x,labelY,z); scn.add(label);
+  label.position.set(x,gy+labelY,z); scn.add(label);
   updateNameplateHp(label,st.hp,st.hp);
   const m={type,name:dispName,level:mobLv,mesh,label,stats:st,loot:LOOT[T.loot],
     elite:isElite,

@@ -88,6 +88,7 @@ const MAT=(function(){
     "obsidian.pillar":{color:()=>PALETTE.obsidian.dark, roughness:.9,
                        emissive:0x6a2200, emissiveIntensity:.15},
     "quest.marker" :{color:0xc4a060, flatShading:true},
+    "terrain.mulgore":{color:0xffffff, roughness:.95, vertexColors:true},
   };
 
   function resolve(obj){
@@ -111,6 +112,8 @@ const MAT=(function(){
       transparent:!!p.transparent||opacity<1,
       opacity,
       side:p.side!=null?p.side:THREE.FrontSide,
+      vertexColors:!!p.vertexColors,
+      map:p.map||null,
     };
   }
 
@@ -125,6 +128,8 @@ const MAT=(function(){
       params.transparent?1:0,
       +params.opacity,
       params.side===THREE.DoubleSide?2:1,
+      params.vertexColors?1:0,
+      params.map&&params.map.uuid?params.map.uuid:(params.map?"map":""),
     ].join(",");
   }
 
@@ -139,6 +144,8 @@ const MAT=(function(){
       transparent:params.transparent,
       opacity:params.opacity,
       side:params.side,
+      vertexColors:params.vertexColors,
+      map:params.map||null,
     });
     mat.userData.sharedMat=true;
     return mat;

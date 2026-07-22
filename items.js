@@ -337,7 +337,10 @@ function rollLoot(table,weights){
 const DROPS=[];
 function dropLoot(pos,items,owner,onLooted){
   const it=items[0], q=QUALITY[it.quality];
-  const grp=new THREE.Group(); grp.position.copy(pos).setY(0);
+  const grp=new THREE.Group();
+  const gy=(typeof heightAt==="function"&&typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="mulgore")
+    ?heightAt(pos.x,pos.z):(pos.y||0);
+  grp.position.copy(pos).setY(gy);
   const cube=new THREE.Mesh(new THREE.BoxGeometry(.55,.55,.55),
     MAT.get("emissive.loot",{color:q.hex,emissive:q.hex,emissiveIntensity:.65,roughness:.4}));
   cube.position.y=.6; cube.castShadow=true; grp.add(cube);
