@@ -4,7 +4,8 @@
    纯 DOM 覆盖层，不碰 Three.js；数值读自 S.p / CLS / ITEMS / getSkillCd
    ------------------------------------------------------------
    [依赖] core.js（$ BAL）· combat.js（S CLS SKILLS formatCopperText）
-          items.js（ITEMS QUALITY EQUIP_SLOTS EQUIP_SLOT_LABEL bagOpen bindItemTip）· talents.js（getSkillCd talentOpen）
+          items.js（ITEMS QUALITY EQUIP_SLOTS EQUIP_SLOT_LABEL bagOpen bindItemTip
+            equipItem unequipItem applyEquipStats beginItemDrag endItemDrag getItemDrag itemFitsEqSlot）· talents.js（getSkillCd talentOpen）
           world.js（QUEST updateQuest）· icons.js（Icons）
           quests.js 运行时（getQuestLogEntries abandonQuest canAbandonQuest getQuestDef questNpcLabel）
           map.js 运行时（worldMapOpen；关闭世界地图）
@@ -249,12 +250,13 @@ function pdSlotHtml(slot){
   const id=S.eq[slot];
   const it=id?ITEMS[id]:null;
   if(!it){
-    return `<div class="pd-slot empty" data-slot="${slot}" title="${label}">`+
+    return `<div class="pd-slot empty" data-slot="${slot}">`+
+      `<span class="pd-empty-ic" aria-hidden="true"></span>`+
       `<span class="pd-tag">${label}</span></div>`;
   }
   const q=QUALITY[it.quality];
-  return `<div class="pd-slot filled" data-slot="${slot}" data-item="${it.id}" title="${it.name}" style="border-color:${q.color}">`+
-    `<img src="${Icons.get(it.icon,q.color)}" style="border-color:${q.color}" alt="">`+
+  return `<div class="pd-slot filled" data-slot="${slot}" data-item="${it.id}" style="border-color:${q.color}">`+
+    `<img src="${Icons.get(it.icon,q.color)}" style="border-color:${q.color}" alt="" draggable="false">`+
     `<span class="pd-tag">${label}</span></div>`;
 }
 
@@ -281,18 +283,22 @@ function renderCharPanel(){
   const right=["waist","legs","feet","finger","offhand","ranged"];
   const bottom=["mainhand"];
   const yaw=(_charDollYaw|0)%360;
+  const clsIcon=CLS.key==="mage"?"✦":CLS.key==="archer"?"➶":CLS.key==="priest"?"✚":CLS.key==="shaman"?"⚡":CLS.key==="rogue"?"🗡":"⚔";
 
   body.innerHTML=
     `<div class="ph-layout">`+
       `<div class="ph-doll" aria-label="装备">`+
-        `<div class="ph-doll-col">${left.map(pdSlotHtml).join("")}</div>`+
-        `<div class="ph-doll-mid" id="charDollPreview" title="拖动旋转预览">`+
-          `<div class="ph-doll-sil" style="transform:rotateY(${yaw}deg)">${CLS.key==="mage"?"✦":CLS.key==="archer"?"➶":CLS.key==="priest"?"✚":CLS.key==="shaman"?"⚡":CLS.key==="rogue"?"🗡":"⚔"}</div>`+
-          `<div class="ph-doll-lv">Lv.${P.level}</div>`+
-          `<div class="ph-doll-drag">拖动旋转</div>`+
+        `<div class="ph-doll-head">${CLS.title} · Lv.${P.level}</div>`+
+        `<div class="ph-doll-grid">`+
+          `<div class="ph-doll-col">${left.map(pdSlotHtml).join("")}</div>`+
+          `<div class="ph-doll-mid" id="charDollPreview" title="拖动旋转预览">`+
+            `<div class="ph-doll-sil" style="transform:rotateY(${yaw}deg)">${clsIcon}</div>`+
+            `<div class="ph-doll-gs">装等 ${gs}</div>`+
+            `<div class="ph-doll-drag">拖动旋转</div>`+
+          `</div>`+
+          `<div class="ph-doll-col">${right.map(pdSlotHtml).join("")}</div>`+
+          `<div class="ph-doll-bot">${bottom.map(pdSlotHtml).join("")}</div>`+
         `</div>`+
-        `<div class="ph-doll-col">${right.map(pdSlotHtml).join("")}</div>`+
-        `<div class="ph-doll-bot">${bottom.map(pdSlotHtml).join("")}</div>`+
       `</div>`+
       `<div class="ph-stats">`+
         `<div class="ph-sec">概览</div>`+
@@ -328,10 +334,98 @@ function renderCharPanel(){
     const slot=el.dataset.slot;
     const id=S.eq[slot];
     const it=id?ITEMS[id]:null;
+    const label=EQUIP_SLOT_LABEL[slot]||slot;
     if(it&&typeof bindItemTip==="function")
-      bindItemTip(el,it,"点击卸下");
+      bindItemTip(el,it,"拖回背包卸下 · 点击卸下");
+    else if(typeof bindTipHtml==="function")
+      bindTipHtml(el,()=>`<div class="it-name" style="color:var(--gold-bright)">${label}</div><div class="it-meta">空装备槽</div><div class="it-hint">从背包拖入可装备的物品</div>`);
+    if(it){
+      el.draggable=true;
+      el.addEventListener("dragstart",e=>{
+        if(typeof hideItemTip==="function")hideItemTip();
+        if(typeof beginItemDrag==="function")beginItemDrag({kind:"eq",slot,id:it.id});
+        e.dataTransfer.setData("text/plain","eq:"+slot);
+        e.dataTransfer.setData("text/eq-slot",slot);
+        e.dataTransfer.setData("text/item-id",it.id);
+        e.dataTransfer.effectAllowed="move";
+        el.classList.add("dragging");
+      });
+      el.addEventListener("dragend",()=>{
+        el.classList.remove("dragging");
+        if(typeof endItemDrag==="function")endItemDrag();
+      });
+    }
+    el.addEventListener("dragover",e=>{
+      const d=typeof getItemDrag==="function"?getItemDrag():null;
+      if(!d)return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect="move";
+      if(d.kind==="inv"){
+        const bagIt=ITEMS[d.id];
+        if(bagIt&&itemFitsEqSlot(bagIt,slot)){
+          el.classList.add("drop-ok"); el.classList.remove("drop-bad");
+        }else{
+          el.classList.add("drop-bad"); el.classList.remove("drop-ok");
+        }
+      }else if(d.kind==="eq"&&d.slot!==slot){
+        const ait=ITEMS[d.id];
+        if(ait&&itemFitsEqSlot(ait,slot)){el.classList.add("drop-ok");el.classList.remove("drop-bad");}
+        else{el.classList.add("drop-bad");el.classList.remove("drop-ok");}
+      }
+    });
+    el.addEventListener("dragleave",()=>el.classList.remove("drop-ok","drop-bad"));
+    el.addEventListener("drop",e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      el.classList.remove("drop-ok","drop-bad");
+      const d=typeof getItemDrag==="function"?getItemDrag():null;
+      if(typeof endItemDrag==="function")endItemDrag();
+      if(!d)return;
+      if(d.kind==="inv"){
+        const idx=d.invIdx|0;
+        const itemId=S.inv[idx];
+        const bagIt=itemId&&ITEMS[itemId];
+        if(!bagIt)return;
+        if(!itemFitsEqSlot(bagIt,slot)){
+          el.classList.add("drop-bad");
+          log(`【${bagIt.name}】不能装备到${label}。`,"lg-sys");
+          setTimeout(()=>el.classList.remove("drop-bad"),400);
+          return;
+        }
+        equipItem(itemId,idx);
+        return;
+      }
+      if(d.kind==="eq"&&d.slot!==slot){
+        const a=S.eq[d.slot], b=S.eq[slot];
+        if(!a)return;
+        if(!itemFitsEqSlot(ITEMS[a],slot)){
+          log(`无法交换到${label}。`,"lg-sys");
+          return;
+        }
+        if(b&&!itemFitsEqSlot(ITEMS[b],d.slot)){
+          log("无法交换装备。","lg-sys");
+          return;
+        }
+        if(a)applyEquipStats(ITEMS[a],-1);
+        if(b)applyEquipStats(ITEMS[b],-1);
+        S.eq[d.slot]=b||null;
+        S.eq[slot]=a;
+        if(S.eq[d.slot])applyEquipStats(ITEMS[S.eq[d.slot]],+1);
+        if(S.eq[slot])applyEquipStats(ITEMS[S.eq[slot]],+1);
+        if(d.slot==="mainhand"||slot==="mainhand"){
+          const mid=S.eq.mainhand;
+          setWeapon(player,mid&&ITEMS[mid]?ITEMS[mid].model||player.userData.defaultWeapon:player.userData.defaultWeapon);
+        }
+        if(typeof renderBag==="function")renderBag();
+        renderCharPanel();
+        if(typeof saveGame==="function")saveGame(true);
+      }
+    });
     el.addEventListener("click",()=>{
-      if(S.eq[slot]){hideItemTip();unequipItem(slot);}
+      if(S.eq[slot]){
+        if(typeof hideItemTip==="function")hideItemTip();
+        unequipItem(slot);
+      }
     });
   });
   wireCharDollRotate(body.querySelector("#charDollPreview"));
@@ -518,6 +612,8 @@ function toggleCharPanel(){
   const open=panelOpen("#charPanel");
   if(open){setPanel("#charPanel",false);return;}
   setPanel("#charPanel",true);
+  /* 魔兽手感：开角色时顺带打开背包，左右对照换装 */
+  if(typeof ensureBagOpen==="function")ensureBagOpen();
   renderCharPanel();
 }
 function toggleSpellPanel(){

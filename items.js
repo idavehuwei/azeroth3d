@@ -15,9 +15,10 @@
           rollLoot rollMobLoot questLootNeedsFromTable dropLoot updateDrops nearestDrop
           tryLoot removeDropOf logLoot DROPS
           openLootPanel closeLootPanel lootPanelOpen renderLootPanel
-          equipItem unequipItem toggleBag ensureBagOpen renderBag applyEquipStats
+          equipItem unequipItem swapInvSlots toggleBag ensureBagOpen renderBag applyEquipStats
           getPlayerWeaponRange getPlayerAutoSpeed bagOpen
           itemTitle showItemTip hideItemTip bindItemTip itemTipHtml
+          beginItemDrag endItemDrag getItemDrag
           useItem sellItem buyVendorItem cancelConsume（STEP 13）
    ============================================================ */
 "use strict";
@@ -839,11 +840,14 @@ function onBagItemClick(id){
   if(it.slot==="consumable")useItem(id);
   else if(isEquippable(it))equipItem(id);
 }
-function equipItem(id){
+/** @param {string} id 物品 id · @param {number} [invIdx] 背包下标（拖拽时避免重复 id 装错） */
+function equipItem(id,invIdx){
   const it=ITEMS[id];
   const slot=resolveEquipSlot(it);
   if(!slot){log("该物品无法装备。");return;}
-  const idx=S.inv.indexOf(id); if(idx<0)return;
+  let idx=invIdx!=null?invIdx|0:S.inv.indexOf(id);
+  if(idx<0||S.inv[idx]!==id)idx=S.inv.indexOf(id);
+  if(idx<0)return;
   S.inv.splice(idx,1);
   const old=S.eq[slot];
   if(old){applyEquipStats(ITEMS[old],-1);S.inv.push(old);}
@@ -867,6 +871,17 @@ function unequipItem(slot){
   renderBag();
   if(typeof renderCharPanel==="function")renderCharPanel();
   if(typeof saveGame==="function")saveGame(true);
+}
+/** 背包格互换（仅双方都有物品时） */
+function swapInvSlots(a,b){
+  a|=0;b|=0;
+  if(a===b||a<0||b<0||a>=BAL.bag.size||b>=BAL.bag.size)return false;
+  const idA=S.inv[a], idB=S.inv[b];
+  if(!idA||!idB)return false;
+  S.inv[a]=idB; S.inv[b]=idA;
+  renderBag();
+  if(typeof saveGame==="function")saveGame(true);
+  return true;
 }
 
 /* ---------------- 背包 UI（HTML 覆盖层，#dlg 同风格） ---------------- */
@@ -909,10 +924,28 @@ const SLOT_NAME={
 };
 const STAT_LABEL={str:"力量",agi:"敏捷",sta:"耐力",int:"智力",spi:"精神"};
 const USE_NAME={food:"坐下进食回血",drink:"坐下饮水回资源",bandage:"引导包扎回血",potion:"立即回复生命",whetstone:"临时提升伤害",quest:"任务使用"};
+
+function _tipArmor(it){if(!it)return 0;return(it.armor|0)+((it.stats&&it.stats.armor)|0);}
+function _tipStatLine(label,cur,base,force){
+  if(!force&&!cur&&!base)return "";
+  if(base==null)return `<div class="it-line it-stat">+${cur} ${label}</div>`;
+  const d=(cur|0)-(base|0);
+  if(!cur&&!base&&!d)return "";
+  let cls="it-line it-stat";
+  let suf="";
+  if(d>0){cls+=" it-up";suf=` <span class="it-delta">(+${d})</span>`;}
+  else if(d<0){cls+=" it-down";suf=` <span class="it-delta">(${d})</span>`;}
+  return `<div class="${cls}">+${cur|0} ${label}${suf}</div>`;
+}
 function itemTipHtml(it,extraHint){
   if(!it)return "";
   const q=QUALITY[it.quality]||QUALITY.common;
   const st=it.stats||{};
+  const slot=resolveEquipSlot(it);
+  const eqId=slot&&S.eq?S.eq[slot]:null;
+  const eqIt=eqId&&ITEMS[eqId]&&ITEMS[eqId].id!==it.id?ITEMS[eqId]:null;
+  const eqSt=eqIt?(eqIt.stats||{}):null;
+
   let html=`<div class="it-name" style="color:${q.color}">${it.name}</div>`;
   const meta=[];
   if(it.ilvl)meta.push(`物品等级 ${it.ilvl}`);
@@ -925,19 +958,43 @@ function itemTipHtml(it,extraHint){
     const dps=((it.dmgRange[0]+it.dmgRange[1])/2/spd).toFixed(1);
     html+=`<div class="it-line">${it.dmgRange[0]} – ${it.dmgRange[1]} 伤害</div>`;
     html+=`<div class="it-line">速度 ${spd.toFixed(2)}（${dps} DPS）</div>`;
+    if(eqIt&&eqIt.dmgRange){
+      const bd=((eqIt.dmgRange[0]+eqIt.dmgRange[1])/2);
+      const cd=((it.dmgRange[0]+it.dmgRange[1])/2);
+      const dd=cd-bd;
+      if(Math.abs(dd)>=1)
+        html+=`<div class="it-line ${dd>0?"it-up":"it-down"}">均伤 ${dd>0?"+":""}${Math.round(dd)}</div>`;
+    }
   }
-  const arm=(it.armor|0)+(st.armor|0);
-  if(arm)html+=`<div class="it-line">${arm} 点护甲</div>`;
+  const arm=_tipArmor(it);
+  if(arm||(eqIt&&_tipArmor(eqIt))){
+    if(eqIt){
+      const d=arm-_tipArmor(eqIt);
+      let suf="";
+      if(d>0)suf=` <span class="it-delta">(+${d})</span>`;
+      else if(d<0)suf=` <span class="it-delta">(${d})</span>`;
+      html+=`<div class="it-line ${d>0?"it-up":d<0?"it-down":""}">${arm} 点护甲${suf}</div>`;
+    }else html+=`<div class="it-line">${arm} 点护甲</div>`;
+  }
   for(const k of EQUIP_STAT_KEYS){
-    if(st[k])html+=`<div class="it-line it-stat">+${st[k]} ${STAT_LABEL[k]}</div>`;
+    const cur=st[k]|0, base=eqSt?eqSt[k]|0:null;
+    if(cur||(eqSt&&base))html+=_tipStatLine(STAT_LABEL[k],cur,eqSt?base:null,!!eqSt);
   }
   if(st.dmgMul)html+=`<div class="it-line it-stat">伤害 +${Math.round((st.dmgMul-1)*100)}%</div>`;
-  if(st.hpMax)html+=`<div class="it-line it-stat">生命上限 +${st.hpMax}</div>`;
+  if(st.hpMax){
+    const base=eqSt?eqSt.hpMax|0:null;
+    html+=_tipStatLine("生命上限",st.hpMax|0,eqSt?base:null,!!eqSt&&!!base);
+  }
   if(it.use&&USE_NAME[it.use])html+=`<div class="it-line it-stat">${USE_NAME[it.use]}</div>`;
   if(it.model)html+=`<div class="it-line">外观：${it.model}</div>`;
   if(it.vendorBuy!=null)html+=`<div class="it-line it-price">买入 ${formatCopperText(it.vendorBuy)}</div>`;
   if(it.vendorSell!=null)html+=`<div class="it-line it-price">售价 ${formatCopperText(it.vendorSell)}</div>`;
   else if(it.quest)html+=`<div class="it-line it-price">不可出售</div>`;
+  if(eqIt){
+    const eq=QUALITY[eqIt.quality]||QUALITY.common;
+    html+=`<div class="it-cmp"><div class="it-cmp-h">当前已装备</div>`+
+      `<div class="it-name it-cmp-nm" style="color:${eq.color}">${eqIt.name}</div></div>`;
+  }
   if(extraHint)html+=`<div class="it-hint">${extraHint}</div>`;
   return html;
 }
@@ -975,6 +1032,15 @@ function bindItemTip(el,it,extraHint){
   el.addEventListener("pointermove",e=>showItemTip(it,e.clientX,e.clientY,extraHint));
   el.addEventListener("pointerleave",hideItemTip);
 }
+function _clearBagDropCls(){
+  document.querySelectorAll(".bagCell.drop-ok,.bagCell.drop-bad,.pd-slot.drop-ok,.pd-slot.drop-bad")
+    .forEach(el=>el.classList.remove("drop-ok","drop-bad"));
+}
+/** 拖拽载荷（比 dataTransfer MIME 更稳，兼容 Safari） */
+let _itemDrag=null;
+function beginItemDrag(payload){_itemDrag=payload||null;}
+function endItemDrag(){_itemDrag=null;_clearBagDropCls();}
+function getItemDrag(){return _itemDrag;}
 function renderBag(){
   if(!bagOpen())return;
   hideItemTip();
@@ -983,35 +1049,78 @@ function renderBag(){
   if(grid)grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
   grid.innerHTML="";
   for(let i=0;i<BAL.bag.size;i++){
-    const cell=document.createElement("div"); cell.className="bagCell";
+    const cell=document.createElement("div");
+    cell.className="bagCell";
+    cell.dataset.inv=String(i);
     const id=S.inv[i];
     if(id){
       const it=ITEMS[id], q=QUALITY[it.quality];
       const img=document.createElement("img");
-      img.src=Icons.get(it.icon,q.color); img.style.borderColor=q.color;
-      let hint="";
-      if(isEquippable(it))hint="左键/右键装备";
+      img.src=Icons.get(it.icon,q.color); img.style.borderColor=q.color; img.draggable=false;
+      let hint="拖到人物面板可装备";
+      if(isEquippable(it))hint="拖到对应槽装备 · 左键/右键装备";
       else if(it.slot==="consumable")hint="左键使用";
       if(S.vendorOpen&&it.vendorSell!=null)hint=(hint?hint+" · ":"")+"右键出售";
+      cell.classList.add("filled");
       cell.style.borderColor=q.color;
-      cell.style.boxShadow=`inset 0 0 0 1px ${q.color}55`;
-      bindItemTip(img,it,hint||null);
-      img.addEventListener("click",()=>{hideItemTip();onBagItemClick(id);});
-      img.addEventListener("contextmenu",e=>{
+      cell.style.boxShadow=`inset 0 0 0 1px ${q.color}66, inset 0 0 10px rgba(0,0,0,.55)`;
+      cell.draggable=true;
+      bindItemTip(cell,it,hint||null);
+      cell.addEventListener("dragstart",e=>{
+        hideItemTip();
+        beginItemDrag({kind:"inv",invIdx:i,id});
+        e.dataTransfer.setData("text/plain","inv:"+i);
+        e.dataTransfer.setData("text/inv-idx",String(i));
+        e.dataTransfer.setData("text/item-id",id);
+        e.dataTransfer.effectAllowed="move";
+        cell.classList.add("dragging");
+      });
+      cell.addEventListener("dragend",()=>{cell.classList.remove("dragging");endItemDrag();});
+      cell.addEventListener("click",()=>{hideItemTip();onBagItemClick(id);});
+      cell.addEventListener("contextmenu",e=>{
         e.preventDefault();
         hideItemTip();
         if(S.vendorOpen)sellItem(id);
-        else if(isEquippable(it))equipItem(id);
+        else if(isEquippable(it))equipItem(id,i);
       });
       cell.appendChild(img);
     }
+    cell.addEventListener("dragover",e=>{
+      const d=getItemDrag();
+      if(!d)return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect="move";
+      cell.classList.remove("drop-bad");
+      cell.classList.add("drop-ok");
+    });
+    cell.addEventListener("dragleave",()=>cell.classList.remove("drop-ok","drop-bad"));
+    cell.addEventListener("drop",e=>{
+      e.preventDefault();
+      cell.classList.remove("drop-ok","drop-bad");
+      const d=getItemDrag();
+      endItemDrag();
+      if(!d)return;
+      if(d.kind==="eq"){
+        unequipItem(d.slot);
+        return;
+      }
+      if(d.kind==="inv"){
+        const a=d.invIdx|0, b=i;
+        if(a===b)return;
+        if(S.inv[a]&&S.inv[b])swapInvSlots(a,b);
+      }
+    });
     grid.appendChild(cell);
   }
   const title=$("#bag .bag-title");
   if(title){
     const n=S.inv.length|0, max=BAL.bag.size|0;
-    title.childNodes[0].textContent=`🎒 背包（${n}/${max}）`;
+    const nameNode=title.querySelector(".bag-title-txt")||title.childNodes[0];
+    if(nameNode)nameNode.textContent=`背包（${n}/${max}）`;
   }
+  const goldEl=$("#bagGold");
+  if(goldEl&&typeof formatCopperText==="function")
+    goldEl.innerHTML=`金钱 <b>${formatCopperText((S.p&&S.p.gold)|0)}</b>`;
 }
 /* 关闭按钮 / 移动端背包按钮 */
 $("#bagClose").addEventListener("click",toggleBag);

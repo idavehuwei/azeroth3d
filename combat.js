@@ -1775,8 +1775,10 @@ function formatCopperHtml(copper){
   return h;
 }
 function updateGoldUI(){
-  const el=$("#pGold"); if(!el)return;
-  el.innerHTML=formatCopperHtml(S.p.gold|0);
+  const el=$("#pGold"); if(el)el.innerHTML=formatCopperHtml(S.p.gold|0);
+  const bagEl=$("#bagGold");
+  if(bagEl&&typeof formatCopperText==="function")
+    bagEl.innerHTML=`金钱 <b>${formatCopperText(S.p.gold|0)}</b>`;
 }
 function gainCopper(amount,opts){
   amount=Math.max(0,Math.round(amount));

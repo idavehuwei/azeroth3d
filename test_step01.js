@@ -922,6 +922,9 @@ assert(itemsSrc.includes('"waist"')&&itemsSrc.includes('"wrist"')&&itemsSrc.incl
 assert(itemsSrc.includes("equipStats")&&combatSrc.includes("rebuildPlayerStatsFromEquip"),"装备汇入 equipStats → rebuild");
 assert(itemsSrc.includes("dmgRange")&&itemsSrc.includes("getPlayerWeaponRange"),"武器 dmgRange / 普攻区间");
 assert(itemsSrc.includes("itemTipHtml")&&itemsSrc.includes("力量"),"物品 tip 含属性行");
+assert(itemsSrc.includes("当前已装备")&&itemsSrc.includes("beginItemDrag"),"tip 已装备对比 + 拖拽载荷");
+assert(panelsSrc.includes("getItemDrag")&&panelsSrc.includes("itemFitsEqSlot"),"人物槽拖放装备校验");
+assert(html.includes("bagGold")&&html.includes("bag-title-txt"),"背包金钱条 + 标题结构");
 assert(fs.existsSync(path.join(__dirname,"js/ui/tooltip.js")),"js/ui/tooltip.js 存在");
 assert(html.includes('src="js/ui/tooltip.js"'),"game.html 加载 tooltip.js");
 assert(panelsSrc.includes("攻击强度")&&panelsSrc.includes("wireCharDollRotate"),"纸娃娃显示 AP + 可旋转");
