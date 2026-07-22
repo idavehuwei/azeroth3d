@@ -677,6 +677,7 @@ assert(orgSrc.includes('id:"orgrimmar"')&&orgSrc.includes("buildOrgrimmarZone"),
 assert(orgSrc.includes("updateOrgrimmarMarkers")&&orgSrc.includes("orgMarkerExcl"),"奥格瑞玛任务叹号");
 assert(brSrc.includes('id:"blackrock"')&&brSrc.includes("to_molten_core"),"blackrock.js 注册并含熔火入口");
 assert(brSrc.includes("updateBlackrockMarkers")&&brSrc.includes("brMarkerExcl"),"黑石山任务叹号");
+assert(orgSrc.includes("z.lights")&&brSrc.includes("z.lights")&&!orgSrc.includes("heli:()=>"),"奥格/黑石灯光为实体引用");
 assert(worldSrc.includes("updateOrgrimmarMarkers")&&worldSrc.includes("updateBlackrockMarkers"),"updateNpcQuestMarkers 含奥格/黑石");
 assert(!worldSrc.includes('id:"to_molten_core"'),"莫高雷已移除熔火传送门");
 assert(raidSrc.includes('exitZone:"blackrock"'),"熔火团本出口回黑石山");
@@ -733,6 +734,13 @@ for(const f of jsFiles){
 assert(strayMat===0,"全局无 palette.js 外的 new THREE.MeshStandardMaterial");
 assert(modelsSrc.includes("MAT.get")&&worldSrc.includes("heightAt"),"models/world 走 MAT / heightAt");
 assert(modelsSrc.includes("PALETTE.grass.dark"),"弓箭手皮甲绿绑定 PALETTE.grass");
+assert(combatSrc.includes("concussiveShot")&&combatSrc.includes("onArcherShotHit")&&combatSrc.includes("makeArrowShotMesh"),"弓箭手震荡/毒箭/箭矢投射物");
+assert(combatSrc.includes('cast:2.2')&&combatSrc.includes('bal:"concussiveShot"'),"瞄准蓄力 + 第4技能震荡射击");
+assert(coreSrc.includes("concussiveShot:")&&coreSrc.includes("poisonArrow:"),"BALANCE 含震荡/毒箭");
+assert(iconsSrc.includes("concussive(cx)"),"icons 含震荡射击图标");
+assert(fs.readFileSync(path.join(__dirname,"js/sim/content.js"),"utf8").includes("poison_arrow")&&fs.readFileSync(path.join(__dirname,"js/sim/content.js"),"utf8").includes("concussed"),"光环含毒箭/震荡");
+assert(fs.readFileSync(path.join(__dirname,"js/sim/auras.js"),"utf8").includes('flag==="slowed"'),"auras 同步减速");
+
 
 /* R0 运行时：MAT 去重（stub THREE） */
 (function testMatCache(){

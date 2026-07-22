@@ -375,7 +375,10 @@ function tickFrame(){
             const a=rand(0,6.28);
             m.dest={x:m.home.x+Math.cos(a)*rand(2,10),z:m.home.z+Math.sin(a)*rand(2,10)};
           }
-          if(m.dest&&m.rootT<=0)moveToward(m,m.dest,st.wanderSpd,dt);
+          if(m.dest&&m.rootT<=0){
+            const wspd=st.wanderSpd*((m.slowT|0)>0?(m.slowMul||.5):1);
+            moveToward(m,m.dest,wspd,dt);
+          }
         }else if(m.state==="aggro"){
           if(dH>st.leashR||!S.p.alive){
             m.state="return"; m.casting=null;   /* 脱战：回巢快速回血（免疫伤害） */
@@ -392,7 +395,10 @@ function tickFrame(){
             m.casting={t:0};
             fct(m.mesh.position.clone().setY(m.labelY),`☄️ 吟唱 · ${st.cast.name}`,"#ff9a55",13);
           }else if(dP>st.meleeR){
-            if(m.rootT<=0)moveToward(m,{x:player.position.x,z:player.position.z},st.chaseSpd,dt);
+            if(m.rootT<=0){
+              const cspd=st.chaseSpd*((m.slowT|0)>0?(m.slowMul||.5):1);
+              moveToward(m,{x:player.position.x,z:player.position.z},cspd,dt);
+            }
           }else{
             m.moving=false;
             m.atkT-=dt;
@@ -1071,8 +1077,9 @@ function tickFrame(){
           }
         });
       }else if(a.rootT>0){a.rootT-=dt;}  /* 被冰霜新星定身 */
-      else if(d>(st.stopR||BAL.add.stopR)){
-        dir.normalize();a.mesh.position.add(dir.multiplyScalar(dt*(st.speed||BAL.add.speed)));
+      if((a.rootT|0)<=0&&d>(st.stopR||BAL.add.stopR)){
+        const asp=(st.speed||BAL.add.speed)*((a.slowT|0)>0?(a.slowMul||.5):1);
+        dir.normalize();a.mesh.position.add(dir.multiplyScalar(dt*asp));
         a.moving=true;
       }
       a.mesh.rotation.y=Math.atan2(dir.x,dir.z);
@@ -1125,16 +1132,26 @@ function tickFrame(){
       const dir=tp.clone().sub(sh.mesh.position);
       if(dir.length()<2){
         spawnBurst(sh.mesh.position,sh.shotColor||CLS.shotColor,12,1);
+        if(typeof SFX!=="undefined"&&sh.arrow)SFX.play("arrow");
         const thrOpts={};
         if(sh.sourceKey||sh.skillId){thrOpts.sourceKey=sh.sourceKey||"player";thrOpts.skillId=sh.skillId;}
         if(sh.school)thrOpts.school=sh.school;
         const thr=Object.keys(thrOpts).length?thrOpts:undefined;
-        if(sh.tgt.type==="boss")dmgBoss(sh.dmg,sh.label,thr);
-        else if(sh.tgt.type==="mob")mobDamage(sh.tgt.m,sh.dmg,sh.label,thr);
-        else addDamage(sh.tgt.a,sh.dmg*rand(.92,1.08),thr);
+        if(sh.tgt.type==="boss"){
+          dmgBoss(sh.dmg,sh.label,thr);
+          if(typeof onArcherShotHit==="function"&&typeof BOSS_ENT!=="undefined")onArcherShotHit(BOSS_ENT,sh);
+        }else if(sh.tgt.type==="mob"){
+          mobDamage(sh.tgt.m,sh.dmg,sh.label,thr);
+          if(typeof onArcherShotHit==="function")onArcherShotHit(sh.tgt.m,sh);
+        }else{
+          addDamage(sh.tgt.a,sh.dmg*rand(.92,1.08),thr);
+          if(typeof onArcherShotHit==="function")onArcherShotHit(sh.tgt.a,sh);
+        }
         scene.remove(sh.mesh);disposeVfxMesh(sh.mesh);S.pShots.splice(i,1);continue;
       }
-      dir.normalize();sh.mesh.position.add(dir.multiplyScalar(sh.speed*dt));
+      dir.normalize();
+      if(sh.arrow&&sh.mesh.lookAt)sh.mesh.lookAt(tp);
+      sh.mesh.position.add(dir.multiplyScalar(sh.speed*dt));
     }
 
     /* ---- 地面 AoE（填充动画由 tickVfx；此处推进计时并结算伤害） ---- */

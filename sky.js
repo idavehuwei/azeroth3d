@@ -134,7 +134,10 @@ const SKY=(function(){
 
   /** R8：画面预设 / 移动端切换后刷新各区太阳阴影贴图尺寸 */
   function refreshSunShadows(){
-    const apply=sun=>{if(sun)configureSunShadow(sun);};
+    const apply=sun=>{
+      const L=typeof sun==="function"?sun():sun;
+      if(L)configureSunShadow(L);
+    };
     if(typeof ZONES!=="undefined"&&ZONES){
       Object.keys(ZONES).forEach(id=>{
         const z=ZONES[id];
@@ -310,11 +313,16 @@ const SKY=(function(){
 
     const dn=BAL.dayNight;
     const L=cz.lights||{};
-    const sunL=L.sun||(cz.id==="mulgore"&&typeof sun!=="undefined"?sun:null);
-    const hemiL=L.heli||(cz.id==="mulgore"&&typeof heli!=="undefined"?heli:null);
-    const fillL=L.fill||_fills.get(cz.scene&&cz.scene.uuid);
+    const resolveLight=v=>typeof v==="function"?v():v;
+    const sunL=resolveLight(L.sun)||(cz.id==="mulgore"&&typeof sun!=="undefined"?sun:null);
+    const hemiL=resolveLight(L.heli)||(cz.id==="mulgore"&&typeof heli!=="undefined"?heli:null);
+    const fillL=resolveLight(L.fill)||_fills.get(cz.scene&&cz.scene.uuid);
     const scn=cz.scene;
-    const pal=cz.id==="barrens"?BAL.barrens:(cz.id==="durotar"?BAL.durotar:null);
+    const pal=cz.id==="barrens"?BAL.barrens
+      :(cz.id==="durotar"?BAL.durotar
+        :(cz.id==="orgrimmar"?BAL.orgrimmar
+          :(cz.id==="blackrock"?BAL.blackrock
+            :(cz.id==="ashen_canyon"?BAL.ashenCanyon:null))));
     const sample=samplePalette(w,pal);
 
     /* 太阳方向（几何）：沿昼夜角 */
@@ -322,7 +330,7 @@ const SKY=(function(){
     _sunDir.set(Math.cos(a),.35+Math.sin(a)*.75,.25).normalize();
     if(_sunDir.y<.05&&w.nightFactor<.85)_sunDir.y=.05;
 
-    if(sunL){
+    if(sunL&&sunL.color){
       sunL.color.copy(sample.sunCol);
       sunL.intensity=sample.sunI;
       const px=(typeof player!=="undefined"&&player)?player.position.x:0;
@@ -330,12 +338,12 @@ const SKY=(function(){
       const pz=(typeof player!=="undefined"&&player)?player.position.z:0;
       updateShadowFollow(sunL,px,py,pz,_sunDir.x,_sunDir.y,_sunDir.z);
     }
-    if(hemiL){
+    if(hemiL&&hemiL.color){
       hemiL.color.copy(sample.hemiS);
-      hemiL.groundColor.copy(sample.hemiG);
+      if(hemiL.groundColor)hemiL.groundColor.copy(sample.hemiG);
       hemiL.intensity=sample.hemiI;
     }
-    if(fillL){
+    if(fillL&&fillL.color){
       fillL.intensity=(balSky().fillIntensity||.18)*(1-w.nightFactor*.85);
       fillL.color.copy(sample.sunCol);
     }

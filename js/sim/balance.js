@@ -54,19 +54,29 @@ const BALANCE={
       {minLevel:14, invuln:4}
     ]},
     aimedShot:{ranks:[
-      {minLevel:1, dmg:[820,1000]},
-      {minLevel:8, dmg:[968,1180]},
-      {minLevel:14, dmg:[1115,1360]}
+      {minLevel:1, dmg:[820,1000], cast:2.2},
+      {minLevel:8, dmg:[968,1180], cast:2.0},
+      {minLevel:14, dmg:[1115,1360], cast:1.8}
     ]},
     multiShot:{ranks:[
-      {minLevel:1, dmg:[430,540]},
-      {minLevel:8, dmg:[507,637]},
-      {minLevel:14, dmg:[585,734]}
+      {minLevel:1, dmg:[430,540], maxTargets:3},
+      {minLevel:8, dmg:[507,637], maxTargets:3},
+      {minLevel:14, dmg:[585,734], maxTargets:4}
     ]},
     roll:{ranks:[
       {minLevel:1, dist:9, invuln:.7},
       {minLevel:8, dist:10, invuln:.75},
       {minLevel:14, dist:11, invuln:.8}
+    ]},
+    concussiveShot:{ranks:[
+      {minLevel:1, dmg:[280,360], slowMul:.5, duration:4},
+      {minLevel:8, dmg:[330,425], slowMul:.45, duration:4.5},
+      {minLevel:14, dmg:[380,490], slowMul:.4, duration:5}
+    ]},
+    poisonArrow:{ranks:[
+      {minLevel:1, duration:9, dmgPerTick:24, tick:3},
+      {minLevel:8, duration:10, dmgPerTick:34, tick:3},
+      {minLevel:14, duration:12, dmgPerTick:46, tick:3}
     ]},
     heal:{ranks:[
       {minLevel:1, heal:[1200,1500]},
@@ -858,7 +868,7 @@ const BALANCE={
       rapid     :{skillCd:{i:0,mul:.90},cdMul:.97},     /* 速射：瞄准 CD ↓ + 全局微减 */
       focus     :{dmgMul:.05},
       sniper    :{dmgMul:.04,skillCd:{i:0,mul:.95}},
-      venom     :{fx:{poisonArrow:1}},                  /* 毒箭标记 */
+      venom     :{fx:{poisonArrow:1}},                  /* 毒箭：箭矢命中挂 DoT（按点数叠倍率） */
       survival  :{hpMaxMul:.05},
       trickle   :{hpMaxMul:.06,skillCd:{i:1,mul:.92}},  /* 多重 CD ↓ */
     },
@@ -1093,7 +1103,7 @@ const BALANCE={
   /* 仇恨与职责（STEP 27） */
   threat:{
     perDmg:1,
-    flat:{heroicStrike:120, whirlwind:50, charge:80, taunt:200, companionAuto:0, shadowBolt:90, corruption:40, drainLife:25, wrath:85, moonfire:35, crusaderStrike:110, judgement:95},
+    flat:{heroicStrike:120, whirlwind:50, charge:80, taunt:200, companionAuto:0, shadowBolt:90, corruption:40, drainLife:25, wrath:85, moonfire:35, crusaderStrike:110, judgement:95, aimedShot:95, multiShot:55, concussiveShot:70, poisonArrow:30},
     roleMul:{player:1, playerTank:1.55, tank:1.6, dps:1, healer:.75},
     tauntDur:4,
     tauntMargin:50000,

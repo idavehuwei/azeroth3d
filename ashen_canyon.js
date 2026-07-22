@@ -7,7 +7,8 @@
           zones.js（registerZone）· sky.js（initZoneSky）
           models.js（buildVendor buildSpiritHealer tintNpcCloth
             buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem
-            buildMarketStall buildCratePile BUILD_PAL placeProp buildGraveyard）
+            buildMarketStall buildCratePile
+            buildLonghouse buildWell buildVillageGate buildSignpost buildLanternPole buildHaystack BUILD_PAL placeProp buildGraveyard）
           creatures.js（buildQuadruped buildElemental）
           world.js（spawnMob MOBS pickNearestNpc appendNpcQuestButtons openVendor closeVendorPanel）
           combat.js 运行时（S log announce）
@@ -102,22 +103,40 @@ function buildAshenZone(scn){
   }
 
   const P=BUILD_PAL.ashen;
-  /* 烬营：瞭望塔 · 小屋 · 帐篷 · 围栏 · 市集 */
+  /* 烬营：扩大 · 村门 · 瞭望塔 · 长屋 · 小屋群 · 帐篷 · 市集 */
+  placeProp(root,buildVillageGate({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),4,-18,.2);
+  placeProp(root,buildVillageGate({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),-4,-18,-.2);
   placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1}),0,0,0);
+  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1}),-22,10,.3);
+  placeProp(root,buildLonghouse({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),-2,4,0);
   placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),-18,12,.4);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:.9}),16,14,-.3);
-  placeProp(root,buildTent({hide:P.hide,stake:P.stake,r:2.6,h:3.6,size:1}),14,-16,.3);
-  placeProp(root,buildTent({hide:0x6a3020,stake:P.stake,r:2.2,h:3.2,size:.9}),-20,-10,.6);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),16,14,-.3);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),-22,-8,.5);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),20,-10,-.4);
+  placeProp(root,buildTent({hide:P.hide,stake:P.stake,size:1}),14,-16,.3);
+  placeProp(root,buildTent({hide:0x6a3020,stake:P.stake,size:1}),-20,-10,.6);
+  placeProp(root,buildTent({hide:P.hide,stake:P.stake,size:1}),-12,18,-.2);
   placeProp(root,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x8a3020,size:1}),-10,-8,Math.PI*.3);
+  placeProp(root,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x6a4a20,size:1}),12,6,-.15);
   placeProp(root,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),-8,-12,.2);
-  placeProp(root,buildTotem({wood:P.woodD,paintA:0xd02810,paintB:0xa05030,size:.9}),8,6,0);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:14,posts:7}),-26,2,Math.PI/2);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:12,posts:6}),8,-24,0);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:12,posts:6}),24,0,-Math.PI/2);
+  placeProp(root,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),14,-8,-.3);
+  placeProp(root,buildTotem({wood:P.woodD,paintA:0xd02810,paintB:0xa05030,size:1}),8,6,0);
+  placeProp(root,buildTotem({wood:P.woodD,paintA:0xa05030,paintB:0xd02810,size:1}),-12,-6,0);
+  placeProp(root,buildWell({stone:0x6a5a50,wood:P.woodD,size:1}),-2,0,0);
+  placeProp(root,buildHaystack({color:0xb8a060,size:1}),12,-18,0);
+  placeProp(root,buildHaystack({color:0xa88850,size:1}),-10,16,0);
+  placeProp(root,buildLanternPole({wood:0x4a3020,size:1}),2,-16,0);
+  placeProp(root,buildLanternPole({wood:0x4a3020,size:1}),-8,-14,0);
+  placeProp(root,buildLanternPole({wood:0x4a3020,size:1}),12,-12,0);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:18,posts:8}),-26,2,Math.PI/2);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:16,posts:7}),8,-24,0);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:16,posts:7}),24,0,-Math.PI/2);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:14,posts:6}),-4,20,Math.PI);
+  placeProp(root,buildSignpost({wood:0x4a3020,size:1}),2,-16,0);
 
   [[-6,8],[10,-4],[16,10]].forEach(([x,z],i)=>{
     const cf=placeProp(root,buildCampfire({
-      flame:i?0xff8030:0xffa040, light:0xff6020, size:i===2?.7:1,
+      flame:i?0xff8030:0xffa040, light:0xff6020, size:1,
     }),x,z,0);
     if(cf&&cf.userData.flame)ashenFlames.push(cf.userData.flame);
   });

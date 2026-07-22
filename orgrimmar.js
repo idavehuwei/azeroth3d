@@ -76,8 +76,9 @@ function buildOrgrimmarZone(scn){
   orgSun=new THREE.DirectionalLight(D.sunColor||0xffa060,D.sunIntensity||1.25);
   orgSun.position.set(30,70,-10); orgSun.castShadow=true;
   root.add(orgSun); root.add(orgSun.target);
+  const _orgSkyLights={heli:orgHeli,sun:orgSun};
   if(typeof initZoneSky==="function"){
-    initZoneSky(root,{heli:orgHeli,sun:orgSun},{
+    initZoneSky(root,_orgSkyLights,{
       zenith:0x8a3020, horizon:D.sky||0xd86838, ground:D.dirt||0x6a2818,
     });
   }
@@ -178,6 +179,8 @@ function buildOrgrimmarZone(scn){
     });
   }
   updateOrgrimmarMarkers();
+  const z=ZONES.orgrimmar;
+  if(z)z.lights={heli:orgHeli,sun:orgSun,flames:orgFlames,fill:_orgSkyLights.fill};
 }
 
 function updateOrgrimmarMarkers(){
@@ -292,7 +295,7 @@ registerZone({
     targetZone:"blackrock",
     targetGate:"from_orgrimmar",
   }],
-  lights:{heli:()=>orgHeli,sun:()=>orgSun,flames:orgFlames},
+  lights:{heli:null,sun:null,flames:orgFlames},
   onEnter(fromId,gateId,opts){
     if(opts&&opts.silent)return;
     if(fromId==="durotar")log("鼓声与铁甲碰撞——你踏入"+T("zone.orgrimmar")+"。","lg-sys");

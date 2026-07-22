@@ -51,7 +51,7 @@ const TALENTS={
         {id:"sniper",tier:3,name:"狙击",maxRank:3,icon:"feather",req:"focus",reqRank:1,desc:"伤害提高，瞄准冷却再减"},
       ]},
       {id:"survival",name:"生存",nodes:[
-        {id:"venom",tier:1,name:"毒箭",maxRank:3,icon:"tusk",desc:"箭矢附加毒性（标记）"},
+        {id:"venom",tier:1,name:"毒箭",maxRank:3,icon:"tusk",desc:"箭矢命中附加毒性持续伤害"},
         {id:"survival",tier:2,name:"求生",maxRank:3,icon:"hide",req:"venom",reqRank:1,desc:"生命上限提高"},
         {id:"trickle",tier:3,name:"散射专精",maxRank:3,icon:"feather",req:"survival",reqRank:1,desc:"生命提高，多重射击冷却缩短"},
       ]},

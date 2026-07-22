@@ -115,10 +115,12 @@ function spellStatLine(sk){
   if(bal&&bal.invuln)bits.push(`免疫 ${bal.invuln}s`);
   if(bal&&bal.rootT)bits.push(`定身 ${bal.rootT}s`);
   if(bal&&bal.rageGain)bits.push(`怒气 +${bal.rageGain}`);
+  if(bal&&bal.slowMul!=null)bits.push(`减速 ×${bal.slowMul}`);
   if(bal&&bal.speedMul)bits.push(`移速 ×${bal.speedMul}`);
+  if(bal&&bal.maxTargets)bits.push(`最多 ${bal.maxTargets} 目标`);
   if(sk.range!=null)bits.push(`射程 ${sk.range}m`);
   else if(bal&&bal.reach)bits.push(`射程 ${bal.reach}m`);
-  if(sk.cast!=null)bits.push(`施法 ${sk.cast}s`);
+  if(sk.cast!=null||(bal&&bal.cast!=null))bits.push(`施法 ${bal&&bal.cast!=null?bal.cast:sk.cast}s`);
   return bits.join(" · ");
 }
 
@@ -399,7 +401,7 @@ function renderCharPanel(){
   const fx=P.talentFx||{};
   const fxBits=[];
   if(fx.frostSlow)fxBits.push(`冰霜减速 +${Math.round(fx.frostSlow*100)}%`);
-  if(fx.poisonArrow)fxBits.push("毒箭标记");
+  if(fx.poisonArrow)fxBits.push(`毒箭×${fx.poisonArrow|0}`);
   if(fx.pyroBurst)fxBits.push("炎爆强化");
   if(fx.healMul)fxBits.push(`治疗 +${Math.round(fx.healMul*100)}%`);
   if(fx.shieldMul)fxBits.push(`盾吸收 +${Math.round(fx.shieldMul*100)}%`);

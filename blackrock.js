@@ -39,8 +39,9 @@ function buildBlackrockZone(scn){
   brSun=new THREE.DirectionalLight(D.sunColor||0xff5020,D.sunIntensity||1.1);
   brSun.position.set(20,50,-30); brSun.castShadow=true;
   root.add(brSun); root.add(brSun.target);
+  const _brSkyLights={heli:brHeli,sun:brSun};
   if(typeof initZoneSky==="function"){
-    initZoneSky(root,{heli:brHeli,sun:brSun},{
+    initZoneSky(root,_brSkyLights,{
       zenith:0x3a1008, horizon:D.sky||0x4a1810, ground:D.dirt||0x1a0a06,
     });
   }
@@ -201,6 +202,8 @@ function buildBlackrockZone(scn){
     });
   }
   updateBlackrockMarkers();
+  const z=ZONES.blackrock;
+  if(z)z.lights={heli:brHeli,sun:brSun,flames:brFlames,fill:_brSkyLights.fill};
 }
 
 function updateBlackrockMarkers(){
@@ -309,7 +312,7 @@ registerZone({
     targetZone:"molten_core",
     targetGate:"entrance",
   }],
-  lights:{heli:()=>brHeli,sun:()=>brSun,flames:brFlames},
+  lights:{heli:null,sun:null,flames:brFlames},
   onEnter(fromId,gateId,opts){
     if(opts&&opts.silent)return;
     if(fromId==="orgrimmar")log("黑曜山脊与熔岩裂隙——你已踏入"+T("zone.blackrock")+"。","lg-sys");

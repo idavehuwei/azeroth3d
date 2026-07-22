@@ -45,7 +45,7 @@ function listAuras(ent){
 
 /**
  * 施加 / 刷新光环。
- * opts: {duration, stacks, absorb, dmgPerTick, healPerSec, dmgMulAdd, maxStacks, silent}
+ * opts: {duration, stacks, absorb, dmgPerTick, healPerSec, dmgMulAdd, maxStacks, silent, speedMul}
  * @returns {object|null} aura 实例
  */
 function applyAura(ent,id,opts){
@@ -75,6 +75,7 @@ function applyAura(ent,id,opts){
       dmgPerTick:opts.dmgPerTick!=null?+opts.dmgPerTick:(def.dmgPerTick!=null?+def.dmgPerTick:0),
       healPerSec:opts.healPerSec!=null?+opts.healPerSec:(def.healPerSec!=null?+def.healPerSec:0),
       dmgMulAdd:opts.dmgMulAdd!=null?+opts.dmgMulAdd:(def.dmgMulAdd!=null?+def.dmgMulAdd:0),
+      speedMul:opts.speedMul!=null?+opts.speedMul:(def.speedMul!=null?+def.speedMul:null),
       flag:def.flag||null
     };
     list.push(a);
@@ -85,6 +86,7 @@ function applyAura(ent,id,opts){
     if(opts.dmgPerTick!=null)a.dmgPerTick=+opts.dmgPerTick;
     if(opts.healPerSec!=null)a.healPerSec=+opts.healPerSec;
     if(opts.dmgMulAdd!=null)a.dmgMulAdd=+opts.dmgMulAdd;
+    if(opts.speedMul!=null)a.speedMul=+opts.speedMul;
   }
 
   if(a.type==="absorb"||def.type==="absorb"){
@@ -95,6 +97,11 @@ function applyAura(ent,id,opts){
   }
   if(a.type==="crowd"&&(a.flag==="rooted"||def.flag==="rooted")){
     ent.rootT=Math.max(ent.rootT|0,a.remaining);
+  }
+  if(a.type==="crowd"&&(a.flag==="slowed"||def.flag==="slowed")){
+    ent.slowT=Math.max(ent.slowT|0,a.remaining);
+    const sm=a.speedMul!=null?a.speedMul:(def.speedMul!=null?+def.speedMul:.5);
+    ent.slowMul=sm;
   }
   if(a.type==="invuln"){
     ent.invuln=Math.max(ent.invuln|0,a.remaining);
@@ -136,12 +143,19 @@ function clearAllAuras(ent){
   ent.auras=[];
 }
 
-/** 将 rooted / invuln 光环剩余时间回写到 legacy 字段，供 AI / playerHit 兼容 */
+/** 将 rooted / slowed / invuln 光环剩余时间回写到 legacy 字段，供 AI / playerHit 兼容 */
 function syncLegacyCrowdFlags(ent){
   if(!ent)return;
   const root=getAura(ent,"rooted");
   if(root&&root.remaining>0)ent.rootT=root.remaining;
   else if(ent.rootT!=null&&!root){/* 若仅有 legacy rootT 而无 aura，保留 */}
+  const slow=getAura(ent,"concussed");
+  if(slow&&slow.remaining>0){
+    ent.slowT=slow.remaining;
+    if(slow.speedMul!=null)ent.slowMul=slow.speedMul;
+  }else if(!slow&&(ent.slowT|0)<=0){
+    ent.slowMul=1;
+  }
   const inv=getAura(ent,"ice_block")||getAura(ent,"evasion")||getAura(ent,"divine_shield");
   if(inv&&inv.remaining>0)ent.invuln=inv.remaining;
 }
@@ -172,6 +186,10 @@ function tickAuras(ent,dt,ctx){
       if(a.absorb!=null)ent.absorb=a.absorb|0;
     }
     if(a.type==="crowd"&&a.flag==="rooted")ent.rootT=a.remaining;
+    if(a.type==="crowd"&&a.flag==="slowed"){
+      ent.slowT=a.remaining;
+      if(a.speedMul!=null)ent.slowMul=a.speedMul;
+    }
     if(a.type==="invuln")ent.invuln=Math.max(ent.invuln|0,a.remaining);
 
     if(a.tick>0&&(a.type==="dot"||a.type==="hot")){

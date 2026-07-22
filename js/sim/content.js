@@ -205,6 +205,14 @@ var SIM_CONTENT={
       name:"月火", kind:"debuff", type:"dot", icon:"moonfire",
       dur:12, tick:3, maxStacks:1, dmgPerTick:48
     },
+    poison_arrow:{
+      name:"毒箭", kind:"debuff", type:"dot", icon:"tusk",
+      dur:9, tick:3, maxStacks:1, dmgPerTick:24
+    },
+    concussed:{
+      name:"震荡", kind:"debuff", type:"crowd", flag:"slowed", icon:"concussive",
+      dur:4, maxStacks:1, speedMul:.5
+    },
     divine_shield:{
       name:"圣盾术", kind:"buff", type:"invuln", icon:"divine_shield",
       dur:3, maxStacks:1

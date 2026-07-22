@@ -6,7 +6,8 @@
           zones.js（registerZone）· sky.js（initZoneSky）
           models.js（buildVendor buildSpiritHealer buildElder tintNpcCloth
             buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem
-            buildMarketStall buildCratePile BUILD_PAL placeProp）
+            buildMarketStall buildCratePile
+            buildLonghouse buildWell buildVillageGate buildSignpost buildLanternPole buildHaystack buildTrainingDummy BUILD_PAL placeProp）
           creatures.js（buildQuadruped buildCentaur QUADS）
           world.js（spawnMob MOBS pickNearestNpc appendNpcQuestButtons openVendor closeVendorPanel
             openNpcQuestDialogue）
@@ -183,28 +184,61 @@ function buildBarrensZone(scn){
     barrensFlames.push({fl,li});
   });
 
-  /* 岔路镇：扩大街区 · 市集 · 双塔 · 围栏 */
+  /* 岔路镇：扩大街区 · 市集 · 双塔 · 围栏 · 长屋 · 水井 · 村门 */
   const cx=C0.x, cz=C0.z;
-  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1.05}),cx,cz,0);
-  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.75}),cx-18,cz-8,.4);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.05}),cx-14,cz+9,.4);
+  /* 村口大门 */
+  placeProp(root,buildVillageGate({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),cx+6,cz-20,.2);
+  placeProp(root,buildVillageGate({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),cx-6,cz-20,-.2);
+  /* 双塔 */
+  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1}),cx,cz,0);
+  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1}),cx-18,cz-8,.4);
+  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1}),cx+18,cz+8,-.3);
+  /* 房屋群 */
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),cx-14,cz+9,.4);
   placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),cx+16,cz+7,-.55);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:0x9a6840,w:3.8,d:3.4,size:.95}),cx-12,cz-14,Math.PI*.65);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:.9}),cx+18,cz-8,Math.PI*1.1);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,w:3.2,d:2.8,size:.85}),cx+8,cz+14,-.2);
-  placeProp(root,buildTent({hide:P.hide,stake:P.stake,r:2.8,h:3.8,size:1}),cx+12,cz-12,.3);
-  placeProp(root,buildTent({hide:0xa87840,stake:P.stake,r:2.5,h:3.4,size:.95}),cx-8,cz+14,.6);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:0x9a6840,size:1}),cx-12,cz-14,Math.PI*.65);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),cx+18,cz-8,Math.PI*1.1);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),cx+8,cz+14,-.2);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),cx-20,cz+12,.5);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),cx+22,cz-14,-.6);
+  /* 长屋 */
+  placeProp(root,buildLonghouse({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),cx-2,cz-4,0);
+  /* 帐篷 */
+  placeProp(root,buildTent({hide:P.hide,stake:P.stake,size:1}),cx+12,cz-12,.3);
+  placeProp(root,buildTent({hide:0xa87840,stake:P.stake,size:1}),cx-8,cz+14,.6);
+  placeProp(root,buildTent({hide:P.hide,stake:P.stake,size:1}),cx+20,cz+10,-.4);
+  /* 市集 × 2 */
   placeProp(root,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x8a6030,size:1}),cx-6,cz-6,Math.PI*.2);
-  placeProp(root,buildCratePile({wood:P.wood,woodD:P.woodD,size:1.05}),cx-4,cz-9,.3);
-  placeProp(root,buildTotem({wood:P.woodD,paintA:0xc04020,paintB:0xa87840,size:.8}),cx+10,cz+4,0);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:14,posts:8}),cx-20,cz+4,Math.PI/2);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:12,posts:7}),cx+6,cz-18,0);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:12,posts:7}),cx+20,cz+2,-Math.PI/2);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:10,posts:6}),cx-4,cz+18,Math.PI);
+  placeProp(root,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x6a8a40,size:1}),cx+14,cz+4,-.15);
+  /* 货箱 × 2 */
+  placeProp(root,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),cx-4,cz-9,.3);
+  placeProp(root,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),cx+16,cz-6,-.2);
+  /* 图腾 × 2 */
+  placeProp(root,buildTotem({wood:P.woodD,paintA:0xc04020,paintB:0xa87840,size:1}),cx+10,cz+4,0);
+  placeProp(root,buildTotem({wood:P.woodD,paintA:0xa87840,paintB:0xc04020,size:1}),cx-12,cz-8,0);
+  /* 水井 */
+  placeProp(root,buildWell({stone:0x6a5a50,wood:P.woodD,size:1}),cx-2,cz+2,0);
+  /* 草垛 */
+  placeProp(root,buildHaystack({color:0xd8b060,size:1}),cx+18,cz-16,0);
+  placeProp(root,buildHaystack({color:0xd0a850,size:1}),cx-16,cz+18,0);
+  /* 训练假人 */
+  placeProp(root,buildTrainingDummy({wood:0x4a3020,size:1}),cx+14,cz+16,0);
+  /* 灯笼杆 */
+  placeProp(root,buildLanternPole({wood:0x4a3020,size:1}),cx+2,cz-18,0);
+  placeProp(root,buildLanternPole({wood:0x4a3020,size:1}),cx-10,cz-16,0);
+  placeProp(root,buildLanternPole({wood:0x4a3020,size:1}),cx+14,cz-14,0);
+  /* 围栏 */
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:20,posts:9}),cx-20,cz+4,Math.PI/2);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:18,posts:8}),cx+6,cz-18,0);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:18,posts:8}),cx+20,cz+2,-Math.PI/2);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:16,posts:7}),cx-4,cz+18,Math.PI);
+  /* 营火 × 2 */
   const bcf=placeProp(root,buildCampfire({flame:0xffa040,light:0xff8a30,size:1}),cx+4,cz+4,0);
   if(bcf&&bcf.userData.flame)barrensFlames.push(bcf.userData.flame);
-  const bcf2=placeProp(root,buildCampfire({flame:0xff9030,light:0xff7020,size:.8}),cx-10,cz-4,0);
+  const bcf2=placeProp(root,buildCampfire({flame:0xff9030,light:0xff7020,size:1}),cx-10,cz-4,0);
   if(bcf2&&bcf2.userData.flame)barrensFlames.push(bcf2.userData.flame);
+  /* 路牌 */
+  placeProp(root,buildSignpost({wood:0x4a3020,size:1}),cx+2,cz-18,0);
 
   /* 死水绿洲水面 + POI 标牌 */
   const DO=BARRENS.deadOasis;

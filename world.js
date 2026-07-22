@@ -9,7 +9,8 @@
           zones.js（registerZone enterZone）
           models.js（buildPlayer buildBoss buildElder buildVendor buildSpiritHealer
             tintNpcCloth buildHut buildTent buildFence buildWatchtower buildCampfire
-            buildTotem buildMarketStall buildCratePile BUILD_PAL placeProp）
+            buildTotem buildMarketStall buildCratePile
+            buildLonghouse buildWell buildVillageGate buildSignpost buildLanternPole buildHaystack buildTrainingDummy buildWindmill BUILD_PAL placeProp）
           creatures.js（buildQuadruped buildElemental buildHumanoidMob buildMeleeHumanoid buildCentaur
             QUADS MOB_LOOK MOB_HUMANOIDS MELEE_HUMANOIDS）
           anim.js 运行时（beginDeathRoll resetDeathRoll）
@@ -720,46 +721,94 @@ function spiritDist(){return Math.hypot(player.position.x-spiritHealer.position.
   if(BAL.death)BAL.death.worldSpawn={x:sx,z:sz};
 })();
 
-/* ---------------- 赤蹄村 + 岩蹄 + 雷岩台建筑 ---------------- */
+/* ---------------- 赤蹄村 + 岩蹄 + 雷岩台建筑（V3 放大丰富版） ---------------- */
 (function placeMulgoreCampBuildings(){
   const P=BUILD_PAL.mulgore;
   const B=BLOODHOOF, N=CAMP_NARACHE, T=MULGORE.thunderBluff;
-  /* 赤蹄村 */
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.1}),B.x+22,B.z-16,.35);
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.0}),B.x-28,B.z-14,-.55);
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x7a4a28,w:3.8,d:3.4,h:2.4,size:.95}),B.x+16,B.z+14,Math.PI*.95);
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,w:3.4,d:3.0,size:.88}),B.x-12,B.z+18,-.4);
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x8a5a30,size:.9}),B.x+32,B.z,-Math.PI*.4);
-  placeProp(sceneWorld,buildTent({hide:P.hide,stake:P.stake,r:2.9,h:3.9,size:1.05}),B.x-6,B.z-20,.2);
-  placeProp(sceneWorld,buildTent({hide:0xb89060,stake:P.stake,r:2.5,h:3.5,size:.95}),B.x+24,B.z+8,-.7);
-  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.9}),B.x-34,B.z+10,.25);
-  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.72}),B.x+30,B.z-18,-.3);
+  /* ===== 赤蹄村（主城，约 18 栋建筑 + 装饰） ===== */
+  /* 村口大门 */
+  placeProp(sceneWorld,buildVillageGate({wood:P.wood,woodD:P.woodD,roof:P.roof}),B.x+8,B.z-32,.3);
+  placeProp(sceneWorld,buildVillageGate({wood:P.wood,woodD:P.woodD,roof:P.roof}),B.x-8,B.z-32,-.3);
+  /* 主街两侧木屋 */
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),B.x+22,B.z-16,.35);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),B.x-28,B.z-14,-.55);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x7a4a28,size:1}),B.x+16,B.z+14,Math.PI*.95);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),B.x-12,B.z+18,-.4);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x8a5a30,size:1}),B.x+32,B.z,-Math.PI*.4);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),B.x+38,B.z+12,.2);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x7a4a28,size:1}),B.x-36,B.z+6,-.3);
+  /* 长屋（大会堂） */
+  placeProp(sceneWorld,buildLonghouse({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),B.x+4,B.z-8,0);
+  /* 大帐篷 */
+  placeProp(sceneWorld,buildTent({hide:P.hide,stake:P.stake,size:1}),B.x-6,B.z-20,.2);
+  placeProp(sceneWorld,buildTent({hide:0xb89060,stake:P.stake,size:1}),B.x+24,B.z+8,-.7);
+  placeProp(sceneWorld,buildTent({hide:P.hide,stake:P.stake,size:1}),B.x-30,B.z-20,.5);
+  /* 瞭望塔 × 3 */
+  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1}),B.x-34,B.z+10,.25);
+  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1}),B.x+30,B.z-18,-.3);
+  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1}),B.x+4,B.z+28,.1);
+  /* 市集 × 2 */
   placeProp(sceneWorld,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x2a6a4a,size:1}),B.x-20,B.z-8,Math.PI*.15);
+  placeProp(sceneWorld,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x3a6a9a,size:1}),B.x+24,B.z-6,-.2);
+  /* 货箱 × 2 */
   placeProp(sceneWorld,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),B.x-16,B.z+2,.4);
-  placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0xd94f2a,paintB:0x3a7ac9,size:.95}),B.x-8,B.z+14,0);
-  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:18,posts:9}),B.x-4,B.z-24,0);
-  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:16,posts:8}),B.x+36,B.z,Math.PI/2);
-  const cf=placeProp(sceneWorld,buildCampfire({flame:0xffa030,light:0xff8a30,size:1.05}),B.x+4,B.z,0);
+  placeProp(sceneWorld,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),B.x+28,B.z+10,-.3);
+  /* 图腾 × 2 */
+  placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0xd94f2a,paintB:0x3a7ac9,size:1}),B.x-8,B.z+14,0);
+  placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0x3a7ac9,paintB:0xd94f2a,size:1}),B.x+14,B.z-24,0);
+  /* 水井 */
+  placeProp(sceneWorld,buildWell({stone:0x6a5a50,wood:P.woodD,size:1}),B.x-4,B.z+4,0);
+  /* 草垛 × 2 */
+  placeProp(sceneWorld,buildHaystack({color:0xd8b060,size:1}),B.x-18,B.z-18,0);
+  placeProp(sceneWorld,buildHaystack({color:0xd0a850,size:1}),B.x+18,B.z-22,0);
+  /* 训练假人 */
+  placeProp(sceneWorld,buildTrainingDummy({wood:0x4a3020,size:1}),B.x-14,B.z+22,0);
+  placeProp(sceneWorld,buildTrainingDummy({wood:0x4a3020,size:1}),B.x+10,B.z-26,0);
+  /* 灯笼杆 × 3（沿主街） */
+  placeProp(sceneWorld,buildLanternPole({wood:0x4a3020,size:1}),B.x+2,B.z-28,0);
+  placeProp(sceneWorld,buildLanternPole({wood:0x4a3020,size:1}),B.x-16,B.z-24,0);
+  placeProp(sceneWorld,buildLanternPole({wood:0x4a3020,size:1}),B.x+20,B.z-20,0);
+  /* 围栏 */
+  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:22,posts:10}),B.x-4,B.z-24,0);
+  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:20,posts:9}),B.x+36,B.z,Math.PI/2);
+  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:16,posts:7}),B.x-38,B.z+16,Math.PI/2);
+  /* 营火 × 2 */
+  const cf=placeProp(sceneWorld,buildCampfire({flame:0xffa030,light:0xff8a30,size:1}),B.x+4,B.z,0);
   if(cf&&cf.userData.flame)worldFlames.push(cf.userData.flame);
-  /* 岩蹄营地 */
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:.95}),N.x+8,N.z-10,.2);
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:.88}),N.x-10,N.z+6,-.5);
-  placeProp(sceneWorld,buildTent({hide:P.hide,stake:P.stake,r:2.6,h:3.5,size:1}),N.x+2,N.z+12,.3);
-  placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0xd94f2a,paintB:0x3a7ac9,size:.8}),N.x-4,N.z-4,0);
-  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.7}),N.x-16,N.z,-.2);
-  const ncf=placeProp(sceneWorld,buildCampfire({flame:0xff9030,light:0xff7a20,size:.9}),N.x+2,N.z-2,0);
+  const cf2=placeProp(sceneWorld,buildCampfire({flame:0xffa030,light:0xff8a30,size:1}),B.x-24,B.z+8,0);
+  if(cf2&&cf2.userData.flame)worldFlames.push(cf2.userData.flame);
+  /* 路牌 */
+  placeProp(sceneWorld,buildSignpost({wood:0x4a3020,size:1}),B.x,B.z-30,0);
+
+  /* ===== 岩蹄营地（出生地，约 8 栋） ===== */
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),N.x+8,N.z-10,.2);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),N.x-10,N.z+6,-.5);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),N.x-14,N.z-8,.6);
+  placeProp(sceneWorld,buildTent({hide:P.hide,stake:P.stake,size:1}),N.x+2,N.z+12,.3);
+  placeProp(sceneWorld,buildTent({hide:0xb89060,stake:P.stake,size:1}),N.x+12,N.z-6,-.2);
+  placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0xd94f2a,paintB:0x3a7ac9,size:1}),N.x-4,N.z-4,0);
+  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1}),N.x-16,N.z,-.2);
+  placeProp(sceneWorld,buildWell({stone:0x6a5a50,wood:P.woodD,size:1}),N.x-2,N.z+4,0);
+  placeProp(sceneWorld,buildHaystack({color:0xd8b060,size:1}),N.x+6,N.z-12,0);
+  const ncf=placeProp(sceneWorld,buildCampfire({flame:0xff9030,light:0xff7a20,size:1}),N.x+2,N.z-2,0);
   if(ncf&&ncf.userData.flame)worldFlames.push(ncf.userData.flame);
-  /* 雷岩台（台地大城意象） */
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x8a4a28,w:4.2,d:3.8,h:2.8,size:1.15}),T.x+10,T.z-8,.2);
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,w:4.0,d:3.6,size:1.1}),T.x-14,T.z-6,-.4);
-  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x7a4a28,size:1.05}),T.x+6,T.z+12,Math.PI*.8);
-  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1.15}),T.x,T.z,.1);
-  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.85}),T.x-20,T.z+8,.5);
-  placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0x3a7ac9,paintB:0xd94f2a,size:1.2}),T.x+4,T.z-14,0);
-  placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0xd94f2a,paintB:0x3a7ac9,size:1.1}),T.x-8,T.z+10,.3);
-  placeProp(sceneWorld,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x3a6a9a,size:1.05}),T.x-6,T.z,.4);
-  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:20,posts:10}),T.x-24,T.z,Math.PI/2);
-  const tcf=placeProp(sceneWorld,buildCampfire({flame:0xffa030,light:0xff8a30,size:1.15}),T.x+2,T.z+4,0);
+
+  /* ===== 雷岩台（高阶区，约 10 栋 + 磨坊） ===== */
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x8a4a28,size:1}),T.x+10,T.z-8,.2);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),T.x-14,T.z-6,-.4);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:0x7a4a28,size:1}),T.x+6,T.z+12,Math.PI*.8);
+  placeProp(sceneWorld,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),T.x-20,T.z+4,.5);
+  placeProp(sceneWorld,buildLonghouse({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),T.x+2,T.z-6,0);
+  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1}),T.x,T.z,.1);
+  placeProp(sceneWorld,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1}),T.x-20,T.z+8,.5);
+  placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0x3a7ac9,paintB:0xd94f2a,size:1}),T.x+4,T.z-14,0);
+  placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0xd94f2a,paintB:0x3a7ac9,size:1}),T.x-8,T.z+10,.3);
+  placeProp(sceneWorld,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x3a6a9a,size:1}),T.x-6,T.z,.4);
+  placeProp(sceneWorld,buildWell({stone:0x6a5a50,wood:P.woodD,size:1}),T.x+2,T.z+8,0);
+  placeProp(sceneWorld,buildWindmill({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),T.x-12,T.z-14,0);
+  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:24,posts:11}),T.x-24,T.z,Math.PI/2);
+  placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:20,posts:9}),T.x+4,T.z-22,0);
+  const tcf=placeProp(sceneWorld,buildCampfire({flame:0xffa030,light:0xff8a30,size:1}),T.x+2,T.z+4,0);
   if(tcf&&tcf.userData.flame)worldFlames.push(tcf.userData.flame);
 })();
 
@@ -899,7 +948,7 @@ function spawnMob(type,x,z,group,opts){
     rareId:opts.rareId||null,
     group:group||null,labelY,zoneId,
     hp,hpMax:hp,state:"wander",home:{x,z},dest:null,wanderT:rand(0,3),
-    atkT:0,rootT:0,respawnT:0,respawnBase,corpseT:0,castCd:0,casting:null,moving:false,aura:null,
+    atkT:0,rootT:0,slowT:0,slowMul:1,respawnT:0,respawnBase,corpseT:0,castCd:0,casting:null,moving:false,aura:null,
     attackAnim:0,
     armor,
     simStats:{level:mobLv,armor,elite:isElite},

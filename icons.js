@@ -434,6 +434,17 @@ const RECIPES={
     cx.fillStyle="#ffe9a0";
     cx.beginPath();cx.moveTo(42,22);cx.lineTo(52,28);cx.lineTo(44,32);cx.closePath();cx.fill();
   },
+  concussive(cx){
+    P.bg(cx,"#303018","#100e06");
+    P.glow(cx,32,32,16,"rgba(255,220,100,.4)");
+    cx.strokeStyle="#ffe080";cx.lineWidth=2.5;
+    cx.beginPath();cx.moveTo(12,40);cx.lineTo(44,18);cx.stroke();
+    cx.fillStyle="#ffe9a0";
+    cx.beginPath();cx.moveTo(44,18);cx.lineTo(52,14);cx.lineTo(48,24);cx.closePath();cx.fill();
+    cx.strokeStyle="rgba(255,230,140,.7)";cx.lineWidth=1.5;
+    cx.beginPath();cx.arc(28,36,10,-.4,1.2);cx.stroke();
+    cx.beginPath();cx.arc(28,36,16,-.2,1.0);cx.stroke();
+  },
   map(cx){
     P.bg(cx,"#1a2818","#0a1008");
     cx.fillStyle="#6a8a50";cx.fillRect(12,14,40,36);

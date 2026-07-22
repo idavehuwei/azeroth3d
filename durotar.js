@@ -6,7 +6,8 @@
           zones.js（registerZone）· sky.js（initZoneSky）
           models.js（buildVendor buildSpiritHealer buildElder tintNpcCloth
             buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem
-            buildMarketStall buildCratePile BUILD_PAL placeProp）
+            buildMarketStall buildCratePile
+            buildLonghouse buildWell buildVillageGate buildSignpost buildLanternPole buildHaystack buildTrainingDummy BUILD_PAL placeProp）
           creatures.js（buildQuadruped buildHumanoidMob）
           world.js（spawnMob MOBS pickNearestNpc appendNpcQuestButtons openVendor closeVendorPanel）
           combat.js 运行时（S log announce）
@@ -86,27 +87,46 @@ function buildDurotarZone(scn){
   }
 
   const P=BUILD_PAL.durotar;
-  /* 赭岩哨站：扩大 · 市集 · 双塔 · 围栏 */
-  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1.05}),0,0,0);
-  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:.72}),24,-18,-.4);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1.05}),-20,14,.35);
+  /* 赭岩哨站：扩大街区 · 长屋 · 双塔 · 市集 · 围栏 · 村门 */
+  placeProp(root,buildVillageGate({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),6,-22,.2);
+  placeProp(root,buildVillageGate({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),-6,-22,-.2);
+  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1}),0,0,0);
+  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1}),24,-18,-.4);
+  placeProp(root,buildWatchtower({wood:P.wood,woodD:P.woodD,flag:P.flag,size:1}),-24,12,.3);
+  placeProp(root,buildLonghouse({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),-2,2,0);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),-20,14,.35);
   placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),24,12,-.5);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:0x9a5030,size:.95}),-18,-20,Math.PI*.7);
-  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,w:3.2,d:2.8,size:.85}),14,22,.2);
-  placeProp(root,buildTent({hide:P.hide,stake:P.stake,r:2.9,h:3.9,size:1.05}),20,-18,.2);
-  placeProp(root,buildTent({hide:0xc07040,stake:P.stake,r:2.4,h:3.4,size:.9}),-24,-8,.5);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:0x9a5030,size:1}),-18,-20,Math.PI*.7);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),14,22,.2);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),-26,16,-.3);
+  placeProp(root,buildHut({wood:P.wood,woodD:P.woodD,roof:P.roof,size:1}),28,-14,.5);
+  placeProp(root,buildTent({hide:P.hide,stake:P.stake,size:1}),20,-18,.2);
+  placeProp(root,buildTent({hide:0xc07040,stake:P.stake,size:1}),-24,-8,.5);
+  placeProp(root,buildTent({hide:P.hide,stake:P.stake,size:1}),-14,20,-.3);
   placeProp(root,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x8a4020,size:1}),-10,-10,Math.PI*.25);
+  placeProp(root,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x6a8a40,size:1}),12,8,-.15);
   placeProp(root,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),-8,-14,.2);
-  placeProp(root,buildTotem({wood:P.woodD,paintA:0xd03018,paintB:0xc07040,size:.85}),10,4,0);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:16,posts:8}),-28,4,Math.PI/2);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:14,posts:7}),10,-28,0);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:14,posts:7}),28,0,-Math.PI/2);
-  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:14,posts:7}),-4,28,Math.PI);
+  placeProp(root,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),16,-10,-.3);
+  placeProp(root,buildTotem({wood:P.woodD,paintA:0xd03018,paintB:0xc07040,size:1}),10,4,0);
+  placeProp(root,buildTotem({wood:P.woodD,paintA:0xc07040,paintB:0xd03018,size:1}),-14,-6,0);
+  placeProp(root,buildWell({stone:0x6a5a50,wood:P.woodD,size:1}),-4,0,0);
+  placeProp(root,buildHaystack({color:0xd8b060,size:1}),16,-22,0);
+  placeProp(root,buildHaystack({color:0xd0a850,size:1}),-8,22,0);
+  placeProp(root,buildTrainingDummy({wood:0x4a3020,size:1}),-14,18,0);
+  placeProp(root,buildTrainingDummy({wood:0x4a3020,size:1}),20,16,0);
+  placeProp(root,buildLanternPole({wood:0x4a3020,size:1}),2,-20,0);
+  placeProp(root,buildLanternPole({wood:0x4a3020,size:1}),-10,-18,0);
+  placeProp(root,buildLanternPole({wood:0x4a3020,size:1}),14,-16,0);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:20,posts:9}),-28,4,Math.PI/2);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:18,posts:8}),10,-28,0);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:18,posts:8}),28,0,-Math.PI/2);
+  placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:16,posts:7}),-4,28,Math.PI);
+  placeProp(root,buildSignpost({wood:0x4a3020,size:1}),2,-20,0);
 
-  /* 营火 */
+  /* 营火 × 3 */
   [[-8,8],[12,-6],[18,12]].forEach(([x,z],i)=>{
     const cf=placeProp(root,buildCampfire({
-      flame:i?0xff9030:0xffa030, light:0xff7a28, size:i===2?.75:1,
+      flame:i?0xff9030:0xffa030, light:0xff7a28, size:1,
     }),x,z,0);
     if(cf&&cf.userData.flame)durotarFlames.push(cf.userData.flame);
   });

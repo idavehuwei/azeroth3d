@@ -27,6 +27,7 @@
           firePlayerShot
           useSkill hitEntity dmgBoss pickTarget firePlayerShot playerHit
           beginPlayerCast cancelPlayerCast tickPlayerCast finishSkillUse
+          onArcherShotHit makeArrowShotMesh
           showUnitCastBar hideUnitCastBar setUnitCastBarProgress skillTargetOutOfRange
           isTargetAlive setCurrentTarget getFocusTarget clearCurrentTargetIf
           resolveSkillTarget cycleHostileTargets
@@ -119,16 +120,16 @@ const CLASSES={
     regen:11,hitGain:0,speed:11.5,ranged:true,range:32,sfx:"arrow",minRange:5,
     autoMin:140,autoMax:190,autoSpd:1.25,shotColor:0xd0ffa0,build:buildArcher,
     barCss:"linear-gradient(180deg,#d8ff7a,#7fb32a 60%,#3d6a0c)",
-    tip:"提示：能量随时间恢复；边走边射保持距离，【翻滚】可位移并短暂闪避一切伤害。",
+    tip:"提示：能量随时间恢复；【瞄准射击】蓄力爆发，【多重射击】清群，【震荡射击】减速风筝，【翻滚】脱身。",
     skills:[
       {name:"瞄准射击",icon:"aimed",cd:6, rage:30,fn:aimedShot,bal:"aimedShot",school:"physical",unlock:1,
-       desc:"精确瞄准，射出高伤害箭矢。",range:32},
+       desc:"屏息蓄力，射出高伤害箭矢。可打断施法。",range:32,cast:2.2},
       {name:"多重射击",icon:"multi_shot",cd:10,rage:35,fn:multiShot,bal:"multiShot",school:"physical",unlock:4,
-       desc:"同时射出多支箭，打击多个目标。",range:32},
+       desc:"同时射出多支箭，打击射程内多个目标。",range:32},
       {name:"翻滚",    icon:"roll",cd:9, rage:20,fn:roll,bal:"roll",unlock:6,
        desc:"向前翻滚位移，短暂闪避一切伤害。"},
-      {name:"治疗药水",icon:"potion",cd:22,rage:0, fn:potion,bal:"potion",unlock:8,
-       desc:"喝下药水，立即回复生命。"}]},
+      {name:"震荡射击",icon:"concussive",cd:12,rage:25,fn:concussiveShot,bal:"concussiveShot",school:"physical",unlock:8,
+       desc:"射出震荡箭，造成伤害并大幅减速目标。",range:32}]},
   priest:{title:"✨ 你 · 人类牧师",hp:4000,resMax:100,resStart:100,resName:"法力",resKind:"mana",
     regen:8,hitGain:0,speed:10,ranged:true,range:28,sfx:"holy",
     autoMin:155,autoMax:205,autoSpd:1.65,shotColor:0xfff0a0,build:buildPriest,
@@ -741,13 +742,22 @@ function useSkill(i){
   }
   if(S.cds[skillIdx]>0)return;
   if(S.p.rage<sk.rage){log(`${CLS.resName}不足！（${sk.name} 需要 ${sk.rage} ${CLS.resName}）`,"lg-sys");return;}
-  /* STEP 20：有射程的技能，当前目标过远则不开读条、不进 CD */
+  /* STEP 20：有射程的技能，当前目标过远/过近则不开读条、不进 CD */
   if(typeof skillTargetOutOfRange==="function"&&skillTargetOutOfRange(sk)){
-    const msgOor=typeof T==="function"?T("combat.target_oor"):"目标超出射程！";
+    const tooClose=CLS&&CLS.minRange&&typeof isTargetAlive==="function"&&isTargetAlive(S.currentTarget)
+      &&typeof targetDist==="function"&&targetDist(S.currentTarget)<CLS.minRange
+      &&sk.range!=null&&sk.range>=CLS.minRange;
+    const msgOor=tooClose
+      ?((BAL.sim&&BAL.sim.ranged&&BAL.sim.ranged.tooCloseMsg)||"目标太近，无法射击。")
+      :(typeof T==="function"?T("combat.target_oor"):"目标超出射程！");
     log(msgOor,"lg-sys");
     return;
   }
-  const castDur=sk.cast>0?+sk.cast:0;
+  let castDur=sk.cast>0?+sk.cast:0;
+  if(sk.bal&&typeof getSkillBal==="function"){
+    const b=getSkillBal(sk.bal);
+    if(b&&b.cast!=null)castDur=+b.cast;
+  }
   if(castDur>0){
     beginPlayerCast(sk,skillIdx,i,castDur);
     return;
@@ -1350,29 +1360,74 @@ function firePlayerShot(tgt,dmg,label,scale=1,opts){
   opts=opts||{};
   setCurrentTarget(tgt);
   SFX.play(CLS.sfx||"fireball");
-  /* 复用共享球几何，避免每次施法 new SphereGeometry */
-  const coreGeo=typeof VFX_GEO!=="undefined"?VFX_GEO.sphere(.3*scale,6):new THREE.SphereGeometry(.3*scale,6,6);
-  const glowGeo=typeof VFX_GEO!=="undefined"?VFX_GEO.sphere(.55*scale,6):new THREE.SphereGeometry(.55*scale,6,6);
-  const m=new THREE.Mesh(coreGeo,new THREE.MeshBasicMaterial({color:CLS.shotColor}));
-  const glow=new THREE.Mesh(glowGeo,new THREE.MeshBasicMaterial({color:CLS.shotColor,transparent:true,opacity:.35}));
-  m.add(glow);
-  if(BAL.vfx&&BAL.vfx.fakeBloom){
-    const fb=BAL.vfx.fakeBloomShell||{};
-    const r=(fb.shotR!=null?fb.shotR:.85)*scale;
-    const op=fb.shotOp!=null?fb.shotOp:.18;
-    const shellGeo=typeof VFX_GEO!=="undefined"?VFX_GEO.sphere(r,6):new THREE.SphereGeometry(r,6,6);
-    m.add(new THREE.Mesh(shellGeo,new THREE.MeshBasicMaterial({
-      color:CLS.shotColor,transparent:true,opacity:op,
-      side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false,
-    })));
+  const col=opts.color!=null?opts.color:CLS.shotColor;
+  let m;
+  if(opts.arrow||(CLS&&CLS.key==="archer"&&opts.arrow!==false)){
+    m=makeArrowShotMesh(col,scale);
+  }else{
+    const coreGeo=typeof VFX_GEO!=="undefined"?VFX_GEO.sphere(.3*scale,6):new THREE.SphereGeometry(.3*scale,6,6);
+    const glowGeo=typeof VFX_GEO!=="undefined"?VFX_GEO.sphere(.55*scale,6):new THREE.SphereGeometry(.55*scale,6,6);
+    m=new THREE.Mesh(coreGeo,new THREE.MeshBasicMaterial({color:col}));
+    const glow=new THREE.Mesh(glowGeo,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.35}));
+    m.add(glow);
+    if(BAL.vfx&&BAL.vfx.fakeBloom){
+      const fb=BAL.vfx.fakeBloomShell||{};
+      const r=(fb.shotR!=null?fb.shotR:.85)*scale;
+      const op=fb.shotOp!=null?fb.shotOp:.18;
+      const shellGeo=typeof VFX_GEO!=="undefined"?VFX_GEO.sphere(r,6):new THREE.SphereGeometry(r,6,6);
+      m.add(new THREE.Mesh(shellGeo,new THREE.MeshBasicMaterial({
+        color:col,transparent:true,opacity:op,
+        side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false,
+      })));
+    }
   }
   m.position.copy(player.position); m.position.y=1.9;
   scene.add(m);
   S.pShots.push({
-    mesh:m,tgt,dmg,label,speed:28,shotColor:CLS.shotColor,
+    mesh:m,tgt,dmg,label,speed:opts.speed!=null?opts.speed:32,shotColor:col,
     school:opts.school||(CLS.ranged&&CLS.resKind==="mana"?"spell":"physical"),
-    skillId:opts.skillId,sourceKey:opts.sourceKey
+    skillId:opts.skillId,sourceKey:opts.sourceKey,
+    arrow:!!(opts.arrow||(CLS&&CLS.key==="archer")),
+    poison:opts.poison!==false,
+    slowMul:opts.slowMul,slowDur:opts.slowDur,
   });
+}
+function makeArrowShotMesh(color,scale){
+  scale=scale||1;
+  const g=new THREE.Group();
+  const wood=new THREE.MeshBasicMaterial({color:color!=null?color:0xd0ffa0});
+  const tipM=new THREE.MeshBasicMaterial({color:0xffe9a0});
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.035*scale,.045*scale,1.35*scale,5),wood);
+  shaft.rotation.x=Math.PI/2; g.add(shaft);
+  const tip=new THREE.Mesh(new THREE.ConeGeometry(.09*scale,.32*scale,5),tipM);
+  tip.rotation.x=Math.PI/2; tip.position.z=.72*scale; g.add(tip);
+  const fletch=new THREE.Mesh(new THREE.BoxGeometry(.18*scale,.02*scale,.22*scale),
+    new THREE.MeshBasicMaterial({color:0xa8e060}));
+  fletch.position.z=-.55*scale; g.add(fletch);
+  return g;
+}
+/** 箭矢命中：毒箭天赋 DoT / 震荡减速 */
+function onArcherShotHit(ent,sh){
+  if(!ent||!sh)return;
+  const poisonRank=(S.p.talentFx&&S.p.talentFx.poisonArrow)|0;
+  if(poisonRank>0&&sh.poison!==false&&typeof applyAura==="function"){
+    const bal=typeof getSkillBal==="function"?getSkillBal("poisonArrow"):null;
+    if(bal){
+      applyAura(ent,"poison_arrow",{
+        duration:bal.duration,
+        dmgPerTick:Math.round((bal.dmgPerTick||24)*poisonRank),
+        tick:bal.tick!=null?bal.tick:3,
+      });
+    }
+  }
+  if(sh.slowMul!=null&&sh.slowDur!=null){
+    if(typeof applyAura==="function"){
+      applyAura(ent,"concussed",{duration:sh.slowDur,speedMul:sh.slowMul});
+    }else{
+      ent.slowT=Math.max(ent.slowT|0,sh.slowDur);
+      ent.slowMul=sh.slowMul;
+    }
+  }
 }
 
 /* ---------------- 法师技能 ---------------- */
@@ -1437,31 +1492,50 @@ function iceBlock(){
 function aimedShot(){
   const t=resolveSkillTarget(CLS.range);
   if(!t)return false;
+  if(CLS.minRange&&targetDist(t)<CLS.minRange){
+    log((BAL.sim&&BAL.sim.ranged&&BAL.sim.ranged.tooCloseMsg)||"目标太近，无法射击。","lg-sys");
+    return false;
+  }
   tryInterrupt(CLS.range,"瞄准射击");
-  S.p.attackAnim=1;
-  firePlayerShot(t,R(getSkillBal("aimedShot").dmg),"瞄准射击",1.4);
+  S.p.attackAnim=1.2;
+  firePlayerShot(t,R(getSkillBal("aimedShot").dmg),"瞄准射击",1.55,{
+    school:"physical",skillId:"aimedShot",arrow:true,speed:38,
+  });
   log("你屏息凝神，射出致命一箭！","lg-me");
   return true;
 }
 function multiShot(){
-  let n=0;
+  const bal=getSkillBal("multiShot");
+  const maxN=bal.maxTargets!=null?bal.maxTargets:3;
+  const minR=CLS.minRange||0;
+  const cands=[];
+  const pushCand=(tgt,dist)=>{
+    if(dist>CLS.range||(minR>0&&dist<minR))return;
+    cands.push({tgt,dist});
+  };
   if(S.mode==="world"){
     MOBS.forEach(m=>{
-      if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<=CLS.range){
-        firePlayerShot({type:"mob",m},R(getSkillBal("multiShot").dmg),"多重射击");n++;
-      }
+      if(!mobTargetable(m))return;
+      pushCand({type:"mob",m},player.position.distanceTo(m.mesh.position));
     });
   }else{
-    if(bossTargetable()&&distToBoss()<=CLS.range){firePlayerShot({type:"boss"},R(getSkillBal("multiShot").dmg),"多重射击");n++;}
+    if(bossTargetable())pushCand({type:"boss"},distToBoss());
     S.adds.forEach(a=>{
-      if(addTargetable(a)&&player.position.distanceTo(a.mesh.position)<=CLS.range){
-        firePlayerShot({type:"add",a},R(getSkillBal("multiShot").dmg),"多重射击");n++;
-      }
+      if(!addTargetable(a))return;
+      pushCand({type:"add",a},player.position.distanceTo(a.mesh.position));
     });
   }
-  if(!n){log("射程内没有任何目标！");return false;}
+  cands.sort((a,b)=>a.dist-b.dist);
+  const hit=cands.slice(0,maxN);
+  if(!hit.length){
+    log(cands.length?"目标太近或过远，无法多重射击。":"射程内没有任何目标！","lg-sys");
+    return false;
+  }
+  hit.forEach(c=>{
+    firePlayerShot(c.tgt,R(bal.dmg),"多重射击",1,{school:"physical",skillId:"multiShot",arrow:true,speed:34});
+  });
   S.p.attackAnim=1;
-  log(`多重射击！${n} 支箭矢破空而出。`,"lg-me");
+  log(`多重射击！${hit.length} 支箭矢破空而出。`,"lg-me");
   return true;
 }
 function roll(){
@@ -1473,6 +1547,22 @@ function roll(){
   else S.p.invuln=Math.max(S.p.invuln,dur);
   spawnBurst(player.position.clone().setY(.6),0xd0ffa0,14,1);
   log("你灵巧地翻滚，短暂闪避一切伤害！","lg-me");
+  return true;
+}
+function concussiveShot(){
+  const t=resolveSkillTarget(CLS.range);
+  if(!t)return false;
+  if(CLS.minRange&&targetDist(t)<CLS.minRange){
+    log((BAL.sim&&BAL.sim.ranged&&BAL.sim.ranged.tooCloseMsg)||"目标太近，无法射击。","lg-sys");
+    return false;
+  }
+  const bal=getSkillBal("concussiveShot");
+  S.p.attackAnim=1;
+  firePlayerShot(t,R(bal.dmg),"震荡射击",1.15,{
+    school:"physical",skillId:"concussiveShot",arrow:true,speed:36,
+    color:0xffe080,slowMul:bal.slowMul,slowDur:bal.duration,poison:false,
+  });
+  log("震荡箭呼啸而出，目标脚步滞涩！","lg-me");
   return true;
 }
 
