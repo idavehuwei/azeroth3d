@@ -777,12 +777,41 @@ const BOSS_ENT={
   onDeath(){bossDie();},
 };
 
-function startCast(name,dur,done){
-  S.b.casting={name,done}; S.b.castT=0; S.b.castDur=dur;
+function startCast(name,dur,done,meta){
+  meta=meta||{};
+  S.b.casting={
+    name, done,
+    interruptible:meta.interruptible!==false,
+    skillKey:meta.skillKey||null,
+  };
+  S.b.castT=0; S.b.castDur=dur;
   $("#castShell").style.display="block"; $("#castText").textContent=name;
+  const shell=$("#castShell");
+  if(shell)shell.classList.toggle("interruptible",S.b.casting.interruptible!==false);
 }
 function clearBossCast(){
   S.b.casting=null; $("#castShell").style.display="none";
+  const shell=$("#castShell");
+  if(shell)shell.classList.remove("interruptible");
+}
+/** V1-C5：打断 Boss 读条；opts.lockout 秒内推迟该技能下次施放 */
+function interruptBossCast(opts){
+  opts=opts||{};
+  if(!S.b.casting)return false;
+  if(S.b.casting.interruptible===false)return false;
+  const name=S.b.casting.name;
+  const skillKey=S.b.casting.skillKey;
+  clearBossCast();
+  const lock=opts.lockout!=null?opts.lockout:4;
+  if(skillKey){
+    S.b.next=S.b.next||{};
+    const until=S.t+lock;
+    S.b.next[skillKey]=Math.max(S.b.next[skillKey]!=null?S.b.next[skillKey]:0,until);
+  }
+  if(typeof fct==="function"&&typeof boss!=="undefined")
+    fct(boss.position.clone().setY(4),"打断!","#ffe080",18);
+  log(`打断了【${name}】！`,"lg-me");
+  return true;
 }
 
 function enterBossPhase(ph){
@@ -917,8 +946,7 @@ function runBossSkill(sk){
         const tz=boss.position.z+Math.cos(ang)*dist;
         VFX.spawn(sk.vfx,{targetPos:new THREE.Vector3(tx,0,tz),
           opt:Object.assign({},st,{name:sk.name})});
-      }
-    });
+      }},{skillKey:sk.id});
     return !!sk.exclusive;
   }
   if(sk.type==="cast_line"){
@@ -938,8 +966,7 @@ function runBossSkill(sk){
           z:boss.position.z+uz*step*i,
           r:rr, delay:st.delay+(i-1)*.12,
           dmg:st.dmg, label:sk.name});
-      }
-    });
+      }},{skillKey:sk.id});
     return !!sk.exclusive;
   }
   if(sk.type==="cast_telegraph"){
@@ -959,8 +986,7 @@ function runBossSkill(sk){
         const a=rand(0,6.28),r=rand(3,ARENA_R-4);
         VFX.spawn(sk.vfx,{x:Math.cos(a)*r,z:Math.sin(a)*r,r:rand(3.5,5.5),delay:st.delay+i*.25,
           dmg:st.dmg,label:sk.name});
-      }
-    });
+      }},{skillKey:sk.id});
     return !!sk.exclusive;
   }
   if(sk.type==="cast_knockback"){
@@ -973,8 +999,7 @@ function runBossSkill(sk){
         const dir=player.position.clone().sub(new THREE.Vector3(boss.position.x,0,boss.position.z)).normalize();
         S.p.knock={dir,t:sk.knockT||.4};
         if(sk.hitLog)log(sk.hitLog,"lg-dmg");
-      }
-    });
+      }},{skillKey:sk.id});
     return !!sk.exclusive;
   }
   if(sk.type==="cast_fear"){
@@ -1003,7 +1028,7 @@ function runBossSkill(sk){
         }
         if(sk.hitLog)log(sk.hitLog,"lg-dmg");
       }
-    });
+    },{skillKey:sk.id});
     return !!sk.exclusive;
   }
   return false;

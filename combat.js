@@ -24,7 +24,7 @@
           gainXP updateLevelUI gainCopper spendCopper formatCopperText updateGoldUI
           clearShieldVisual applyHeal clearAllTotems tickTotems
           breakStealth enterStealth getPlayerAggroMul isBehindTarget
-          skillRank getSkillBal
+          skillRank getSkillBal tryInterrupt taunt
           （S.quests · STEP 22 任务运行时）
    ============================================================ */
 "use strict";
@@ -71,16 +71,16 @@ const CLASSES={
     regen:0,hitGain:8,speed:10.5,ranged:false,range:10,sfx:"swing",
     autoMin:150,autoMax:210,autoSpd:1.6,shotColor:0xffffff,build:buildPlayer,
     barCss:"linear-gradient(180deg,#ffd76a,#c98a1f 60%,#7a4d0c)",
-    tip:"提示：近身自动攻击积攒怒气；【冲锋】可迅速贴近目标并额外获得怒气。",
+    tip:"提示：近身积攒怒气；【冲锋】贴近并可打断读条；【嘲讽】强制拉住目标仇恨。",
     skills:[
       {name:"英勇打击",icon:"sword",cd:5, rage:20,fn:heroicStrike,bal:"heroicStrike",
        desc:"奋力一击，对面前敌人造成物理伤害。"},
       {name:"旋风斩",  icon:"whirlwind",cd:9, rage:30,fn:whirlwind,bal:"whirlwind",
        desc:"旋转兵器，对周围敌人造成范围物理伤害。"},
       {name:"冲锋",    icon:"charge",cd:12,rage:0, fn:charge,bal:"charge",
-       desc:"向目标冲锋并贴近，额外积攒怒气。"},
-      {name:"治疗药水",icon:"potion",cd:22,rage:0, fn:potion,bal:"potion",
-       desc:"喝下药水，立即回复生命。"}]},
+       desc:"向目标冲锋并贴近；若目标正在读条则可打断。"},
+      {name:"嘲讽",    icon:"taunt",cd:8, rage:0, fn:taunt,bal:"taunt",
+       desc:"强制目标攻击你一段时间，并大幅拉高仇恨。"}]},
   mage:{title:"🔮 你 · 人类法师",hp:3800,resMax:100,resStart:100,resName:"法力",
     regen:7,hitGain:0,speed:10,ranged:true,range:30,sfx:"fireball",
     autoMin:175,autoMax:235,autoSpd:1.8,shotColor:0xff8a30,build:buildMage,
@@ -467,6 +467,8 @@ function charge(){
       if(nearest)addThreat(nearest,"player",0,"charge");
     }else if(bossTargetable())addThreat(BOSS_ENT,"player",0,"charge");
   }
+  /* V1-C5：冲锋落地后尝试打断读条 */
+  tryInterrupt((getSkillBal("interrupt").range)||8,"冲锋");
   log(`你向敌人发起冲锋！获得 ${getSkillBal("charge").rageGain} 点怒气。`,"lg-me");
   return true;
 }
@@ -476,6 +478,73 @@ function potion(){
   fct(player.position.clone().setY(3),`+${heal}`,"#8aff9a",18);
   VFX.spawn("heal_cross",{pos:player.position.clone().setY(1.4)});
   log(`你饮下强效治疗药水，恢复 ${heal} 点生命值。`,"lg-heal");
+  return true;
+}
+
+/** V1-C5：通用打断（Boss / 野怪读条） */
+function tryInterrupt(range,label){
+  const bal=getSkillBal("interrupt");
+  const r=range!=null?range:(bal.range||8);
+  const lock=bal.lockout!=null?bal.lockout:4;
+  if(S.mode==="raid"){
+    if(!S.b||!S.b.casting)return false;
+    if(typeof bossTargetable==="function"&&!bossTargetable())return false;
+    if(typeof distToBoss==="function"&&distToBoss()>r)return false;
+    if(typeof interruptBossCast==="function")
+      return interruptBossCast({lockout:lock,label:label||"打断"});
+    return false;
+  }
+  if(typeof MOBS==="undefined")return false;
+  for(const m of MOBS){
+    if(!m||!m.casting)continue;
+    if(typeof mobTargetable==="function"&&!mobTargetable(m))continue;
+    if(player.position.distanceTo(m.mesh.position)>r)continue;
+    const nm=(m.casting&&m.casting.name)||"法术";
+    m.casting=null;
+    if(m.castCd!=null)m.castCd=Math.max(m.castCd||0,lock);
+    fct(m.mesh.position.clone().setY(2.8),"打断!","#ffe080",16);
+    log(`${label||"你"}打断了【${m.name}】的${nm}！`,"lg-me");
+    return true;
+  }
+  return false;
+}
+
+/** V1-C5：战士嘲讽 */
+function taunt(){
+  const bal=getSkillBal("taunt");
+  const range=bal.range||16;
+  let victim=null,label="";
+  if(S.mode==="world"){
+    let best=null,bd=1e9;
+    for(const m of MOBS){
+      if(typeof mobTargetable==="function"&&!mobTargetable(m))continue;
+      const d=player.position.distanceTo(m.mesh.position);
+      if(d<range&&d<bd){bd=d;best=m;}
+    }
+    if(!best){log("附近没有可嘲讽的目标。");return false;}
+    victim=best; label=best.name||"敌人";
+    if(best.state==="wander"&&typeof aggroMob==="function")aggroMob(best);
+  }else{
+    if(typeof bossTargetable==="function"&&bossTargetable()
+      &&typeof distToBoss==="function"&&distToBoss()<=range){
+      victim=typeof BOSS_ENT!=="undefined"?BOSS_ENT:null;
+      label=(typeof getBossCfg==="function"&&getBossCfg().name)||"首领";
+    }
+    if(!victim&&S.adds){
+      for(const a of S.adds){
+        if(typeof addTargetable==="function"&&!addTargetable(a))continue;
+        if(player.position.distanceTo(a.mesh.position)<=range){victim=a;label="小怪";break;}
+      }
+    }
+    if(!victim){log("附近没有可嘲讽的目标。");return false;}
+  }
+  if(typeof applyTaunt!=="function"){log("嘲讽系统未就绪。","lg-sys");return false;}
+  applyTaunt(victim,"player",{dur:bal.dur,margin:bal.margin});
+  S.p.attackAnim=1;
+  SFX.play("swing");
+  spawnBurst(player.position.clone().setY(1.2),0xffd76a,16,1.4);
+  fct(player.position.clone().setY(3.2),"嘲讽!","#ffd76a",17);
+  log(`你嘲讽了【${label}】，强制其攻击你 ${bal.dur} 秒！`,"lg-me");
   return true;
 }
 
@@ -551,6 +620,7 @@ function pyroblast(){
   return true;
 }
 function frostNova(){
+  tryInterrupt(getSkillBal("frostNova").bossRadius||12,"冰霜新星");
   spawnBurst(player.position.clone().setY(.8),0x8ad8ff,36,2.4);
   let any=false;
   if(S.mode==="world"){
@@ -593,6 +663,7 @@ function iceBlock(){
 function aimedShot(){
   const t=pickTarget(CLS.range);
   if(!t){log("目标超出射程！");return false;}
+  tryInterrupt(CLS.range,"瞄准射击");
   S.p.attackAnim=1;
   firePlayerShot(t,R(getSkillBal("aimedShot").dmg),"瞄准射击",1.4);
   log("你屏息凝神，射出致命一箭！","lg-me");
@@ -658,6 +729,7 @@ function flashHeal(){
 function smite(){
   const t=pickTarget(CLS.range);
   if(!t){log("目标超出施法距离！");return false;}
+  tryInterrupt(CLS.range,"神圣惩击");
   S.p.attackAnim=1;
   firePlayerShot(t,R(getSkillBal("smite").dmg),"神圣惩击",1.5);
   log("你唤来神圣惩击！","lg-me");
@@ -694,6 +766,7 @@ function lightningBolt(){
 function earthShock(){
   const t=pickTarget(CLS.range);
   if(!t){log("目标超出施法距离！");return false;}
+  tryInterrupt(CLS.range,"大地震击");
   S.p.attackAnim=1;
   firePlayerShot(t,R(getSkillBal("earthShock").dmg),"大地震击",1.15);
   if(typeof SFX!=="undefined")SFX.play("lightning");
@@ -855,6 +928,7 @@ function sinisterStrike(){
   let hit=false;
   const thr={skillId:"sinisterStrike"};
   const bal=getSkillBal("sinisterStrike");
+  tryInterrupt((getSkillBal("interrupt").range)||8,"影袭");
   if(S.mode==="world"){
     for(const m of MOBS){
       if(mobTargetable(m)&&player.position.distanceTo(m.mesh.position)<bal.reach){

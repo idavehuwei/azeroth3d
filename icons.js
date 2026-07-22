@@ -311,6 +311,20 @@ const RECIPES={
     cx.beginPath();cx.moveTo(12,48);cx.lineTo(22,32);cx.stroke();
     cx.beginPath();cx.moveTo(30,48);cx.lineTo(40,28);cx.stroke();
   },
+  /* 🛡 嘲讽（V1-C5） */
+  taunt(cx){
+    P.bg(cx,"#3a2810","#140c06");
+    P.glow(cx,32,32,22,"rgba(255,180,60,.65)");
+    cx.fillStyle="#c9a050";
+    cx.beginPath();cx.arc(32,34,16,0,6.283);cx.fill();
+    cx.fillStyle="#ffe9a0";
+    cx.beginPath();cx.arc(32,34,10,0,6.283);cx.fill();
+    cx.strokeStyle="#8a6020";cx.lineWidth=2;
+    cx.beginPath();cx.arc(32,34,16,0,6.283);cx.stroke();
+    cx.fillStyle="#7a3010";
+    cx.font="bold 18px sans-serif";cx.textAlign="center";cx.textBaseline="middle";
+    cx.fillText("!",32,35);
+  },
   /* 🌿 草药（STEP 23） */
   herb(cx){
     P.bg(cx,"#1a3a18","#081208");

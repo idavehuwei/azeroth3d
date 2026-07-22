@@ -5,7 +5,7 @@
    [依赖] core.js（BAL）· combat.js（S）· companions.js（PARTY）
           world.js / raid.js 运行时（player boss）
    [导出] threatKeyPlayer threatKeyCompanion
-          addThreat clearThreat getTopThreatActor
+          addThreat clearThreat getTopThreatActor applyTaunt
           hitByThreat meleeHitFromThreat
           checkPartyWipe resetWipeFlag
    ============================================================ */
@@ -25,7 +25,9 @@ function ensureThreatTable(victim){
 }
 
 function clearThreat(victim){
-  if(victim&&victim.threat)victim.threat={};
+  if(!victim)return;
+  victim.threat={};
+  victim.tauntLock=null;
 }
 
 function addThreat(victim,sourceKey,dmg,skillId){
@@ -35,13 +37,35 @@ function addThreat(victim,sourceKey,dmg,skillId){
   let amt=(dmg|0)*(T.perDmg!=null?T.perDmg:1);
   if(skillId&&T.flat&&T.flat[skillId])amt+=(T.flat[skillId]|0);
   let mul=1;
-  if(sourceKey==="player")mul=(T.roleMul&&T.roleMul.player)||1;
-  else if(sourceKey[0]==="c"&&typeof PARTY!=="undefined"){
+  if(sourceKey==="player"){
+    mul=(T.roleMul&&T.roleMul.player)||1;
+    /* V1-C5：玩家战士按坦克仇恨倍率 */
+    if(typeof CLS!=="undefined"&&typeof CLASSES!=="undefined"&&CLS===CLASSES.warrior
+      &&T.roleMul&&T.roleMul.playerTank!=null)mul=T.roleMul.playerTank;
+  }else if(sourceKey[0]==="c"&&typeof PARTY!=="undefined"){
     const c=PARTY[+sourceKey.slice(1)];
     const role=c&&c.role?c.role:"dps";
     mul=(T.roleMul&&T.roleMul[role])||1;
   }
   table[sourceKey]=(table[sourceKey]|0)+Math.round(amt*mul);
+}
+
+/**
+ * V1-C5 嘲讽：拉至仇恨顶 + 强制锁定一段时间
+ * opts: {dur, margin}
+ */
+function applyTaunt(victim,sourceKey,opts){
+  if(!victim||!sourceKey)return false;
+  opts=opts||{};
+  const T=BAL.threat||{};
+  const table=ensureThreatTable(victim);
+  let max=0;
+  for(const k in table){const v=table[k]|0;if(v>max)max=v;}
+  const margin=opts.margin!=null?opts.margin:(T.tauntMargin!=null?T.tauntMargin:50000);
+  table[sourceKey]=max+margin;
+  const dur=opts.dur!=null?opts.dur:(T.tauntDur!=null?T.tauntDur:3);
+  victim.tauntLock={key:sourceKey,until:(typeof S!=="undefined"?S.t:0)+dur};
+  return true;
 }
 
 function actorInRange(actor,fromPos,maxR){
@@ -67,8 +91,12 @@ function resolveThreatKey(key){
   return null;
 }
 
-/** 返回仇恨最高且在范围内的承伤者；无人则回退玩家/最近同伴 */
+/** 返回仇恨最高且在范围内的承伤者；嘲讽锁定期内优先锁定目标 */
 function getTopThreatActor(victim,fromPos,maxR){
+  if(victim&&victim.tauntLock&&victim.tauntLock.until>(S.t||0)){
+    const locked=resolveThreatKey(victim.tauntLock.key);
+    if(locked&&actorInRange(locked,fromPos,maxR))return locked;
+  }
   const table=victim&&victim.threat;
   let best=null,bestV=-1;
   if(table){

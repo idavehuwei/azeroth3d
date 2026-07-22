@@ -139,6 +139,17 @@ const BALANCE={
       {minLevel:8, speedMul:1.65, duration:7},
       {minLevel:14, speedMul:1.75, duration:8}
     ]},
+    /* —— V1-C5 嘲讽 / 打断 —— */
+    taunt:{ranks:[
+      {minLevel:1, dur:4, range:16, margin:50000},
+      {minLevel:8, dur:4.5, range:17, margin:50000},
+      {minLevel:14, dur:5, range:18, margin:50000}
+    ]},
+    interrupt:{ranks:[
+      {minLevel:1, range:8, lockout:4},
+      {minLevel:8, range:9, lockout:4.5},
+      {minLevel:14, range:10, lockout:5}
+    ]},
   },
   /* V1-C2：潜行（脱战隐身 · 缩小主动 aggro） */
   stealth:{aggroMul:.35, alpha:.42, breakOnAttack:true, breakOnHit:true},
@@ -629,8 +640,10 @@ const BALANCE={
   /* 仇恨与职责（STEP 27） */
   threat:{
     perDmg:1,
-    flat:{heroicStrike:120, whirlwind:50, charge:80, companionAuto:0},
-    roleMul:{player:1, tank:1.6, dps:1, healer:.75},
+    flat:{heroicStrike:120, whirlwind:50, charge:80, taunt:200, companionAuto:0},
+    roleMul:{player:1, playerTank:1.55, tank:1.6, dps:1, healer:.75},
+    tauntDur:4,
+    tauntMargin:50000,
     /* 治疗优先级阈值 */
     healTankHpPct:.30,
     healSelfHpPct:.40,

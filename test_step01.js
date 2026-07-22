@@ -162,8 +162,6 @@ assert(fs.readFileSync(path.join(__dirname,"panels.js"),"utf8").includes("Rank $
 assert(coreSrc.includes("heroicStrike:{ranks:"),"heroicStrike 使用 ranks 表");
 /* 无头：Lv1=R1 · Lv8=R2 · Lv14=R3 */
 (function(){
-  const vm={S:{p:{level:1}},BAL:null};
-  /* 轻量解析 unlock + heroicStrike ranks 档位数 */
   assert(/unlock:\s*\[\s*1\s*,\s*8\s*,\s*14\s*\]/.test(coreSrc),"默认解锁 1/8/14");
   const hs=coreSrc.match(/heroicStrike:\{ranks:\[([\s\S]*?)\]\}/);
   assert(hs&&(hs[1].match(/minLevel:/g)||[]).length>=3,"heroicStrike 至少 3 档 Rank");
@@ -285,6 +283,13 @@ assert(combatSrc.includes("camApplyDrag")||combatSrc.includes("S.cam.lmb"),"左�
 assert(html.includes('src="threat.js"'),"game.html 加载 threat.js");
 assert(threatSrc.includes("function addThreat")&&threatSrc.includes("function getTopThreatActor"),"threat.js 有 addThreat/getTopThreatActor");
 assert(threatSrc.includes("function meleeHitFromThreat")&&threatSrc.includes("function checkPartyWipe"),"threat.js 有 meleeHitFromThreat/checkPartyWipe");
+assert(threatSrc.includes("function applyTaunt")&&threatSrc.includes("tauntLock"),"threat.js 有嘲讽 applyTaunt/tauntLock");
+assert(combatSrc.includes("function taunt")&&combatSrc.includes("function tryInterrupt"),"combat.js 有 taunt/tryInterrupt");
+assert(combatSrc.includes('bal:"taunt"'),"战士 4 槽为嘲讽");
+assert(raidSrc.includes("function interruptBossCast"),"raid.js 有 interruptBossCast");
+assert(coreSrc.includes("taunt:{ranks:")&&coreSrc.includes("interrupt:{ranks:"),"BALANCE 含 taunt/interrupt");
+assert(coreSrc.includes("playerTank")&&coreSrc.includes("tauntDur"),"BALANCE.threat 含坦克嘲讽参数");
+assert(iconsSrc.includes("taunt(cx)"),"icons.js 有嘲讽图标");
 assert(coreSrc.includes("threat:")&&coreSrc.includes("healTankHpPct"),"BALANCE 含 threat 表");
 assert(combatSrc.includes("addThreat")&&combatSrc.includes('skillId:"heroicStrike"'),"combat.js 挂接仇恨（英勇打击）");
 assert(cmpSrc.includes("healTankHpPct")||cmpSrc.includes("BAL.threat"),"companions.js 治疗走职责优先级");

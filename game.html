@@ -43,7 +43,8 @@
   .barText{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     font-size:12px;font-weight:700;text-shadow:0 1px 2px #000;letter-spacing:1px}
   #castShell{margin-top:5px;height:12px;border:1px solid rgba(255,190,90,.4);background:rgba(0,0,0,.6);
-    position:relative;display:none}
+    position:relative;overflow:hidden;display:none;box-shadow:inset 0 0 8px rgba(0,0,0,.7)}
+  #castShell.interruptible{border-color:rgba(120,200,255,.65);box-shadow:0 0 8px rgba(80,160,255,.35),inset 0 0 8px rgba(0,0,0,.7)}
   #castFill{position:absolute;inset:1px;transform-origin:left;background:linear-gradient(180deg,#ffe9a0,#d19a2a)}
   #castText{position:absolute;inset:0;font-size:10px;display:flex;align-items:center;justify-content:center;
     color:#fff2d0;text-shadow:0 1px 2px #000;letter-spacing:2px}
@@ -512,7 +513,7 @@
   <div class="skill" data-sk="0"><span class="key">1</span><img class="ic" alt=""><span class="nm">英勇打击</span><div class="cd"></div></div>
   <div class="skill" data-sk="1"><span class="key">2</span><img class="ic" alt=""><span class="nm">旋风斩</span><div class="cd"></div></div>
   <div class="skill" data-sk="2"><span class="key">3</span><img class="ic" alt=""><span class="nm">冲锋</span><div class="cd"></div></div>
-  <div class="skill" data-sk="3"><span class="key">4</span><img class="ic" alt=""><span class="nm">治疗药水</span><div class="cd"></div></div>
+  <div class="skill" data-sk="3"><span class="key">4</span><img class="ic" alt=""><span class="nm">嘲讽</span><div class="cd"></div></div>
 </div>
  
 <div id="log"></div>
