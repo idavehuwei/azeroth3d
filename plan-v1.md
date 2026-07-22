@@ -281,12 +281,13 @@
 
 ---
 
-## 六 · 与 `plan-merged.md` 的关系
+## 六 · 与各版计划的关系
 
 | 文件 | 角色 |
 |------|------|
-| `plan-merged.md` | v1.4→v4.0 **已执行账本**（STEP 0–29 ✅）；十/十一章联机规划保留作远景备忘 |
+| `plan-v0.md` | v1.4→v4.0 **历史执行账本**（原 plan-merged STEP 0–29 ✅） |
 | **`plan-v1.md`（本文件）** | **下一阶段单机产品路线**；执行时开新 STEP 分支，勿与旧 30–36 编号混用 |
+| `plan-v4.md` / `plan-V3.md` | 当前主线 |
 | `DESIGN.md` | 视觉与 UI 规范；轨 A 改动须遵守 |
 | `AGENTS.md` | 仍用 architect → implementer → qa 流程 |
 
