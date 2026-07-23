@@ -545,8 +545,10 @@ function dropLoot(pos,items,owner,onLooted){
   const cube=new THREE.Mesh(new THREE.BoxGeometry(.55,.55,.55),
     MAT.get("emissive.loot",{color:q.hex,emissive:q.hex,emissiveIntensity:.65,roughness:.4}));
   cube.position.y=.6; cube.castShadow=true; grp.add(cube);
+  const icTex=new THREE.CanvasTexture(Icons.canvas(it.icon,q.color));
+  icTex.colorSpace=THREE.SRGBColorSpace;
   const icSp=new THREE.Sprite(new THREE.SpriteMaterial({
-    map:new THREE.CanvasTexture(Icons.canvas(it.icon,q.color)),
+    map:icTex,
     transparent:true,depthWrite:false}));
   icSp.scale.set(1.15,1.15,1); icSp.position.y=1.9; grp.add(icSp);
   const label=makeLabel(it.name,5.5,q.color,q.color);

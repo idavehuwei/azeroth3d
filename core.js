@@ -78,6 +78,7 @@ function makeLabel(text,w,color="#ffd9a0",glow="rgba(255,90,0,.95)"){
   cx.fillStyle=color;
   cx.fillText(str,cw/2,ch/2+.5);
   const tex=new THREE.CanvasTexture(cv);
+  tex.colorSpace=THREE.SRGBColorSpace;
   tex.needsUpdate=true;
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));
   const aspect=cw/Math.max(1,ch);
@@ -131,6 +132,7 @@ function makeQuestMark(kind){
     cx.restore();
   }
   const tex=new THREE.CanvasTexture(cv);
+  tex.colorSpace=THREE.SRGBColorSpace;
   tex.needsUpdate=true;
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({
     map:tex, transparent:true, depthWrite:false, sizeAttenuation:true
@@ -153,7 +155,9 @@ function makeBarSprite(hex,w,h){
   const cv=document.createElement("canvas");cv.width=64;cv.height=16;
   const cx=cv.getContext("2d");
   cx.fillStyle=hex;cx.fillRect(0,0,64,16);
-  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),
+  const barTex=new THREE.CanvasTexture(cv);
+  barTex.colorSpace=THREE.SRGBColorSpace;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:barTex,
     transparent:true,depthWrite:false}));
   sp.scale.set(w,h,1);
   return sp;
@@ -281,6 +285,10 @@ renderer.setSize(innerWidth,innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+/* r165 色彩管理：sRGB 输出 + ACES（替代旧 outputEncoding / 非物理灯光） */
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=(BAL.sky&&BAL.sky.toneMappingExposure!=null)?BAL.sky.toneMappingExposure:1.35;
 $("#game").appendChild(renderer.domElement);
 addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);});

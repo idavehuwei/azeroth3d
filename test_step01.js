@@ -920,7 +920,7 @@ assert(!/CircleGeometry\(WORLD_R\+50/.test(worldSrc),"莫高雷不再用大圆�
 /* plan-V2 · R3 植被 · 水体 · 场景道具 */
 assert(html.includes('src="props.js"'),"game.html 加载 props.js");
 assert(html.includes('src="assets.js"'),"game.html 加载 assets.js");
-assert(html.includes('src="vendor/GLTFLoader.js"'),"game.html 加载 GLTFLoader");
+assert(html.includes('src="vendor/three.r165.js"'),"game.html 加载 three r165 包");
 assert(coreSrc.includes("props:{")&&coreSrc.includes("grassCount:"),"BALANCE.props 草数量");
 assert(coreSrc.includes("treeCount:")&&coreSrc.includes("treeBaseScale:"),"BALANCE.props 含 A 线树参数");
 const propsSrc=fs.readFileSync(path.join(__dirname,"props.js"),"utf8");
@@ -935,7 +935,11 @@ assert(fs.existsSync(path.join(__dirname,"models/foliage/pine_1.glb")),"入库 p
 assert(fs.existsSync(path.join(__dirname,"models/foliage/dead_2.glb")),"入库 dead_2.glb");
 assert(fs.existsSync(path.join(__dirname,"models/props/house_1.glb")),"入库 house_1.glb");
 assert(fs.existsSync(path.join(__dirname,"models/props/bell_tower.glb")),"入库 bell_tower.glb");
-assert(fs.existsSync(path.join(__dirname,"vendor/GLTFLoader.js")),"vendor/GLTFLoader.js 存在");
+assert(fs.existsSync(path.join(__dirname,"vendor/three.r165.js")),"vendor/three.r165.js 存在");
+assert(coreSrc.includes("outputColorSpace")&&coreSrc.includes("ACESFilmicToneMapping"),"renderer 使用 r165 色彩管理");
+assert(!/\.encoding\s*=\s*THREE\.sRGBEncoding/.test(fs.readFileSync(path.join(__dirname,"assets.js"),"utf8")),"assets 已改 colorSpace");
+assert(fs.readFileSync(path.join(__dirname,"assets.js"),"utf8").includes("SRGBColorSpace"),"assets 使用 SRGBColorSpace");
+assert(!fs.readFileSync(path.join(__dirname,"sky.js"),"utf8").includes("compileEquirectangularShader"),"sky 已去掉 compileEquirectangularShader");
 const assetsSrc=fs.readFileSync(path.join(__dirname,"assets.js"),"utf8");
 assert(assetsSrc.includes("updateCamGhosts")&&assetsSrc.includes("addWind"),"assets.js 含风摆与 camera-ghost");
 assert(assetsSrc.includes("twisted")&&assetsSrc.includes("tower:"),"assets 含扭曲树与钟楼");

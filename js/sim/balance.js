@@ -706,6 +706,7 @@ const BALANCE={
     ground:0x6a8a50,
     cloudStrength:.22,
     sunGlow:.55,
+    toneMappingExposure:1.35, /* r165 ACES 曝光；物理灯光下补偿观感 */
     raid:{
       lavaBase:1.6,
       lavaPulseAmp:.28,

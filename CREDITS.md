@@ -6,13 +6,13 @@
 
 | 依赖 | 用途 | 许可 |
 |------|------|------|
-| [Three.js r128](https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js) | 3D 渲染引擎 | MIT |
+| [Three.js r165](https://github.com/mrdoob/three.js/releases/tag/r165) | 3D 渲染引擎 | MIT |
 
-Three.js 通过 CDN 加载；`vendor/GLTFLoader.js` / `vendor/RGBELoader.js` 来自 three@0.128.0 examples。
+Three.js 与 addons 打包为 `vendor/three.r165.js`（`npm run build:three`，依赖 `three@0.165.0`）。
 
 ## 3D 模型（CC0 · 可再分发）
 
-仓库路径：`models/foliage/` · `models/props/`（已从官方管线成品解压为 r128 可用的浮点 GLB）。
+仓库路径：`models/foliage/` · `models/props/`（解压为标准浮点 GLB，兼容 r165 GLTFLoader）。
 
 | 包 | 作者 | 官方 URL | 许可 | 可再分发 | 本项目使用 |
 |------|------|----------|------|----------|------------|

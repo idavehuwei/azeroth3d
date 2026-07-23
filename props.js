@@ -374,9 +374,7 @@ const PROPS=(function(){
   }
 
   /**
-   * r128 InstancedMesh 视锥剔除只用「原点处几何包围球」，
-   * 不含 instanceMatrix → 镜头转到某些角度整批树消失。
-   * 分桶后 draw call 已有限，直接关闭 frustumCulled。
+   * InstancedMesh 视锥剔除历史上只看原点包围球；分桶后 draw call 已有限，关闭 frustumCulled 保稳。
    */
   function fitInstanceBounds(mesh){
     if(mesh)mesh.frustumCulled=false;

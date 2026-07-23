@@ -246,6 +246,7 @@ const Tex=(function(){
 
   function toTexture(canvas,key){
     const tex=new THREE.CanvasTexture(canvas);
+    tex.colorSpace=THREE.SRGBColorSpace;
     tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
     tex.magFilter=THREE.LinearFilter;
     tex.minFilter=THREE.LinearMipmapLinearFilter;
@@ -253,7 +254,6 @@ const Tex=(function(){
     tex.needsUpdate=true;
     const rep=RECIPES[key].repeat||[1,1];
     tex.repeat.set(rep[0],rep[1]);
-    /* r128 个别环境下 CanvasTexture.userData 可能未初始化 */
     if(!tex.userData)tex.userData={};
     tex.userData.texKey=key;
     tex.userData.sharedTex=true;
@@ -289,6 +289,7 @@ const Tex=(function(){
     }
     cx.putImageData(img,0,0);
     t=toTexture(c,key);
+    t.colorSpace=THREE.NoColorSpace;
     t.repeat.copy(get(key).repeat);
     cache.rough.set(key,t);
     return t;
@@ -328,6 +329,7 @@ const Tex=(function(){
     }
     cx.putImageData(out,0,0);
     t=toTexture(c,key);
+    t.colorSpace=THREE.NoColorSpace;
     t.repeat.copy(get(key).repeat);
     cache.normal.set(key,t);
     return t;

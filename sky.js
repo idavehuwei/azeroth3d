@@ -6,7 +6,7 @@
      阴影相机、萤火虫透明度、岩浆光脉动。任何 AI / 伤害 / 刷新 / 掉落 / 仇恨
      逻辑都不得读取本模块的时间或昼夜因子。
    ------------------------------------------------------------
-   [依赖] THREE · THREE.RGBELoader（vendor/RGBELoader.js）· core.js（BAL）
+   [依赖] THREE · THREE.RGBELoader（vendor/three.r165.js）· core.js（BAL）
    [导出] createSkyDome configureSunShadow attachFillLight
           initZoneSky updateSky disposeSky refreshSunShadows SKY
    ============================================================ */
@@ -93,7 +93,6 @@ const SKY=(function(){
       if(typeof renderer!=="undefined"&&renderer&&entry.scene&&!entry._iblDone){
         try{
           const pmrem=new THREE.PMREMGenerator(renderer);
-          pmrem.compileEquirectangularShader();
           const rt=pmrem.fromEquirectangular(tex);
           entry.scene.environment=rt.texture;
           entry._iblDone=true;

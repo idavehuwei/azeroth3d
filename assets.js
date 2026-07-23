@@ -2,7 +2,7 @@
    炽心 · assets.js
    CC0 GLB 资源加载 / 烘焙 / 克隆（plan-beautify · 三 · A 线）
    ------------------------------------------------------------
-   [依赖] THREE · THREE.GLTFLoader（vendor/GLTFLoader.js）
+   [依赖] THREE · THREE.GLTFLoader（vendor/three.r165.js）
           core.js（BAL · SeededRng · WORLD_SEED · hashZoneId）
    [导出] ASSETS
           ASSETS.ready / whenReady / isReady
@@ -74,7 +74,7 @@ const ASSETS=(function(){
     readyCbs.push(cb);
   }
 
-  /* r128 无 getComponent：走 array / getX·Y·Z */
+  /* 烘焙为独立浮点 BufferGeometry（兼容量化属性） */
   function toFloatAttr(attr){
     const count=attr.count|0;
     const itemSize=attr.itemSize|0;
@@ -156,7 +156,7 @@ const ASSETS=(function(){
     mat.transparent=false;
     mat.depthWrite=true;
     if(mat.map){
-      mat.map.encoding=THREE.sRGBEncoding;
+      mat.map.colorSpace=THREE.SRGBColorSpace;
       mat.map.needsUpdate=true;
     }
     if(pol.wind>0)addWind(mat,WIND_STRENGTH*pol.wind);
@@ -285,7 +285,7 @@ const ASSETS=(function(){
         const mats=Array.isArray(o.material)?o.material:[o.material];
         mats.forEach(m=>{
           if(!m)return;
-          if(m.map){m.map.encoding=THREE.sRGBEncoding;m.needsUpdate=true;}
+          if(m.map){m.map.colorSpace=THREE.SRGBColorSpace;m.needsUpdate=true;}
           /* 克隆材质以便 camera-ghost 单独改 depthWrite */
           if(!m.userData||!m.userData._ghostCloned){
             const cm=m.clone();

@@ -351,6 +351,9 @@ function ensureCharDoll(host){
     }
     ren.setClearColor(0x000000,0);
     ren.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
+    ren.outputColorSpace=THREE.SRGBColorSpace;
+    ren.toneMapping=THREE.ACESFilmicToneMapping;
+    ren.toneMappingExposure=(BAL.sky&&BAL.sky.toneMappingExposure!=null)?BAL.sky.toneMappingExposure:1.35;
     const scene=new THREE.Scene();
     const cam=new THREE.PerspectiveCamera(26,1,.1,40);
     cam.position.set(0,1.45,7.6);

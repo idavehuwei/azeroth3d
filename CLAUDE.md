@@ -8,7 +8,7 @@
 
 **熔火之心**（Azeroth3D）—— 经典风格 3D 网页游戏；世界骨架程序化，实体外观可叠加 CC0 资源。
 
-- 技术栈：Three.js r128（CDN）· 纯 JavaScript（ES6）· Canvas 2D · DOM + CSS
+- 技术栈：Three.js r165（`vendor/three.r165.js`，含 GLTFLoader / RGBELoader）· 纯 JavaScript（ES6）· Canvas 2D · DOM + CSS
 - 无构建工具；打开 `game.html` 即可游玩
 - 实体外观可走 **CC0 GLB / Poly Haven HDRI**（见 `CREDITS.md`）；技能图标与地面细节贴图仍程序化
 

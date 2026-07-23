@@ -96,7 +96,7 @@ js/
 
 | 技术 | 用途 |
 |------|------|
-| Three.js r128 | 3D 渲染引擎（CDN 引入） |
+| Three.js r165 | 3D 渲染引擎（`vendor/three.r165.js`） |
 | Canvas 2D | 运行时图标绘制（技能/物品图标） |
 | WebGL | Shader 材质（熔岩动画、传送门旋涡） |
 | 纯 DOM + CSS | UI 界面（零框架） |

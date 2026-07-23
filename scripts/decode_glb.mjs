@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 将 WoC meshopt+webp+quantized GLB 解压为 Three.js r128 可加载的标准浮点 GLB。
+ * 将 WoC meshopt+webp+quantized GLB 解压为标准浮点 GLB（兼容 Three.js r165 GLTFLoader）。
  * 用法: node scripts/decode_glb.mjs [paths...]
  */
 import fs from "fs";
