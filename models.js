@@ -8,7 +8,7 @@
           buildElder buildVendor buildSpiritHealer buildGraveyard tintNpcCloth
           buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem buildMarketStall buildCratePile
           buildLonghouse buildWell buildVillageGate buildSignpost buildLanternPole buildHaystack buildTrainingDummy buildWindmill
-          BUILD_PAL placeProp GRAVEYARDS registerGraveyard nearestGraveyardSpawn
+          buildDock BUILD_PAL placeProp GRAVEYARDS registerGraveyard nearestGraveyardSpawn
           （plan-v1 · V1-A1；R3 升级 tent/totem/campfire；STEP 17 墓地；beautify A 线 GLB 房）
    ------------------------------------------------------------
    配方表：职业 HUMANOIDS / 武器 WEAPONS / NPC · Boss · 建筑。
@@ -781,32 +781,42 @@ function buildSpiritHealer(){
 /* 墓地石碑 + 幽光（plan-v4 STEP 17） */
 function buildGraveyard(cfg){
   const c=Object.assign({size:1},cfg||{});
-  const g=new THREE.Group();
-  const stone=MAT.get("stone.grave",{color:0x6a7080,roughness:.95,flatShading:true});
-  const slab=new THREE.Mesh(new THREE.BoxGeometry(1.2,.14,1.7),stone);
-  slab.position.y=.07; g.add(slab);
-  const upright=new THREE.Mesh(new THREE.BoxGeometry(.72,1.55,.24),stone);
-  upright.position.y=.88; g.add(upright);
-  const cap=new THREE.Mesh(new THREE.BoxGeometry(.85,.22,.32),stone);
-  cap.position.y=1.72; g.add(cap);
-  const glow=new THREE.Mesh(
-    new THREE.SphereGeometry(.5,10,8),
-    new THREE.MeshBasicMaterial({color:0x88bbff,transparent:true,opacity:.38,depthWrite:false})
-  );
-  glow.position.set(0,1.35,.55); g.add(glow);
-  const ring=new THREE.Mesh(
-    new THREE.RingGeometry(.95,1.25,20),
-    new THREE.MeshBasicMaterial({color:0x6688cc,transparent:true,opacity:.42,side:THREE.DoubleSide,depthWrite:false})
-  );
-  ring.rotation.x=-Math.PI/2; ring.position.y=.04; g.add(ring);
-  g.scale.setScalar(c.size);
-  g.userData.building="graveyard";
-  g.traverse(o=>{
-    if(!o.isMesh)return;
-    if(o.material&&o.material.transparent){o.castShadow=false;o.receiveShadow=false;}
-    else{o.castShadow=true;o.receiveShadow=true;}
-  });
-  return g;
+  if(typeof ASSETS!=="undefined"&&ASSETS.isReady()){
+    const g=new THREE.Group();
+    const n=c.count!=null?c.count:6;
+    const seed=(c.seed!=null?c.seed:0x61A7E)>>>0;
+    for(let i=0;i<n;i++){
+      const stone=ASSETS.cloneBuilding("grave",{
+        seed:(seed^(i*9973))>>>0,
+        size:c.size*(.85+((i%3)*.08)),
+        targetH:1.5+((i%4)*.12),
+        targetW:.75+((i%3)*.1),
+        targetD:.4,
+      });
+      if(!stone)continue;
+      const row=(i/3)|0, col=i%3;
+      stone.position.set((col-1)*1.35+((i%2)*.15),0,row*1.7-((n>3)?.4:0));
+      stone.rotation.y=((i*1.7)%1-.5)*.35;
+      stone.rotation.z=((i*2.3)%1-.5)*.08;
+      g.add(stone);
+    }
+    /* 灵光（玩法标识，保留） */
+    const glow=new THREE.Mesh(
+      new THREE.SphereGeometry(.55,10,8),
+      new THREE.MeshBasicMaterial({color:0x88bbff,transparent:true,opacity:.32,depthWrite:false})
+    );
+    glow.position.set(0,1.2,.2); g.add(glow);
+    const ring=new THREE.Mesh(
+      new THREE.RingGeometry(1.8,2.2,20),
+      new THREE.MeshBasicMaterial({color:0x6688cc,transparent:true,opacity:.35,side:THREE.DoubleSide,depthWrite:false})
+    );
+    ring.rotation.x=-Math.PI/2; ring.position.y=.04; g.add(ring);
+    g.userData.building="graveyard";
+    g.userData.noCamCollide=true;
+    return g;
+  }
+  console.warn("[buildGraveyard] ASSETS 未就绪");
+  return new THREE.Group();
 }
 
 /** 灵魂落点注册表（营地 / 副本门口）；releaseSpirit 选最近 */
@@ -1101,34 +1111,52 @@ function buildFence(cfg){
     wood:BUILD_PAL.mulgore.wood, woodD:BUILD_PAL.mulgore.woodD,
     length:12, posts:7, h:2.2, size:1,
   },cfg||{});
+  if(typeof ASSETS!=="undefined"&&ASSETS.isReady()){
+    const g=new THREE.Group();
+    const segW=2.35;
+    const n=Math.max(2,Math.ceil(c.length/segW));
+    const seed=(c.seed!=null?c.seed:0xFE4CE)>>>0;
+    for(let i=0;i<n;i++){
+      const seg=ASSETS.cloneBuilding("fence",{
+        seed:(seed^(i*7919))>>>0,
+        size:c.size,
+        targetH:c.h!=null?c.h:2.2,
+        targetW:segW*1.02,
+        targetD:.38,
+      });
+      if(!seg)continue;
+      seg.position.x=i*segW-c.length/2+segW/2;
+      g.add(seg);
+    }
+    g.userData.building="fence";
+    g.userData.noCamCollide=true;
+    return g;
+  }
+  console.warn("[buildFence] ASSETS 未就绪");
+  return new THREE.Group();
+}
+
+/** 码头平台（CC0 dock_platform） */
+function buildDock(cfg){
+  const c=Object.assign({size:1,segments:3,seed:0xD0C7},cfg||{});
+  if(typeof ASSETS==="undefined"||!ASSETS.isReady()){
+    console.warn("[buildDock] ASSETS 未就绪");
+    return new THREE.Group();
+  }
   const g=new THREE.Group();
-  const wood=MAT.get("wood.build",{color:c.wood,roughness:.92,flatShading:true});
-  const woodD=MAT.get("wood.buildD",{color:c.woodD,roughness:.95,flatShading:true});
-  const n=Math.max(3,c.posts|0);
-  const step=c.length/(n-1);
-  for(let i=0;i<n;i++){
-    const post=new THREE.Mesh(new THREE.CylinderGeometry(.14,.18,c.h,5),woodD);
-    post.position.set(i*step-c.length/2,c.h/2,0); g.add(post);
-    /* 尖顶 */
-    const tip=new THREE.Mesh(new THREE.ConeGeometry(.12,.3,5),woodD);
-    tip.position.set(i*step-c.length/2,c.h+.15,0); g.add(tip);
+  const seed=c.seed>>>0;
+  for(let i=0;i<c.segments;i++){
+    const plank=ASSETS.cloneBuilding("dock",{
+      seed:(seed^(i*13331))>>>0,
+      size:c.size,
+      targetH:.5, targetW:4.0, targetD:3.2,
+    });
+    if(!plank)continue;
+    plank.position.z=i*3.0;
+    g.add(plank);
   }
-  /* 横梁（上下双轨，加厚） */
-  for(const y of [c.h*.28,c.h*.55,c.h*.78]){
-    const rail=new THREE.Mesh(new THREE.BoxGeometry(c.length,.16,.12),wood);
-    rail.position.set(0,y,0); g.add(rail);
-  }
-  /* 斜撑（每隔一段交叉） */
-  for(let i=0;i<n-1;i+=2){
-    const x1=i*step-c.length/2, x2=(i+1)*step-c.length/2;
-    const brace=new THREE.Mesh(new THREE.BoxGeometry(Math.abs(x2-x1),.08,.08),wood);
-    brace.position.set((x1+x2)/2,c.h*.4,0);
-    brace.rotation.z=i%2?.35:-.35;
-    g.add(brace);
-  }
-  g.scale.setScalar(c.size);
-  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
-  g.userData.building="fence";
+  g.userData.building="dock";
+  g.userData.noCamCollide=true;
   return g;
 }
 

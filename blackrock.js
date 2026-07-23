@@ -42,7 +42,7 @@ function buildBlackrockZone(scn){
   const _brSkyLights={heli:brHeli,sun:brSun};
   if(typeof initZoneSky==="function"){
     initZoneSky(root,_brSkyLights,{
-      zenith:0x3a1008, horizon:D.sky||0x4a1810, ground:D.dirt||0x1a0a06,
+      zenith:0x3a1008, horizon:D.sky||0x4a1810, ground:D.dirt||0x1a0a06, zoneId:"blackrock",
     });
   }
 
@@ -89,7 +89,7 @@ function buildBlackrockZone(scn){
       weights:{pine:0,oak:0,dead:.65,twisted:.35},
       baseScale:4.4, leafTint:0x5a5048, barkTint:0xa09080,
       heightFn:()=>0, seed:0xB1AC^WORLD_SEED,
-      bush:true, bushCount:50, fern:false, clusters:3,
+      bush:true, bushCount:50, fern:false, clusters:3, rockCount:45,
     });
   }
   placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:12,posts:6}),-20,-4,Math.PI/2);

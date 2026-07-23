@@ -119,7 +119,7 @@ function buildBarrensZone(scn){
   const _barrensSkyLights={heli:barrensHeli,sun:barrensSun};
   if(typeof initZoneSky==="function"){
     initZoneSky(root,_barrensSkyLights,{
-      zenith:0x6a8ab0, horizon:B.sky, ground:B.dirt||0x9a7848,
+      zenith:0x6a8ab0, horizon:B.sky, ground:B.dirt||0x9a7848, zoneId:"barrens",
     });
   }else{
     barrensSun.shadow.mapSize.set(2048,2048);
@@ -154,7 +154,7 @@ function buildBarrensZone(scn){
       weights:{pine:.05,oak:.12,dead:.55,twisted:.28},
       baseScale:5.8, leafTint:0xb0a468, barkTint:0xe6d2ac,
       heightFn:()=>0, seed:0xBA11EE5^WORLD_SEED,
-      bush:true, bushCount:180, fern:false, clusters:5,
+      bush:true, bushCount:180, fern:false, clusters:5, rockCount:55,
     });
   }
 

@@ -430,10 +430,11 @@ const PROPS=(function(){
     const oakSets=ASSETS.getTreeParts("oak");
     const deadSets=ASSETS.getTreeParts("dead");
     const twistedSets=ASSETS.getTreeParts("twisted");
+    const rockSets=ASSETS.getTreeParts("rock");
     const bushSets=ASSETS.getTreeParts("bush");
     const fernSets=ASSETS.getTreeParts("fern");
     const mushSets=ASSETS.getTreeParts("mushroom");
-    if(!pineSets.length&&!oakSets.length&&!deadSets.length&&!twistedSets.length)return false;
+    if(!pineSets.length&&!oakSets.length&&!deadSets.length&&!twistedSets.length&&!rockSets.length)return false;
 
     const spots=ctx.spots||collectTreeSpots(ctx);
     const baseScale=ctx.baseScale!=null?ctx.baseScale:(P().treeBaseScale!=null?P().treeBaseScale:5.2);
@@ -449,7 +450,7 @@ const PROPS=(function(){
     const buckets=new Map();
     function ensureBucket(key){
       let b=buckets.get(key);
-      if(!b){b={pine:[],oak:[],dead:[],twisted:[],bush:[]};buckets.set(key,b);}
+      if(!b){b={pine:[],oak:[],dead:[],twisted:[],rock:[],bush:[]};buckets.set(key,b);}
       return b;
     }
     for(let i=0;i<spots.length;i++){
@@ -478,7 +479,8 @@ const PROPS=(function(){
           mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
           mesh.count=items.length;
           mesh.castShadow=!!part.isLeaf||species==="dead"||species==="twisted";
-          mesh.receiveShadow=false;
+          mesh.receiveShadow=species==="rock";
+          /* 岩石不投阴影（WoC 策略）；树冠才投 */
           mesh.name="tree_"+species+"_"+v+"_"+p;
           mesh.userData.noCamCollide=true;
           const colors=new Float32Array(items.length*3);
@@ -517,6 +519,7 @@ const PROPS=(function(){
       emitSpecies("oak",oakSets,b.oak,leafTint,barkTint);
       emitSpecies("dead",deadSets,b.dead,0x9a8a70,0xc8b8a0);
       emitSpecies("twisted",twistedSets,b.twisted,0x7e8b58,0xb8a894);
+      emitSpecies("rock",rockSets,b.rock,0x8d8d85,0x8d8d85);
     });
 
     /* 地面装饰：灌木 / 蕨 / 蘑菇 */
@@ -640,6 +643,7 @@ const PROPS=(function(){
       heightFn:null,
       bush:true, bushCount:100,
       fern:false, fernCount:0, mushCount:0,
+      rockCount:0,
       clusters:3,
     },cfg||{});
     const run=()=>{
@@ -658,7 +662,7 @@ const PROPS=(function(){
         if(roll<wDead+wTw+wPine)return "pine";
         return "oak";
       }
-      function trySpot(x,z,scaleBias){
+      function trySpot(x,z,scaleBias,kind){
         const camps=c.avoid||[];
         for(let i=0;i<camps.length;i++){
           if(Math.hypot(x-camps[i].x,z-camps[i].z)<(camps[i].r||20))return;
@@ -666,7 +670,7 @@ const PROPS=(function(){
         const gy=typeof c.heightFn==="function"?c.heightFn(x,z)
           :(typeof heightAt==="function"?heightAt(x,z):0);
         spots.push({
-          x,z,y:gy,kind:pickKind(),
+          x,z,y:gy,kind:kind||pickKind(),
           yaw:rr()*Math.PI*2,
           scale:rs(.75,1.4)*(scaleBias||1),
           tilt:(rr()-.5)*.16,
@@ -689,6 +693,20 @@ const PROPS=(function(){
         for(let j=0;j<nIn;j++){
           const ja=rr()*Math.PI*2, jr=rr()*12;
           trySpot(ox+Math.cos(ja)*jr,oz+Math.sin(ja)*jr,.9+rr()*.4);
+        }
+      }
+      /* Quaternius 岩石 GLB */
+      const rockN=c.rockCount|0;
+      let rockPlaced=0, rockGuard=0;
+      while(rockPlaced<rockN&&rockGuard++<rockN*14){
+        const a=rr()*Math.PI*2;
+        const r=c.minR+Math.sqrt(rr())*(c.radius-c.minR);
+        const before=spots.length;
+        trySpot(c.cx+Math.cos(a)*r,c.cz+Math.sin(a)*r,1,"rock");
+        if(spots.length>before){
+          spots[spots.length-1].tilt=(rr()-.5)*.4;
+          spots[spots.length-1].scale=rs(.55,1.45);
+          rockPlaced++;
         }
       }
       return placeTreesGlb(scene,{
@@ -762,33 +780,62 @@ const PROPS=(function(){
   }
 
   function placeRockGroups(scene,ctx){
-    const n=(BAL.props&&BAL.props.rockGroups)||20;
-    const camps=ctx.avoid||[];
-    const worldR=ctx.worldR||320;
-    let placed=0,guard=0;
-    while(placed<n&&guard++<n*10){
-      const a=prand()*Math.PI*2;
-      const r=psrand(22,worldR-14);
-      const x=Math.cos(a)*r,z=Math.sin(a)*r;
-      let near=false;
-      for(let i=0;i<camps.length;i++){
-        const C=camps[i];
-        if(Math.hypot(x-C.x,z-C.z)<(C.r||40)){near=true;break;}
+    const C=ctx||{};
+    const run=()=>{
+      if(typeof ASSETS==="undefined"||!ASSETS.isReady())return false;
+      const rockSets=ASSETS.getTreeParts("rock");
+      if(!rockSets.length)return false;
+      const n=((BAL.props&&BAL.props.rockGroups)||48)|0;
+      const camps=C.avoid||[];
+      const worldR=C.worldR||320;
+      const spots=[];
+      let guard=0;
+      while(spots.length<n&&guard++<n*12){
+        const a=prand()*Math.PI*2;
+        const r=psrand(20,worldR-12);
+        const x=Math.cos(a)*r,z=Math.sin(a)*r;
+        let near=false;
+        for(let i=0;i<camps.length;i++){
+          if(Math.hypot(x-camps[i].x,z-camps[i].z)<(camps[i].r||38)){near=true;break;}
+        }
+        if(near)continue;
+        if(typeof TERRAIN!=="undefined"&&TERRAIN.cfg&&TERRAIN.cfg.ready){
+          const bp=P();
+          if(TERRAIN.roadWeight(x,z)>(bp.rockRoadMax!=null?bp.rockRoadMax:.25))continue;
+          if(TERRAIN.lakeBlend(x,z).w>(bp.rockLakeMax!=null?bp.rockLakeMax:.5))continue;
+        }
+        const gy=typeof heightAt==="function"?heightAt(x,z):0;
+        spots.push({
+          x,z,y:gy,kind:"rock",
+          yaw:prand()*Math.PI*2,
+          scale:psrand(.7,1.55),
+          tilt:(prand()-.5)*.35,
+        });
+        /* 约 30% 再加 1–2 颗碎石簇 */
+        if(prand()>.7){
+          const nExtra=1+((prand()*2)|0);
+          for(let k=0;k<nExtra;k++){
+            const ja=prand()*Math.PI*2,jr=psrand(1.2,3.5);
+            spots.push({
+              x:x+Math.cos(ja)*jr,z:z+Math.sin(ja)*jr,y:gy,
+              kind:"rock",yaw:prand()*Math.PI*2,
+              scale:psrand(.4,.9),tilt:(prand()-.5)*.5,
+            });
+          }
+        }
       }
-      if(near)continue;
-      if(typeof TERRAIN!=="undefined"&&TERRAIN.cfg&&TERRAIN.cfg.ready){
-        const bp=P();
-        if(TERRAIN.roadWeight(x,z)>(bp.rockRoadMax!=null?bp.rockRoadMax:.25))continue;
-        if(TERRAIN.lakeBlend(x,z).w>(bp.rockLakeMax!=null?bp.rockLakeMax:.5))continue;
-      }
-      const grp=buildRockGroup(0xC0C00000^(placed*13331)^(Math.floor(x*10)&0xffff));
-      const gy=typeof heightAt==="function"?heightAt(x,z):0;
-      grp.position.set(x,gy,z);
-      grp.rotation.y=prand()*Math.PI*2;
-      grp.scale.setScalar(psrand(.85,1.3));
-      scene.add(grp);
-      track(grp,true);
-      placed++;
+      return placeTreesGlb(scene,{
+        spots, baseScale:2.8, bush:false, fern:false,
+        leafTint:0x8d8d85, barkTint:0x8d8d85,
+      });
+    };
+    if(typeof ASSETS!=="undefined"&&!ASSETS.isReady()){
+      ASSETS.whenReady(()=>{run();});
+      return;
+    }
+    if(!run()){
+      /* GLB 失败时不回退程序化石堆（与树屋策略一致） */
+      console.warn("[placeRockGroups] rock GLB 不可用");
     }
   }
 

@@ -94,7 +94,7 @@ sun.position.set(40,70,30); sun.castShadow=true;
 sceneWorld.add(sun);
 sceneWorld.add(sun.target);
 /* plan-V2 · R4：天空穹顶 + 紧阴影 + 补光（替换 background Color / ±220 阴影） */
-const _mulgoreSkyInit=initZoneSky(sceneWorld,{heli,sun});
+const _mulgoreSkyInit=initZoneSky(sceneWorld,{heli,sun},{zoneId:"mulgore"});
 
 /* 高度场：经典赤蹄草甸 · 台地/矿洞/湖泊 + 多段土路网 */
 const _portalMC={x:0,z:-(WORLD_R-8)};
@@ -813,6 +813,12 @@ function placeMulgoreCampBuildings(){
   placeProp(sceneWorld,buildFence({wood:P.wood,woodD:P.woodD,length:20,posts:9}),T.x+4,T.z-22,0);
   const tcf=placeProp(sceneWorld,buildCampfire({flame:0xffa030,light:0xff8a30,size:1}),T.x+2,T.z+4,0);
   if(tcf&&tcf.userData.flame)worldFlames.push(tcf.userData.flame);
+  /* 石牛湖码头（CC0 dock） */
+  if(typeof buildDock==="function"){
+    const L=REDROCK_LAKE;
+    placeProp(sceneWorld,buildDock({segments:4,size:1}),L.x+18,L.z-6,Math.PI*.65);
+    placeProp(sceneWorld,buildDock({segments:3,size:.95}),L.x-16,L.z+10,-Math.PI*.4);
+  }
 }
 if(typeof ASSETS!=="undefined"&&!ASSETS.isReady()){
   ASSETS.whenReady(placeMulgoreCampBuildings);

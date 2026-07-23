@@ -22,6 +22,7 @@ const ASSETS=(function(){
       bush:["foliage/bush.glb","foliage/bush_flowers.glb"],
       fern:["foliage/fern.glb"],
       mushroom:["foliage/mushroom.glb"],
+      rock:["foliage/rock_1.glb","foliage/rock_2.glb","foliage/rock_3.glb"],
     },
     buildings:{
       house:["props/house_1.glb","props/house_2.glb","props/house_3.glb"],
@@ -29,6 +30,15 @@ const ASSETS=(function(){
       blacksmith:["props/blacksmith.glb"],
       tent:["props/tent_small.glb","props/tent_open.glb"],
       tower:["props/bell_tower.glb"],
+      fence:["props/fence.glb"],
+      grave:[
+        "props/gravestone_round.glb",
+        "props/gravestone_cross.glb",
+        "props/gravestone_bevel.glb",
+        "props/gravestone_decorative.glb",
+        "props/cracked_grave.glb",
+      ],
+      dock:["props/dock_platform.glb"],
     },
   };
 
@@ -249,6 +259,9 @@ const ASSETS=(function(){
       inn:{h:7.8,w:14,d:8.5},
       blacksmith:{h:6.6,w:9.5,d:8},
       tower:{h:11,w:5.5,d:5.5},
+      fence:{h:2.2,w:2.4,d:.4},
+      grave:{h:1.7,w:.85,d:.45},
+      dock:{h:.55,w:4.2,d:7.5},
       house:{h:6.8,w:8.5,d:7.2},
     };
     const def=defaults[kind]||defaults.house;

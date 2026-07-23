@@ -980,7 +980,7 @@ const BALANCE={
     treeLakeMax:.35,
     treeSlopeMax:.58,
     pineChance:.48,
-    rockGroups:14,
+    rockGroups:48,
     rocksPerGroup:[2,4],
     rockRoadMax:.25,
     rockLakeMax:.5,

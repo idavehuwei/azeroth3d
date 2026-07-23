@@ -1,12 +1,12 @@
 /* ============================================================
    炽心 · sky.js
-   天空穹顶 · 光照分层 · 阴影跟随 · 昼夜循环 · 副本热浪（plan-V2 · R4）
+   天空穹顶 · Poly Haven HDRI · 光照分层 · 阴影跟随 · 昼夜循环
    ------------------------------------------------------------
    ★ 铁律（render-only）：本文件只改视觉——灯光颜色/强度、雾色、天空 shader、
      阴影相机、萤火虫透明度、岩浆光脉动。任何 AI / 伤害 / 刷新 / 掉落 / 仇恨
      逻辑都不得读取本模块的时间或昼夜因子。
    ------------------------------------------------------------
-   [依赖] THREE · core.js（BAL）
+   [依赖] THREE · THREE.RGBELoader（vendor/RGBELoader.js）· core.js（BAL）
    [导出] createSkyDome configureSunShadow attachFillLight
           initZoneSky updateSky disposeSky refreshSunShadows SKY
    ============================================================ */
@@ -15,11 +15,96 @@
 const SKY=(function(){
   const _domes=new Map(); /* scene.uuid → {mesh, uni} */
   const _fills=new Map();
+  const _hdrCache=new Map();
+  const _hdrLoading=new Map();
   const _tmpC=new THREE.Color();
   const _tmpC2=new THREE.Color();
   const _sunDir=new THREE.Vector3();
 
+  /* 分区 → Poly Haven 生物群系 HDRI（对标 WoC sky.ts） */
+  const ZONE_BIOME={
+    mulgore:"vale", barrens:"peaks", durotar:"peaks",
+    ashen_canyon:"marsh", blackrock:"marsh", orgrimmar:"vale",
+  };
+  const BIOME_HDRI={
+    vale:"env/vale_day_1k.hdr",
+    marsh:"env/marsh_overcast_1k.hdr",
+    peaks:"env/peaks_dawn_1k.hdr",
+  };
+  const NIGHT_HDRI="env/night_1k.hdr";
+  /* 测过的最亮 texel u（太阳方位）；与游戏太阳方位对齐 */
+  const HDRI_SUN_U={vale:.595,marsh:.657,peaks:.631};
+  const HDRI_TUNE={
+    vale:{gain:.55,clamp:2.6},
+    marsh:{gain:.55,clamp:2.2},
+    peaks:{gain:.45,clamp:1.7},
+  };
+
   function balSky(){return BAL.sky||{};}
+
+  function loadHdr(url,cb){
+    if(_hdrCache.has(url)){cb(_hdrCache.get(url));return;}
+    if(_hdrLoading.has(url)){_hdrLoading.get(url).push(cb);return;}
+    _hdrLoading.set(url,[cb]);
+    if(typeof THREE.RGBELoader!=="function"){
+      console.warn("[SKY] RGBELoader 不可用，保留程序化穹顶");
+      _hdrLoading.delete(url);
+      return;
+    }
+    const loader=new THREE.RGBELoader();
+    loader.setDataType(THREE.FloatType);
+    loader.load(url,function(tex){
+      tex.mapping=THREE.EquirectangularReflectionMapping;
+      tex.wrapS=THREE.RepeatWrapping;
+      tex.wrapT=THREE.ClampToEdgeWrapping;
+      tex.minFilter=THREE.LinearFilter;
+      tex.magFilter=THREE.LinearFilter;
+      tex.generateMipmaps=false;
+      tex.needsUpdate=true;
+      _hdrCache.set(url,tex);
+      const cbs=_hdrLoading.get(url)||[];
+      _hdrLoading.delete(url);
+      for(let i=0;i<cbs.length;i++)try{cbs[i](tex);}catch(e){console.warn(e);}
+    },undefined,function(err){
+      console.warn("[SKY] HDR 加载失败",url,err);
+      _hdrLoading.delete(url);
+    });
+  }
+
+  function sunOffsetU(biome,sunDir){
+    const sunU=Math.atan2(sunDir.z,sunDir.x)/(Math.PI*2)+.5;
+    const hu=HDRI_SUN_U[biome]!=null?HDRI_SUN_U[biome]:.5;
+    return hu-sunU;
+  }
+
+  function ensureZoneHdr(entry,zoneId){
+    if(!entry||!entry.uni)return;
+    const biome=ZONE_BIOME[zoneId]||"vale";
+    if(entry._biome===biome&&entry.uni.uUseHdr.value>.5)return;
+    entry._biome=biome;
+    const dayUrl=BIOME_HDRI[biome]||BIOME_HDRI.vale;
+    const tune=HDRI_TUNE[biome]||HDRI_TUNE.vale;
+    entry.uni.uHdrGain.value=tune.gain;
+    entry.uni.uHdrClamp.value=tune.clamp;
+    loadHdr(dayUrl,function(tex){
+      entry.uni.uEnvDay.value=tex;
+      entry.uni.uUseHdr.value=1;
+      /* IBL：金属/水面反射 */
+      if(typeof renderer!=="undefined"&&renderer&&entry.scene&&!entry._iblDone){
+        try{
+          const pmrem=new THREE.PMREMGenerator(renderer);
+          pmrem.compileEquirectangularShader();
+          const rt=pmrem.fromEquirectangular(tex);
+          entry.scene.environment=rt.texture;
+          entry._iblDone=true;
+          pmrem.dispose();
+        }catch(e){/* 部分设备跳过 */}
+      }
+    });
+    loadHdr(NIGHT_HDRI,function(tex){
+      entry.uni.uEnvNight.value=tex;
+    });
+  }
 
   function createSkyDome(scene,opts){
     if(!scene)return null;
@@ -34,6 +119,12 @@ const SKY=(function(){
       uNight:{value:0},
       uCloud:{value:S.cloudStrength!=null?S.cloudStrength:.22},
       uGlow:{value:S.sunGlow!=null?S.sunGlow:.55},
+      uUseHdr:{value:0},
+      uHdrGain:{value:.55},
+      uHdrClamp:{value:2.6},
+      uOff:{value:0},
+      uEnvDay:{value:null},
+      uEnvNight:{value:null},
     };
     const mat=new THREE.ShaderMaterial({
       uniforms:uni,
@@ -56,6 +147,12 @@ const SKY=(function(){
         "uniform float uNight;",
         "uniform float uCloud;",
         "uniform float uGlow;",
+        "uniform float uUseHdr;",
+        "uniform float uHdrGain;",
+        "uniform float uHdrClamp;",
+        "uniform float uOff;",
+        "uniform sampler2D uEnvDay;",
+        "uniform sampler2D uEnvNight;",
         "varying vec3 vDir;",
         "float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}",
         "float noise(vec2 p){",
@@ -68,6 +165,12 @@ const SKY=(function(){
         "  float v=0.,a=.5;",
         "  for(int i=0;i<4;i++){v+=a*noise(p);p*=2.05;a*=.5;}",
         "  return v;",
+        "}",
+        "vec3 sampleHdr(sampler2D map, vec3 dir, float uOff){",
+        "  vec2 uv=vec2(",
+        "    atan(dir.z,dir.x)*0.15915494+0.5+uOff,",
+        "    asin(clamp(dir.y,-1.0,1.0))*0.31830989+0.5);",
+        "  return min(texture2D(map,uv).rgb*uHdrGain, vec3(uHdrClamp));",
         "}",
         "void main(){",
         "  vec3 d=normalize(vDir);",
@@ -86,10 +189,22 @@ const SKY=(function(){
         "  col=mix(col,vec3(.95,.97,1.0),clouds);",
         "  float stars=step(.992,hash(floor(d.xy*220.0)))*uNight*smoothstep(.1,.55,h);",
         "  col+=vec3(.85,.9,1.0)*stars;",
+        "  if(uUseHdr>0.5){",
+        "    vec3 dayC=sampleHdr(uEnvDay,d,uOff);",
+        "    vec3 nightC=sampleHdr(uEnvNight,d,uOff);",
+        "    vec3 hdr=mix(dayC,nightC,uNight);",
+        "    col=mix(col,hdr,.9);",
+        "    col+=vec3(1.0,.9,.65)*glow*.4;",
+        "  }",
         "  gl_FragColor=vec4(col,1.0);",
         "}",
       ].join("\n"),
     });
+    /* 占位 1×1，避免未绑定 sampler 报错 */
+    const stub=new THREE.DataTexture(new Float32Array([.45,.55,.75,1]),1,1,THREE.RGBAFormat,THREE.FloatType);
+    stub.needsUpdate=true;
+    uni.uEnvDay.value=stub;
+    uni.uEnvNight.value=stub;
     const geo=new THREE.SphereGeometry(S.radius||500,S.segsW||32,S.segsH||16);
     const mesh=new THREE.Mesh(geo,mat);
     mesh.name="skyDome";
@@ -97,8 +212,9 @@ const SKY=(function(){
     mesh.renderOrder=-100;
     scene.add(mesh);
     scene.background=null;
-    const entry={mesh,uni,scene};
+    const entry={mesh,uni,scene,_biome:null};
     _domes.set(scene.uuid,entry);
+    if(S.zoneId)ensureZoneHdr(entry,S.zoneId);
     return entry;
   }
 
@@ -165,9 +281,11 @@ const SKY=(function(){
 
   /** 为开放区挂穹顶 + 紧阴影 + 补光 */
   function initZoneSky(scene,lights,opts){
-    const dome=createSkyDome(scene,opts);
-    if(lights&&lights.sun)configureSunShadow(lights.sun,opts);
-    const fill=attachFillLight(scene,opts);
+    const O=opts||{};
+    const dome=createSkyDome(scene,O);
+    if(O.zoneId&&dome)ensureZoneHdr(dome,O.zoneId);
+    if(lights&&lights.sun)configureSunShadow(lights.sun,O);
+    const fill=attachFillLight(scene,O);
     if(lights)lights.fill=fill;
     if(typeof camera!=="undefined"&&camera&&balSky().cameraFar){
       camera.far=balSky().cameraFar;
@@ -258,6 +376,10 @@ const SKY=(function(){
     u.uHorizon.value.copy(palSample.sky);
     u.uGround.value.setHex((balSky().ground!=null?balSky().ground:0x6a8a50));
     u.uGround.value.lerp(new THREE.Color(dn.night.hemiGround),w.nightFactor*.8);
+    /* HDRI 方位角：把图中太阳拧到游戏太阳方位 */
+    if(u.uOff&&entry._biome){
+      u.uOff.value=sunOffsetU(entry._biome,sunDir);
+    }
   }
 
   function updateRaidPulse(t,dt){
@@ -354,6 +476,7 @@ const SKY=(function(){
       /* 有穹顶则不写 Color 背景 */
       const dome=_domes.get(scn.uuid);
       if(dome){
+        ensureZoneHdr(dome,cz.id);
         updateDome(dome,w,sample,_sunDir);
         /* 穹顶跟随玩家，避免远裁 */
         if(typeof player!=="undefined"&&player){

@@ -51,7 +51,7 @@ function buildAshenZone(scn){
   const _ashenSkyLights={heli:ashenHeli,sun:ashenSun};
   if(typeof initZoneSky==="function"){
     initZoneSky(root,_ashenSkyLights,{
-      zenith:0x6a3020, horizon:D.sky, ground:D.dirt||0x3a2218,
+      zenith:0x6a3020, horizon:D.sky, ground:D.dirt||0x3a2218, zoneId:"ashen_canyon",
     });
   }else{
     ashenSun.shadow.mapSize.set(2048,2048);
@@ -82,7 +82,7 @@ function buildAshenZone(scn){
       weights:{pine:0,oak:.04,dead:.5,twisted:.46},
       baseScale:5.0, leafTint:0x6a5f52, barkTint:0x9a8070,
       heightFn:()=>0, seed:0xA54E41^WORLD_SEED,
-      bush:true, bushCount:90, fern:false, clusters:6,
+      bush:true, bushCount:90, fern:false, clusters:6, rockCount:60,
     });
   }
   const rockMat=MAT.get("rock.ashen",{color:0x4a3028,emissive:0x501808,emissiveIntensity:.12});

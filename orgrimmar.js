@@ -162,7 +162,7 @@ function buildOrgrimmarZone(scn){
   root.add(orgSun); root.add(orgSun.target);
   if(typeof initZoneSky==="function"){
     initZoneSky(root,{heli:orgHeli,sun:orgSun},{
-      zenith:0x8a3020, horizon:D.sky||0xd86838, ground:D.dirt||0x6a2818,
+      zenith:0x8a3020, horizon:D.sky||0xd86838, ground:D.dirt||0x6a2818, zoneId:"orgrimmar",
     });
   }
 
@@ -183,7 +183,7 @@ function buildOrgrimmarZone(scn){
       weights:{pine:.15,oak:.35,dead:.3,twisted:.2},
       baseScale:4.8, leafTint:0x8a6a48, barkTint:0xd0b090,
       heightFn:()=>0, seed:0x066^WORLD_SEED,
-      bush:true, bushCount:110, fern:false, clusters:4,
+      bush:true, bushCount:110, fern:false, clusters:4, rockCount:40,
     });
   }
 

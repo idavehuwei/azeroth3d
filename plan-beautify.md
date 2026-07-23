@@ -160,7 +160,7 @@ GLB（KayKit Adventurers / Skeletons，Quaternius creatures）
 
 ## 三 · 树木与房子
 
-> **状态（2026-07-23）：A 线已落地** — `models/foliage|props/*.glb`（CC0 解压入库）+ `assets.js` + `props.js` InstancedMesh 分桶/风摆/弱色调/树冠投影 + `buildHut`/`buildTent` GLB + camera-ghost。见 `CREDITS.md`。
+> **状态（2026-07-23）：A 线已落地** — `models/foliage|props/*.glb`（树/石/灌木 + 房/帐篷/围栏/墓碑/码头）+ `env/*_1k.hdr`（Poly Haven HDRI）+ `assets.js` / `sky.js` + InstancedMesh 分桶/风摆/弱色调；技能图标仍走 `icons.js` 程序化（不碰 CraftPix）。地形高度/摆放/种子与 canvas 地面细节贴图保持程序化。见 `CREDITS.md`。
 
 ### 3.1 WoC 的做法（`foliage.ts` / `props.ts` 原文提炼）
 
@@ -253,7 +253,7 @@ ACES 色调映射 + UnrealBloom(0.32/0.55) + OutputPass；`GFX` 两档配置（l
 ### STEP B4 · 树 / 房子升级 `P0` · A 线 1 天 / B 线 2 天
 按第三节选定路线。无论哪条，统一走 **InstancedMesh 分带 + 风摆 shader + 每实例弱色调 + 树冠投影树干不投影**；房子加相机穿墙自动隐藏。
 **验收**：树木数量提升 3 倍以上而帧率不降；站营地看树梢随风摆动；相机贴墙时不被挡视线。
-**✅ A 线已完成（2026-07-23）**：`treeCount` 48→160；GLB 分桶 + 风摆 + 弱色调 + 树冠投影；`buildHut`/`buildTent` GLB；`ASSETS.updateCamGhosts`。
+**✅ A 线已完成（2026-07-23）**：`treeCount` 48→160；GLB 分桶 + 风摆 + 弱色调 + 树冠投影；岩石 / 围栏 / 墓碑 / 码头 GLB；Poly Haven HDRI 穹顶（分区生物群系 + 太阳方位对齐）；`buildHut`/`buildTent` GLB；`ASSETS.updateCamGhosts`。技能图标保持程序化。
 
 ### STEP B5 · 角色与怪物精细化 `P0` · A 线 1.5 天 / B 线 3 天
 按第二节选定路线。无论哪条，必须落地：**纯函数动画状态机 `desiredBaseState()` + `locomotionTimeScale()` 脚步匹配 + 受击/死亡/施法一次性动画**。Boss 拉戈斯保留程序化。

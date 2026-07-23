@@ -53,7 +53,7 @@ function buildDurotarZone(scn){
   const _durotarSkyLights={heli:durotarHeli,sun:durotarSun};
   if(typeof initZoneSky==="function"){
     initZoneSky(root,_durotarSkyLights,{
-      zenith:0x8a6040, horizon:D.sky, ground:D.dirt||0xa85828,
+      zenith:0x8a6040, horizon:D.sky, ground:D.dirt||0xa85828, zoneId:"durotar",
     });
   }else{
     durotarSun.shadow.mapSize.set(2048,2048);
@@ -94,7 +94,7 @@ function buildDurotarZone(scn){
       weights:{pine:.18,oak:.12,dead:.48,twisted:.22},
       baseScale:4.6, leafTint:0xc0aa74, barkTint:0xe8d4b0,
       heightFn:()=>0, seed:0xD0410A^WORLD_SEED,
-      bush:true, bushCount:140, fern:false, clusters:4,
+      bush:true, bushCount:140, fern:false, clusters:4, rockCount:70,
     });
   }
 

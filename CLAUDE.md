@@ -6,15 +6,15 @@
 
 ## 项目概览
 
-**熔火之心**（Azeroth3D）—— 经典风格 3D 网页游戏，所有资源程序化生成。
+**熔火之心**（Azeroth3D）—— 经典风格 3D 网页游戏；世界骨架程序化，实体外观可叠加 CC0 资源。
 
 - 技术栈：Three.js r128（CDN）· 纯 JavaScript（ES6）· Canvas 2D · DOM + CSS
-- 无外部美术资源，无构建工具
-- 单页应用，打开 `game.html` 即可游玩
+- 无构建工具；打开 `game.html` 即可游玩
+- 实体外观可走 **CC0 GLB / Poly Haven HDRI**（见 `CREDITS.md`）；技能图标与地面细节贴图仍程序化
 
 ## 硬性约束（必须遵守）
 
-1. **资源纪律。** 默认程序化；树木/建筑可走 A 线 CC0 GLB（`models/foliage/` · `models/props/`，见 `CREDITS.md`）。不引入付费/非 CC0 美术，不提交 .mp3。
+1. **资源纪律。** 默认程序化；树木/岩石/建筑可走 A 线 CC0 GLB（`models/`），天空可走 Poly Haven HDRI（`env/`），见 `CREDITS.md`。技能图标保持 `icons.js` 程序化。不引入付费/非 CC0 美术（尤其 CraftPix），不提交 .mp3。
 2. **数值外置。** 所有游戏数值写在 `BALANCE` 表（`core.js`），不散落在逻辑代码中。
 3. **世界确定性。** `world.js` / `models.js` 的摆放类随机走 `srand()`（SeededRng），不走 `rand()`（Math.random）。分区种子为 `WORLD_SEED ^ hash(zoneId)`（见 `zones.js` / `setZoneSeed`）。
 4. **Entity 统一受击。** 所有实体通过 `hitEntity` 入口，死亡挂接 `onDeath` 回调。
