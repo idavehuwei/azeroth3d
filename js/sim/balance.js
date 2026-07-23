@@ -280,6 +280,18 @@ const BALANCE={
     centaurHerald:{level:16, hp:9000,dmg:[140,200],atkCd:2.1,meleeR:3.4,aggroR:14,leashR:48,
       wanderSpd:2.2,chaseSpd:5.2,respawnT:240,xp:900,copper:[200,320],socialR:26,eliteBaked:true,
       cast:{name:"战矛投掷",dmg:[280,360],dur:1.4,cd:7,range:22,speed:18,hitR:3.2}},
+    /* plan-beautify B5 · GLB 生物 */
+    fox     :{level:2,  hp:260, dmg:[18,28],  atkCd:1.5, meleeR:1.8, aggroR:0,  leashR:24, wanderSpd:5,   chaseSpd:8.5, respawnT:18, xp:28,  copper:[3,7]},
+    stag    :{level:4,  hp:420, dmg:[30,46],  atkCd:1.8, meleeR:2.2, aggroR:0,  leashR:30, wanderSpd:4.5, chaseSpd:8,   respawnT:24, xp:55,  copper:[5,10]},
+    spider  :{level:8,  hp:680, dmg:[48,72],  atkCd:1.7, meleeR:2.2, aggroR:8,  leashR:30, wanderSpd:2.8,chaseSpd:5.8, respawnT:26,  xp:110, copper:[12,24]},
+    goblin  :{level:6,  hp:560, dmg:[38,58],  atkCd:1.8, meleeR:2.3, aggroR:8,  leashR:32, wanderSpd:2.6,chaseSpd:5.5, respawnT:26,  xp:90,  copper:[10,20], socialR:16},
+    orc     :{level:10, hp:980, dmg:[68,100], atkCd:2.0, meleeR:2.6, aggroR:10, leashR:36, wanderSpd:2.4,chaseSpd:5.2, respawnT:32,  xp:145, copper:[18,36], socialR:20},
+    ghost   :{level:12, hp:780, dmg:[58,88],  atkCd:1.8, meleeR:2.6, aggroR:10, leashR:32, wanderSpd:2.0,chaseSpd:4.5, respawnT:35,  xp:155, copper:[16,32], floating:true},
+    giant   :{level:18, hp:6500,dmg:[130,190],atkCd:2.5, meleeR:3.5, aggroR:14,leashR:50, wanderSpd:1.8,chaseSpd:4.0, respawnT:180, xp:700, copper:[160,280],eliteBaked:true},
+    demon   :{level:15, hp:4200,dmg:[105,155],atkCd:2.0, meleeR:3.0, aggroR:12,leashR:42, wanderSpd:2.4,chaseSpd:5.8, respawnT:90,  xp:420, copper:[80,140], eliteBaked:true,
+              cast:{name:"暗影箭",dmg:[240,320],dur:1.5,cd:6,range:18,speed:16,hitR:3.0}},
+    dragon  :{level:22, hp:14000,dmg:[180,260],atkCd:2.3,meleeR:4.0,aggroR:18,leashR:60, wanderSpd:2.0,chaseSpd:5.0, respawnT:360,xp:1800,copper:[400,700],eliteBaked:true,
+              cast:{name:"龙息",dmg:[400,550],dur:2.0,cd:8,range:24,speed:20,hitR:4.0}},
   },
   /* 脱战回巢（STEP 5 规范化）：回巢途中每秒回复最大生命的百分比，且免疫伤害 */
   leash:{regenPct:.5},

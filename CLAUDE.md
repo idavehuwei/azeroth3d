@@ -38,8 +38,8 @@
 | `items.js` | 物品与掉落 | QUALITY, ITEMS, LOOT, EQUIP_SLOTS, dropLoot, tryLoot, useItem, sellItem, equipItem, applyEquipStats, getPlayerWeaponRange |
 | `js/ui/tooltip.js` | 金边浮层 tip | showTipHtml, hideTip, bindTipHtml |
 | `rig.js` | 人形骨架 / Anim | createRigSkeleton, assembleHumanoidRig, updateHumanoidAnim, CLASS_LOOK_META |
-| `creatures.js` | 生物族群工厂 | buildQuadruped, buildElemental, buildHumanoidMob, buildFlameSpawn, QUADS, MOB_LOOK |
-| `assets.js` | CC0 GLB 加载 / 风摆 / camera-ghost | ASSETS |
+| `creatures.js` | 生物族群工厂（GLB 优先 + 热替换） | buildQuadruped, buildElemental, buildHumanoidMob, buildMeleeHumanoid, buildFlameSpawn, buildCreatureGLB, upgradeAllMobMeshes, QUADS, QUAD_TO_CREATURE, MOB_LOOK |
+| `assets.js` | CC0 GLB 加载 / 风摆 / camera-ghost | ASSETS（MANIFEST.trees/buildings/creatures, cloneBuilding, cloneCreature, getCreatureUrl, getTreeParts, markCamGhost, updateCamGhosts） |
 | `models.js` | 职业 / NPC / Boss / 建筑 | buildPlayer…, buildBoss, buildHut/Tent（优先 GLB）… |
 | `props.js` | 植被 / 水体 / 云 | spawnMulgoreProps（树 = GLB InstancedMesh 分桶） |
 | `anim.js` | 生物动画挂点 | updateMobAnim, beginDeathRoll, updateBossHammerAnim, updateBossWingAnim |

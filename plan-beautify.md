@@ -1,7 +1,36 @@
-# 熔火之心 · 美化计划（PLAN-BEAUTIFY v1.0）
+# 熔火之心 · 美化计划（PLAN-BEAUTIFY v1.4）
 
 **对标 `levy-street/world-of-claudecraft`（以下简称 WoC，v0.23.0，2026-07 抓取）**
 基线：本项目 v1.3.5 五模块（core / models / world / combat / main）+ `game.html`
+
+---
+
+## 进展账本（2026-07-23）
+
+对照〇节「WoC 真实做法」与第五节 STEP，当前落地情况：
+
+| 项 | 状态 | 说明 |
+| --- | --- | --- |
+| 树 / 石 / 灌木（〇·16） | ✅ | Quaternius Nature GLB · InstancedMesh 分桶 / 风摆 / 弱色调 · 各分区 `placeZoneTrees` + `rockCount` |
+| 房子 / 帐篷 / 围栏 / 墓碑 / 码头（〇·17） | ✅ | Village + Kenney/Pirate GLB · `buildHut`/`Tent`/`Fence`/`Graveyard`/`Dock` · camera-ghost |
+| 天空 HDRI（〇·18） | ✅ | `env/*_1k.hdr` · 分区生物群系 · 太阳方位 `uOff` · 可选 PMREM IBL |
+| 技能图标（〇·19） | ✅ 守住程序化 | 仍走 `icons.js` Canvas；**不碰** CraftPix |
+| 地形 / 摆放种子（〇·20） | ✅ 本就如此 | `srand` / 分区种子不变 |
+| 地面细节 / 草簇 / 云（〇·21） | ✅ 本就如此 | `textures.js` / `props.js` canvas |
+| **STEP B3.5** 资源试用与管线 | ✅（精简落地） | 成品 GLB 入库 + `scripts/decode_glb.mjs` + `CREDITS.md`；未建完整 `npm run assets` 压缩管线 |
+| **STEP B4** 树 / 房子 | ✅ | 见第三节状态条与 B4 验收注记 |
+| **STEP B0** 渲染管线 | 🟡 部分 | Three **r165** + ACES + `SRGBColorSpace` + HDRI IBL；**未做** UnrealBloom / N8AO / 调色 pass |
+| **STEP B5** 角色与怪物 | 🟡 生物侧完成 | 12 种 Quaternius 生物 GLB 全接入（20 mob 类型自动 GLB + 9 新类型）；**玩家角色 GLB 未做**（KayKit Adventurers 待入库） |
+| **STEP B1–B3 / B6–B8** | ❌ 未做 | UI token、名牌选择环、Bloom 等仍按原计划 |
+| **附录 B** CC0 资源调研（2026-07-23） | ✅ | 角色/生物/武器/地下城/世界装饰 CC0 资源清单（见附录 B）；下一步取用验证 |
+| **Quaternius 生物 GLB**（B.2/P0） | ✅ 入库 | 12 种：野猪/狼/蜘蛛/狐狸/雄鹿/公牛/地精/兽人/巨人/恶魔/龙/幽灵 · `models/creatures/` 2.3 MB |
+| **生物 GLB 全接入**（B.2/P0） | ✅ | 9 种待接入生物已全部完成：QUADS 映射（12→20 种 mob 自动 GLB）+ humanoid GLB 优先 + MOB_TYPES 9 新条目 + BAL 数值 9 条 + 掉落表 9 条 + 稀有/世界 Boss 注册 + 莫高雷/杜隆塔尔/贫瘠之地/黑石山刷新点 |
+
+**下一步建议（按性价比）**：补完 **B0 剩余**（Bloom + OutputPass）→ **B1** 目标框/token → **B5 剩余**（KayKit 玩家角色 GLB 入库 + 动画状态机接入）。
+
+**当前模型库存**：`models/foliage/` 16 MB（松×5/橡×4/枯×3/扭曲×3/灌木×2/蕨/蘑菇/岩石×3）+ `models/props/` 2.7 MB（房×3/旅店/铁匠铺/钟楼/帐篷×2/围栏/码头/墓碑×5）+ `models/creatures/` 4.7 MB（野猪/狼/蜘蛛/狐狸/雄鹿/公牛/地精/兽人/巨人/恶魔/龙/幽灵 12 种，meshopt→标准浮点 GLB）· 合计 **23 MB**。
+
+相关提交：`44cf8eb`（树/房）· `abd20eb`（石/围栏/墓碑/码头/HDRI）· `00a1678`（Three r165）。
 
 ---
 
@@ -160,7 +189,7 @@ GLB（KayKit Adventurers / Skeletons，Quaternius creatures）
 
 ## 三 · 树木与房子
 
-> **状态（2026-07-23）：A 线已落地** — `models/foliage|props/*.glb`（树/石/灌木 + 房/帐篷/围栏/墓碑/码头）+ `env/*_1k.hdr`（Poly Haven HDRI）+ `assets.js` / `sky.js` + InstancedMesh 分桶/风摆/弱色调；技能图标仍走 `icons.js` 程序化（不碰 CraftPix）。地形高度/摆放/种子与 canvas 地面细节贴图保持程序化。见 `CREDITS.md`。
+> **状态（2026-07-23）：A 线已落地** — `models/foliage|props/*.glb`（树/石/灌木 + 房/帐篷/围栏/墓碑/码头）+ `env/*_1k.hdr`（Poly Haven HDRI）+ `assets.js` / `sky.js` + InstancedMesh 分桶/风摆/弱色调；技能图标仍走 `icons.js` 程序化（不碰 CraftPix）。地形高度/摆放/种子与 canvas 地面细节贴图保持程序化。见 `CREDITS.md`。引擎已升至 **Three.js r165**（`vendor/three.r165.js`）。
 
 ### 3.1 WoC 的做法（`foliage.ts` / `props.ts` 原文提炼）
 
@@ -184,11 +213,15 @@ GLB（KayKit Adventurers / Skeletons，Quaternius creatures）
 
 ### 3.2 我们现在的差距
 
-`world.js` 的树是：`CylinderGeometry` 树干 + 一个 `SphereGeometry` 缩 y 的球当树冠，单色，逐个 `sceneWorld.add()`。房子是：`ConeGeometry` 帐篷 + `CylinderGeometry` 图腾柱。所以「明显不精细」有三个独立原因，**每个都能单独修**：
+> **（历史差距 · 已由 A 线关闭）** 升级前 `world.js` 的树是：`CylinderGeometry` 树干 + 一个 `SphereGeometry` 缩 y 的球当树冠，单色，逐个 `sceneWorld.add()`；房子是：`ConeGeometry` 帐篷 + 程序化木桁架。
 
-1. 形体过简（一个球 = 一棵树）
-2. 单色无贴图无风摆（死物感）
-3. 逐个 add（几百个对象各自 draw call，也就不敢加数量）
+当时「明显不精细」有三个独立原因，**A 线已一次性通解**：
+
+1. ~~形体过简（一个球 = 一棵树）~~ → GLB 变体 + 分区生物群系权重
+2. ~~单色无贴图无风摆（死物感）~~ → GLB 贴图 + `onBeforeCompile` 风摆 + `instanceColor` 弱色调
+3. ~~逐个 add（draw call 爆炸）~~ → InstancedMesh 分桶
+
+**仍未做（留给 B5 / 角色线）**：玩家 / 野怪仍是程序化人形 / 族群几何，未换 KayKit / Quaternius 角色 GLB。
 
 ### 3.3 两条路线
 
@@ -204,7 +237,7 @@ GLB（KayKit Adventurers / Skeletons，Quaternius creatures）
 
 ### 3.4 建议
 
-树与房子**建议走 A 线**：这是所有类别里 A 线性价比最高的（美术工作量最大、我们最不擅长、CC0 供给最充足、且不涉及玩法）。若坚持 B 线，优先做 **风摆 shader + 树冠簇化 + 木桁架套件 + InstancedMesh**，这四项大约两天工作量，能吃掉差距的 60%。
+树与房子**已走 A 线并收口**。后续世界装饰若再扩包（棕榈/悬崖等），继续 CC0 GLB + 同一套 InstancedMesh / 风摆管线即可。角色线见 **STEP B5**。
 
 ---
 
@@ -212,16 +245,16 @@ GLB（KayKit Adventurers / Skeletons，Quaternius creatures）
 
 三个问题都问「模型」，但 WoC 观感领先里有很大一块来自这里，且**完全不需要任何资源文件**：
 
-| 项目 | WoC | 我们 | 建议 |
+| 项目 | WoC | 我们（2026-07-23） | 建议 |
 | --- | --- | --- | --- |
-| 色调映射 | ACES Filmic + sRGB 输出 | 默认线性 | **立刻改**，一行 `renderer.toneMapping = THREE.ACESFilmicToneMapping`，观感提升立竿见影 |
-| 泛光 | UnrealBloom，`strength 0.32 / radius 0.55`（刻意收敛：火焰与传送门发光，天空不过曝） | 无 | **强烈建议**，我们是熔岩题材，bloom 是天然增益 |
-| 环境光遮蔽 | N8AO（high 半分辨率 / ultra 全分辨率） | 无 | 可选，成本较高 |
-| 调色 pass | 提升/gamma/增益 + 饱和度 + 暗角 + 轻微动态颗粒 | 只有 CSS 暗角 | 建议，把 CSS `#vignette` 移进 shader，暗角能跟随场景 |
-| 环境贴图 IBL | Poly Haven HDRI → PMREM | 无 | B 线替代：程序化渐变天空球 → `PMREMGenerator.fromScene()`，零文件也能拿到 IBL 反射 |
-| 画质分档 | `GfxTier: low/medium/high/ultra`，12 个分桶（分辨率/草/植被/道具/光照/材质/水天/VFX/角色/武器/世界流式/UI），设备自适应默认档 | 无 | 至少做 low/high 两档，移动端自动降 |
+| 色调映射 | ACES Filmic + sRGB 输出 | ✅ r165：`ACESFilmicToneMapping` + `SRGBColorSpace` + `toneMappingExposure` | 已落地；可按观感微调曝光 |
+| 泛光 | UnrealBloom，`strength 0.32 / radius 0.55` | ❌ 无 | **下一步补 B0**；熔岩题材收益大 |
+| 环境光遮蔽 | N8AO（high 半分辨率 / ultra 全分辨率） | ❌ 无 | 可选，成本较高 |
+| 调色 pass | 提升/gamma/增益 + 饱和度 + 暗角 + 轻微动态颗粒 | ⚠️ 只有 CSS 暗角 | 建议，把 CSS `#vignette` 移进 shader |
+| 环境贴图 IBL | Poly Haven HDRI → PMREM | ✅ HDRI 穹顶 + `PMREMGenerator.fromEquirectangular` | 已落地；可再调 gain/clamp |
+| 画质分档 | `GfxTier: low/medium/high/ultra`，12 个分桶 | ⚠️ 已有 `GFX_PRESETS` low/balanced/high（阴影/粒子） | 可扩展到 Bloom/植被密度 |
 
-**渲染管线这一节我建议排在最前面做**——它是全局乘数，会同时提升现有的每一个模型、每一处熔岩、每一个粒子，且不改任何玩法代码。
+**渲染管线乘数项：ACES/sRGB/HDRI 已接上；Bloom 仍是最大未做增益。**
 
 ---
 
@@ -232,6 +265,7 @@ GLB（KayKit Adventurers / Skeletons，Quaternius creatures）
 ### STEP B0 · 渲染管线升级 `P0` · 半天
 ACES 色调映射 + UnrealBloom(0.32/0.55) + OutputPass；`GFX` 两档配置（low/high，按 `devicePixelRatio` 与是否触屏自动选）；阴影贴图分辨率进 GFX 配置（移动端 1024）。
 **验收**：熔岩湖与火焰有辉光但天空不过曝；低端档下帧率不低于改前；玩法数值零改动。
+**🟡 部分完成（2026-07-23）**：Three.js **r165**（`vendor/three.r165.js`）+ ACES + sRGB 输出 + `BAL.sky.toneMappingExposure`；HDRI → PMREM IBL。**待补**：UnrealBloom + OutputPass；把 Bloom 强度挂进 `GFX_PRESETS`。
 
 ### STEP B1 · UI 骨架与 token `P0` · 1–1.5 天
 换 token（第 1.2 节整段）+ 引入 Cinzel/Alegreya Sans（或本地等宽替代）；目标框（头像 canvas + 等级 + ELITE + 名字 + HP/资源 + 目标读条 + 下挂 debuff + 目标的目标）；玩家框补头像与等级角标、战斗/休息图标；微型菜单 6 键竖列；动作条按钮改 46×46 + `icons.js` 图标位 + 冷却扫描。同时落地**每帧 DOM 写消除层**（约 30 行）。
@@ -249,11 +283,12 @@ ACES 色调映射 + UnrealBloom(0.32/0.55) + OutputPass；`GFX` 两档配置（l
 按**附录 A.3 第一阶段**稀疏克隆 WoC，取 `pine_1/2/3`、`oak_1/2`、`house_1/2/3`、`knight.glb`、`wild_boar.glb` 到 `assets/ref/`（**加 `.gitignore`，不提交**），用 `GLTFLoader` 替掉现有的树和玩家跑一遍，**看完效果再决定要不要继续走 A 线**。
 决定继续后，进第二阶段：从官方 CC0 源自行下载原包，照抄 `build_assets.mjs` + `specs/*.json` 建自己的压缩管线（`@gltf-transform` + `meshoptimizer` + `sharp`），把 `assets/ref/` 的临时文件全部替换成管线产出，再建 `CREDITS.md` 登记。
 **验收**：试用阶段有可对比的前后截图；正式阶段 `npm run assets` 能从 `tmp/asset_src/` 一键重建 `public/models/`，产出体积与 WoC 同量级（房子 <100 KB、树 <200 KB、角色 <1.3 MB）；`CREDITS.md` 每个包都有作者 / URL / 许可 / 可再分发性四列。
+**✅ 精简落地（2026-07-23）**：已选定 A 线；树/建筑/岩石/HDRI 成品 GLB·HDR 入库；`scripts/decode_glb.mjs` 解压 meshopt/webp；`CREDITS.md` 已登记。完整 `npm run assets` 官方源压缩管线仍可选补做（当前用解码成品即可玩）。
 
 ### STEP B4 · 树 / 房子升级 `P0` · A 线 1 天 / B 线 2 天
 按第三节选定路线。无论哪条，统一走 **InstancedMesh 分带 + 风摆 shader + 每实例弱色调 + 树冠投影树干不投影**；房子加相机穿墙自动隐藏。
 **验收**：树木数量提升 3 倍以上而帧率不降；站营地看树梢随风摆动；相机贴墙时不被挡视线。
-**✅ A 线已完成（2026-07-23）**：`treeCount` 48→160；GLB 分桶 + 风摆 + 弱色调 + 树冠投影；岩石 / 围栏 / 墓碑 / 码头 GLB；Poly Haven HDRI 穹顶（分区生物群系 + 太阳方位对齐）；`buildHut`/`buildTent` GLB；`ASSETS.updateCamGhosts`。技能图标保持程序化。
+**✅ A 线已完成（2026-07-23）**：`treeCount` 48→160；GLB 分桶 + 风摆 + 弱色调 + 树冠投影；岩石 / 围栏 / 墓碑 / 码头 GLB；Poly Haven HDRI 穹顶（分区生物群系 + 太阳方位对齐）；`buildHut`/`buildTent` GLB；`ASSETS.updateCamGhosts`。技能图标保持程序化。引擎升至 r165。
 
 ### STEP B5 · 角色与怪物精细化 `P0` · A 线 1.5 天 / B 线 3 天
 按第二节选定路线。无论哪条，必须落地：**纯函数动画状态机 `desiredBaseState()` + `locomotionTimeScale()` 脚步匹配 + 受击/死亡/施法一次性动画**。Boss 拉戈斯保留程序化。
@@ -270,7 +305,7 @@ ACES 色调映射 + UnrealBloom(0.32/0.55) + OutputPass；`GFX` 两档配置（l
 
 **总计**：A 线约 9.5 天（含 1.5 天资源管线），B 线约 12 天。
 
-**决策点在 B3.5 的前半天**——试用截图出来之前，不要提前承诺任何一条路线。
+**路线决策（已定）**：世界实体（树/石/建筑/天空）走 **A 线 CC0**；技能图标守程序化。角色/怪物（B5）尚未选定 A/B。
 
 ---
 
@@ -409,6 +444,154 @@ CC0 的模型包随便用，但它仓库里混着几类不同授权的资源，*
 
 ---
 
+## 附录 B · 下一批 CC0 资源地图（角色 / 生物 / 武器 / 地下城 / 装饰）
+
+> 调研日期：2026-07-23。全 CC0，可商用，可再分发。已在 CREDITS.md 登记的包不重复列。
+
+### B.1 当前库存与缺口
+
+| 类别 | 已入库 | 缺口 |
+|------|--------|------|
+| 植被 / 岩石 | ✅ 松/橡/枯/扭曲树、灌木、蕨、蘑菇、岩石（Quaternius Nature MegaKit） | 棕榈、沼泽树、雪松（若开新生物群系） |
+| 建筑 / 道具 | ✅ 房子/旅店/铁匠铺/钟楼/帐篷/围栏/墓碑/码头（Quaternius Village + Kenney/Pirate） | 井/货车/桶/灯笼/摊位等村庄填充物 |
+| 天空 | ✅ Poly Haven HDRI × 4 分区 | — |
+| **玩家角色** | ❌ 仍为程序化 Box 几何体 | **最大缺口** |
+| **生物 / 怪物** | ❌ 仍为族群程序化几何体 | **第二大缺口** |
+| **武器** | ❌ 无 | 需配合角色装备系统 |
+| **地下城模块** | ❌ 无 | 熔火之心/哀嚎/怒焰副本可用 |
+| 技能图标 | ✅ 守 `icons.js` 程序化 | — |
+
+### B.2 P0 · 角色与生物（STEP B5 对应，观感差距最大）
+
+KayKit Adventurers（CC0，低多边形，骨骼动画，单纹理图集）：
+
+| 文件 | 内容 | 参考体积 | 本项目用途 |
+|------|------|----------|------------|
+| `knight.glb` | 骑士（板甲、剑盾） | ~1.2 MB | 战士职业 |
+| `mage.glb` | 法师（长袍、法杖） | ~1.2 MB | 法师职业 |
+| `ranger.glb` | 游侠（兜帽、弓） | ~1.2 MB | 猎人职业 |
+| `rogue.glb` | 盗贼（皮甲、双匕） | ~1.2 MB | 潜行者职业 |
+
+- **官方源**：[GitHub KayKit Adventurers 1.0](https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0)（CC0 1.0）
+- **动画**：包内含 75 个动画剪辑（走/跑/持武器走跑/攻击/受击/死亡/施法/坐下/跳跃），`Rig_Medium` 骨架
+- **配件**：25+ 武器/盾牌可挂骨骼挂点
+- **注意**：GitHub 免费 1.0 版即可；若需 2.0 更多职业，去 [itch.io](https://kaylousberg.itch.io/) 确认条款后购买
+
+KayKit Skeletons（CC0，亡灵系）：
+
+| 文件 | 内容 | 参考体积 | 本项目用途 |
+|------|------|----------|------------|
+| `skeleton_warrior.glb` | 骷髅战士 | ~2 MB | 亡灵野怪 / 副本怪 |
+| `skeleton_mage.glb` | 骷髅法师 | ~2 MB | 亡灵施法者 |
+| `skeleton_rogue.glb` | 骷髅盗贼 | ~2 MB | — |
+
+- **官方源**：[GitHub KayKit Skeletons 1.0](https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0)（CC0 1.0）
+
+Quaternius Animated Creatures（CC0，全动画，低多边形）：
+
+| 推荐文件 | 参考体积 | 本项目用途 |
+|----------|----------|------------|
+| `wild_boar.glb` | ~284 KB | 莫高雷野猪（替换 `creatures.js` 族群） |
+| `wolf_basic.glb` | ~325 KB | 狼（贫瘠之地 / 通用） |
+| `spider.glb` | ~127 KB | 蜘蛛（哀嚎洞穴 / 灰烬峡谷） |
+| `fox.glb` | ~325 KB | 狐狸（莫高雷环境生物） |
+| `stag.glb` | ~310 KB | 雄鹿（莫高雷环境生物） |
+| `bull.glb` | ~310 KB | 公牛（贫瘠之地） |
+| `goblin.glb` | ~200 KB | 地精（副本 / 通用野怪） |
+| `orc.glb` | ~300 KB | 兽人（杜隆塔尔 / 通用） |
+| `giant.glb` | ~400 KB | 巨人（世界 Boss 候选） |
+| `demon.glb` | ~350 KB | 恶魔（熔火之心） |
+| `dragon.glb` | ~500 KB | 龙（奥妮克希亚 / 世界 Boss） |
+| `ghost.glb` | ~200 KB | 幽灵（副本 / 任务） |
+
+- **官方源**：[quaternius.com](https://quaternius.com) → Animated Creatures 标签页
+- **备选源**：[poly.pizza/u/Quaternius](https://poly.pizza/u/Quaternius)（GLB 直下）
+- **备选包**：[Quaternius 50 Animated Monsters](https://quaternius.itch.io/)（itch.io）
+- **最小可用集**：野猪 + 狼 + 蜘蛛 3 种 ≈ 740 KB 即可覆盖当前新手区野怪
+
+**建议**：玩家 3 职业（knight/mage/ranger）≈ 3.6 MB + 野怪 3 种 ≈ 0.7 MB，合计 **~4.3 MB** 换掉 `models.js` 和 `creatures.js` 的玩家与基础野怪。Boss 保留程序化。
+
+### B.3 P1 · 武器（配角色装备系统）
+
+KayKit Fantasy Weapons Bits（CC0）：
+
+| 类别 | 件数 | 参考体积 |
+|------|------|----------|
+| 剑（单手/双手） | 6+ | 单件 <30 KB |
+| 斧（单手/双手） | 4+ | 单件 <30 KB |
+| 锤/权杖 | 4+ | 单件 <30 KB |
+| 弓/弩 | 3+ | 单件 <30 KB |
+| 法杖/魔杖 | 4+ | 单件 <30 KB |
+| 盾牌 | 4+ | 单件 <30 KB |
+| 矛/长柄 | 3+ | 单件 <30 KB |
+
+- **官方源**：[itch.io KayKit Fantasy Weapons Bits](https://kaylousberg.itch.io/fantasy-weapons-bits)（CC0）
+- **特点**：共用一个 1024×1024 渐变纹理图集；GLTF/FBX/OBJ 多格式；免费版 25+ 件，Extra 版（$4.99）加 15 件元素武器
+- **引擎集成**：挂载到 KayKit Adventurers 骨骼的 `handslot.r` / `handslot.l` 挂点
+
+### B.4 P2 · 地下城模块件（副本场景）
+
+KayKit Dungeon Remastered 1.0（CC0）：
+
+| 类别 | 内容 |
+|------|------|
+| 结构件 | 墙/地/柱/拱/台阶/天花板（模块化，可拼接） |
+| 照明/氛围 | 火把/烛台/吊灯/旗帜 |
+| 家具/容器 | 箱子/木桶/桌椅/床/书架 |
+| 陷阱/机关 | 尖刺/铁栅栏 |
+| 装饰 | 链条/骷髅堆/蜘蛛网 |
+
+- **官方源**：[GitHub KayKit Dungeon Remastered 1.0](https://github.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0)（CC0 1.0）
+- **规模**：200+ 件，单纹理图集；v1.1 新增酒馆家具、模块化台阶
+- **本项目用途**：熔火之心（黑石山）· 哀嚎洞穴 · 怒焰裂谷 · 奥妮克希亚巢穴等副本场景替换
+- **精选最小集**：取墙/地/柱/火把/箱子 5 类 ≈ 1–2 MB 即可显著改善副本场景
+
+### B.5 P3 · 世界装饰补充（丰富已有场景）
+
+这些填充物让你的村庄/营地不再只有房子：
+
+| 资源包 | 推荐取用 | 参考体积 | 官方源 |
+|--------|----------|----------|--------|
+| **Quaternius Medieval Village** | 井 `well`、货车 `cart`、木桶 `barrel`、灯笼 `lantern`、路标 `signpost`、摊位 `market_stall`、砧 `anvil` | 单件 10–80 KB | [quaternius.com](https://quaternius.com/packs/medievalvillage.html) |
+| **Kenney Survival Kit v2** | 篝火 `campfire`、工具箱、板条箱、更多帐篷变体（你已有 `tent_small`/`tent_open`，还有 `tent_large`） | <1 MB 精选 | [kenney.nl](https://kenney.nl/assets/survival-kit) |
+| **Quaternius Fantasy Props MegaKit**（2025.6 新发布） | 200+ 道具：药水/书卷/金币袋/盾牌装饰/武器架/烛台/王座 | <2 MB 精选 | [quaternius.com](https://quaternius.com/packs/fantasypropsmegakit.html) |
+| **Quaternius Pirate Kit** | 棕榈树、船锚 `anchor`、炮 `cannon`、海滩小屋（你已有 `dock_platform`） | <1 MB 精选 | [quaternius.com](https://quaternius.com/packs/piratekit.html) |
+| **Kenney Fantasy Town Kit** | 城镇建筑模块、塔楼 | — | [kenney.nl](https://kenney.nl) |
+
+### B.6 P4 · 渲染补完（不需资源文件）
+
+按第八节「如果只能做三件事」，当前性价比排名：
+
+1. **B0 收口 · UnrealBloom**（半天）：EffectComposer + UnrealBloomPass（strength 0.32 / radius 0.55），熔岩/火焰/技能辉光。对观感提升最大。
+2. **B1 · UI token + 目标框**（1–1.5 天）：换 Cinzel/Alegreya 字体，暗底金边面板，目标框含头像/等级/HP/debuff。决定「像不像经典 MMO」。
+3. **B5 · 角色/怪物 GLB**（1.5 天）：用本附录 B.2 的最小集替换玩家与野怪。
+
+### B.7 取用路径（复用附录 A.3 三阶段）
+
+**第一阶段 · 快速验证**：从 WoC 仓库稀疏克隆
+
+```bash
+# 若 woc-ref 目录还在，追加 sparse-checkout
+cd woc-ref
+git sparse-checkout add public/models/chars/players public/models/creatures \
+                        public/models/weapons public/models/dungeon
+```
+
+**第二阶段 · 正式入库**：去 B.2–B.5 列的官方源自行下载原包，用 `scripts/decode_glb.mjs` 解码（或建 `npm run assets` 压缩管线），产出进 `models/`。
+
+**第三阶段 · 登记**：更新 `CREDITS.md`，逐包记录作者/URL/许可/可再分发。
+
+### B.8 绝对不能碰的
+
+重申附录 A.4：
+- ❌ CraftPix 技能图标（`public/ui/skills/**`）—— 采购授权，不随 fork 转移
+- ❌ WoC `quest/` 目录下的项目自制模型 —— 可随 fork 用，不可抽出单独发布
+- ❌ WoC 商业自有美术（Season 1 Armory、Claudium、功绩图标等）
+- ❌ CC BY-NC 音效（@jamiecypher）
+- ⚠️ KayKit Adventurers **2.0** 付费版 —— 走 GitHub 免费 1.0 版，许可无争议
+
+---
+
 ## 七 · 对 `plan-merged.md` 的修订建议
 
 1. **1.1 节结论改写**：WoC 今日的实际比例是「世界骨架程序化（地形/摆放/贴图/UI/图标/音效/天气）+ 实体资产 CC0 资源包（角色/生物/武器/树/建筑/HDRI）」。
@@ -420,19 +603,22 @@ CC0 的模型包随便用，但它仓库里混着几类不同授权的资源，*
 
 ## 八 · 如果只能做三件事
 
-1. **STEP B0 渲染管线**（半天，全局乘数，零玩法风险）
+1. ~~**STEP B0 渲染管线**~~ → **已部分完成**；补 **UnrealBloom**（半天内可收口 B0）
 2. **STEP B1 的 token 替换 + 目标框**（一天，「像不像经典 MMO」的单点决定因素）
-3. **STEP B4 的风摆 + InstancedMesh + 树冠簇化**（一天，世界从静物变活物）
+3. ~~**STEP B4 的风摆 + InstancedMesh**~~ → **已完成**；下一项换成 **STEP B5 角色/怪物**（或 B2 窗口底座，若先推 UI）
 
-这三件加起来两天半，能吃掉肉眼差距的一半以上。
+这三件（Bloom + B1 + B5）仍是吃掉剩余观感差距的最短路径。
 
 ## 九 · 今天就能做的第一件事
 
-跑附录 A.3 第一阶段那四行命令，把 `pine_1.glb`（107 KB）和 `house_1.glb`（83 KB）拖进现在的莫高雷草原，截一张图。
+~~跑附录 A.3 第一阶段拖 GLB 进莫高雷~~ → **已做过**。
 
-A 线还是 B 线的争论，一张对比图就结束了。
+**现在更合适的第一件事**：接 EffectComposer，给熔岩/火焰加收敛的 UnrealBloom（B0 收口），截一张改前改后对比图。
 
 ---
 
-*PLAN-BEAUTIFY v1.1 · 2026-07-23 · 对标 world-of-claudecraft v0.23.0（代码 MIT；资源许可见其 CREDITS.md）· 基线 熔火之心 v1.3.5*
+*PLAN-BEAUTIFY v1.4 · 2026-07-23 · 对标 world-of-claudecraft v0.23.0（代码 MIT；资源许可见其 CREDITS.md）· 基线 熔火之心 v1.3.5*
 *v1.1 变更：新增附录 A（GLB 资源地图 / 官方来源 / 三阶段取用路径 / 不可取用清单）、STEP B3.5 资源试用与管线、第九节。*
+*v1.2 变更：新增「进展账本」；〇节 16–21 / B3.5 / B4 / B0 部分项标为完成；第三节差距改为历史说明；第四节渲染表与第八/九节对齐当前状态；记录 Three.js r165。*
+*v1.3 变更：新增附录 B（下一批 CC0 资源地图 · P0–P4 优先级清单：角色/生物/武器/地下城/世界装饰 + 渲染补完建议），含当前模型库存统计、取用路径、不可碰清单。*
+*v1.4 变更：12 种生物 GLB 入库 + 全接入（7 文件改动）：QUADS 映射 12→20 mob 类型自动 GLB、humanoid GLB 优先、MOB_TYPES 9 新条目、BAL 数值/掉落表各 9 条、稀有/世界 Boss 注册、多分区刷新点。STEP B5 生物侧收口。*

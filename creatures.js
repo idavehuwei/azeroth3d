@@ -1,13 +1,16 @@
 /* ============================================================
    炽心 · creatures.js
-   生物族群工厂（plan-V2 · R6）
+   生物族群工厂（plan-V2 · R6 + plan-beautify B5 GLB）
    ------------------------------------------------------------
    [依赖] THREE · palette.js（MAT）· models.js（buildHumanoid · makeMats · prim · GEO 运行时）
+          assets.js（ASSETS.cloneCreature）
    [导出] buildQuadruped buildScorpion buildElemental buildFlameSpawn
           buildHumanoidMob buildMeleeHumanoid buildCentaur buildBoar
-          QUADS MOB_HUMANOIDS MELEE_HUMANOIDS MOB_LOOK ELEMENTALS
+          buildCreatureGLB upgradeAllMobMeshes tryUpgradeMobMesh
+          QUAD_TO_CREATURE QUADS MOB_HUMANOIDS MELEE_HUMANOIDS MOB_LOOK ELEMENTALS
    ------------------------------------------------------------
    四足 / 人形怪 / 元素：加怪种 = 配方表一条 + BALANCE.mobs 一条，不改工厂本体。
+   GLB 路径：QUADS style → QUAD_TO_CREATURE → ASSETS.cloneCreature；无 GLB 的回退程序化。
    ============================================================ */
 "use strict";
 
@@ -82,10 +85,36 @@ const QUADS={
             head:"wolf",gait:{freq:2.5,lift:.2},glow:0xff5010},
   scorchtusk:{fur:0x5a3830,furD:0x2a1810,accent:0xff7030,tusks:true,tuskBig:true,mane:true,ears:true,tail:'short',size:2.05,style:"boar",
             head:"boar",gait:{freq:1.75,lift:.15},glow:0xff6020},
+  /* plan-beautify B5 · GLB 生物新增 */
+  fox     :{fur:0xd89050,furD:0x8a5028,accent:0xf0c080,ears:true,tail:'bushy',size:.62,style:"fox",
+            head:"wolf",gait:{freq:2.8,lift:.22}},
+  stag    :{fur:0xb89860,furD:0x6a4828,accent:0xe0c888,ears:true,mane:false,tail:'short',size:.85,style:"stag",
+            head:"wolf",antlers:true,gait:{freq:2.4,lift:.22}},
+  spider  :{fur:0x2a2828,furD:0x1a1818,accent:0x6a3828,legs:8,size:.75,style:"spider",
+            head:"spider",gait:{freq:3.0,lift:.14}},
 };
 
 /** plan-V2 R6 名称：与 QUADS 同一对象，加四足怪 = MOB_LOOK.xxx */
 const MOB_LOOK=QUADS;
+
+/* ============================================================
+   GLB 生物映射：QUADS style → ASSETS creature kind
+   有映射 = 优先 GLB；无映射 = 回退程序化
+   ============================================================ */
+const QUAD_TO_CREATURE={
+  boar:"wild_boar", youngBoar:"wild_boar", bristleback:"wild_boar",
+  razorback:"wild_boar", deviate:"wild_boar", ashboar:"wild_boar",
+  scorchtusk:"wild_boar", quilboar:"wild_boar",
+  wolf:"wolf", palemane:"wolf", plainslion:"wolf",
+  cinderwolf:"wolf",
+  kodo:"bull",
+  fox:"fox",
+  stag:"stag",
+  spider:"spider",
+  /* 无 GLB 对应：bird thunderhawk raptor scorp crocolisk zebra
+     boarKing magmadar cobrahn verdan oggleflint taragaman lavabeast → 保留程序化
+     (可后续映射到 demon/giant 放大版) */
+};
 
 const MOB_HUMANOIDS={
   harpy:{size:1.55,skin:0xc9a2b8,feather:0x5a3a6e,featherD:0x3a2450,hair:0x2a1a3e,claw:0xe8e0c8,wings:true,claws:true},
@@ -113,6 +142,9 @@ const ELEMENTALS={
   earth:{color:0xa08050,emissive:0x705828,size:1.1,flame:false,rocks:5,light:0xa08050},
   oasis:{color:0x3a7a58,emissive:0x1a5030,size:1.15,flame:false,rocks:4,light:0x3a8a58},
   slag:{color:0x6a4030,emissive:0xff5020,size:1.0,flame:true,rocks:5,light:0xff6020},
+  /* plan-beautify B5 · GLB 人形（有骨骼模型时优先 GLB） */
+  goblin:{size:.85,skin:0x7a9a48,cloth:0x5a3828,clothD:0x3a2018,glb:"goblin"},
+  orc:{size:1.08,skin:0x8a6040,cloth:0x4a3830,clothD:0x2a2018,glb:"orc"},
 };
 
 /* ============================================================
@@ -234,7 +266,88 @@ function buildScorpion(cfg){
 }
 
 /* ============================================================
+   GLB 生物工厂（plan-beautify B5）
+   从 ASSETS.cloneCreature 取骨骼模型，设置缩放/阴影，
+   附加 gait 数据给 anim.js
+   ============================================================ */
+function buildCreatureGLB(kind,cfg){
+  const c=cfg||{};
+  if(typeof ASSETS==="undefined"||!ASSETS.cloneCreature){
+    console.warn("[creatures] ASSETS.cloneCreature 不可用，回退程序化");
+    return null;
+  }
+  const group=ASSETS.cloneCreature(kind,{scale:c.size||1,seed:c.seed||0});
+  if(!group)return null;
+  /* 四足动画数据（后续接入 AnimationMixer） */
+  group.userData.legs=c.legs!=null?c.legs:4;
+  group.userData.kind="quad_glb";
+  group.userData.gait=c.gait||{freq:2.0,lift:.12};
+  group.userData.anim=_creatureAnim();
+  group.userData.creatureKind=kind;
+  return group;
+}
+
+/* ============================================================
+   热替换：ASSETS 就绪后把已有程序化怪换成 GLB
+   ============================================================ */
+function tryUpgradeMobMesh(mob){
+  if(!mob||!mob.mesh||!mob.type)return false;
+  /* 四足：通过 MOB_TYPES 找到 QUADS style → creature */
+  const T=MOB_TYPES[mob.type];
+  if(!T)return false;
+  /* 优先用 build 重做（此时 ASSETS 已就绪，GLB 路径会命中） */
+  const newMesh=T.build();
+  if(!newMesh||newMesh===mob.mesh)return false;
+  /* 检查是否拿到了 GLB（quad_glb / humanoid_glb / meleeHumanoid_glb） */
+  const isGLB=newMesh.userData&&(
+    newMesh.userData.kind==="quad_glb"||
+    newMesh.userData.kind==="humanoid_glb"||
+    newMesh.userData.kind==="meleeHumanoid_glb"||
+    newMesh.userData.creatureKind
+  );
+  if(!isGLB){newMesh.traverse?.(o=>{if(o.geometry)o.geometry.dispose?.();if(o.material)o.material.dispose?.();});return false;}
+  /* 替换：保持位置/朝向，移除旧 mesh，加入新 mesh */
+  newMesh.position.copy(mob.mesh.position);
+  newMesh.rotation.copy(mob.mesh.rotation);
+  if(mob.mesh.scale)newMesh.scale.copy(mob.mesh.scale);
+  /* 精英缩放 */
+  if(mob.elite&&mob.mesh.scale){
+    const mul=mob.worldBoss
+      ?(BAL.elite.worldBossScaleMul||BAL.elite.scaleMul||1)
+      :(BAL.elite.scaleMul||1);
+    newMesh.scale.multiplyScalar(mul);
+  }
+  const parent=mob.mesh.parent;
+  if(parent){
+    parent.add(newMesh);
+    parent.remove(mob.mesh);
+  }
+  /* 更新 mob 引用 */
+  mob.mesh=newMesh;
+  mob.userData=newMesh.userData;
+  return true;
+}
+
+function upgradeAllMobMeshes(){
+  if(typeof MOBS==="undefined"||!MOBS)return;
+  let upgraded=0;
+  for(let i=0;i<MOBS.length;i++){
+    if(tryUpgradeMobMesh(MOBS[i]))upgraded++;
+  }
+  if(upgraded>0)console.info("[creatures] GLB 热替换完成：",upgraded,"只怪已升级");
+}
+
+/* 注册到 ASSETS 就绪回调 */
+if(typeof ASSETS!=="undefined"&&ASSETS.whenReady){
+  ASSETS.whenReady(()=>{
+    /* 等一帧让 GLB clone 缓存就绪 */
+    setTimeout(()=>upgradeAllMobMeshes(),100);
+  });
+}
+
+/* ============================================================
    四足族群：脊柱 2 节 + 颈 + 头 + 四腿（大腿/小腿/蹄）+ 尾
+   GLB 优先，无 GLB 回退程序化
    ============================================================ */
 function buildQuadruped(cfg){
   const c=Object.assign({size:1,legs:4,tusks:false,tuskBig:false,ears:true,mane:false,
@@ -242,6 +355,13 @@ function buildQuadruped(cfg){
     accent:null,stripes:false,glow:null,scorpion:false,style:"boar",bulk:1,
     head:"boar",gait:{freq:2.2,lift:.18}},cfg);
   if(c.scorpion)return buildScorpion(c);
+  /* -- GLB 优先：有对应模型的 style 走骨骼模型 -- */
+  const creatureKind=QUAD_TO_CREATURE[c.style];
+  if(creatureKind){
+    const glb=buildCreatureGLB(creatureKind,c);
+    if(glb)return glb;
+  }
+  /* -- 程序化回退 -- */
   /* 兼容旧 tail:'up' */
   if(c.tail==='up')c.tail='short';
 
@@ -516,6 +636,11 @@ function _harpyHumanoidCfg(c){
 
 function buildHumanoidMob(cfg){
   const c=Object.assign({size:1,wings:true,claws:true,tail:false,horns:false},cfg);
+  /* -- GLB 优先 -- */
+  if(c.glb){
+    const glb=buildCreatureGLB(c.glb,c);
+    if(glb){glb.userData.kind="humanoid_glb"; return glb;}
+  }
   if(typeof buildHumanoid!=="function"){
     /* 无 models 时的极简回退 */
     const g=new THREE.Group();
@@ -577,6 +702,11 @@ function buildHumanoidMob(cfg){
 /** 地面人形敌对：走 buildHumanoid 以获得腿/臂动画挂点 */
 function buildMeleeHumanoid(cfg){
   const c=Object.assign({size:1,skin:0xc9a080,cloth:0x4a5a6a,clothD:0x2a3038,helm:0x6a7078,weapon:0xb0b0b8},cfg);
+  /* -- GLB 优先 -- */
+  if(c.glb){
+    const glb=buildCreatureGLB(c.glb,c);
+    if(glb){glb.userData.kind="meleeHumanoid_glb"; return glb;}
+  }
   if(typeof buildHumanoid!=="function"){
     const g=new THREE.Group();
     g.userData={kind:"meleeHumanoid", anim:_creatureAnim()};

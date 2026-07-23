@@ -30,6 +30,13 @@ const RARES=[
   /* 粉色精英也走表，便于小地图统一 · 风啸岗（非稀有，短刷新） */
   {id:"harpy_mulgore", type:"harpy", zone:"mulgore",
     x:62, z:-300, rare:false, label:"鹰身女妖"},
+  /* plan-beautify B5 · GLB 稀有精英 */
+  {id:"demon_mulgore", type:"demon", zone:"mulgore",
+    x:-20, z:-180, rare:true, elite:true, label:"恶魔卫士", respawnT:3600},
+  {id:"ghost_wailing", type:"ghost", zone:"barrens",
+    x:88, z:-300, rare:true, label:"怨灵", respawnT:2400},
+  {id:"spider_queen", type:"spider", zone:"barrens",
+    x:120, z:-344, rare:true, elite:true, label:"蛛母", respawnT:3600},
 ];
 
 /* ---- 世界 Boss 表（野外可摸，非副本分段） ---- */
@@ -37,6 +44,13 @@ const WORLD_BOSSES=[
   {id:"centaur_warbringer", type:"centaurHerald", zone:"barrens",
     x:208, z:128, worldBoss:true, rare:true, label:"战争使者",
     name:"半人马战争使者", respawnT:7200},
+  /* plan-beautify B5 · GLB 世界 Boss */
+  {id:"giant_mulgore", type:"giant", zone:"mulgore",
+    x:-30, z:120, worldBoss:true, rare:true, label:"山岭巨人",
+    name:"山岭巨人克罗格", respawnT:7200},
+  {id:"dragon_blackrock", type:"dragon", zone:"blackrock",
+    x:-70, z:-80, worldBoss:true, rare:true, label:"黑龙",
+    name:"黑龙尼萨里奥", respawnT:10800},
 ];
 
 function isRareMob(m){return !!(m&&(m.rare||m.worldBoss));}
@@ -59,16 +73,23 @@ function spawnRareEntry(entry){
 
 function spawnRaresForZone(zoneId){
   if(!zoneId)return;
-  for(const e of RARES){
-    if(e.zone!==zoneId)continue;
-    /* 避免 ensureZoneBuilt 二次调用重复刷 */
-    if(MOBS.some(m=>m.rareId===e.id))continue;
-    spawnRareEntry(e);
-  }
-  for(const e of WORLD_BOSSES){
-    if(e.zone!==zoneId)continue;
-    if(MOBS.some(m=>m.rareId===e.id))continue;
-    spawnRareEntry(e);
+  const work=()=>{
+    for(const e of RARES){
+      if(e.zone!==zoneId)continue;
+      if(MOBS.some(m=>m.rareId===e.id))continue;
+      spawnRareEntry(e);
+    }
+    for(const e of WORLD_BOSSES){
+      if(e.zone!==zoneId)continue;
+      if(MOBS.some(m=>m.rareId===e.id))continue;
+      spawnRareEntry(e);
+    }
+  };
+  /* GLB 稀有/世界 Boss 需要等 ASSETS 加载完成，否则 build 返回 null */
+  if(typeof ASSETS!=="undefined"&&ASSETS.whenReady&&!ASSETS.isReady()){
+    ASSETS.whenReady(work);
+  }else{
+    work();
   }
 }
 

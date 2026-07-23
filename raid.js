@@ -1439,6 +1439,14 @@ function enterGhostForm(spawn){
   if(typeof saveGame==="function")saveGame(true);
 }
 
+function clearGhostForm(){
+  S.p.ghost=false;
+  setGhostVisual(false);
+  clearCorpseMark();
+  const ban=$("#ghostBanner");
+  if(ban)ban.style.display="none";
+}
+
 /** 读档恢复灵魂 / 倒地等待释放（plan-v4 STEP 17） */
 function restoreDeathFromSave(death){
   if(!death||typeof death!=="object")return false;

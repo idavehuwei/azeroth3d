@@ -878,6 +878,16 @@ const MOB_TYPES={
   centaurHerald:{name:"半人马战争使者",build:()=>buildCentaur(MOB_HUMANOIDS.centaurHerald),
     stats:"centaurHerald",loot:"centaurHerald",labelW:11,labelY:7.2,
     elite:true,rare:true,worldBoss:true,color:"#ffd700",auraColor:0xffb040},
+  /* plan-beautify B5 · GLB 生物新增 */
+  fox       :{name:"赤尾狐",      build:()=>buildQuadruped(QUADS.fox),         stats:"fox",        loot:"fox",        labelW:2.8,labelY:1.8, neutral:true},
+  stag      :{name:"平原雄鹿",    build:()=>buildQuadruped(QUADS.stag),        stats:"stag",       loot:"stag",       labelW:3.6,labelY:2.8, neutral:true},
+  spider    :{name:"洞窟蜘蛛",    build:()=>buildQuadruped(QUADS.spider),      stats:"spider",     loot:"spider",     labelW:3.4,labelY:1.6},
+  goblin    :{name:"地精斥候",    build:()=>buildMeleeHumanoid(MELEE_HUMANOIDS.goblin),stats:"goblin",loot:"goblin",labelW:4.0,labelY:2.4},
+  orc       :{name:"兽人步兵",    build:()=>buildMeleeHumanoid(MELEE_HUMANOIDS.orc),stats:"orc",loot:"orc",labelW:5.6,labelY:3.4},
+  ghost     :{name:"怨灵",        build:()=>buildCreatureGLB("ghost",{size:.85,legs:0,gait:{freq:1.2,lift:.06}}),stats:"ghost",loot:"ghost",labelW:3.6,labelY:2.8, floating:true},
+  giant     :{name:"山岭巨人",    build:()=>buildCreatureGLB("giant",{size:2.2,legs:2,gait:{freq:1.3,lift:.1}}),stats:"giant",loot:"giant",labelW:9,labelY:7.2,elite:true,color:"#ffd700",auraColor:0xffb040},
+  demon     :{name:"恶魔卫士",    build:()=>buildCreatureGLB("demon",{size:1.35,legs:2,gait:{freq:1.8,lift:.14}}),stats:"demon",loot:"demon",labelW:7,labelY:4.8,elite:true,color:"#ff6b5e",auraColor:0xff4422},
+  dragon    :{name:"黑龙",        build:()=>buildCreatureGLB("dragon",{size:2.8,legs:4,gait:{freq:1.6,lift:.12}}),stats:"dragon",loot:"dragon",labelW:12,labelY:9,elite:true,rare:true,worldBoss:true,color:"#ffd700",auraColor:0xff6630},
 };
 function attachEliteAura(m,colorHex,auraCfg){
   const E=auraCfg||BAL.elite.aura;
@@ -918,6 +928,7 @@ function spawnMob(type,x,z,group,opts){
   const zoneId=opts.zoneId||"mulgore";
   const T=MOB_TYPES[type], baseSt=BAL.mobs[T.stats];
   const mesh=T.build();
+  if(!mesh){console.warn("[spawnMob] build returned null for",type,"- ASSETS 未就绪或模型缺失");return null;}
   const gy=(zoneId==="mulgore"&&typeof heightAt==="function")?heightAt(x,z):0;
   mesh.position.set(x,gy,z);
   mesh.rotation.y=srand(0,6.28);
@@ -1046,6 +1057,9 @@ function aggroMob(m){
   [[P.x,P.z],[P.x+14,P.z-10],[P.x-12,P.z+12],[P.x+18,P.z+8],[P.x-16,P.z-8],[P.x+6,P.z+18]].forEach(([x,z])=>spawnMob("palemane",x,z,"palemane_pack"));
   /* 黄金平原 / 石牛湖 */
   [[G.x+20,G.z],[G.x-16,G.z+14],[G.x+8,G.z-18],[L.x-20,L.z+10],[L.x+16,L.z-12]].forEach(([x,z])=>spawnMob("bird",x,z));
+  /* plan-beautify B5 · GLB 环境生物 */
+  [[G.x+26,G.z-12],[G.x-22,G.z+18],[L.x-14,L.z+8],[L.x+22,L.z-16],[B.x+50,B.z+30]].forEach(([x,z])=>spawnMob("fox",x,z));
+  [[G.x-28,G.z-8],[G.x+14,G.z+22],[L.x-8,L.z-16],[L.x+18,L.z+12],[B.x-46,B.z+28]].forEach(([x,z])=>spawnMob("stag",x,z));
   /* 雷角水井：水元素 */
   [[TH.x+10,TH.z],[TH.x-8,TH.z+8],[TH.x+4,TH.z-10],[TH.x-12,TH.z-6]].forEach(([x,z])=>spawnMob("waterElement",x,z));
   /* 巴尔丹 */
@@ -1056,6 +1070,9 @@ function aggroMob(m){
   /* 风投矿洞 */
   [[V.x+10,V.z+6],[V.x-12,V.z-8],[V.x+8,V.z-14],[V.x-16,V.z+10],[V.x+18,V.z+4]].forEach(([x,z])=>spawnMob("venture",x,z,"venture_mine"));
   spawnMob("ventureBoss",V.x-4,V.z+2,"venture_mine");
+  /* plan-beautify B5 · GLB 洞穴/地下城周边 */
+  [[V.x+24,V.z-14],[V.x-22,V.z+18],[BD.x+18,BD.z-12],[BD.x-14,BD.z-16]].forEach(([x,z])=>spawnMob("spider",x,z,"cave_spiders"));
+  [[V.x-28,V.z-8],[V.x+30,V.z+12],[BD.x-20,BD.z+14],[BD.x+22,BD.z-10]].forEach(([x,z])=>spawnMob("goblin",x,z,"cave_goblins"));
 })();
 /* 稀有/精英：rares.js 加载后 spawnRaresForZone("mulgore") */
 function moveToward(m,dest,spd,dt){

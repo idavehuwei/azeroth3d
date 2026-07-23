@@ -7,6 +7,7 @@
    [导出] ASSETS
           ASSETS.ready / whenReady / isReady
           ASSETS.getTreeParts / getBuildingProto / cloneBuilding
+          ASSETS.cloneCreature / getCreatureUrl
           ASSETS.sharedTime / markCamGhost / updateCamGhosts
    ============================================================ */
 "use strict";
@@ -40,6 +41,20 @@ const ASSETS=(function(){
       ],
       dock:["props/dock_platform.glb"],
     },
+    creatures:{
+      wild_boar:["creatures/wild_boar.glb"],
+      wolf:["creatures/wolf_basic.glb"],
+      spider:["creatures/spider.glb"],
+      fox:["creatures/fox.glb"],
+      stag:["creatures/stag.glb"],
+      bull:["creatures/bull.glb"],
+      goblin:["creatures/goblin.glb"],
+      orc:["creatures/orc.glb"],
+      giant:["creatures/giant.glb"],
+      demon:["creatures/demon.glb"],
+      dragon:["creatures/dragon.glb"],
+      ghost:["creatures/ghost.glb"],
+    },
   };
 
   const MAT_POLICY={
@@ -63,6 +78,7 @@ const ASSETS=(function(){
   const gltfCache=new Map();
   const treePartsCache=new Map();
   const buildingProto=new Map();
+  const creatureProto=new Map();
   const camGhosts=[];
   let ready=false;
   let readyPromise=null;
@@ -309,6 +325,94 @@ const ASSETS=(function(){
     return g;
   }
 
+  /* -- 生物 GLB --------------------------------------- */
+
+  function prepareCreature(url){
+    if(creatureProto.has(url))return creatureProto.get(url);
+    const gltf=gltfCache.get(url);
+    if(!gltf)return null;
+    const root=gltf.scene.clone(true);
+    root.updateMatrixWorld(true);
+    const m=measureScene(root);
+    /* 把底移到 y=0，归一化高度为 1 */
+    root.position.y-=m.minY;
+    root.updateMatrixWorld(true);
+    const m2=measureScene(root);
+    const proto={
+      url,
+      root,
+      size:m2.size.clone(),
+      height:m2.size.y||1,
+      animations:gltf.animations||[],
+    };
+    creatureProto.set(url,proto);
+    return proto;
+  }
+
+  function getCreatureUrl(kind,seed){
+    const list=MANIFEST.creatures[kind];
+    if(!list||!list.length)return null;
+    if(seed!=null)return list[(seed>>>0)%list.length];
+    return list[0];
+  }
+
+  function cloneCreature(kind,cfg){
+    const c=cfg||{};
+    const list=MANIFEST.creatures[kind];
+    if(!list||!list.length||!ready)return null;
+    let idx=0;
+    if(c.variant!=null)idx=((c.variant%list.length)+list.length)%list.length;
+    else if(c.seed!=null)idx=(c.seed>>>0)%list.length;
+    const url=list[idx];
+    const proto=prepareCreature(url);
+    if(!proto)return null;
+    /* 从原始 gltf.scene 克隆（避免 proto.root 双克隆导致 SkinnedMesh
+       骨骼引用指向缓存中的旧骨骼，其 world 矩阵永不更新 → 顶点坍缩不可见） */
+    const gltf=gltfCache.get(url);
+    if(!gltf)return null;
+    const root=gltf.scene.clone(true);
+    /* -- 骨骼重映射：将 SkinnedMesh.skeleton.bones 替换为克隆层级中的新骨骼 -- */
+    const boneMap=new Map();
+    root.traverse(o=>{if(o.isBone&&o.name)boneMap.set(o.name,o);});
+    root.traverse(o=>{
+      if(!o.isSkinnedMesh||!o.skeleton)return;
+      const newBones=o.skeleton.bones.map(old=>boneMap.get(old.name)||old);
+      o.skeleton.bones=newBones;
+    });
+    /* 应用底部对齐偏移（prepareCreature 已算好） */
+    root.position.copy(proto.root.position);
+    root.rotation.copy(proto.root.rotation);
+    root.scale.copy(proto.root.scale);
+    root.updateMatrixWorld(true);
+    const g=new THREE.Group();
+    g.add(root);
+    const sc=c.scale!=null?c.scale:1;
+    g.scale.setScalar(sc);
+    g.traverse(o=>{
+      if(!o.isMesh)return;
+      o.castShadow=true;
+      o.receiveShadow=true;
+      /* 部分 GLB 缺少 NORMAL（如 wild_boar），补齐以免 PBR 全黑 */
+      if(o.geometry&&!o.geometry.getAttribute("normal")){
+        o.geometry.computeVertexNormals();
+      }
+      if(o.material){
+        const mats=Array.isArray(o.material)?o.material:[o.material];
+        mats.forEach(m=>{
+          if(!m)return;
+          if(m.map){m.map.colorSpace=THREE.SRGBColorSpace;m.needsUpdate=true;}
+        });
+      }
+    });
+    g.userData.creature=kind;
+    g.userData.glb=url;
+    g.userData.animations=proto.animations;
+    /* 碰撞半径 = max(size.x,size.z)*0.4*sc */
+    g.userData.hitRadius=Math.max(proto.size.x,proto.size.z)*0.4*sc;
+    g.userData.height=proto.height*sc;
+    return g;
+  }
+
   function markCamGhost(group,foot){
     if(!group)return;
     const mats=[];
@@ -421,6 +525,7 @@ const ASSETS=(function(){
     const u=[];
     Object.keys(MANIFEST.trees).forEach(k=>MANIFEST.trees[k].forEach(x=>u.push(x)));
     Object.keys(MANIFEST.buildings).forEach(k=>MANIFEST.buildings[k].forEach(x=>u.push(x)));
+    Object.keys(MANIFEST.creatures).forEach(k=>MANIFEST.creatures[k].forEach(x=>u.push(x)));
     return u;
   }
 
@@ -449,6 +554,9 @@ const ASSETS=(function(){
                 Object.keys(MANIFEST.trees).forEach(k=>getTreeParts(k));
                 Object.keys(MANIFEST.buildings).forEach(k=>{
                   (MANIFEST.buildings[k]||[]).forEach(u=>prepareBuilding(u));
+                });
+                Object.keys(MANIFEST.creatures).forEach(k=>{
+                  (MANIFEST.creatures[k]||[]).forEach(u=>prepareCreature(u));
                 });
               }catch(e){
                 console.warn("[ASSETS] 预烘焙失败",e&&e.message||e);
@@ -482,6 +590,7 @@ const ASSETS=(function(){
     ready:startLoad,
     isReady,whenReady,startLoad,
     getTreeParts,cloneBuilding,prepareBuilding,
+    cloneCreature,getCreatureUrl,
     markCamGhost,updateCamGhosts,
     get camGhosts(){return camGhosts;},
   };

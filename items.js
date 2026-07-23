@@ -471,6 +471,53 @@ const LOOT={
     rare    :["slag_helm","ember_band","sulf_blade","ash_treads"],
     epic    :["slag_helm","ember_band","sulf_blade"],
   },
+  /* plan-beautify B5 · GLB 生物掉落 */
+  fox:{
+    common  :["wolf_pelt","bird_meat","chipped_bone"],
+    uncommon:["hide_vest","plains_cloak"],
+    poor    :["frayed_cloth","rusty_nail"],
+    rare    :["plains_cap"],
+  },
+  stag:{
+    common  :["boar_hide","boar_meat","bird_feather"],
+    uncommon:["hide_vest","plains_boots","hide_belt"],
+    poor    :["chipped_bone","worn_boot"],
+    rare    :["plains_band"],
+  },
+  spider:{
+    common  :["sulf_ash","chipped_bone","frayed_cloth"],
+    uncommon:["hide_bracers","ash_charm","sulf_ring"],
+    rare    :["sulf_blade","sulf_orb"],
+  },
+  goblin:{
+    common  :["bent_copper","rusty_nail","frayed_cloth"],
+    uncommon:["iron_bracer","hide_belt","scrap_knife"],
+    rare    :["plains_blade","mesa_guard"],
+  },
+  orc:{
+    common  :["wolf_pelt","boar_hide","bent_copper"],
+    uncommon:["war_shoulders","barrens_cuirass","iron_bracer"],
+    rare    :["barrens_cleaver","barrens_greaves"],
+  },
+  ghost:{
+    common  :["sulf_ash","chipped_bone"],
+    uncommon:["sulf_ring","ash_charm","sulf_orb"],
+    rare    :["ember_band","sulf_blade"],
+  },
+  giant:{
+    uncommon:["barrens_cleaver","war_shoulders","barrens_cuirass"],
+    rare    :["mesa_guard","mesa_helm","barrens_greaves"],
+    epic    :["mesa_guard","mesa_helm","barrens_greaves"],
+  },
+  demon:{
+    uncommon:["sulf_blade","rage_blade","cinder_vest"],
+    rare    :["slag_helm","ember_band","ash_treads"],
+    epic    :["slag_helm","ember_band","sulf_blade"],
+  },
+  dragon:{
+    rare    :["slag_helm","mesa_guard","barrens_cleaver","ash_treads"],
+    epic    :["slag_helm","ember_band","sulf_blade","mesa_guard"],
+  },
 };
 /* 按权重掷品质档（可传 BAL.loot.eliteWeights / 英雄权重等），再从该档均匀取一件
    跳过表中不存在的档，避免英雄 epic 权重砸空池 */

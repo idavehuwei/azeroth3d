@@ -279,6 +279,10 @@ function buildDurotarZone(scn){
   });
   spawnMob("cliffHarpy",152,-112,null,{zoneId:"durotar"});
   spawnMob("cliffHarpy",-180,-80,null,{zoneId:"durotar"});
+  /* plan-beautify B5 · GLB 兽人步兵 */
+  [[-100,60],[-130,100],[80,80],[100,-60],[-60,-120],[140,40]].forEach(([x,z])=>{
+    spawnMob("orc",x,z,"durotar_orcs",{zoneId:"durotar"});
+  });
 
   if(typeof spawnRaresForZone==="function")spawnRaresForZone("durotar");
   updateDurotarMarkers();
