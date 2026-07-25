@@ -17,10 +17,10 @@ Three.js 与 addons 打包为 `vendor/three.r165.js`（`npm run build:three`，�
 | 包 | 作者 | 官方 URL | 许可 | 可再分发 | 本项目使用 |
 |------|------|----------|------|----------|------------|
 | Stylized Nature MegaKit | Quaternius | https://quaternius.itch.io/stylized-nature-megakit | CC0 1.0 | 是 | 松/橡/枯木/扭曲树/灌木/蕨/蘑菇/**岩石** |
-| Medieval Village Pack / MegaKit | Quaternius | https://quaternius.com/packs/medievalvillage.html | CC0 1.0 | 是 | 房子 / 旅店 / 铁匠铺 / 钟楼 / **围栏** |
+| Medieval Village Pack / MegaKit | Quaternius | https://quaternius.com/packs/medievalvillage.html | CC0 1.0 | 是 | 房子 / 旅店 / 铁匠铺 / 钟楼 / 围栏；**井/货车/木桶/灯笼/路标/摊位/铁砧** |
 | Graveyard Kit | Kenney | https://kenney.nl | CC0 1.0 | 是 | **墓碑**（round/cross/bevel/decorative/cracked） |
 | Pirate Kit | Quaternius | https://quaternius.com/packs/piratekit.html | CC0 1.0 | 是 | **码头平台** `dock_platform` |
-| Survival Kit（帐篷） | Kenney | https://kenney.nl/assets/survival-kit | CC0 1.0 | 是 | `tent_small` / `tent_open` |
+| Survival Kit（帐篷 + 道具） | Kenney | https://kenney.nl/assets/survival-kit | CC0 1.0 | 是 | `tent_small`/`tent_open` + **`tent_large`/篝火/工具箱/板条箱** |
 
 学习阶段对照实现参考了 [World of ClaudeCraft](https://github.com/levy-street/world-of-claudecraft)（代码 MIT；其 `public/models/**` 中的上述 CC0 转码成品）。正式资源链路以官方 CC0 包为准，见 `scripts/decode_glb.mjs`。
 
@@ -39,6 +39,8 @@ Three.js 与 addons 打包为 `vendor/three.r165.js`（`npm run build:three`，�
 | 包 | 作者 | 官方 URL | 许可 | 可再分发 | 本项目使用 |
 |------|------|----------|------|----------|------------|
 | Animated Creatures | Quaternius | https://quaternius.com · https://poly.pizza/u/Quaternius | CC0 1.0 | 是 | 野猪/狼/蜘蛛/狐狸/雄鹿/公牛/地精/兽人/巨人/恶魔/龙/幽灵（12 种，全骨骼动画） |
+| Animated Animals | Quaternius | https://quaternius.com | CC0 1.0 | 是 | 马/白马/牛/鹿/羊驼/驴/哈士奇/柴犬（8 种）；马→斑马、牛→科多兽 |
+| Cute RPG Demo | Quaternius | https://quaternius.com | CC0 1.0 | 是 | birb/鸡/鸽子（鸟）、恐龙（迅猛龙）、猫/狗/兔/蛙/鱼、史莱姆×3、外星人/忍者/法师/部落/兽人头骨、蓝魔/雪人/仙人掌/麋鹿、蘑菇×3、飞行系×12（40 种，全骨骼动画） |
 
 学习验证阶段从 World of ClaudeCraft（MIT）的 CC0 转码成品取用；正式链路以官方 CC0 包为准。
 

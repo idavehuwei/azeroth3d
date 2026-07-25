@@ -8,7 +8,8 @@
           buildElder buildVendor buildSpiritHealer buildGraveyard tintNpcCloth
           buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem buildMarketStall buildCratePile
           buildLonghouse buildWell buildVillageGate buildSignpost buildLanternPole buildHaystack buildTrainingDummy buildWindmill
-          buildDock BUILD_PAL placeProp GRAVEYARDS registerGraveyard nearestGraveyardSpawn
+          buildDock buildBarrel buildCart buildAnvil buildToolbox buildCrate buildTentLarge
+          BUILD_PAL placeProp GRAVEYARDS registerGraveyard nearestGraveyardSpawn
           （plan-v1 · V1-A1；R3 升级 tent/totem/campfire；STEP 17 墓地；beautify A 线 GLB 房）
    ------------------------------------------------------------
    配方表：职业 HUMANOIDS / 武器 WEAPONS / NPC · Boss · 建筑。
@@ -1264,6 +1265,43 @@ function buildCampfire(cfg){
     stone:0x6a5040, flame:0xffa030, light:0xff8a30,
     r:1.6, intensity:1.8, dist:25, size:1,
   },cfg||{});
+  /* GLB-first（Kenney Survival Kit v2 篝火底座；火焰/光源/余烬仍程序化） */
+  if(typeof ASSETS!=="undefined"&&ASSETS.isReady()){
+    const seed=(c.seed!=null?c.seed:0xC4F1E1)>>>0;
+    const glb=ASSETS.cloneBuilding("campfire_glb",{
+      seed, size:c.size,
+      targetH:1.5, targetW:2.5, targetD:2.5,
+    });
+    if(glb){
+      /* 隐藏 GLB 自带的静态火焰网格（避免与程序化火焰重叠） */
+      glb.traverse(o=>{
+        if(!o.isMesh)return;
+        const m=Array.isArray(o.material)?o.material[0]:o.material;
+        if(m&&(m.emissive||m.color)&&(m.transparent||m.opacity<.9))o.visible=false;
+      });
+      /* 4 层程序化火焰 */
+      const layers=[];
+      const specs=[
+        {h:2.2,r:.9,y:1.4,col:c.flame,op:.92,freq:7},
+        {h:1.8,r:.65,y:1.2,col:0xffcc44,op:.8,freq:10},
+        {h:1.3,r:.42,y:1.0,col:0xffe080,op:.6,freq:13},
+        {h:0.8,r:.25,y:.8,col:0xfff8d0,op:.35,freq:16},
+      ];
+      specs.forEach((s,i)=>{
+        const fl=new THREE.Mesh(new THREE.ConeGeometry(s.r,s.h,8),
+          new THREE.MeshBasicMaterial({color:s.col,transparent:true,opacity:s.op,depthWrite:false}));
+        fl.position.y=s.y; glb.add(fl);
+        layers.push({mesh:fl,freq:s.freq,phase:i*1.7});
+      });
+      const fl=layers[0].mesh;
+      const li=new THREE.PointLight(c.light,c.intensity,c.dist,1.8);
+      li.position.y=2.5; glb.add(li);
+      if(typeof PROPS!=="undefined"&&PROPS.attachCampfireEmbers)PROPS.attachCampfireEmbers(glb,0,0);
+      glb.userData.building="campfire";
+      glb.userData.flame={fl,li,layers};
+      return glb;
+    }
+  }
   const g=new THREE.Group();
   const stoneM=MAT.get("rock.camp",{color:c.stone,roughness:1,flatShading:true});
   const woodM=MAT.get("wood.prop",{color:0x4a3020,roughness:1,flatShading:true});
@@ -1395,6 +1433,15 @@ function buildMarketStall(cfg){
     wood:BUILD_PAL.mulgore.wood, woodD:BUILD_PAL.mulgore.woodD,
     cloth:0x2a6a4a, w:4.8, d:3.2, size:1,
   },cfg||{});
+  /* GLB-first（Quaternius Medieval Village） */
+  if(typeof ASSETS!=="undefined"&&ASSETS.isReady()){
+    const seed=(c.seed!=null?c.seed:0x4A4A3D)>>>0;
+    const glb=ASSETS.cloneBuilding("market_stall",{
+      seed, size:c.size,
+      targetH:4.0, targetW:c.w, targetD:c.d,
+    });
+    if(glb){glb.userData.building="stall";return glb;}
+  }
   const g=new THREE.Group();
   const wood=MAT.get("wood.build",{color:c.wood,roughness:.92,flatShading:true});
   const woodD=MAT.get("wood.buildD",{color:c.woodD,roughness:.95,flatShading:true});
@@ -1587,6 +1634,15 @@ function buildLonghouseProcedural(c){
 /** 水井：石圈 + 木架 + 吊绳 + 桶 + 水光 */
 function buildWell(cfg){
   const c=Object.assign({stone:0x6a5a50,wood:0x4a3020,size:1},cfg||{});
+  /* GLB-first（Quaternius Medieval Village） */
+  if(typeof ASSETS!=="undefined"&&ASSETS.isReady()){
+    const seed=(c.seed!=null?c.seed:0x531101)>>>0;
+    const glb=ASSETS.cloneBuilding("well",{
+      seed, size:c.size,
+      targetH:2.2, targetW:2.8, targetD:2.8,
+    });
+    if(glb){glb.userData.building="well";return glb;}
+  }
   const g=new THREE.Group();
   const stoneM=MAT.get("stone.well",{color:c.stone,roughness:1,flatShading:true});
   const woodM=MAT.get("wood.well",{color:c.wood,roughness:.9,flatShading:true});
@@ -1668,6 +1724,15 @@ function buildVillageGate(cfg){
 /** 路牌：木柱 + 指向牌 + 文字 */
 function buildSignpost(cfg){
   const c=Object.assign({wood:0x4a3020,size:1},cfg||{});
+  /* GLB-first（Quaternius Medieval Village） */
+  if(typeof ASSETS!=="undefined"&&ASSETS.isReady()){
+    const seed=(c.seed!=null?c.seed:0x514670)>>>0;
+    const glb=ASSETS.cloneBuilding("signpost",{
+      seed, size:c.size,
+      targetH:3.0, targetW:1.8, targetD:.4,
+    });
+    if(glb){glb.userData.building="signpost";return glb;}
+  }
   const g=new THREE.Group();
   const woodD=MAT.get("wood.sign",{color:c.wood,roughness:.95,flatShading:true});
   const post=new THREE.Mesh(new THREE.CylinderGeometry(.08,.1,3.0,5),woodD);
@@ -1685,6 +1750,15 @@ function buildSignpost(cfg){
 /** 灯笼杆：木杆 + 双灯笼 */
 function buildLanternPole(cfg){
   const c=Object.assign({wood:0x4a3020,size:1},cfg||{});
+  /* GLB-first（Quaternius Medieval Village） */
+  if(typeof ASSETS!=="undefined"&&ASSETS.isReady()){
+    const seed=(c.seed!=null?c.seed:0x14A701)>>>0;
+    const glb=ASSETS.cloneBuilding("lantern",{
+      seed, size:c.size,
+      targetH:4.0, targetW:.6, targetD:.6,
+    });
+    if(glb){glb.userData.building="lantern";return glb;}
+  }
   const g=new THREE.Group();
   const woodD=MAT.get("wood.lantern",{color:c.wood,roughness:.95,flatShading:true});
   const goldM=MAT.get("trim.lantern",{color:0xd9a441,r:.3,mt:.9});
@@ -1703,6 +1777,113 @@ function buildLanternPole(cfg){
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   g.userData.building="lantern";
   return g;
+}
+
+/* ============================================================
+   plan-beautify B.5 — CC0 GLB 小道具（Quaternius Medieval Village + Kenney Survival Kit v2）
+   GLB-first，ASSETS 未就绪时返回空 Group
+   ============================================================ */
+
+/** 木桶（Quaternius Medieval Village） */
+function buildBarrel(cfg){
+  const c=Object.assign({size:1},cfg||{});
+  if(typeof ASSETS==="undefined"||!ASSETS.isReady()){
+    console.warn("[buildBarrel] ASSETS 未就绪");
+    return new THREE.Group();
+  }
+  const seed=(c.seed!=null?c.seed:0xBA55E1)>>>0;
+  const glb=ASSETS.cloneBuilding("barrel",{
+    seed, size:c.size,
+    targetH:1.2, targetW:.9, targetD:.9,
+  });
+  if(glb)return glb;
+  console.warn("[buildBarrel] GLB 缺失");
+  return new THREE.Group();
+}
+
+/** 货车（Quaternius Medieval Village） */
+function buildCart(cfg){
+  const c=Object.assign({size:1},cfg||{});
+  if(typeof ASSETS==="undefined"||!ASSETS.isReady()){
+    console.warn("[buildCart] ASSETS 未就绪");
+    return new THREE.Group();
+  }
+  const seed=(c.seed!=null?c.seed:0xC4A701)>>>0;
+  const glb=ASSETS.cloneBuilding("cart",{
+    seed, size:c.size,
+    targetH:2.0, targetW:4.0, targetD:2.2,
+  });
+  if(glb)return glb;
+  console.warn("[buildCart] GLB 缺失");
+  return new THREE.Group();
+}
+
+/** 铁砧（Quaternius Medieval Village） */
+function buildAnvil(cfg){
+  const c=Object.assign({size:1},cfg||{});
+  if(typeof ASSETS==="undefined"||!ASSETS.isReady()){
+    console.warn("[buildAnvil] ASSETS 未就绪");
+    return new THREE.Group();
+  }
+  const seed=(c.seed!=null?c.seed:0xA7D115)>>>0;
+  const glb=ASSETS.cloneBuilding("anvil",{
+    seed, size:c.size,
+    targetH:.8, targetW:1.0, targetD:.6,
+  });
+  if(glb)return glb;
+  console.warn("[buildAnvil] GLB 缺失");
+  return new THREE.Group();
+}
+
+/** 工具箱（Kenney Survival Kit v2） */
+function buildToolbox(cfg){
+  const c=Object.assign({size:1},cfg||{});
+  if(typeof ASSETS==="undefined"||!ASSETS.isReady()){
+    console.warn("[buildToolbox] ASSETS 未就绪");
+    return new THREE.Group();
+  }
+  const seed=(c.seed!=null?c.seed:0x700156)>>>0;
+  const glb=ASSETS.cloneBuilding("toolbox",{
+    seed, size:c.size,
+    targetH:.6, targetW:.9, targetD:.6,
+  });
+  if(glb)return glb;
+  console.warn("[buildToolbox] GLB 缺失");
+  return new THREE.Group();
+}
+
+/** 单板条箱（Kenney Survival Kit v2，区别于 buildCratePile 堆叠箱） */
+function buildCrate(cfg){
+  const c=Object.assign({size:1},cfg||{});
+  if(typeof ASSETS==="undefined"||!ASSETS.isReady()){
+    console.warn("[buildCrate] ASSETS 未就绪");
+    return new THREE.Group();
+  }
+  const seed=(c.seed!=null?c.seed:0xC4A73E)>>>0;
+  const glb=ASSETS.cloneBuilding("crate",{
+    seed, size:c.size,
+    targetH:1.0, targetW:1.0, targetD:1.0,
+  });
+  if(glb)return glb;
+  console.warn("[buildCrate] GLB 缺失");
+  return new THREE.Group();
+}
+
+/** 大型帐篷（Kenney Survival Kit v2，区别于 tent_small/tent_open） */
+function buildTentLarge(cfg){
+  const c=Object.assign({h:6.0,w:8.0,d:8.0,size:1},cfg||{});
+  if(typeof ASSETS==="undefined"||!ASSETS.isReady()){
+    console.warn("[buildTentLarge] ASSETS 未就绪");
+    return new THREE.Group();
+  }
+  const seed=(c.seed!=null?c.seed:0x73D716)>>>0;
+  const glb=ASSETS.cloneBuilding("tent_large",{
+    seed, size:c.size,
+    targetH:c.h, targetW:c.w, targetD:c.d,
+  });
+  if(glb)return glb;
+  console.warn("[buildTentLarge] GLB 缺失");
+  return new THREE.Group();
 }
 
 /** 草垛：圆柱草堆 */

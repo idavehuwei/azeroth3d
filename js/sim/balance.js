@@ -965,16 +965,18 @@ const BALANCE={
     desktop:{fps:60, drawCalls:300, triangles:350000, textures:16},
     mobile :{fps:30, drawCalls:150, triangles:150000, textures:16},
   },
-  /* 植被 · 水体 · 场景道具（plan-V2 · R3） */
+  /* 植被 · 水体 · 场景道具（plan-V2 · R3 + GLB 草地美化） */
   props:{
-    grassCount:8000,
-    grassCountMobile:3000,
+    /* GLB 草簇（Quaternius Nature MegaKit） */
+    grassTuftCount:550,
+    grassTuftScale:3.0,
+    flowerCount:250,
+    flowerScale:2.2,
+    plantCount:120,
+    plantScale:2.5,
+    /* 通用植被参数 */
     grassRadius:70,
-    grassFadeStart:55,
-    grassFadeEnd:70,
     grassMaxSlope:.32,
-    grassH:.55,
-    grassW:.22,
     grassRoadMax:.15,
     grassLakeMax:.35,
     pineVariants:4,

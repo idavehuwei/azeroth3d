@@ -11,7 +11,7 @@
           models.js（buildPlayer buildBoss buildElder buildVendor buildSpiritHealer
             tintNpcCloth buildHut buildTent buildFence buildWatchtower buildCampfire
             buildTotem buildMarketStall buildCratePile
-            buildLonghouse buildWell buildVillageGate buildSignpost buildLanternPole buildHaystack buildTrainingDummy buildWindmill BUILD_PAL placeProp）
+            buildLonghouse buildWell buildVillageGate buildSignpost buildLanternPole buildHaystack buildTrainingDummy buildWindmill buildBarrel buildCart buildAnvil buildToolbox buildCrate buildTentLarge BUILD_PAL placeProp）
           creatures.js（buildQuadruped buildElemental buildHumanoidMob buildMeleeHumanoid buildCentaur
             QUADS MOB_LOOK MOB_HUMANOIDS MELEE_HUMANOIDS）
           anim.js 运行时（beginDeathRoll resetDeathRoll）
@@ -756,6 +756,15 @@ function placeMulgoreCampBuildings(){
   /* 货箱 × 2 */
   placeProp(sceneWorld,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),B.x-16,B.z+2,.4);
   placeProp(sceneWorld,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),B.x+28,B.z+10,-.3);
+  /* CC0 GLB 装饰道具（plan-beautify B.5） */
+  placeProp(sceneWorld,buildBarrel({size:.9}),B.x-14,B.z,.3);
+  placeProp(sceneWorld,buildBarrel({size:.9}),B.x+26,B.z+8,-.2);
+  placeProp(sceneWorld,buildCart({size:.9}),B.x-22,B.z-6,Math.PI*.1);
+  placeProp(sceneWorld,buildAnvil({size:.8}),B.x+30,B.z+12,.2);
+  placeProp(sceneWorld,buildToolbox({size:.8}),B.x+30,B.z+10,-.1);
+  placeProp(sceneWorld,buildCrate({size:.9}),B.x-14,B.z+4,.5);
+  placeProp(sceneWorld,buildCrate({size:.9}),B.x+26,B.z+6,-.4);
+  placeProp(sceneWorld,buildTentLarge({size:.95}),B.x+16,B.z-18,.2);
   /* 图腾 × 2 */
   placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0xd94f2a,paintB:0x3a7ac9,size:1}),B.x-8,B.z+14,0);
   placeProp(sceneWorld,buildTotem({wood:P.woodD,paintA:0x3a7ac9,paintB:0xd94f2a,size:1}),B.x+14,B.z-24,0);

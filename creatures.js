@@ -60,7 +60,7 @@ const QUADS={
   taragaman :{fur:0xa82810,furD:0x481008,accent:0xff8030,tusks:true,tuskBig:true,mane:true,ears:true,tail:'bushy',size:5.2,style:"wolf",glow:0xff5500,
             head:"wolf",gait:{freq:1.55,lift:.13}},
   kodo    :{fur:0x8a6a40,furD:0x4a3820,accent:0xb09060,tusks:true,ears:true,mane:true,tail:'bushy',size:2.35,style:"wolf",
-            head:"wolf",bulk:1.2,gait:{freq:1.4,lift:.12}},
+            head:"wolf",bulk:1.2,glb:"bull",gait:{freq:1.4,lift:.12}},
   youngBoar:{fur:0x7a5a38,furD:0x4a3820,accent:0x9a7848,tusks:true,mane:true,ears:true,tail:'short',size:.78,style:"boar",
             head:"boar",gait:{freq:2.5,lift:.2}},
   palemane:{fur:0xb89870,furD:0x6a5840,accent:0xd0b890,snoutLong:true,ears:true,mane:true,tail:'bushy',size:1.05,style:"wolf",
@@ -71,7 +71,7 @@ const QUADS={
             head:"wolf",gait:{freq:2.5,lift:.2}},
   bristleback:{fur:0xb06830,furD:0x6a3818,accent:0xd09050,tusks:true,mane:true,ears:true,tail:'short',size:.95,quills:true,style:"boar",
             head:"boar",gait:{freq:2.2,lift:.17}},
-  raptor  :{fur:0x4a8a38,furD:0x2a5020,accent:0x6ab050,legs:2,neck:1.05,beak:true,crest:true,tail:'plume',size:1.2,style:"bird",
+  raptor  :{fur:0x4a8a38,furD:0x2a5020,accent:0x6ab050,legs:2,neck:1.05,beak:true,crest:true,tail:'plume',size:1.2,style:"raptor",
             head:"beak",neck:"long",gait:{freq:2.3,lift:.24}},
   crocolisk:{fur:0x4a6a48,furD:0x2a3a28,accent:0x6a8a58,snoutLong:true,ears:false,mane:false,tail:'whip',size:1.25,style:"wolf",
             head:"wolf",gait:{freq:1.8,lift:.1}},
@@ -107,13 +107,22 @@ const QUAD_TO_CREATURE={
   scorchtusk:"wild_boar", quilboar:"wild_boar",
   wolf:"wolf", palemane:"wolf", plainslion:"wolf",
   cinderwolf:"wolf",
-  kodo:"bull",
+  kodo:"cow",
   fox:"fox",
   stag:"stag",
   spider:"spider",
-  /* 无 GLB 对应：bird thunderhawk raptor scorp crocolisk zebra
-     boarKing magmadar cobrahn verdan oggleflint taragaman lavabeast → 保留程序化
-     (可后续映射到 demon/giant 放大版) */
+  /* Quaternius Animated Animals 新增映射 */
+  zebra:"horse",
+  deer_doe:"deer",
+  alpaca_creature:"alpaca",
+  donkey_creature:"donkey",
+  husky_wolf:"husky",
+  shiba:"shiba_inu",
+  /* Quaternius Cute RPG Demo — 填补缺口 */
+  bird:"birb",
+  thunderhawk:"birb",
+  raptor:"dino",
+  /* 仍然程序化：scorp crocolisk boarKing magmadar cobrahn verdan oggleflint taragaman lavabeast */
 };
 
 const MOB_HUMANOIDS={
@@ -356,7 +365,7 @@ function buildQuadruped(cfg){
     head:"boar",gait:{freq:2.2,lift:.18}},cfg);
   if(c.scorpion)return buildScorpion(c);
   /* -- GLB 优先：有对应模型的 style 走骨骼模型 -- */
-  const creatureKind=QUAD_TO_CREATURE[c.style];
+  const creatureKind=c.glb||QUAD_TO_CREATURE[c.style];
   if(creatureKind){
     const glb=buildCreatureGLB(creatureKind,c);
     if(glb)return glb;

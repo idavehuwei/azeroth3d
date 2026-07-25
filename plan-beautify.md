@@ -16,7 +16,7 @@
 | 天空 HDRI（〇·18） | ✅ | `env/*_1k.hdr` · 分区生物群系 · 太阳方位 `uOff` · 可选 PMREM IBL |
 | 技能图标（〇·19） | ✅ 守住程序化 | 仍走 `icons.js` Canvas；**不碰** CraftPix |
 | 地形 / 摆放种子（〇·20） | ✅ 本就如此 | `srand` / 分区种子不变 |
-| 地面细节 / 草簇 / 云（〇·21） | ✅ 本就如此 | `textures.js` / `props.js` canvas |
+| 地面细节 / 草簇 / 云（〇·21） | ✅ 草地美化 | `textures.js` / `props.js` canvas；多几何体草叶 + 枯尖着色 + 花风摆 + 地被层（三叶草/雏菊/石子） |
 | **STEP B3.5** 资源试用与管线 | ✅（精简落地） | 成品 GLB 入库 + `scripts/decode_glb.mjs` + `CREDITS.md`；未建完整 `npm run assets` 压缩管线 |
 | **STEP B4** 树 / 房子 | ✅ | 见第三节状态条与 B4 验收注记 |
 | **STEP B0** 渲染管线 | 🟡 部分 | Three **r165** + ACES + `SRGBColorSpace` + HDRI IBL；**未做** UnrealBloom / N8AO / 调色 pass |
@@ -25,6 +25,9 @@
 | **附录 B** CC0 资源调研（2026-07-23） | ✅ | 角色/生物/武器/地下城/世界装饰 CC0 资源清单（见附录 B）；下一步取用验证 |
 | **Quaternius 生物 GLB**（B.2/P0） | ✅ 入库 | 12 种：野猪/狼/蜘蛛/狐狸/雄鹿/公牛/地精/兽人/巨人/恶魔/龙/幽灵 · `models/creatures/` 2.3 MB |
 | **生物 GLB 全接入**（B.2/P0） | ✅ | 9 种待接入生物已全部完成：QUADS 映射（12→20 种 mob 自动 GLB）+ humanoid GLB 优先 + MOB_TYPES 9 新条目 + BAL 数值 9 条 + 掉落表 9 条 + 稀有/世界 Boss 注册 + 莫高雷/杜隆塔尔/贫瘠之地/黑石山刷新点 |
+| **世界装饰 GLB 道具**（B.5/P3） | 🟡 代码就绪 | Quaternius 7 件 + Kenney 4 件：MANIFEST + 6 新 build 函数 + 5 已有函数 GLB 升级 + 5 zone 摆放；**GLB 文件待从官方源入库** |
+| **GLB 草地美化**（B.5/P3 扩展） | ✅ | Quaternius Nature MegaKit 草簇/花/地被：34 个 GLB 转换入库 + `placeGrassGlb`/`placeFlowersGlb`/`placePlantsGlb` InstancedMesh 管线 + 5 zone 全地图散布 |
+| **GLB 生物扩展**（Animated Animals + Cute RPG） | ✅ | 马/牛/鹿/羊驼等 8 种 + birb/恐龙/猫/狗/兔/蛙/鱼/史莱姆/忍者/法师等 40 种；bird→birb、raptor→dino、zebra→horse、kodo→cow
 
 **下一步建议（按性价比）**：补完 **B0 剩余**（Bloom + OutputPass）→ **B1** 目标框/token → **B5 剩余**（KayKit 玩家角色 GLB 入库 + 动画状态机接入）。
 
@@ -546,17 +549,19 @@ KayKit Dungeon Remastered 1.0（CC0）：
 - **本项目用途**：熔火之心（黑石山）· 哀嚎洞穴 · 怒焰裂谷 · 奥妮克希亚巢穴等副本场景替换
 - **精选最小集**：取墙/地/柱/火把/箱子 5 类 ≈ 1–2 MB 即可显著改善副本场景
 
-### B.5 P3 · 世界装饰补充（丰富已有场景）
+### B.5 P3 · 世界装饰补充（丰富已有场景） 🟡 部分完成
 
 这些填充物让你的村庄/营地不再只有房子：
 
-| 资源包 | 推荐取用 | 参考体积 | 官方源 |
-|--------|----------|----------|--------|
-| **Quaternius Medieval Village** | 井 `well`、货车 `cart`、木桶 `barrel`、灯笼 `lantern`、路标 `signpost`、摊位 `market_stall`、砧 `anvil` | 单件 10–80 KB | [quaternius.com](https://quaternius.com/packs/medievalvillage.html) |
-| **Kenney Survival Kit v2** | 篝火 `campfire`、工具箱、板条箱、更多帐篷变体（你已有 `tent_small`/`tent_open`，还有 `tent_large`） | <1 MB 精选 | [kenney.nl](https://kenney.nl/assets/survival-kit) |
-| **Quaternius Fantasy Props MegaKit**（2025.6 新发布） | 200+ 道具：药水/书卷/金币袋/盾牌装饰/武器架/烛台/王座 | <2 MB 精选 | [quaternius.com](https://quaternius.com/packs/fantasypropsmegakit.html) |
-| **Quaternius Pirate Kit** | 棕榈树、船锚 `anchor`、炮 `cannon`、海滩小屋（你已有 `dock_platform`） | <1 MB 精选 | [quaternius.com](https://quaternius.com/packs/piratekit.html) |
-| **Kenney Fantasy Town Kit** | 城镇建筑模块、塔楼 | — | [kenney.nl](https://kenney.nl) |
+| 资源包 | 推荐取用 | 参考体积 | 官方源 | 状态 |
+|--------|----------|----------|--------|------|
+| **Quaternius Medieval Village** | 井 `well`、货车 `cart`、木桶 `barrel`、灯笼 `lantern`、路标 `signpost`、摊位 `market_stall`、砧 `anvil` | 单件 10–80 KB | [quaternius.com](https://quaternius.com/packs/medievalvillage.html) | ✅ 代码就绪（MANIFEST + build 函数 + zone 摆放），GLB 待入库 |
+| **Kenney Survival Kit v2** | 篝火 `campfire`、工具箱、板条箱、更多帐篷变体（你已有 `tent_small`/`tent_open`，还有 `tent_large`） | <1 MB 精选 | [kenney.nl](https://kenney.nl/assets/survival-kit) | ✅ 代码就绪（MANIFEST + build 函数 + zone 摆放），GLB 待入库 |
+| **Quaternius Fantasy Props MegaKit**（2025.6 新发布） | 200+ 道具：药水/书卷/金币袋/盾牌装饰/武器架/烛台/王座 | <2 MB 精选 | [quaternius.com](https://quaternius.com/packs/fantasypropsmegakit.html) | |
+| **Quaternius Pirate Kit** | 棕榈树、船锚 `anchor`、炮 `cannon`、海滩小屋（你已有 `dock_platform`） | <1 MB 精选 | [quaternius.com](https://quaternius.com/packs/piratekit.html) | |
+| **Kenney Fantasy Town Kit** | 城镇建筑模块、塔楼 | — | [kenney.nl](https://kenney.nl) | |
+
+> **2026-07-23 完成**：`assets.js` MANIFEST + defaults、`models.js` 6 个新 build 函数（barrel/cart/anvil/toolbox/crate/tent_large）+ 5 个已有函数 GLB 升级（well/campfire/market_stall/signpost/lantern）、5 个 zone 文件 `placeProp` 摆放。GLB 文件从官方源下载放入 `models/props/` 即可生效。
 
 ### B.6 P4 · 渲染补完（不需资源文件）
 

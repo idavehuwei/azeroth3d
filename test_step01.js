@@ -921,10 +921,10 @@ assert(!/CircleGeometry\(WORLD_R\+50/.test(worldSrc),"莫高雷不再用大圆�
 assert(html.includes('src="props.js"'),"game.html 加载 props.js");
 assert(html.includes('src="assets.js"'),"game.html 加载 assets.js");
 assert(html.includes('src="vendor/three.r165.js"'),"game.html 加载 three r165 包");
-assert(coreSrc.includes("props:{")&&coreSrc.includes("grassCount:"),"BALANCE.props 草数量");
+assert(coreSrc.includes("props:{")&&coreSrc.includes("grassTuftCount:"),"BALANCE.props GLB 草簇数量");
 assert(coreSrc.includes("treeCount:")&&coreSrc.includes("treeBaseScale:"),"BALANCE.props 含 A 线树参数");
 const propsSrc=fs.readFileSync(path.join(__dirname,"props.js"),"utf8");
-assert(propsSrc.includes("InstancedMesh")||propsSrc.includes("buildGrassField"),"props.js 含草丛 InstancedMesh 工厂");
+assert(propsSrc.includes("InstancedMesh")||propsSrc.includes("placeGrassGlb"),"props.js 含 GLB 草簇 InstancedMesh 散布");
 assert(propsSrc.includes("buildPine")&&propsSrc.includes("buildOak"),"props.js 含松/橡工厂");
 assert(propsSrc.includes("placeTreesGlb")&&propsSrc.includes("BUCKET_DEPTH"),"props.js 含 GLB 分桶树木");
 assert(propsSrc.includes("placeZoneTrees"),"props.js 导出分区种树");

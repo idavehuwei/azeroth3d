@@ -5,11 +5,12 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ srand BAL makeLabel makeNameplate）
           zones.js（registerZone）· sky.js（initZoneSky）
-          props.js（placeZoneTrees）
+          props.js（placeZoneTrees placeGrassGlb placeFlowersGlb placePlantsGlb
+            placePebblesGlb placePetalsGlb placeRockMediumGlb））
           models.js（buildVendor buildSpiritHealer buildElder tintNpcCloth
             buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem
             buildMarketStall buildCratePile BUILD_PAL placeProp buildGraveyard
-            buildLonghouse buildWell buildVillageGate buildSignpost buildLanternPole buildHaystack buildTrainingDummy buildWindmill）
+            buildLonghouse buildWell buildVillageGate buildSignpost buildLanternPole buildHaystack buildTrainingDummy buildWindmill buildBarrel buildCart buildAnvil buildToolbox buildCrate buildTentLarge）
           world.js（appendNpcQuestButtons openVendor closeVendorPanel placeTalkNpc）
           combat.js 运行时（S log announce）
           professions.js 运行时（spawnGatherNodesForZone）
@@ -185,6 +186,13 @@ function buildOrgrimmarZone(scn){
       heightFn:()=>0, seed:0x066^WORLD_SEED,
       bush:true, bushCount:110, fern:false, clusters:4, rockCount:40,
     });
+    /* GLB 草地 / 花朵 / 地被（奥格瑞玛城内点缀） */
+    if(typeof placeGrassGlb==="function")placeGrassGlb(root,{cx:0,cz:0,radius:ORGRIMMAR_R-50,count:200});
+    if(typeof placeFlowersGlb==="function")placeFlowersGlb(root,{cx:0,cz:0,radius:ORGRIMMAR_R-50,count:60});
+    if(typeof placePlantsGlb==="function")placePlantsGlb(root,{cx:0,cz:0,radius:ORGRIMMAR_R-50,count:30});
+    if(typeof placePebblesGlb==="function")placePebblesGlb(root,{cx:0,cz:0,radius:ORGRIMMAR_R-50,count:100});
+    if(typeof placePetalsGlb==="function")placePetalsGlb(root,{cx:0,cz:0,radius:ORGRIMMAR_R-55,count:15});
+    if(typeof placeRockMediumGlb==="function")placeRockMediumGlb(root,{cx:0,cz:0,radius:ORGRIMMAR_R-50,count:30});
   }
 
   /* ===== 外城墙（16 段，每段带垛口） ===== */
@@ -424,6 +432,15 @@ function buildOrgrimmarZone(scn){
   /* 货箱 */
   placeProp(root,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),-8,0,valleyZ-12,0);
   placeProp(root,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),10,0,valleyZ-14,0);
+  /* CC0 GLB 装饰道具（plan-beautify B.5） */
+  placeProp(root,buildBarrel({size:.9}),-6,0,valleyZ-10,.3);
+  placeProp(root,buildBarrel({size:.9}),8,0,valleyZ-16,-.2);
+  placeProp(root,buildCart({size:.9}),-10,0,valleyZ-16,Math.PI*.1);
+  placeProp(root,buildAnvil({size:.8}),12,0,valleyZ-12,.15);
+  placeProp(root,buildToolbox({size:.8}),10,0,valleyZ-13,-.1);
+  placeProp(root,buildCrate({size:.9}),-6,0,valleyZ-14,.5);
+  placeProp(root,buildCrate({size:.9}),8,0,valleyZ-12,-.3);
+  placeProp(root,buildTentLarge({size:.95}),22,0,valleyZ-8,.2);
   /* 旗帜 */
   for(let i=0;i<6;i++){
     const a=i/6*Math.PI*2;

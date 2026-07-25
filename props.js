@@ -7,7 +7,9 @@
           terrain.js（heightAt · TERRAIN.slopeAt / roadWeight / lakeBlend / flowerSeed）
           assets.js（可选 ASSETS · GLB 树 InstancedMesh A 线）
    [导出] buildPine buildOak getTreeVariants buildRockGroup
-          buildGrassField buildMirrorLake buildCloudField
+          placeGrassGlb placeFlowersGlb placePlantsGlb
+          placePebblesGlb placePetalsGlb placeRockMediumGlb
+          buildMirrorLake buildCloudField
           spawnMulgoreProps placeZoneTrees updateProps disposeProps
           PROPS（内部状态：uniforms / clouds / lakes）
    ============================================================ */
@@ -15,8 +17,7 @@
 
 const PROPS=(function(){
   const state={
-    grassUni:null,
-    flowerUni:null,
+    /* grass/flower uniforms 已移除（改用 GLB foliageMaterial + addWind） */
     lakeUnis:[],
     clouds:[],
     embers:[],
@@ -75,204 +76,403 @@ const PROPS=(function(){
     if(obj.parent)obj.parent.remove(obj);
   }
 
-  /* —— 十字草片几何（两片交叉 Plane 合并） —— */
-  function makeGrassGeo(w,h){
-    const hw=w*.5;
-    const pos=new Float32Array([
-      -hw,0,0,  hw,0,0,  hw,h,0,  -hw,0,0,  hw,h,0,  -hw,h,0,
-      0,0,-hw,  0,0,hw,  0,h,hw,  0,0,-hw,  0,h,hw,  0,h,-hw,
-    ]);
-    const uv=new Float32Array([
-      0,0,1,0,1,1, 0,0,1,1,0,1,
-      0,0,1,0,1,1, 0,0,1,1,0,1,
-    ]);
-    const geo=new THREE.BufferGeometry();
-    geo.setAttribute("position",new THREE.BufferAttribute(pos,3));
-    geo.setAttribute("uv",new THREE.BufferAttribute(uv,2));
-    geo.computeVertexNormals();
-    return geo;
-  }
-
-  /* —— 小花几何（十字花片） —— */
-  function makeFlowerGeo(w,h){
-    const hw=w*.5;
-    const pos=new Float32Array([
-      -hw,0,0,  hw,0,0,  hw,h,0,  -hw,0,0,  hw,h,0,  -hw,h,0,
-      0,0,-hw,  0,0,hw,  0,h,hw,  0,0,-hw,  0,h,hw,  0,h,-hw,
-    ]);
-    const uv=new Float32Array([
-      0,0,1,0,1,1, 0,0,1,1,0,1,
-      0,0,1,0,1,1, 0,0,1,1,0,1,
-    ]);
-    const geo=new THREE.BufferGeometry();
-    geo.setAttribute("position",new THREE.BufferAttribute(pos,3));
-    geo.setAttribute("uv",new THREE.BufferAttribute(uv,2));
-    geo.computeVertexNormals();
-    return geo;
-  }
-
-  function buildGrassField(cfg){
-    const P=BAL.props||{};
+  /* —— GLB 草簇散布（Quaternius Nature MegaKit，InstancedMesh 管线） —— */
+  function placeGrassGlb(scene,ctx){
+    if(typeof ASSETS==="undefined"||!ASSETS.isReady())return;
+    const sets=ASSETS.getTreeParts("grass");
+    if(!sets||!sets.length)return;
     const c=Object.assign({
-      count:isMobileProps()?(P.grassCountMobile||5000):(P.grassCount||15000),
-      radius:P.grassRadius||80,
-      fadeStart:P.grassFadeStart||55,
-      fadeEnd:P.grassFadeEnd||75,
-      maxSlope:P.grassMaxSlope||.35,
+      count:(BAL.props&&BAL.props.grassTuftCount)||500,
+      radius:(BAL.props&&BAL.props.grassRadius)||70,
       cx:0,cz:0,
-      w:P.grassW||.22, h:P.grassH||.55,
-    },cfg||{});
-    const geo=makeGrassGeo(c.w,c.h);
-    const col=new THREE.Color((PALETTE.grass&&PALETTE.grass.base)||0x6f9e46);
-    const colVar=new THREE.Color(0x88b85a);
-    const uni={
-      uTime:{value:0},
-      uColor:{value:col},
-      uColorVar:{value:colVar},
-      uFadeStart:{value:c.fadeStart},
-      uFadeEnd:{value:c.fadeEnd},
-      uOrigin:{value:new THREE.Vector2(c.cx,c.cz)},
-    };
-    const mat=new THREE.ShaderMaterial({
-      uniforms:uni,
-      transparent:false,
-      alphaTest:.35,
-      side:THREE.DoubleSide,
-      depthWrite:true,
-      vertexShader:[
-        "uniform float uTime;",
-        "uniform float uFadeStart;",
-        "uniform float uFadeEnd;",
-        "uniform vec2 uOrigin;",
-        "varying float vFade;",
-        "varying vec2 vUv;",
-        "varying float vColorMix;",
-        "void main(){",
-        "  vUv=uv;",
-        "  float hW=clamp(position.y/max(0.01,float("+c.h.toFixed(3)+")),0.0,1.0);",
-        "  vec3 transformed=position;",
-        "  #ifdef USE_INSTANCING",
-        "    vec4 wp=instanceMatrix*vec4(transformed,1.0);",
-        "    transformed.x+=sin(uTime*1.6+wp.x*0.35)*0.25*hW;",
-        "    transformed.z+=cos(uTime*1.35+wp.z*0.28)*0.12*hW;",
-        "    float dx=instanceMatrix[3][0]-uOrigin.x;",
-        "    float dz=instanceMatrix[3][2]-uOrigin.y;",
-        "    float dist=sqrt(dx*dx+dz*dz);",
-        "    vFade=1.0-smoothstep(uFadeStart,uFadeEnd,dist);",
-        "    vec3 sc=vec3(vFade);",
-        "    mat4 scaled=instanceMatrix;",
-        "    scaled[0].xyz*=sc; scaled[1].xyz*=sc; scaled[2].xyz*=sc;",
-        "    gl_Position=projectionMatrix*modelViewMatrix*scaled*vec4(transformed,1.0);",
-        "    vColorMix=instanceMatrix[0].x*0.3+instanceMatrix[2].z*0.3;",
-        "  #else",
-        "    vFade=1.0;",
-        "    vColorMix=0.5;",
-        "    gl_Position=projectionMatrix*modelViewMatrix*vec4(transformed,1.0);",
-        "  #endif",
-        "}",
-      ].join("\n"),
-      fragmentShader:[
-        "uniform vec3 uColor;",
-        "uniform vec3 uColorVar;",
-        "varying float vFade;",
-        "varying float vColorMix;",
-        "varying vec2 vUv;",
-        "void main(){",
-        "  float edge=smoothstep(0.0,0.12,vUv.x)*smoothstep(1.0,0.88,vUv.x);",
-        "  float tip=smoothstep(0.0,0.2,vUv.y);",
-        "  float a=edge*tip;",
-        "  if(a<0.35||vFade<0.02)discard;",
-        "  vec3 base=mix(uColor,uColorVar,vColorMix-floor(vColorMix));",
-        "  vec3 col=base*(0.5+0.5*vUv.y);",
-        "  gl_FragColor=vec4(col,1.0);",
-        "}",
-      ].join("\n"),
-    });
-    const mesh=new THREE.InstancedMesh(geo,mat,c.count);
-    mesh.frustumCulled=false;
-    mesh.castShadow=false;
-    mesh.receiveShadow=false;
-    mesh.name="grassField";
-    const dummy=new THREE.Object3D();
-    let placed=0,guard=0;
-    const maxTry=c.count*8;
-    while(placed<c.count&&guard++<maxTry){
+      baseScale:(BAL.props&&BAL.props.grassTuftScale)||3.0,
+    },ctx||{});
+    const maxSlope=(BAL.props&&BAL.props.grassMaxSlope)||.32;
+    /* 收集散布点 */
+    const spots=[];
+    let guard=0;
+    while(spots.length<c.count&&guard++<c.count*8){
       const a=prand()*Math.PI*2;
       const r=Math.sqrt(prand())*c.radius;
-      const x=c.cx+Math.cos(a)*r;
-      const z=c.cz+Math.sin(a)*r;
-      if(!isGrassSpot(x,z,c.maxSlope))continue;
+      const x=c.cx+Math.cos(a)*r,z=c.cz+Math.sin(a)*r;
+      if(!isGrassSpot(x,z,maxSlope))continue;
       const gy=typeof heightAt==="function"?heightAt(x,z):0;
-      const sc=psrand(.7,1.3);
-      dummy.position.set(x,gy,z);
-      dummy.rotation.set(0,prand()*Math.PI*2,psrand(-.08,.08));
-      dummy.scale.set(sc,sc*psrand(.8,1.25),sc);
-      dummy.updateMatrix();
-      mesh.setMatrixAt(placed++,dummy.matrix);
+      spots.push({x,z,y:gy,yaw:prand()*Math.PI*2,scale:psrand(.7,1.4)});
     }
-    mesh.count=placed;
-    mesh.instanceMatrix.needsUpdate=true;
-    state.grassUni=uni;
-    return track(mesh,true);
-  }
-
-  /* —— 花簇：彩色小花散布 —— */
-  function buildFlowerField(cfg){
-    const c=Object.assign({
-      count:2000,
-      radius:70,
-      cx:0,cz:0,
-    },cfg||{});
-    const geo=makeFlowerGeo(.12,.2);
-    const colors=[0xff4466,0xffaa44,0xff66cc,0xcc44ff,0x44aaff,0xff8844,0xffee44];
-    const meshes=[];
-    /* 每色一个 InstancedMesh */
-    for(let ci=0;ci<colors.length;ci++){
-      const mat=new THREE.MeshBasicMaterial({
-        color:colors[ci],
-        transparent:true,
-        alphaTest:.3,
-        side:THREE.DoubleSide,
-        depthWrite:false,
-      });
-      const mesh=new THREE.InstancedMesh(geo,mat,Math.ceil(c.count/colors.length));
-      mesh.frustumCulled=false;
-      mesh.castShadow=false;
-      mesh.receiveShadow=false;
-      mesh.name="flower_"+ci;
-      meshes.push(mesh);
+    if(!spots.length)return;
+    /* 按桶分片 */
+    const byBucket=new Map();
+    for(let i=0;i<spots.length;i++){
+      const k=bucketKey(spots[i].x,spots[i].z);
+      if(!byBucket.has(k))byBucket.set(k,[]);
+      byBucket.get(k).push(spots[i]);
     }
-    const dummy=new THREE.Object3D();
-    const perColor=Math.ceil(c.count/colors.length);
-    const counts=new Array(colors.length).fill(0);
-    let placed=0,guard=0;
-    while(placed<c.count&&guard++<c.count*10){
-      const a=prand()*Math.PI*2;
-      const r=Math.sqrt(prand())*c.radius;
-      const x=c.cx+Math.cos(a)*r;
-      const z=c.cz+Math.sin(a)*r;
-      if(!isFlowerSpot(x,z,.25))continue;
-      if(typeof TERRAIN.flowerSeed==="function"){
-        const fs=TERRAIN.flowerSeed(x,z);
-        if(fs===0)continue;
+    const leafTint=(BAL.props&&BAL.props.treeLeafTint)||0xa7b886;
+    const baseScale=c.baseScale;
+    byBucket.forEach(items=>{
+      const parts=sets[(hashAt(items[0].x,items[0].z,11)*sets.length|0)%sets.length];
+      if(!parts)return;
+      for(let p=0;p<parts.length;p++){
+        const part=parts[p];
+        const mesh=new THREE.InstancedMesh(part.geometry,part.material,items.length);
+        mesh.count=items.length;
+        mesh.castShadow=!!part.isLeaf;
+        mesh.receiveShadow=false;
+        mesh.name="grass_glb_"+p;
+        mesh.userData.noCamCollide=true;
+        for(let i=0;i<items.length;i++){
+          const s=items[i];
+          _dummy.position.set(s.x,s.y,s.z);
+          _dummy.rotation.set(0,s.yaw,0);
+          _dummy.scale.setScalar(s.scale*baseScale);
+          _dummy.updateMatrix();
+          mesh.setMatrixAt(i,_dummy.matrix);
+          if(typeof mesh.setColorAt==="function"){
+            mesh.setColorAt(i,softTint(s.x,s.z,0x6faa40,.55));
+          }
+        }
+        mesh.instanceMatrix.needsUpdate=true;
+        if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+        fitInstanceBounds(mesh);
+        scene.add(mesh);
+        track(mesh,false);
       }
+    });
+    return spots.length;
+  }
+
+  /* —— GLB 花朵散布（Quaternius Nature MegaKit） —— */
+  function placeFlowersGlb(scene,ctx){
+    if(typeof ASSETS==="undefined"||!ASSETS.isReady())return;
+    const sets=ASSETS.getTreeParts("flower");
+    if(!sets||!sets.length)return;
+    const c=Object.assign({
+      count:(BAL.props&&BAL.props.flowerCount)||250,
+      radius:60,
+      cx:0,cz:0,
+      baseScale:(BAL.props&&BAL.props.flowerScale)||2.2,
+    },ctx||{});
+    const spots=[];
+    let guard=0;
+    while(spots.length<c.count&&guard++<c.count*10){
+      const a=prand()*Math.PI*2;
+      const r=Math.sqrt(prand())*c.radius;
+      const x=c.cx+Math.cos(a)*r,z=c.cz+Math.sin(a)*r;
+      if(!isFlowerSpot(x,z,.25))continue;
+      if(typeof TERRAIN.flowerSeed==="function"&&TERRAIN.flowerSeed(x,z)===0)continue;
       const gy=typeof heightAt==="function"?heightAt(x,z):0;
-      const ci=Math.floor(prand()*colors.length);
-      const idx=counts[ci];
-      if(idx>=perColor)continue;
-      dummy.position.set(x,gy,z);
-      dummy.rotation.set(0,prand()*Math.PI*2,psrand(-.15,.15));
-      dummy.scale.setScalar(psrand(.8,1.3));
-      dummy.updateMatrix();
-      meshes[ci].setMatrixAt(idx,dummy.matrix);
-      counts[ci]++; placed++;
+      spots.push({x,z,y:gy,yaw:prand()*Math.PI*2,scale:psrand(.7,1.3)});
     }
-    for(let i=0;i<meshes.length;i++){
-      meshes[i].count=counts[i];
-      meshes[i].instanceMatrix.needsUpdate=true;
-      track(meshes[i],true);
+    if(!spots.length)return;
+    const byBucket=new Map();
+    for(let i=0;i<spots.length;i++){
+      const k=bucketKey(spots[i].x,spots[i].z);
+      if(!byBucket.has(k))byBucket.set(k,[]);
+      byBucket.get(k).push(spots[i]);
     }
-    return meshes;
+    const baseScale=c.baseScale;
+    /* 花色范围：暖色向（粉/橙/黄/紫） */
+    const flowerTints=[0xff6688,0xffaa55,0xff77bb,0xcc55ff,0xff9966,0xffee55];
+    byBucket.forEach(items=>{
+      const parts=sets[(hashAt(items[0].x,items[0].z,11)*sets.length|0)%sets.length];
+      if(!parts)return;
+      for(let p=0;p<parts.length;p++){
+        const part=parts[p];
+        const mesh=new THREE.InstancedMesh(part.geometry,part.material,items.length);
+        mesh.count=items.length;
+        mesh.castShadow=false;
+        mesh.receiveShadow=false;
+        mesh.name="flower_glb_"+p;
+        mesh.userData.noCamCollide=true;
+        for(let i=0;i<items.length;i++){
+          const s=items[i];
+          _dummy.position.set(s.x,s.y,s.z);
+          _dummy.rotation.set(0,s.yaw,0);
+          _dummy.scale.setScalar(s.scale*baseScale);
+          _dummy.updateMatrix();
+          mesh.setMatrixAt(i,_dummy.matrix);
+          if(typeof mesh.setColorAt==="function"){
+            const tc=flowerTints[Math.floor(prand()*flowerTints.length)];
+            mesh.setColorAt(i,softTint(s.x,s.z,tc,.4));
+          }
+        }
+        mesh.instanceMatrix.needsUpdate=true;
+        if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+        fitInstanceBounds(mesh);
+        scene.add(mesh);
+        track(mesh,false);
+      }
+    });
+    return spots.length;
+  }
+
+  /* —— GLB 地被小植物散布（三叶草 / 小植物） —— */
+  function placePlantsGlb(scene,ctx){
+    if(typeof ASSETS==="undefined"||!ASSETS.isReady())return;
+    const cloverSets=ASSETS.getTreeParts("clover");
+    const plantSets=ASSETS.getTreeParts("plant");
+    if((!cloverSets||!cloverSets.length)&&(!plantSets||!plantSets.length))return;
+    const c=Object.assign({
+      count:(BAL.props&&BAL.props.plantCount)||120,
+      radius:60,
+      cx:0,cz:0,
+      baseScale:(BAL.props&&BAL.props.plantScale)||2.5,
+    },ctx||{});
+    const spots=[];
+    let guard=0;
+    while(spots.length<c.count&&guard++<c.count*8){
+      const a=prand()*Math.PI*2;
+      const r=Math.sqrt(prand())*c.radius;
+      const x=c.cx+Math.cos(a)*r,z=c.cz+Math.sin(a)*r;
+      if(!isGrassSpot(x,z,.28))continue;
+      /* 地被偏好花簇附近 */
+      if(typeof TERRAIN.flowerSeed==="function"&&TERRAIN.flowerSeed(x,z)===0&&prand()>.3)continue;
+      const gy=typeof heightAt==="function"?heightAt(x,z):0;
+      const kind=prand()<.5?"clover":"plant";
+      spots.push({x,z,y:gy,yaw:prand()*Math.PI*2,scale:psrand(.6,1.3),kind});
+    }
+    if(!spots.length)return;
+    /* 按 kind 分桶 */
+    const kinds={clover:[],plant:[]};
+    for(let i=0;i<spots.length;i++)kinds[spots[i].kind].push(spots[i]);
+    const baseScale=c.baseScale;
+    function emitKind(kind,sets,list){
+      if(!sets||!sets.length||!list.length)return;
+      const byBucket=new Map();
+      for(let i=0;i<list.length;i++){
+        const k=bucketKey(list[i].x,list[i].z);
+        if(!byBucket.has(k))byBucket.set(k,[]);
+        byBucket.get(k).push(list[i]);
+      }
+      byBucket.forEach(items=>{
+        const parts=sets[(hashAt(items[0].x,items[0].z,11)*sets.length|0)%sets.length];
+        if(!parts)return;
+        for(let p=0;p<parts.length;p++){
+          const part=parts[p];
+          const mesh=new THREE.InstancedMesh(part.geometry,part.material,items.length);
+          mesh.count=items.length;
+          mesh.castShadow=!!part.isLeaf;
+          mesh.receiveShadow=false;
+          mesh.name=kind+"_glb_"+p;
+          mesh.userData.noCamCollide=true;
+          for(let i=0;i<items.length;i++){
+            const s=items[i];
+            _dummy.position.set(s.x,s.y,s.z);
+            _dummy.rotation.set(0,s.yaw,0);
+            _dummy.scale.setScalar(s.scale*baseScale);
+            _dummy.updateMatrix();
+            mesh.setMatrixAt(i,_dummy.matrix);
+            if(typeof mesh.setColorAt==="function"){
+              const tint=kind==="clover"?0x4a8030:0x5a8a40;
+              mesh.setColorAt(i,softTint(s.x,s.z,tint,.5));
+            }
+          }
+          mesh.instanceMatrix.needsUpdate=true;
+          if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+          fitInstanceBounds(mesh);
+          scene.add(mesh);
+          track(mesh,false);
+        }
+      });
+    }
+    emitKind("clover",cloverSets,kinds.clover);
+    emitKind("plant",plantSets,kinds.plant);
+    return spots.length;
+  }
+
+  /* —— GLB 卵石散布（圆卵石 + 方卵石） —— */
+  function placePebblesGlb(scene,ctx){
+    if(typeof ASSETS==="undefined"||!ASSETS.isReady())return;
+    const roundSets=ASSETS.getTreeParts("pebble_round");
+    const squareSets=ASSETS.getTreeParts("pebble_square");
+    if((!roundSets||!roundSets.length)&&(!squareSets||!squareSets.length))return;
+    const c=Object.assign({
+      count:(BAL.props&&BAL.props.pebbleCount)||200,
+      radius:60,
+      cx:0,cz:0,
+      baseScale:(BAL.props&&BAL.props.pebbleScale)||1.8,
+    },ctx||{});
+    const spots=[];
+    let guard=0;
+    while(spots.length<c.count&&guard++<c.count*6){
+      const a=prand()*Math.PI*2;
+      const r=Math.sqrt(prand())*c.radius;
+      const x=c.cx+Math.cos(a)*r,z=c.cz+Math.sin(a)*r;
+      if(!isGrassSpot(x,z,.35))continue;
+      const gy=typeof heightAt==="function"?heightAt(x,z):0;
+      const kind=prand()<.5?"round":"square";
+      spots.push({x,z,y:gy,yaw:prand()*Math.PI*2,scale:psrand(.5,1.2),kind});
+    }
+    if(!spots.length)return;
+    const kinds={round:[],square:[]};
+    for(let i=0;i<spots.length;i++)kinds[spots[i].kind].push(spots[i]);
+    const baseScale=c.baseScale;
+    function emitKind(kind,sets,list){
+      if(!sets||!sets.length||!list.length)return;
+      const byBucket=new Map();
+      for(let i=0;i<list.length;i++){
+        const k=bucketKey(list[i].x,list[i].z);
+        if(!byBucket.has(k))byBucket.set(k,[]);
+        byBucket.get(k).push(list[i]);
+      }
+      byBucket.forEach(items=>{
+        const parts=sets[(hashAt(items[0].x,items[0].z,11)*sets.length|0)%sets.length];
+        if(!parts)return;
+        for(let p=0;p<parts.length;p++){
+          const part=parts[p];
+          const mesh=new THREE.InstancedMesh(part.geometry,part.material,items.length);
+          mesh.count=items.length;
+          mesh.castShadow=false;
+          mesh.receiveShadow=false;
+          mesh.name=kind+"_pebble_"+p;
+          mesh.userData.noCamCollide=true;
+          for(let i=0;i<items.length;i++){
+            const s=items[i];
+            _dummy.position.set(s.x,s.y,s.z);
+            _dummy.rotation.set(0,s.yaw,0);
+            _dummy.scale.setScalar(s.scale*baseScale);
+            _dummy.updateMatrix();
+            mesh.setMatrixAt(i,_dummy.matrix);
+            if(typeof mesh.setColorAt==="function"){
+              mesh.setColorAt(i,softTint(s.x,s.z,0x9a9080,.7));
+            }
+          }
+          mesh.instanceMatrix.needsUpdate=true;
+          if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+          fitInstanceBounds(mesh);
+          scene.add(mesh);
+          track(mesh,false);
+        }
+      });
+    }
+    emitKind("round",roundSets,kinds.round);
+    emitKind("square",squareSets,kinds.square);
+    return spots.length;
+  }
+
+  /* —— GLB 花瓣散布（花簇附近点缀） —— */
+  function placePetalsGlb(scene,ctx){
+    if(typeof ASSETS==="undefined"||!ASSETS.isReady())return;
+    const petalSets=ASSETS.getTreeParts("petal");
+    if(!petalSets||!petalSets.length)return;
+    const c=Object.assign({
+      count:(BAL.props&&BAL.props.petalCount)||80,
+      radius:60,
+      cx:0,cz:0,
+      baseScale:(BAL.props&&BAL.props.petalScale)||1.5,
+    },ctx||{});
+    const spots=[];
+    let guard=0;
+    while(spots.length<c.count&&guard++<c.count*10){
+      const a=prand()*Math.PI*2;
+      const r=Math.sqrt(prand())*c.radius;
+      const x=c.cx+Math.cos(a)*r,z=c.cz+Math.sin(a)*r;
+      if(!isFlowerSpot(x,z,.3))continue;
+      if(typeof TERRAIN.flowerSeed==="function"&&TERRAIN.flowerSeed(x,z)===0&&prand()>.4)continue;
+      const gy=typeof heightAt==="function"?heightAt(x,z):0;
+      spots.push({x,z,y:gy,yaw:prand()*Math.PI*2,scale:psrand(.6,1.3)});
+    }
+    if(!spots.length)return;
+    const byBucket=new Map();
+    for(let i=0;i<spots.length;i++){
+      const k=bucketKey(spots[i].x,spots[i].z);
+      if(!byBucket.has(k))byBucket.set(k,[]);
+      byBucket.get(k).push(spots[i]);
+    }
+    const baseScale=c.baseScale;
+    const petalTints=[0xffbbcc,0xffccdd,0xffddcc,0xffeebb,0xddccff];
+    byBucket.forEach(items=>{
+      const parts=petalSets[(hashAt(items[0].x,items[0].z,11)*petalSets.length|0)%petalSets.length];
+      if(!parts)return;
+      for(let p=0;p<parts.length;p++){
+        const part=parts[p];
+        const mesh=new THREE.InstancedMesh(part.geometry,part.material,items.length);
+        mesh.count=items.length;
+        mesh.castShadow=false;
+        mesh.receiveShadow=false;
+        mesh.name="petal_"+p;
+        mesh.userData.noCamCollide=true;
+        for(let i=0;i<items.length;i++){
+          const s=items[i];
+          _dummy.position.set(s.x,s.y,s.z);
+          _dummy.rotation.set(0,s.yaw,0);
+          _dummy.scale.setScalar(s.scale*baseScale);
+          _dummy.updateMatrix();
+          mesh.setMatrixAt(i,_dummy.matrix);
+          if(typeof mesh.setColorAt==="function"){
+            const tc=petalTints[Math.floor(Math.abs(hashAt(s.x,s.z,7))*petalTints.length)];
+            mesh.setColorAt(i,softTint(s.x,s.z,tc,.3));
+          }
+        }
+        mesh.instanceMatrix.needsUpdate=true;
+        if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+        fitInstanceBounds(mesh);
+        scene.add(mesh);
+        track(mesh,false);
+      }
+    });
+    return spots.length;
+  }
+
+  /* —— GLB 中号岩石散布 —— */
+  function placeRockMediumGlb(scene,ctx){
+    if(typeof ASSETS==="undefined"||!ASSETS.isReady())return;
+    const rockSets=ASSETS.getTreeParts("rock_medium");
+    if(!rockSets||!rockSets.length)return;
+    const c=Object.assign({
+      count:(BAL.props&&BAL.props.rockMediumCount)||60,
+      radius:60,
+      cx:0,cz:0,
+      baseScale:(BAL.props&&BAL.props.rockMediumScale)||3.0,
+    },ctx||{});
+    const spots=[];
+    let guard=0;
+    while(spots.length<c.count&&guard++<c.count*8){
+      const a=prand()*Math.PI*2;
+      const r=Math.sqrt(prand())*c.radius;
+      const x=c.cx+Math.cos(a)*r,z=c.cz+Math.sin(a)*r;
+      if(!isGrassSpot(x,z,.45))continue;
+      const gy=typeof heightAt==="function"?heightAt(x,z):0;
+      spots.push({x,z,y:gy,yaw:prand()*Math.PI*2,scale:psrand(.6,1.4),tilt:(prand()-.5)*.3});
+    }
+    if(!spots.length)return;
+    const byBucket=new Map();
+    for(let i=0;i<spots.length;i++){
+      const k=bucketKey(spots[i].x,spots[i].z);
+      if(!byBucket.has(k))byBucket.set(k,[]);
+      byBucket.get(k).push(spots[i]);
+    }
+    const baseScale=c.baseScale;
+    byBucket.forEach(items=>{
+      const parts=rockSets[(hashAt(items[0].x,items[0].z,11)*rockSets.length|0)%rockSets.length];
+      if(!parts)return;
+      for(let p=0;p<parts.length;p++){
+        const part=parts[p];
+        const mesh=new THREE.InstancedMesh(part.geometry,part.material,items.length);
+        mesh.count=items.length;
+        mesh.castShadow=true;
+        mesh.receiveShadow=true;
+        mesh.name="rock_medium_"+p;
+        mesh.userData.noCamCollide=true;
+        for(let i=0;i<items.length;i++){
+          const s=items[i];
+          _dummy.position.set(s.x,s.y,s.z);
+          _dummy.rotation.set(s.tilt||0,s.yaw,s.tilt||0);
+          _dummy.scale.setScalar(s.scale*baseScale);
+          _dummy.updateMatrix();
+          mesh.setMatrixAt(i,_dummy.matrix);
+          if(typeof mesh.setColorAt==="function"){
+            mesh.setColorAt(i,softTint(s.x,s.z,0x8d8d85,.7));
+          }
+        }
+        mesh.instanceMatrix.needsUpdate=true;
+        if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+        fitInstanceBounds(mesh);
+        scene.add(mesh);
+        track(mesh,false);
+      }
+    });
+    return spots.length;
   }
 
   /* —— 松 / 橡 —— */
@@ -951,19 +1151,23 @@ const PROPS=(function(){
     const lakes=(typeof TERRAIN!=="undefined"&&TERRAIN.cfg&&TERRAIN.cfg.lakes)||C.lakes||[];
     for(let i=0;i<lakes.length;i++)scene.add(buildMirrorLake(lakes[i]));
 
-    /* 草地 */
-    scene.add(buildGrassField({
-      cx:camp.x,cz:camp.z,
-      radius:(BAL.props&&BAL.props.grassRadius)||80,
-    }));
+    /* GLB 草簇（Quaternius Nature MegaKit · InstancedMesh） */
+    placeGrassGlb(scene,{cx:camp.x,cz:camp.z});
 
-    /* 花簇 */
-    const flowers=buildFlowerField({
-      cx:camp.x,cz:camp.z,
-      count:2500,
-      radius:70,
-    });
-    for(let i=0;i<flowers.length;i++)scene.add(flowers[i]);
+    /* GLB 花朵 */
+    placeFlowersGlb(scene,{cx:camp.x,cz:camp.z});
+
+    /* GLB 地被小植物（三叶草 / 小型植物） */
+    placePlantsGlb(scene,{cx:camp.x,cz:camp.z});
+
+    /* GLB 卵石（圆卵石 + 方卵石） */
+    placePebblesGlb(scene,{cx:camp.x,cz:camp.z});
+
+    /* GLB 花瓣（花簇附近点缀） */
+    placePetalsGlb(scene,{cx:camp.x,cz:camp.z});
+
+    /* GLB 中号岩石 */
+    placeRockMediumGlb(scene,{cx:camp.x,cz:camp.z});
 
     /* 树木 · 灌木 · 蕨（莫高雷丰茂草原 · 全图散布） */
     placeTrees(scene,{
@@ -986,7 +1190,6 @@ const PROPS=(function(){
   function updateProps(t,dt){
     if(state.disposed)return;
     if(typeof ASSETS!=="undefined"&&ASSETS.sharedTime)ASSETS.sharedTime.value=t;
-    if(state.grassUni)state.grassUni.uTime.value=t;
     for(let i=0;i<state.lakeUnis.length;i++)state.lakeUnis[i].uTime.value=t;
     const d=dt||0.016;
     for(let i=0;i<state.clouds.length;i++){
@@ -1023,7 +1226,6 @@ const PROPS=(function(){
       disposeObject3D(e.obj,e.deep);
     }
     state.roots.length=0;
-    state.grassUni=null;
     state.lakeUnis.length=0;
     state.clouds.length=0;
     state.embers.length=0;
@@ -1054,7 +1256,9 @@ const PROPS=(function(){
 
   return{
     buildPine,buildOak,getTreeVariants,buildRockGroup,
-    buildGrassField,buildMirrorLake,buildCloudField,
+    placeGrassGlb,placeFlowersGlb,placePlantsGlb,
+    placePebblesGlb,placePetalsGlb,placeRockMediumGlb,
+    buildMirrorLake,buildCloudField,
     spawnMulgoreProps,placeZoneTrees,updateProps,disposeProps,attachCampfireEmbers,
     get state(){return state;},
   };
@@ -1064,7 +1268,12 @@ const buildPine=(s)=>PROPS.buildPine(s);
 const buildOak=(s)=>PROPS.buildOak(s);
 const getTreeVariants=()=>PROPS.getTreeVariants();
 const buildRockGroup=(s)=>PROPS.buildRockGroup(s);
-const buildGrassField=(c)=>PROPS.buildGrassField(c);
+const placeGrassGlb=(s,c)=>PROPS.placeGrassGlb(s,c);
+const placeFlowersGlb=(s,c)=>PROPS.placeFlowersGlb(s,c);
+const placePlantsGlb=(s,c)=>PROPS.placePlantsGlb(s,c);
+const placePebblesGlb=(s,c)=>PROPS.placePebblesGlb(s,c);
+const placePetalsGlb=(s,c)=>PROPS.placePetalsGlb(s,c);
+const placeRockMediumGlb=(s,c)=>PROPS.placeRockMediumGlb(s,c);
 const buildMirrorLake=(l)=>PROPS.buildMirrorLake(l);
 const buildCloudField=(c)=>PROPS.buildCloudField(c);
 const spawnMulgoreProps=(sc,ctx)=>PROPS.spawnMulgoreProps(sc,ctx);

@@ -22,8 +22,18 @@ const ASSETS=(function(){
       twisted:["foliage/twisted_1.glb","foliage/twisted_2.glb","foliage/twisted_3.glb"],
       bush:["foliage/bush.glb","foliage/bush_flowers.glb"],
       fern:["foliage/fern.glb"],
-      mushroom:["foliage/mushroom.glb"],
+      mushroom:["foliage/mushroom.glb","foliage/mushroom_laetiporus.glb"],
       rock:["foliage/rock_1.glb","foliage/rock_2.glb","foliage/rock_3.glb"],
+      /* 草地美化：GLB 草簇 / 花 / 地被（Quaternius Nature MegaKit） */
+      grass:["foliage/grass_common_short.glb","foliage/grass_common_tall.glb","foliage/grass_wispy_short.glb","foliage/grass_wispy_tall.glb"],
+      flower:["foliage/flower_3_single.glb","foliage/flower_4_single.glb","foliage/flower_3_group.glb","foliage/flower_4_group.glb"],
+      clover:["foliage/clover_1.glb","foliage/clover_2.glb"],
+      plant:["foliage/plant_1.glb","foliage/plant_7.glb","foliage/plant_1_big.glb","foliage/plant_7_big.glb"],
+      /* 新增：花瓣 / 卵石 / 中号岩石 */
+      petal:["foliage/petal_1.glb","foliage/petal_2.glb","foliage/petal_3.glb","foliage/petal_4.glb","foliage/petal_5.glb"],
+      pebble_round:["foliage/pebble_round_1.glb","foliage/pebble_round_2.glb","foliage/pebble_round_3.glb","foliage/pebble_round_4.glb","foliage/pebble_round_5.glb"],
+      pebble_square:["foliage/pebble_square_1.glb","foliage/pebble_square_2.glb","foliage/pebble_square_3.glb","foliage/pebble_square_4.glb","foliage/pebble_square_5.glb","foliage/pebble_square_6.glb"],
+      rock_medium:["foliage/rock_medium_1.glb","foliage/rock_medium_2.glb","foliage/rock_medium_3.glb"],
     },
     buildings:{
       house:["props/house_1.glb","props/house_2.glb","props/house_3.glb"],
@@ -40,6 +50,18 @@ const ASSETS=(function(){
         "props/cracked_grave.glb",
       ],
       dock:["props/dock_platform.glb"],
+      /* plan-beautify B.5 — Quaternius Medieval Village + Kenney Survival Kit v2 */
+      anvil:["props/anvil.glb"],
+      barrel:["props/barrel.glb"],
+      campfire_glb:["props/campfire.glb"],
+      cart:["props/cart.glb"],
+      crate:["props/crate.glb"],
+      lantern:["props/lantern.glb"],
+      market_stall:["props/market_stall.glb"],
+      signpost:["props/signpost.glb"],
+      tent_large:["props/tent_large.glb"],
+      toolbox:["props/toolbox.glb"],
+      well:["props/well.glb"],
     },
     creatures:{
       wild_boar:["creatures/wild_boar.glb"],
@@ -54,6 +76,59 @@ const ASSETS=(function(){
       demon:["creatures/demon.glb"],
       dragon:["creatures/dragon.glb"],
       ghost:["creatures/ghost.glb"],
+      /* Quaternius Animated Animals（草地美化补充） */
+      horse:["creatures/horse.glb"],
+      horse_white:["creatures/horse_white.glb"],
+      cow:["creatures/cow.glb"],
+      deer:["creatures/deer.glb"],
+      alpaca:["creatures/alpaca.glb"],
+      donkey:["creatures/donkey.glb"],
+      husky:["creatures/husky.glb"],
+      shiba_inu:["creatures/shiba_inu.glb"],
+      /* Quaternius Cute RPG Demo — 40 种生物 */
+      /* 鸟类 */
+      birb:["creatures/birb.glb"],
+      chicken:["creatures/chicken.glb"],
+      pigeon:["creatures/pigeon.glb"],
+      /* 小型动物 */
+      bunny:["creatures/bunny.glb"],
+      cat:["creatures/cat.glb"],
+      dog:["creatures/dog.glb"],
+      frog:["creatures/frog.glb"],
+      fish:["creatures/fish.glb"],
+      /* 史莱姆 / 元素 */
+      greenblob:["creatures/greenblob.glb"],
+      greenspikyblob:["creatures/greenspikyblob.glb"],
+      pinkblob:["creatures/pinkblob.glb"],
+      /* 类人生物 */
+      alien:["creatures/alien.glb"],
+      ninja:["creatures/ninja.glb"],
+      wizard:["creatures/wizard.glb"],
+      tribal:["creatures/tribal.glb"],
+      orc_skull:["creatures/orc_skull.glb"],
+      /* 大型生物 / Boss */
+      dino:["creatures/dino.glb"],
+      cactoro:["creatures/cactoro.glb"],
+      bluedemon:["creatures/bluedemon.glb"],
+      monkroose:["creatures/monkroose.glb"],
+      yeti:["creatures/yeti.glb"],
+      /* 蘑菇系 */
+      mushnub:["creatures/mushnub.glb"],
+      mushnub_evolved:["creatures/mushnub_evolved.glb"],
+      mushroomking:["creatures/mushroomking.glb"],
+      /* 飞行系 */
+      alpaking:["creatures/alpaking.glb"],
+      alpaking_evolved:["creatures/alpaking_evolved.glb"],
+      armabee:["creatures/armabee.glb"],
+      armabee_evolved:["creatures/armabee_evolved.glb"],
+      dragon_evolved:["creatures/dragon_evolved.glb"],
+      ghost_skull:["creatures/ghost_skull.glb"],
+      glub:["creatures/glub.glb"],
+      glub_evolved:["creatures/glub_evolved.glb"],
+      goleling:["creatures/goleling.glb"],
+      goleling_evolved:["creatures/goleling_evolved.glb"],
+      hywirl:["creatures/hywirl.glb"],
+      squidle:["creatures/squidle.glb"],
     },
   };
 
@@ -63,12 +138,16 @@ const ASSETS=(function(){
     Leaves_TwistedTree:{leaf:true,wind:1},
     Leaves:{leaf:true,wind:1.15},
     Flowers:{leaf:true,wind:1},
+    Grass:{leaf:true,wind:.85},
     Bark_NormalTree:{leaf:false,wind:0},
     Bark_TwistedTree:{leaf:false,wind:0},
     Bark_DeadTree:{leaf:false,wind:0},
     Bark:{leaf:false,wind:0},
     Mushrooms:{leaf:false,wind:0},
     Rocks:{leaf:false,wind:0},
+    Rock_Medium:{leaf:false,wind:0},
+    Pebbles:{leaf:false,wind:0},
+    Petals:{leaf:true,wind:.85},
     Fern:{leaf:true,wind:1.1},
   };
   const LEAF_ALPHA=.4;
@@ -279,6 +358,18 @@ const ASSETS=(function(){
       grave:{h:1.7,w:.85,d:.45},
       dock:{h:.55,w:4.2,d:7.5},
       house:{h:6.8,w:8.5,d:7.2},
+      /* plan-beautify B.5 — 新增道具默认尺寸 */
+      anvil:{h:.8,w:1.0,d:.6},
+      barrel:{h:1.2,w:.9,d:.9},
+      campfire_glb:{h:1.5,w:2.5,d:2.5},
+      cart:{h:2.0,w:4.0,d:2.2},
+      crate:{h:1.0,w:1.0,d:1.0},
+      lantern:{h:4.0,w:.6,d:.6},
+      market_stall:{h:4.0,w:5.0,d:3.5},
+      signpost:{h:3.0,w:1.8,d:.4},
+      tent_large:{h:6.0,w:8.0,d:8.0},
+      toolbox:{h:.6,w:.9,d:.6},
+      well:{h:2.2,w:2.8,d:2.8},
     };
     const def=defaults[kind]||defaults.house;
     const targetH=c.targetH!=null?c.targetH:def.h;

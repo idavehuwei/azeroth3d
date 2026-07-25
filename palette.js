@@ -29,6 +29,8 @@ const PALETTE={
   ice   :{base:0x9ad8ff, dark:0x4a80b0, light:0xc8e8ff},
   holy  :{base:0xffe080, dark:0xd4af37, light:0xfff0a0},
   teal  :{base:0x2a9a78, dark:0x1a6048, light:0x44e0a0},
+  /* 地被植物色板（草地美化） */
+  groundCover:{clover:0x3a6820, daisyPetal:0xf8f4f0, daisyCenter:0xf0c830, pebbleA:0x8a8a80, pebbleB:0x6a6a62},
 };
 
 /**

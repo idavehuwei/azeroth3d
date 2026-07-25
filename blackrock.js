@@ -7,6 +7,8 @@
           models.js（buildVendor buildSpiritHealer tintNpcCloth
             buildHut buildWatchtower buildCampfire buildFence BUILD_PAL
             placeProp buildGraveyard）
+          props.js（placeZoneTrees placeGrassGlb placeFlowersGlb placePlantsGlb
+            placePebblesGlb placeRockMediumGlb）
           world.js（pickNearestNpc openVendor）
           combat.js 运行时（S log announce）
    [导出] sceneBlackrock BLACKROCK_R BR_PORTAL_S BR_PORTAL_MC
@@ -91,6 +93,8 @@ function buildBlackrockZone(scn){
       heightFn:()=>0, seed:0xB1AC^WORLD_SEED,
       bush:true, bushCount:50, fern:false, clusters:3, rockCount:45,
     });
+    if(typeof placePebblesGlb==="function")placePebblesGlb(root,{cx:0,cz:0,radius:90,count:60});
+    if(typeof placeRockMediumGlb==="function")placeRockMediumGlb(root,{cx:0,cz:0,radius:90,count:30});
   }
   placeProp(root,buildFence({wood:P.wood,woodD:P.woodD,length:12,posts:6}),-20,-4,Math.PI/2);
   [[-6,4],[8,-6]].forEach(([x,z],i)=>{

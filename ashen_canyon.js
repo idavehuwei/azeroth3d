@@ -8,8 +8,10 @@
           models.js（buildVendor buildSpiritHealer tintNpcCloth
             buildHut buildTent buildFence buildWatchtower buildCampfire buildTotem
             buildMarketStall buildCratePile
-            buildLonghouse buildWell buildVillageGate buildSignpost buildLanternPole buildHaystack BUILD_PAL placeProp buildGraveyard）
+            buildLonghouse buildWell buildVillageGate buildSignpost buildLanternPole buildHaystack buildBarrel buildCart buildAnvil buildToolbox buildCrate buildTentLarge BUILD_PAL placeProp buildGraveyard）
           creatures.js（buildQuadruped buildElemental）
+          props.js（placeZoneTrees placeGrassGlb placeFlowersGlb placePlantsGlb
+            placePebblesGlb placePetalsGlb placeRockMediumGlb）
           world.js（spawnMob MOBS pickNearestNpc appendNpcQuestButtons openVendor closeVendorPanel）
           combat.js 运行时（S log announce）
           quests.js 运行时（acceptQuest turnInQuest）
@@ -84,6 +86,13 @@ function buildAshenZone(scn){
       heightFn:()=>0, seed:0xA54E41^WORLD_SEED,
       bush:true, bushCount:90, fern:false, clusters:6, rockCount:60,
     });
+    /* GLB 草地 / 花朵 / 地被（灰烬峡谷稀少） */
+    if(typeof placeGrassGlb==="function")placeGrassGlb(root,{cx:0,cz:0,radius:ASHEN_R-12,count:100});
+    if(typeof placeFlowersGlb==="function")placeFlowersGlb(root,{cx:0,cz:0,radius:ASHEN_R-16,count:40});
+    if(typeof placePlantsGlb==="function")placePlantsGlb(root,{cx:0,cz:0,radius:ASHEN_R-16,count:20});
+    if(typeof placePebblesGlb==="function")placePebblesGlb(root,{cx:0,cz:0,radius:ASHEN_R-16,count:80});
+    if(typeof placePetalsGlb==="function")placePetalsGlb(root,{cx:0,cz:0,radius:ASHEN_R-20,count:10});
+    if(typeof placeRockMediumGlb==="function")placeRockMediumGlb(root,{cx:0,cz:0,radius:ASHEN_R-12,count:40});
   }
   const rockMat=MAT.get("rock.ashen",{color:0x4a3028,emissive:0x501808,emissiveIntensity:.12});
   for(let i=0;i<20;i++){
@@ -121,6 +130,15 @@ function buildAshenZone(scn){
   placeProp(root,buildMarketStall({wood:P.wood,woodD:P.woodD,cloth:0x6a4a20,size:1}),12,6,-.15);
   placeProp(root,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),-8,-12,.2);
   placeProp(root,buildCratePile({wood:P.wood,woodD:P.woodD,size:1}),14,-8,-.3);
+  /* CC0 GLB 装饰道具（plan-beautify B.5） */
+  placeProp(root,buildBarrel({size:.9}),-10,-14,.3);
+  placeProp(root,buildBarrel({size:.9}),12,-9,-.1);
+  placeProp(root,buildCart({size:.9}),-12,-14,Math.PI*.15);
+  placeProp(root,buildAnvil({size:.8}),16,-10,.2);
+  placeProp(root,buildToolbox({size:.8}),14,-9,-.1);
+  placeProp(root,buildCrate({size:.9}),-8,-14,.5);
+  placeProp(root,buildCrate({size:.9}),12,-10,-.3);
+  placeProp(root,buildTentLarge({size:.95}),-18,-12,.25);
   placeProp(root,buildTotem({wood:P.woodD,paintA:0xd02810,paintB:0xa05030,size:1}),8,6,0);
   placeProp(root,buildTotem({wood:P.woodD,paintA:0xa05030,paintB:0xd02810,size:1}),-12,-6,0);
   placeProp(root,buildWell({stone:0x6a5a50,wood:P.woodD,size:1}),-2,0,0);
