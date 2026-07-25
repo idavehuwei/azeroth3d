@@ -122,7 +122,9 @@ const QUAD_TO_CREATURE={
   bird:"birb",
   thunderhawk:"birb",
   raptor:"dino",
-  /* 仍然程序化：scorp crocolisk boarKing magmadar cobrahn verdan oggleflint taragaman lavabeast */
+  crocolisk:"dino",       /* 鳄鱼 → 迅猛龙 GLB */
+  scorp:"spider",         /* 蝎子 → 蜘蛛 GLB */
+  /* 仍然程序化：boarKing magmadar cobrahn verdan oggleflint taragaman lavabeast */
 };
 
 const MOB_HUMANOIDS={
@@ -141,6 +143,9 @@ const MELEE_HUMANOIDS={
   baeldunDigger:{size:.9,skin:0xb89070,cloth:0x6a5a40,clothD:0x3a3020,helm:0x8a7848,weapon:0xa09060},
   venture:{size:.88,skin:0x90b070,cloth:0x4a6a38,clothD:0x2a3a20,helm:0x6a8040,weapon:0xc0a040},
   ventureBoss:{size:1.05,skin:0x88a868,cloth:0x3a5028,clothD:0x1a2810,helm:0x506030,weapon:0xd0b050},
+  /* plan-beautify B5 · GLB 人形（有骨骼模型时优先 GLB） */
+  goblin:{size:.85,skin:0x7a9a48,cloth:0x5a3828,clothD:0x3a2018,glb:"goblin"},
+  orc:{size:1.08,skin:0x8a6040,cloth:0x4a3830,clothD:0x2a2018,glb:"orc"},
 };
 
 const ELEMENTALS={
@@ -151,9 +156,6 @@ const ELEMENTALS={
   earth:{color:0xa08050,emissive:0x705828,size:1.1,flame:false,rocks:5,light:0xa08050},
   oasis:{color:0x3a7a58,emissive:0x1a5030,size:1.15,flame:false,rocks:4,light:0x3a8a58},
   slag:{color:0x6a4030,emissive:0xff5020,size:1.0,flame:true,rocks:5,light:0xff6020},
-  /* plan-beautify B5 · GLB 人形（有骨骼模型时优先 GLB） */
-  goblin:{size:.85,skin:0x7a9a48,cloth:0x5a3828,clothD:0x3a2018,glb:"goblin"},
-  orc:{size:1.08,skin:0x8a6040,cloth:0x4a3830,clothD:0x2a2018,glb:"orc"},
 };
 
 /* ============================================================
@@ -282,11 +284,15 @@ function buildScorpion(cfg){
 function buildCreatureGLB(kind,cfg){
   const c=cfg||{};
   if(typeof ASSETS==="undefined"||!ASSETS.cloneCreature){
-    console.warn("[creatures] ASSETS.cloneCreature 不可用，回退程序化");
+    console.warn("[creatures] buildCreatureGLB:",kind,"ASSETS.cloneCreature 不可用，回退程序化");
     return null;
   }
   const group=ASSETS.cloneCreature(kind,{scale:c.size||1,seed:c.seed||0});
-  if(!group)return null;
+  if(!group){
+    console.warn("[creatures] buildCreatureGLB 返回 null:",kind);
+    return null;
+  }
+  console.log("[creatures] buildCreatureGLB 成功:",kind,"children:",group.children.length,"userData:",Object.keys(group.userData).join(","));
   /* 四足动画数据（后续接入 AnimationMixer） */
   group.userData.legs=c.legs!=null?c.legs:4;
   group.userData.kind="quad_glb";
@@ -314,7 +320,10 @@ function tryUpgradeMobMesh(mob){
     newMesh.userData.kind==="meleeHumanoid_glb"||
     newMesh.userData.creatureKind
   );
-  if(!isGLB){newMesh.traverse?.(o=>{if(o.geometry)o.geometry.dispose?.();if(o.material)o.material.dispose?.();});return false;}
+  if(!isGLB){
+    console.log("[tryUpgradeMobMesh] 不是 GLB，跳过:",mob.type,"kind=",newMesh.userData&&newMesh.userData.kind);
+    newMesh.traverse?.(o=>{if(o.geometry)o.geometry.dispose?.();if(o.material)o.material.dispose?.();});return false;
+  }
   /* 替换：保持位置/朝向，移除旧 mesh，加入新 mesh */
   newMesh.position.copy(mob.mesh.position);
   newMesh.rotation.copy(mob.mesh.rotation);
@@ -334,23 +343,38 @@ function tryUpgradeMobMesh(mob){
   /* 更新 mob 引用 */
   mob.mesh=newMesh;
   mob.userData=newMesh.userData;
+  console.log("[tryUpgradeMobMesh] 升级成功:",mob.type,"→",newMesh.userData.creatureKind||"GLB");
   return true;
 }
 
 function upgradeAllMobMeshes(){
-  if(typeof MOBS==="undefined"||!MOBS)return;
-  let upgraded=0;
-  for(let i=0;i<MOBS.length;i++){
-    if(tryUpgradeMobMesh(MOBS[i]))upgraded++;
+  if(typeof MOBS==="undefined"||!MOBS){
+    console.warn("[creatures] upgradeAllMobMeshes: MOBS 未定义，跳过");
+    return;
   }
-  if(upgraded>0)console.info("[creatures] GLB 热替换完成：",upgraded,"只怪已升级");
+  let upgraded=0, skipped=0, failed=0;
+  for(let i=0;i<MOBS.length;i++){
+    const result=tryUpgradeMobMesh(MOBS[i]);
+    if(result===true)upgraded++;
+    else if(result===false)skipped++;
+    else failed++;
+  }
+  console.info("[creatures] GLB 热替换完成：",upgraded,"只升级,",skipped,"只跳过,",failed,"只失败, 共",MOBS.length,"只");
 }
 
 /* 注册到 ASSETS 就绪回调 */
 if(typeof ASSETS!=="undefined"&&ASSETS.whenReady){
   ASSETS.whenReady(()=>{
     /* 等一帧让 GLB clone 缓存就绪 */
-    setTimeout(()=>upgradeAllMobMeshes(),100);
+    setTimeout(()=>{
+      console.log("[creatures] ASSETS 就绪，准备热替换 GLB，当前 MOBS 数量:",typeof MOBS!=="undefined"?MOBS.length:"未定义");
+      upgradeAllMobMeshes();
+      /* 如果 MOBS 还没有被 populate（world.js 尚未执行），重试 */
+      if(typeof MOBS==="undefined"||!MOBS.length){
+        console.log("[creatures] MOBS 为空，1 秒后重试");
+        setTimeout(()=>upgradeAllMobMeshes(),1000);
+      }
+    },100);
   });
 }
 

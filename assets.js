@@ -8,6 +8,7 @@
           ASSETS.ready / whenReady / isReady
           ASSETS.getTreeParts / getBuildingProto / cloneBuilding
           ASSETS.cloneCreature / getCreatureUrl
+          ASSETS.cloneItem / getItemUrl / prepareItem
           ASSETS.sharedTime / markCamGhost / updateCamGhosts
    ============================================================ */
 "use strict";
@@ -130,6 +131,25 @@ const ASSETS=(function(){
       hywirl:["creatures/hywirl.glb"],
       squidle:["creatures/squidle.glb"],
     },
+    /* —— 物品/道具 GLB —— */
+    items:{
+      all:[
+        "items/sword.glb","items/claymore.glb","items/dagger.glb","items/knife.glb",
+        "items/spear.glb","items/axe_small.glb","items/axe_double.glb",
+        "items/doublesided_hammer.glb","items/scythe.glb",
+        "items/wooden_bow.glb","items/arrow.glb",
+        "items/shield_heater.glb","items/shield_round.glb","items/shield_celtic_golden.glb",
+        "items/armor_metal.glb","items/armor_leather.glb","items/armor_golden.glb",
+        "items/necklace.glb","items/crown.glb","items/glove.glb",
+        "items/backpack.glb","items/bag.glb","items/chest.glb",
+        "items/potion_bottle.glb",
+        "items/coin.glb","items/coin_pouch.glb","items/gold_ingots.glb",
+        "items/skull_coin.glb","items/star_coin.glb","items/chalice.glb",
+        "items/mineral.glb","items/bone.glb","items/fish_bone.glb","items/skull.glb",
+        "items/book.glb","items/book_open.glb","items/scroll.glb","items/parchment.glb",
+        "items/key.glb","items/padlock.glb","items/snowflake.glb",
+      ],
+    },
   };
 
   const MAT_POLICY={
@@ -158,6 +178,7 @@ const ASSETS=(function(){
   const treePartsCache=new Map();
   const buildingProto=new Map();
   const creatureProto=new Map();
+  const itemProto=new Map();
   const camGhosts=[];
   let ready=false;
   let readyPromise=null;
@@ -421,7 +442,10 @@ const ASSETS=(function(){
   function prepareCreature(url){
     if(creatureProto.has(url))return creatureProto.get(url);
     const gltf=gltfCache.get(url);
-    if(!gltf)return null;
+    if(!gltf){
+      console.warn("[ASSETS] prepareCreature: gltf 不在缓存",url);
+      return null;
+    }
     const root=gltf.scene.clone(true);
     root.updateMatrixWorld(true);
     const m=measureScene(root);
@@ -437,6 +461,7 @@ const ASSETS=(function(){
       animations:gltf.animations||[],
     };
     creatureProto.set(url,proto);
+    console.log("[ASSETS] prepareCreature:",url,"height:",proto.height.toFixed(3),"size:",proto.size.toArray().map(v=>v.toFixed(3)));
     return proto;
   }
 
@@ -447,34 +472,164 @@ const ASSETS=(function(){
     return list[0];
   }
 
+  /* -- 物品 GLB --------------------------------------- */
+  function prepareItem(url){
+    if(itemProto.has(url))return itemProto.get(url);
+    const gltf=gltfCache.get(url);
+    if(!gltf){
+      console.warn("[ASSETS][items] prepareItem 失败: GLTF 不在缓存中", url);
+      return null;
+    }
+    const root=gltf.scene.clone(true);
+    root.updateMatrixWorld(true);
+    const m=measureScene(root);
+    console.log("[ASSETS][items] prepareItem:", url,
+      "原始尺寸:", m.size.toArray().map(v=>v.toFixed(3)),
+      "minY:", m.minY.toFixed(3));
+    root.position.y-=m.minY;
+    root.updateMatrixWorld(true);
+    const m2=measureScene(root);
+    console.log("[ASSETS][items] prepareItem 归一后:", url,
+      "高度:", m2.size.y.toFixed(3),
+      "尺寸:", m2.size.toArray().map(v=>v.toFixed(3)));
+    const proto={
+      url,root,
+      size:m2.size.clone(),
+      height:m2.size.y||1,
+    };
+    itemProto.set(url,proto);
+    return proto;
+  }
+
+  /* 按物品 id 找对应的 GLB 模型 URL */
+  function getItemUrl(itemId){
+    const map={
+      /* 武器 */
+      sword:"items/sword.glb",claymore:"items/claymore.glb",
+      dagger:"items/dagger.glb",knife:"items/knife.glb",
+      spear:"items/spear.glb",axe_small:"items/axe_small.glb",axe_double:"items/axe_double.glb",
+      hammer:"items/doublesided_hammer.glb",scythe:"items/scythe.glb",
+      wooden_bow:"items/wooden_bow.glb",arrow:"items/arrow.glb",
+      /* 盾牌 */
+      shield_heater:"items/shield_heater.glb",shield_round:"items/shield_round.glb",
+      /* 护甲/防具 */
+      armor_metal:"items/armor_metal.glb",armor_leather:"items/armor_leather.glb",
+      armor_golden:"items/armor_golden.glb",
+      /* 首饰 */
+      necklace:"items/necklace.glb",crown:"items/crown.glb",glove:"items/glove.glb",
+      /* 容器 */
+      backpack:"items/backpack.glb",bag:"items/bag.glb",chest:"items/chest.glb",
+      /* 药水 */
+      potion:"items/potion_bottle.glb",
+      /* 货币 */
+      coin:"items/coin.glb",coin_pouch:"items/coin_pouch.glb",gold_ingots:"items/gold_ingots.glb",
+      skull_coin:"items/skull_coin.glb",star_coin:"items/star_coin.glb",chalice:"items/chalice.glb",
+      /* 材料 */
+      mineral:"items/mineral.glb",bone:"items/bone.glb",fish_bone:"items/fish_bone.glb",skull:"items/skull.glb",
+      /* 书籍/卷轴 */
+      book:"items/book.glb",book_open:"items/book_open.glb",scroll:"items/scroll.glb",parchment:"items/parchment.glb",
+      /* 杂物 */
+      key:"items/key.glb",padlock:"items/padlock.glb",snowflake:"items/snowflake.glb",
+    };
+    const url=map[itemId]||null;
+    if(!url)console.warn("[ASSETS][items] getItemUrl: 未找到映射", itemId);
+    return url;
+  }
+
+  function cloneItem(itemId,cfg){
+    const c=cfg||{};
+    const url=getItemUrl(itemId);
+    if(!url||!ready){
+      console.warn("[ASSETS][items] cloneItem 跳过:", itemId, "ready=", ready, "url=", url);
+      return null;
+    }
+    const proto=prepareItem(url);
+    if(!proto){
+      console.warn("[ASSETS][items] cloneItem prepareItem 失败:", itemId, url);
+      return null;
+    }
+    const gltf=gltfCache.get(url);
+    if(!gltf){
+      console.warn("[ASSETS][items] cloneItem gltf 不在缓存:", itemId, url);
+      return null;
+    }
+    const root=gltf.scene.clone(true);
+    root.updateMatrixWorld(true);
+    /* 把底移到 y=0 */
+    root.position.y-=proto.height>0?proto.root.position.y:0;
+    /* 归一化高度约 0.6 */
+    const h=Math.max(.01,proto.height);
+    const sc=c.size!=null?c.size:(.6/h);
+    root.scale.setScalar(sc);
+    const g=new THREE.Group();
+    g.add(root);
+    let meshCount=0;
+    g.traverse(o=>{
+      if(!o.isMesh)return;
+      meshCount++;
+      o.castShadow=true;
+      o.receiveShadow=true;
+    });
+    console.log("[ASSETS][items] cloneItem 成功:", itemId, url, "meshes:", meshCount, "scale:", sc.toFixed(3), "height:", proto.height.toFixed(3));
+    return g;
+  }
+
   function cloneCreature(kind,cfg){
     const c=cfg||{};
     const list=MANIFEST.creatures[kind];
-    if(!list||!list.length||!ready)return null;
+    if(!list||!list.length||!ready){
+      console.warn("[ASSETS] cloneCreature 跳过:",kind,"ready=",ready,"list=",list&&list.length);
+      return null;
+    }
     let idx=0;
     if(c.variant!=null)idx=((c.variant%list.length)+list.length)%list.length;
     else if(c.seed!=null)idx=(c.seed>>>0)%list.length;
     const url=list[idx];
     const proto=prepareCreature(url);
-    if(!proto)return null;
+    if(!proto){
+      console.warn("[ASSETS] cloneCreature prepareCreature 失败:",kind,url);
+      return null;
+    }
     /* 从原始 gltf.scene 克隆（避免 proto.root 双克隆导致 SkinnedMesh
        骨骼引用指向缓存中的旧骨骼，其 world 矩阵永不更新 → 顶点坍缩不可见） */
     const gltf=gltfCache.get(url);
-    if(!gltf)return null;
+    if(!gltf){
+      console.warn("[ASSETS] cloneCreature gltf 不在缓存:",kind,url);
+      return null;
+    }
     const root=gltf.scene.clone(true);
     /* -- 骨骼重映射：将 SkinnedMesh.skeleton.bones 替换为克隆层级中的新骨骼 -- */
     const boneMap=new Map();
     root.traverse(o=>{if(o.isBone&&o.name)boneMap.set(o.name,o);});
+    console.log("[ASSETS] cloneCreature:",kind,url,"bones:",boneMap.size);
     root.traverse(o=>{
       if(!o.isSkinnedMesh||!o.skeleton)return;
-      const newBones=o.skeleton.bones.map(old=>boneMap.get(old.name)||old);
+      const oldBones=o.skeleton.bones?o.skeleton.bones.length:0;
+      const newBones=o.skeleton.bones.map(old=>{
+        const nb=boneMap.get(old.name);
+        if(!nb)console.warn("[ASSETS] 骨骼映射失败:",kind,"bone:",old.name,"不存在于克隆层级");
+        return nb||old;
+      });
       o.skeleton.bones=newBones;
+      /* 重算包围盒/球，防止 frustumCulled 误裁 */
+      if(o.geometry){
+        o.geometry.computeBoundingBox();
+        o.geometry.computeBoundingSphere();
+      }
+      /* 强制 frustumCulled=false，骨骼模型包围盒在 clone 后可能不准 */
+      o.frustumCulled=false;
+      console.log("[ASSETS] SkinnedMesh 骨骼重映射:",kind,oldBones,"→",newBones.length,"frustumCulled=false");
     });
     /* 应用底部对齐偏移（prepareCreature 已算好） */
     root.position.copy(proto.root.position);
     root.rotation.copy(proto.root.rotation);
     root.scale.copy(proto.root.scale);
     root.updateMatrixWorld(true);
+    /* 骨骼矩阵更新：必须在 root 偏移和 updateMatrixWorld 之后，
+       否则 bones 的 world 矩阵不包含偏移量，导致顶点渲染到错误位置 */
+    root.traverse(o=>{
+      if(o.isSkinnedMesh&&o.skeleton)o.skeleton.update();
+    });
     const g=new THREE.Group();
     g.add(root);
     const sc=c.scale!=null?c.scale:1;
@@ -486,12 +641,17 @@ const ASSETS=(function(){
       /* 部分 GLB 缺少 NORMAL（如 wild_boar），补齐以免 PBR 全黑 */
       if(o.geometry&&!o.geometry.getAttribute("normal")){
         o.geometry.computeVertexNormals();
+        console.log("[ASSETS] 补齐 normal:",kind,url);
       }
       if(o.material){
         const mats=Array.isArray(o.material)?o.material:[o.material];
         mats.forEach(m=>{
           if(!m)return;
           if(m.map){m.map.colorSpace=THREE.SRGBColorSpace;m.needsUpdate=true;}
+          /* 确保材质有可见性 */
+          m.transparent=false;
+          m.depthWrite=true;
+          m.visible=true;
         });
       }
     });
@@ -501,6 +661,7 @@ const ASSETS=(function(){
     /* 碰撞半径 = max(size.x,size.z)*0.4*sc */
     g.userData.hitRadius=Math.max(proto.size.x,proto.size.z)*0.4*sc;
     g.userData.height=proto.height*sc;
+    console.log("[ASSETS] cloneCreature 成功:",kind,"size:",proto.size.toArray().map(v=>v.toFixed(3)));
     return g;
   }
 
@@ -602,10 +763,24 @@ const ASSETS=(function(){
   }
 
   function loadOne(loader,url){
+    console.log("[ASSETS] 开始加载:",url);
+    const isItem=url.startsWith("items/");
+    if(isItem)console.log("[ASSETS][items] 加载物品模型:", url);
     return new Promise((resolve,reject)=>{
       loader.load(
         BASE+url,
-        (gltf)=>{gltfCache.set(url,gltf);resolve(gltf);},
+        (gltf)=>{
+          gltfCache.set(url,gltf);
+          /* 检查是否是 SkinnedMesh */
+          let skinnedCount=0, meshCount=0;
+          gltf.scene.traverse(o=>{
+            if(o.isMesh)meshCount++;
+            if(o.isSkinnedMesh)skinnedCount++;
+          });
+          if(isItem)console.log("[ASSETS][items] 加载成功:",url,"meshes:",meshCount,"skinned:",skinnedCount);
+          else console.log("[ASSETS] 加载成功:",url,"meshes:",meshCount,"skinned:",skinnedCount);
+          resolve(gltf);
+        },
         undefined,
         (err)=>reject(err||new Error("load fail "+url))
       );
@@ -617,6 +792,8 @@ const ASSETS=(function(){
     Object.keys(MANIFEST.trees).forEach(k=>MANIFEST.trees[k].forEach(x=>u.push(x)));
     Object.keys(MANIFEST.buildings).forEach(k=>MANIFEST.buildings[k].forEach(x=>u.push(x)));
     Object.keys(MANIFEST.creatures).forEach(k=>MANIFEST.creatures[k].forEach(x=>u.push(x)));
+    Object.keys(MANIFEST.items).forEach(k=>MANIFEST.items[k].forEach(x=>u.push(x)));
+    console.log("[ASSETS] 总加载量:", u.length, "个文件，其中 items:", (MANIFEST.items.all||[]).length);
     return u;
   }
 
@@ -639,6 +816,7 @@ const ASSETS=(function(){
         }).finally(()=>{
           left--;
           if(left<=0){
+            console.log("[ASSETS] 加载完成:",ok,"/",urls.length,"成功, ready=",ok>0);
             ready=ok>0;
             if(ready){
               try{
@@ -649,6 +827,11 @@ const ASSETS=(function(){
                 Object.keys(MANIFEST.creatures).forEach(k=>{
                   (MANIFEST.creatures[k]||[]).forEach(u=>prepareCreature(u));
                 });
+                /* 预烘焙物品模型 */
+                const itemUrls=MANIFEST.items.all||[];
+                console.log("[ASSETS] 开始预烘焙物品模型:", itemUrls.length);
+                itemUrls.forEach(u=>prepareItem(u));
+                console.log("[ASSETS] 物品模型预烘焙完成, itemProto 缓存:", itemProto.size);
               }catch(e){
                 console.warn("[ASSETS] 预烘焙失败",e&&e.message||e);
               }
@@ -682,6 +865,7 @@ const ASSETS=(function(){
     isReady,whenReady,startLoad,
     getTreeParts,cloneBuilding,prepareBuilding,
     cloneCreature,getCreatureUrl,
+    cloneItem,getItemUrl,prepareItem,
     markCamGhost,updateCamGhosts,
     get camGhosts(){return camGhosts;},
   };

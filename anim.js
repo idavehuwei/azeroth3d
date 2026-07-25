@@ -112,6 +112,14 @@ function updateMobAnim(m,dt){
   const A=ensureAnim(mesh);
   const bal=BAL.anim||{};
 
+  /* GLB 调试：首次更新时 console */
+  if(U.kind==="quad_glb"||U.kind==="humanoid_glb"||U.kind==="meleeHumanoid_glb"){
+    if(!U._loggedAnim){
+      U._loggedAnim=true;
+      console.log("[anim] GLB 动画更新:",m.type,"legs:",U.legs,"kind:",U.kind,"children:",mesh.children.length);
+    }
+  }
+
   if(m.state==="dead"||A.deathActive){
     const wasRolling=!!A.deathActive;
     tickDeathRoll(mesh,dt);

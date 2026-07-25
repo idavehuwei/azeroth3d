@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>物品 GLB 模型验证器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#1a1a2e;color:#eee;overflow-x:hidden}
+header{position:sticky;top:0;z-index:100;background:#16213e;padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;border-bottom:2px solid #0f3460}
+header h1{font-size:18px;color:#e94560}
+header .stats{font-size:13px;color:#888;margin-left:auto}
+header .stats span{color:#eee;font-weight:700}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;padding:16px;max-width:1600px;margin:0 auto;padding-bottom:220px}
+.card{background:#16213e;border-radius:10px;overflow:hidden;border:1px solid #0f3460;transition:border-color .2s,box-shadow .2s;cursor:pointer;position:relative}
+.card:hover{border-color:#e94560;box-shadow:0 0 16px rgba(233,69,96,.3)}
+.card .thumb-wrap{width:100%;aspect-ratio:1;background:radial-gradient(ellipse at center,#1a1a3e,#0d0d1a);position:relative;display:flex;align-items:center;justify-content:center}
+.card .thumb-wrap img{display:block;width:100%;height:100%;object-fit:contain}
+.card .thumb-wrap .placeholder{color:#555;font-size:12px;text-align:center;padding:20px}
+.card .info{padding:8px 10px;font-size:12px}
+.card .info .name{color:#eee;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .info .detail{color:#888;font-size:11px;margin-top:2px}
+.card .status-dot{position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;border:1px solid rgba(0,0,0,.4);z-index:1}
+.card .status-dot.loading{background:#f0a500}
+.card .status-dot.ok{background:#00c853}
+.card .status-dot.fail{background:#e94560}
+.card.selected{border-color:#4fc3f7;box-shadow:0 0 20px rgba(79,195,247,.4)}
+#detail-panel{position:fixed;bottom:0;left:0;right:0;height:40vh;background:#16213e;border-top:2px solid #e94560;transform:translateY(calc(100% - 52px));transition:transform .3s ease;z-index:200;overflow:hidden;display:flex;flex-direction:column}
+#detail-panel.open{transform:translateY(0)}
+#detail-panel .bar{display:flex;align-items:center;padding:8px 16px;gap:12px;background:#1a1a2e;flex-shrink:0;cursor:pointer;user-select:none;min-height:52px}
+#detail-panel .bar .arrow{font-size:14px;transition:transform .3s;color:#e94560}
+#detail-panel.open .bar .arrow{transform:rotate(180deg)}
+#detail-panel .bar .title{font-size:14px;font-weight:600}
+#detail-panel .bar .close{margin-left:auto;background:none;border:none;color:#888;font-size:18px;cursor:pointer;padding:0 8px}
+#detail-panel .bar .close:hover{color:#fff}
+#detail-panel .content{flex:1;display:flex;overflow:hidden}
+#detail-panel .content .viewer{flex:1;background:radial-gradient(ellipse at center,#1a1a3e,#0d0d1a)}
+#detail-panel .content .viewer canvas{display:block;width:100%!important;height:100%!important}
+#detail-panel .content .meta{width:260px;padding:14px;overflow-y:auto;flex-shrink:0;border-left:1px solid #0f3460;font-size:13px;line-height:1.7}
+#detail-panel .content .meta .label{color:#888;margin-top:8px}
+#detail-panel .content .meta .label:first-child{margin-top:0}
+#detail-panel .content .meta .val{color:#eee}
+#detail-panel .content .meta .error{color:#e94560;font-size:12px;word-break:break-all;background:#2a1a2e;padding:8px;border-radius:6px;margin-top:8px;max-height:120px;overflow-y:auto}
+.loading-msg{text-align:center;padding:60px 20px;color:#888;font-size:16px;grid-column:1/-1}
+.filter-bar{display:flex;gap:8px;padding:8px 16px;flex-wrap:wrap;background:#0f3460;align-items:center}
+.filter-bar input{background:#1a1a2e;border:1px solid #333;color:#eee;padding:6px 10px;border-radius:6px;font-size:13px;width:200px;outline:none}
+.filter-bar input:focus{border-color:#e94560}
+.filter-bar .tag{background:#1a1a2e;border:1px solid #333;border-radius:14px;padding:4px 12px;font-size:12px;cursor:pointer;transition:all .2s;color:#aaa}
+.filter-bar .tag:hover{border-color:#e94560;color:#eee}
+.filter-bar .tag.active{background:#e94560;border-color:#e94560;color:#fff}
+#log{max-height:100px;overflow-y:auto;background:#0d0d1a;padding:4px 16px;font-family:monospace;font-size:11px;color:#888;line-height:1.5;border-top:1px solid #0f3460}
+#log::-webkit-scrollbar{width:4px}
+#log::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧪 物品 GLB 模型验证</h1>
+  <div class="filter-bar">
+    <input id="searchInput" placeholder="搜索物品名称..." oninput="filterCards()">
+    <span class="tag active" data-tag="all" onclick="setFilter('all',this)">全部</span>
+    <span class="tag" data-tag="weapon" onclick="setFilter('weapon',this)">武器</span>
+    <span class="tag" data-tag="shield" onclick="setFilter('shield',this)">盾牌</span>
+    <span class="tag" data-tag="armor" onclick="setFilter('armor',this)">防具</span>
+    <span class="tag" data-tag="accessory" onclick="setFilter('accessory',this)">首饰</span>
+    <span class="tag" data-tag="container" onclick="setFilter('container',this)">容器</span>
+    <span class="tag" data-tag="potion" onclick="setFilter('potion',this)">药水</span>
+    <span class="tag" data-tag="currency" onclick="setFilter('currency',this)">货币</span>
+    <span class="tag" data-tag="material" onclick="setFilter('material',this)">材料</span>
+    <span class="tag" data-tag="book" onclick="setFilter('book',this)">书籍</span>
+    <span class="tag" data-tag="misc" onclick="setFilter('misc',this)">杂物</span>
+  </div>
+  <div class="stats">
+    加载: <span id="loadedCount">0</span>/<span id="totalCount">0</span> |
+    成功: <span id="okCount" style="color:#00c853">0</span> |
+    失败: <span id="failCount" style="color:#e94560">0</span>
+  </div>
+</header>
+
+<div id="grid"><div class="loading-msg"><div style="display:inline-block;width:32px;height:32px;border:3px solid #0f3460;border-top-color:#e94560;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px"></div><br>加载中…</div></div>
+
+<div id="detail-panel">
+  <div class="bar" onclick="toggleDetail()">
+    <span class="arrow">▼</span>
+    <span class="title" id="detailTitle">点击物品查看详情 · 拖拽旋转</span>
+    <button class="close" onclick="closeDetail(event)">✕</button>
+  </div>
+  <div class="content">
+    <div class="viewer" id="detailViewer"></div>
+    <div class="meta" id="detailMeta">
+      <div class="label">文件名</div>
+      <div class="val" id="dFile">—</div>
+      <div class="label">分类</div>
+      <div class="val" id="dCategory">—</div>
+      <div class="label">大小</div>
+      <div class="val" id="dSize">—</div>
+      <div class="label">状态</div>
+      <div class="val" id="dStatus">—</div>
+      <div id="dError" class="error" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<div id="log"></div>
+
+<script src="vendor/three.r165.js"></script>
+<script>
+/* ============================================================
+   物品 GLB 模型验证器
+   — 单共享渲染器，截图为 dataURL → <img>
+   ============================================================ */
+const ITEMS_DIR = 'models/items/';
+
+const CATEGORIES = {
+  weapon:    ['sword','claymore','dagger','knife','spear','axe_small','axe_double','doublesided_hammer','scythe','wooden_bow','arrow'],
+  shield:    ['shield_heater','shield_round','shield_celtic_golden'],
+  armor:     ['armor_metal','armor_leather','armor_golden'],
+  accessory: ['necklace','crown','glove'],
+  container: ['backpack','bag','chest'],
+  potion:    ['potion_bottle'],
+  currency:  ['coin','coin_pouch','gold_ingots','skull_coin','star_coin','chalice'],
+  material:  ['mineral','bone','fish_bone','skull'],
+  book:      ['book','book_open','scroll','parchment'],
+  misc:      ['key','padlock','snowflake'],
+};
+const CAT_LABELS = {
+  weapon:'武器',shield:'盾牌',armor:'防具',accessory:'首饰',
+  container:'容器',potion:'药水',currency:'货币',
+  material:'材料',book:'书籍',misc:'杂物'
+};
+
+function categorizeFile(name) {
+  const base = name.replace(/\.glb$/i,'').toLowerCase();
+  for(const [cat, keywords] of Object.entries(CATEGORIES))
+    for(const kw of keywords)
+      if(base===kw || base.startsWith(kw+'-') || base.startsWith(kw+'_'))
+        return cat;
+  return 'misc';
+}
+function friendlyName(name) {
+  return name.replace(/\.glb$/i,'').replace(/[-_]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+}
+
+function $(id){return document.getElementById(id);}
+
+const files = [];
+let loadedCount=0, okCount=0, failCount=0;
+let currentFilter='all', searchQuery='';
+let detailScene=null, detailRenderer=null, detailModel=null, detailAnimId=null;
+const gltfScenes = [];
+
+/* ---------- 截图一个 GLTF 到 canvas ---------- */
+function snapshotGLTF(gltf, w, h) {
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(30, w/h, 0.1, 100);
+  camera.position.set(2, 1.5, 3);
+
+  scene.add(new THREE.AmbientLight(0x404060, 0.8));
+  const dl = new THREE.DirectionalLight(0xffffff, 1.8);
+  dl.position.set(3, 5, 4); scene.add(dl);
+  const fl = new THREE.DirectionalLight(0x8888ff, 0.4);
+  fl.position.set(-2, 1, -3); scene.add(fl);
+  const rl = new THREE.DirectionalLight(0xffffff, 0.3);
+  rl.position.set(0, -1, -3); scene.add(rl);
+
+  const gnd = new THREE.Mesh(
+    new THREE.PlaneGeometry(4, 4),
+    new THREE.MeshStandardMaterial({ color: 0x111122, roughness: 0.8, metalness: 0.2, transparent: true, opacity: 0.5 })
+  );
+  gnd.rotation.x = -Math.PI/2; gnd.position.y = -0.5;
+  scene.add(gnd);
+
+  const model = gltf.scene.clone(true);
+  model.traverse(o => { if(o.isMesh) { o.castShadow=true; o.receiveShadow=true; } });
+  const box = new THREE.Box3().setFromObject(model);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const scale = 1.8 / maxDim;
+  model.position.sub(center);
+  model.scale.setScalar(scale);
+  model.position.y += 0.3;
+  scene.add(model);
+
+  /* 每个卡片独立 canvas + renderer，用完即弃 renderer */
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const renderer = new THREE.WebGLRenderer({
+    canvas: canvas,
+    antialias: true,
+    alpha: true,
+    preserveDrawingBuffer: true
+  });
+  renderer.setPixelRatio(1);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  renderer.render(scene, camera);
+
+  /* 清理场景 + renderer */
+  scene.traverse(obj => {
+    if(obj.isMesh) {
+      if(obj.geometry) obj.geometry.dispose();
+      if(obj.material) {
+        if(Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+        else obj.material.dispose();
+      }
+    }
+  });
+  renderer.dispose();
+
+  return { canvas, model };
+}
+
+/* ---------- 工具 ---------- */
+function log(msg, cls) {
+  const el = $('log');
+  const d = document.createElement('div');
+  d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  if(cls) d.className = cls;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+function updateStats() {
+  $('loadedCount').textContent = loadedCount;
+  $('totalCount').textContent = files.length;
+  $('okCount').textContent = okCount;
+  $('failCount').textContent = failCount;
+}
+function filterCards() {
+  searchQuery = $('searchInput').value.toLowerCase();
+  document.querySelectorAll('.card').forEach(card => {
+    const cat = card.dataset.category;
+    const name = card.dataset.name.toLowerCase();
+    const matchCat = currentFilter==='all' || cat===currentFilter;
+    const matchSearch = !searchQuery || name.includes(searchQuery);
+    card.style.display = (matchCat && matchSearch) ? '' : 'none';
+  });
+}
+window.setFilter = function(tag, el) {
+  currentFilter = tag;
+  document.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  filterCards();
+};
+
+/* ---------- 详情面板 ---------- */
+window.showDetail = function(idx) {
+  const model = gltfScenes[idx];
+  if(!model) return;
+
+  const panel = $('detail-panel');
+  panel.classList.add('open');
+
+  const f = files[idx];
+  const cat = categorizeFile(f);
+  $('detailTitle').textContent = `📦 ${friendlyName(f)}`;
+  $('dFile').textContent = f;
+  $('dCategory').textContent = CAT_LABELS[cat]||cat;
+
+  fetch(ITEMS_DIR + f).then(r => {
+    const size = r.headers.get('content-length');
+    if(size) $('dSize').textContent = (size/1024).toFixed(1) + ' KB';
+  }).catch(() => {});
+
+  const dot = document.querySelector(`.card[data-index="${idx}"] .status-dot`);
+  $('dStatus').textContent = dot && dot.classList.contains('ok') ? '✅ 加载成功' :
+    dot && dot.classList.contains('fail') ? '❌ 加载失败' : '⏳ 加载中';
+  $('dError').style.display = 'none';
+
+  /* 清理旧详情 */
+  if(detailAnimId) { cancelAnimationFrame(detailAnimId); detailAnimId = null; }
+  if(detailRenderer) {
+    detailRenderer.dispose();
+    detailRenderer.domElement.remove();
+    detailRenderer = null;
+  }
+
+  const viewer = $('detailViewer');
+  viewer.innerHTML = '';
+  const rect = viewer.getBoundingClientRect();
+  const vw = rect.width || 400, vh = rect.height || 300;
+
+  detailScene = new THREE.Scene();
+  detailScene.background = new THREE.Color(0x111122);
+  const camera = new THREE.PerspectiveCamera(35, vw/vh, 0.1, 100);
+  camera.position.set(2.5, 1.5, 3.5);
+
+  detailRenderer = new THREE.WebGLRenderer({ antialias: true });
+  detailRenderer.setSize(vw, vh, false);
+  detailRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  detailRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+  detailRenderer.toneMappingExposure = 1.2;
+  detailRenderer.shadowMap.enabled = true;
+  detailRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  viewer.appendChild(detailRenderer.domElement);
+
+  detailScene.add(new THREE.AmbientLight(0x404060, 0.6));
+  const dl = new THREE.DirectionalLight(0xffffff, 2.0);
+  dl.position.set(3, 5, 4); dl.castShadow = true;
+  dl.shadow.mapSize.width = 512; dl.shadow.mapSize.height = 512;
+  detailScene.add(dl);
+  const fl = new THREE.DirectionalLight(0x8888ff, 0.5);
+  fl.position.set(-2, 1, -3); detailScene.add(fl);
+  const rl = new THREE.DirectionalLight(0xffffff, 0.3);
+  rl.position.set(0, -1, -3); detailScene.add(rl);
+
+  const gnd = new THREE.Mesh(
+    new THREE.PlaneGeometry(6, 6),
+    new THREE.MeshStandardMaterial({ color: 0x111122, roughness: 0.9, metalness: 0.1, transparent: true, opacity: 0.6 })
+  );
+  gnd.rotation.x = -Math.PI/2; gnd.position.y = -0.5; gnd.receiveShadow = true;
+  detailScene.add(gnd);
+  const gridHelper = new THREE.GridHelper(4, 10, 0x333366, 0x222244);
+  gridHelper.position.y = -0.5;
+  detailScene.add(gridHelper);
+
+  detailModel = model.clone(true);
+  detailModel.traverse(o => { if(o.isMesh) { o.castShadow=true; o.receiveShadow=true; } });
+  detailScene.add(detailModel);
+
+  let mouseDown = false, prevX = 0;
+  const onDown = (e) => { mouseDown=true; prevX=e.clientX; };
+  const onMove = (e) => { if(mouseDown) { detailModel.rotation.y += (e.clientX-prevX)*0.01; prevX=e.clientX; } };
+  const onUp = () => { mouseDown=false; };
+  detailRenderer.domElement.addEventListener('pointerdown', onDown);
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+
+  function animate() {
+    detailAnimId = requestAnimationFrame(animate);
+    if(!mouseDown) detailModel.rotation.y += 0.008;
+    detailRenderer.render(detailScene, camera);
+  }
+  animate();
+
+  document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+  const card = document.querySelector(`.card[data-index="${idx}"]`);
+  if(card) card.classList.add('selected');
+};
+
+window.toggleDetail = function() { $('detail-panel').classList.toggle('open'); };
+window.closeDetail = function(e) {
+  e.stopPropagation();
+  $('detail-panel').classList.remove('open');
+  document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+};
+
+/* ---------- 主流程 ---------- */
+async function main() {
+  log('🚀 物品 GLB 模型验证器启动');
+  const grid = $('grid');
+
+  /* 获取文件列表 */
+  try {
+    const resp = await fetch(ITEMS_DIR);
+    const html = await resp.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    doc.querySelectorAll('a').forEach(a => {
+      const href = a.getAttribute('href');
+      if(href && href.endsWith('.glb')) files.push(href);
+    });
+  } catch(e) { /* fallback */ }
+  if(!files.length) {
+    files.push(
+      "armor_golden.glb","armor_leather.glb","armor_metal.glb","arrow.glb",
+      "axe_double.glb","axe_small.glb","backpack.glb","bag.glb","bone.glb",
+      "book-h3wh4fxsqx.glb","book-lc0w7vi75u.glb","book.glb","book_open.glb",
+      "chalice.glb","chest.glb","claymore.glb","coin.glb","coin_pouch.glb",
+      "crown.glb","dagger.glb","doublesided_hammer.glb","fish_bone.glb",
+      "glove.glb","gold_ingots.glb","key-bg6e1lfnso.glb","key-h5nke04hrd.glb",
+      "key-mul40qpevv.glb","key.glb","knife.glb","mineral.glb",
+      "necklace-jvhs8dcndz.glb","necklace.glb","open_book-1a07ai9j2d.glb",
+      "open_book-jedmpg0uir.glb","open_book.glb","padlock.glb","parchment.glb",
+      "potion_bottle-wjxyta4z96.glb","potion_bottle.glb","scroll.glb","scythe.glb",
+      "shield_celtic_golden.glb","shield_heater-xohsnojsbg.glb","shield_heater.glb",
+      "shield_round-lwajrvxcna.glb","shield_round.glb","skull-exzmhoijka.glb",
+      "skull.glb","skull_coin.glb","snowflake.glb","spear.glb","star_coin.glb",
+      "sword-9llmh8et4k.glb","sword.glb","wooden_bow.glb"
+    );
+  }
+  log(`📋 找到 ${files.length} 个 GLB 文件`);
+  updateStats();
+
+  /* 创建卡片（占位） */
+  grid.innerHTML = '';
+  files.forEach((f, idx) => {
+    const cat = categorizeFile(f);
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.category = cat;
+    card.dataset.name = friendlyName(f);
+    card.dataset.index = idx;
+    card.innerHTML = `
+      <div class="thumb-wrap">
+        <div class="placeholder">🔄</div>
+      </div>
+      <div class="status-dot loading"></div>
+      <div class="info">
+        <div class="name">${friendlyName(f)}</div>
+        <div class="detail">${CAT_LABELS[cat]||cat} · 加载中</div>
+      </div>
+    `;
+    card.addEventListener('click', () => showDetail(idx));
+    grid.appendChild(card);
+  });
+
+  /* 串行加载 GLB → 截图 dataURL → <img> */
+  const loader = new THREE.GLTFLoader();
+
+  for(let idx = 0; idx < files.length; idx++) {
+    const f = files[idx];
+    const card = grid.children[idx];
+    const cat = categorizeFile(f);
+
+    try {
+      const gltf = await new Promise((resolve, reject) => {
+        loader.load(ITEMS_DIR + f, resolve, undefined, reject);
+      });
+
+      okCount++; loadedCount++;
+
+      /* 每个卡片独立 canvas + renderer，用完即弃 renderer */
+      const { canvas, model } = snapshotGLTF(gltf, 180, 180);
+      gltfScenes[idx] = model;
+
+      /* 更新卡片 - 直接使用 canvas 元素 */
+      const thumbWrap = card.querySelector('.thumb-wrap');
+      if(thumbWrap){
+        thumbWrap.innerHTML = '';
+        thumbWrap.appendChild(canvas);
+      }
+      const dot = card.querySelector('.status-dot');
+      if(dot) dot.className = 'status-dot ok';
+      const detailEl = card.querySelector('.detail');
+      if(detailEl) detailEl.textContent = `${CAT_LABELS[cat]||cat} · ✅ 成功`;
+
+      log(`✅ ${f} 加载成功`, 'ok');
+    } catch(err) {
+      failCount++; loadedCount++;
+      const dot = card.querySelector('.status-dot');
+      if(dot) dot.className = 'status-dot fail';
+      const detailEl = card.querySelector('.detail');
+      if(detailEl) detailEl.textContent = `${CAT_LABELS[cat]||cat} · ❌ 失败`;
+      const thumbWrap = card.querySelector('.thumb-wrap');
+      if(thumbWrap) thumbWrap.innerHTML = '<div class="placeholder">❌</div>';
+      log(`❌ ${f} 失败: ${(err.message||err).slice(0,80)}`, 'err');
+    }
+    updateStats();
+
+    /* 每 5 个让出主线程 */
+    if(idx % 5 === 4) await new Promise(r => setTimeout(r, 0));
+  }
+
+  log(`🏁 全部完成: ${okCount} 成功 / ${failCount} 失败`);
+}
+
+/* 窗口自适应 */
+window.addEventListener('resize', () => {
+  if(detailRenderer) {
+    const viewer = $('detailViewer');
+    const rect = viewer.getBoundingClientRect();
+    detailRenderer.setSize(rect.width||400, rect.height||300, false);
+  }
+});
+
+document.addEventListener('DOMContentLoaded', main);
+</script>
+</body>
+</html>

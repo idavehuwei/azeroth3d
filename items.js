@@ -5,6 +5,7 @@
    ------------------------------------------------------------
    [依赖] THREE · core.js（$ rand BAL makeLabel；运行时读 scene）
           icons.js（Icons）· models.js 运行时（setWeapon）
+          assets.js 运行时（ASSETS.cloneItem）
           combat.js 运行时（S log fct rebuildPlayerStatsFromEquip）· world.js 运行时（player）· vfx.js 运行时（VFX）
           js/ui/tooltip.js 运行时（showTipHtml hideTip bindTipHtml）
           talents.js 运行时（talentOpen closeTalentPanel；与背包互斥）
@@ -578,20 +579,129 @@ function rollMobLoot(m){
 }
 
 /* ============================================================
-   掉落实体：发光小方块 + Canvas 图标悬浮牌 + 品质色悬浮名
+   掉落实体：3D GLB 模型（优先）+ Canvas 图标悬浮牌 + 品质色悬浮名
    ============================================================ */
 const DROPS=[];
+
+/** 物品 → 3D 模型 id 映射（完整版：按物品 id 精确匹配） */
+const ITEM_MODEL_MAP={
+  /* —— 武器（主手） —— */
+  tusk_blade:"sword", plains_blade:"sword", sulf_blade:"sword",
+  wind_blade:"sword", greyjaw_tusk:"sword", serpent_fang:"sword",
+  onyxia_fang:"sword", barrens_cleaver:"sword", ochre_fang:"sword",
+  whelp_claw:"sword", rage_blade:"sword", camp_shortsword:"sword",
+  sulfuras_haft:"hammer", /* 双面锤 */
+  warbringer_spear:"spear",
+  camp_wood_mace:"hammer",
+  scrap_knife:"knife",
+  /* —— 远程 —— */
+  horn_bow:"wooden_bow", camp_hunting_bow:"wooden_bow",
+  /* —— 盾牌 —— */
+  tusk_buckler:"shield_round", oak_buckler:"shield_round",
+  /* —— 护甲：胸部 —— */
+  cinder_vest:"armor_leather", hide_vest:"armor_leather",
+  mesa_guard:"armor_metal", dragonscale:"armor_metal",
+  warbringer_plate:"armor_metal", barrens_cuirass:"armor_leather",
+  ochre_plate:"armor_leather", camp_leather_vest:"armor_leather",
+  /* —— 头部 —— */
+  plains_cap:"crown", mesa_helm:"armor_metal",
+  dragon_helm:"armor_metal", slag_helm:"armor_metal",
+  /* —— 颈部 —— */
+  harpy_charm:"necklace", magma_fang:"necklace",
+  magma_collar:"necklace", ash_charm:"necklace", onyx_ember:"necklace",
+  /* —— 肩部 —— */
+  wind_pauldrons:"glove", war_shoulders:"armor_metal",
+  /* —— 背部 —— */
+  plains_cloak:"backpack", moss_mantle:"backpack", scale_cloak:"backpack",
+  /* —— 手部 —— */
+  wolf_gauntlets:"glove", magma_gloves:"glove",
+  /* —— 腕部 —— */
+  hide_bracers:"glove", sulf_bracers:"glove", iron_bracer:"glove",
+  /* —— 腰部 —— */
+  boar_belt:"bag", serpent_sash:"bag", hide_belt:"bag",
+  /* —— 腿部 —— */
+  hide_leggings:"bag", barrens_greaves:"armor_metal",
+  /* —— 脚部 —— */
+  plains_boots:"bag", ash_treads:"bag",
+  /* —— 手指 —— */
+  sulf_ring:"coin", plains_band:"coin", ember_band:"coin", dragon_signet:"coin",
+  /* —— 副手 —— */
+  sulf_orb:"chalice",
+  /* —— 消耗品 —— */
+  plain_bread:"chalice", spring_water:"potion",
+  linen_bandage:"scroll", minor_potion:"potion", whetstone:"mineral",
+  /* —— 材料/杂物 —— */
+  boar_meat:"bone", boar_tusk:"bone", boar_hide:"bag",
+  wolf_pelt:"bag", wolf_fang:"bone", bird_feather:"parchment",
+  sulf_ash:"mineral", sulf_core:"mineral",
+  plainstrider_pelt:"bag", wind_essence:"parchment",
+  earth_shard:"mineral", soul_shard:"mineral",
+  quilboar_gland:"potion", harpy_feather:"parchment",
+  blasting_powder:"mineral", bird_meat:"bone",
+  zebra_hide:"bag", kodo_hide:"bag",
+  scorp_venom:"potion", snake_venom:"potion",
+  mutated_hide:"bag", scorp_stinger:"bone",
+  frayed_cloth:"bag", rusty_nail:"mineral",
+  chipped_bone:"bone", bent_copper:"coin", worn_boot:"bag",
+  /* —— 任务物品 —— */
+  quest_venture_crate:"chest", quest_sacred_oil:"potion",
+  quest_winterhoof_totem:"bone", quest_hawkwind_totem:"bone",
+  quest_raoul_crate:"chest", quest_mara_letter:"parchment",
+  quest_winterhoof_sample:"potion", quest_dwarf_plans:"scroll",
+  quest_signal_horn:"key", quest_darsok_letter:"parchment",
+  quest_kil_crate:"chest", quest_grave_totem:"bone",
+  quest_cannon_charge:"mineral", quest_supply_crate:"chest",
+  quest_ochre_report:"parchment",
+};
+
+function _itemModelId(it){
+  if(!it)return null;
+  /* 优先精确匹配 */
+  if(ITEM_MODEL_MAP[it.id])return ITEM_MODEL_MAP[it.id];
+  /* model 字段回退 */
+  if(it.model==="sword")return "sword";
+  if(it.model==="sulfuras"||it.model==="hammer")return "hammer";
+  /* icon 字段回退 */
+  const m={
+    sword:"sword",hammer:"hammer",armor:"armor_leather",hide:"backpack",
+    potion:"potion",tusk:"bone",feather:"parchment",ore:"mineral",
+    star:"coin",fireball:"potion",aimed:"wooden_bow",bandage:"scroll",
+    whetstone:"mineral",bread:"coin",meat:"bone",
+  };
+  return m[it.icon]||null;
+}
+
 function dropLoot(pos,items,owner,onLooted){
   const it=items&&items[0];
-  if(!it||!QUALITY[it.quality])return;
+  if(!it||!QUALITY[it.quality]){
+    console.warn("[items][dropLoot] 跳过掉落: 物品无效", it&&it.id, it&&it.quality);
+    return;
+  }
   const q=QUALITY[it.quality];
+  console.log("[items][dropLoot] 开始掉落:", it.id, it.name, "品质:", it.quality, "位置:", pos.x.toFixed(1), pos.y.toFixed(1), pos.z.toFixed(1));
   const grp=new THREE.Group();
   const gy=(typeof heightAt==="function"&&typeof getCurrentZoneId==="function"&&getCurrentZoneId()==="mulgore")
     ?heightAt(pos.x,pos.z):(pos.y||0);
   grp.position.copy(pos).setY(gy);
-  const cube=new THREE.Mesh(new THREE.BoxGeometry(.55,.55,.55),
-    MAT.get("emissive.loot",{color:q.hex,emissive:q.hex,emissiveIntensity:.65,roughness:.4}));
-  cube.position.y=.6; cube.castShadow=true; grp.add(cube);
+  console.log("[items][dropLoot] 落地高度:", gy.toFixed(2));
+  /* 3D GLB 模型（优先），回落方块 */
+  let modelMesh=null;
+  const mid=_itemModelId(it);
+  const assetsReady=typeof ASSETS!=="undefined"&&ASSETS.isReady();
+  console.log("[items][dropLoot] ASSETS 就绪:", assetsReady, "| 模型 id:", mid);
+  const mg=(assetsReady&&mid)?ASSETS.cloneItem(mid,{size:.5}):null;
+  if(mg){
+    mg.position.y=.6;
+    grp.add(mg);
+    modelMesh=mg;
+    console.log("[items][dropLoot] 使用 3D 模型:", mid, "成功");
+  }else{
+    console.log("[items][dropLoot] 回落方块: 原因=", !assetsReady?"ASSETS未就绪":!mid?"无模型映射":"cloneItem返回null");
+    const cube=new THREE.Mesh(new THREE.BoxGeometry(.55,.55,.55),
+      MAT.get("emissive.loot",{color:q.hex,emissive:q.hex,emissiveIntensity:.65,roughness:.4}));
+    cube.position.y=.6; cube.castShadow=true; grp.add(cube);
+    modelMesh=cube;
+  }
   const icTex=new THREE.CanvasTexture(Icons.canvas(it.icon,q.color));
   icTex.colorSpace=THREE.SRGBColorSpace;
   const icSp=new THREE.Sprite(new THREE.SpriteMaterial({
@@ -601,14 +711,17 @@ function dropLoot(pos,items,owner,onLooted){
   const label=makeLabel(it.name,5.5,q.color,q.color);
   label.position.y=2.9; grp.add(label);
   scene.add(grp);
-  DROPS.push({grp,cube,items:[it],owner,onLooted,scn:scene,t:0});
+  DROPS.push({grp,modelMesh,items:[it],owner,onLooted,scn:scene,t:0});
+  console.log("[items][dropLoot] 完成, 当前掉落物总数:", DROPS.length);
 }
-/* 每帧动画：方块旋转 + 浮沉 */
+/* 每帧动画：模型旋转 + 浮沉 */
 function updateDrops(dt){
   for(const d of DROPS){
     d.t+=dt;
-    d.cube.rotation.y+=dt*2.2;
-    d.cube.position.y=.6+Math.sin(d.t*2.6)*.12;
+    if(d.modelMesh){
+      d.modelMesh.rotation.y+=dt*2.2;
+      d.modelMesh.position.y=.6+Math.sin(d.t*2.6)*.12;
+    }
   }
 }
 /* 当前场景内最近的可拾取掉落 */

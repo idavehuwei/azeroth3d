@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>GLB 生物模型查看器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;color:#e0e0e0;font-family:system-ui,-apple-system,sans-serif;overflow-x:hidden}
+h1{text-align:center;padding:20px 0;font-size:22px;color:#ffd9a0;border-bottom:1px solid #333}
+#controls{position:sticky;top:0;z-index:100;background:#16213e;padding:10px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #333}
+#controls label{font-size:13px;color:#aaa}
+#controls button{padding:6px 16px;border:none;border-radius:4px;background:#4a6a8a;color:#fff;cursor:pointer;font-size:13px}
+#controls button:hover{background:#5a7a9a}
+#controls .count{font-size:13px;color:#8a8}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:3px;padding:3px}
+.card{position:relative;background:#0f3460;border-radius:6px;overflow:hidden;cursor:pointer;transition:transform .15s;border:2px solid transparent}
+.card:hover{transform:scale(1.03);z-index:10}
+.card img{width:100%;display:block;aspect-ratio:1;object-fit:cover;background:#0a0a1a}
+.card .info{font-size:11px;padding:6px 8px;line-height:1.5;word-break:break-all}
+.card .info .name{font-weight:700;font-size:13px;color:#ffd9a0}
+.card .info .badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;margin-left:4px}
+.badge-ok{background:#1a6a3a;color:#8f8}
+.badge-fail{background:#6a1a1a;color:#f88}
+.badge-skin{background:#4a3a1a;color:#ff8}
+.card.selected{border-color:#ffd9a0;box-shadow:0 0 12px rgba(255,217,160,.3)}
+#detail-panel{position:fixed;right:0;top:0;width:420px;max-width:100vw;height:100vh;background:#0f3460;z-index:200;overflow-y:auto;padding:20px;border-left:2px solid #333;display:none;box-shadow:-4px 0 20px rgba(0,0,0,.5)}
+#detail-panel.open{display:block}
+#detail-panel .close{float:right;background:none;border:none;color:#ff6;font-size:24px;cursor:pointer}
+#detail-panel h2{color:#ffd9a0;margin-bottom:10px;font-size:18px}
+#detail-panel .detail-canvas-wrap{width:100%;aspect-ratio:1;background:#0a0a1a;border-radius:8px;margin-bottom:12px}
+#detail-panel .detail-canvas-wrap canvas{width:100%!important;height:100%!important;display:block}
+#detail-panel table{width:100%;border-collapse:collapse;font-size:12px}
+#detail-panel td,#detail-panel th{padding:4px 8px;border:1px solid #333;text-align:left}
+#detail-panel th{color:#aaa;width:100px;background:#1a1a2e}
+#detail-panel .log{background:#0a0a1a;padding:8px;border-radius:4px;font-size:11px;font-family:monospace;white-space:pre-wrap;max-height:200px;overflow-y:auto;margin-top:8px;color:#8f8}
+#filter-bar{position:sticky;top:53px;z-index:99;background:#16213e;padding:6px 20px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #222;font-size:12px}
+#filter-bar .tag{display:inline-block;padding:2px 8px;border-radius:10px;cursor:pointer;border:1px solid #555;font-size:11px}
+#filter-bar .tag.active{background:#4a6a8a;color:#fff;border-color:#4a6a8a}
+.status-ok{border-left:3px solid #4a8}
+.status-fail{border-left:3px solid #f44}
+.status-skin{border-left:3px solid #fa0}
+#progress{text-align:center;padding:40px;font-size:18px;color:#888}
+#summary{position:fixed;bottom:10px;right:10px;background:#16213e;padding:8px 14px;border-radius:8px;font-size:12px;z-index:50;opacity:.8}
+</style>
+</head>
+<body>
+
+<h1>🧬 GLB 生物模型查看器</h1>
+
+<div id="controls">
+  <button id="btnReload">重新加载</button>
+  <span class="count" id="countDisplay">加载中...</span>
+</div>
+
+<div id="filter-bar">
+  <span>筛选:</span>
+  <span class="tag active" data-filter="all">全部</span>
+  <span class="tag active" data-filter="ok">✅ 正常</span>
+  <span class="tag active" data-filter="fail">❌ 失败</span>
+  <span class="tag active" data-filter="skin">🦴 骨骼</span>
+  <span class="tag active" data-filter="noskin">📦 无骨骼</span>
+</div>
+
+<div id="progress">⏳ 加载 Three.js...</div>
+<div id="grid"></div>
+<div id="summary"></div>
+
+<div id="detail-panel">
+  <button class="close" id="detailClose">✕</button>
+  <h2 id="detailName">-</h2>
+  <div class="detail-canvas-wrap"><canvas id="detailCanvas"></canvas></div>
+  <table id="detailTable"></table>
+  <div id="detailLog" class="log">无日志</div>
+</div>
+
+<script src="vendor/three.r165.js"></script>
+<script>
+// ============================================================
+// GLB 生物模型查看器 — 共享渲染器方案
+// ============================================================
+
+const BASE = 'models/';
+
+const CREATURE_FILES = [
+  "alien.glb","alpaca.glb","alpaking.glb","alpaking_evolved.glb",
+  "armabee.glb","armabee_evolved.glb","birb.glb","bluedemon.glb",
+  "bull.glb","bunny.glb","cactoro.glb","cat.glb","chicken.glb",
+  "cow.glb","deer.glb","demon.glb","dino.glb","dog.glb","donkey.glb",
+  "dragon.glb","dragon_evolved.glb","fish.glb","fox.glb","frog.glb",
+  "ghost.glb","ghost_skull.glb","giant.glb","glub.glb","glub_evolved.glb",
+  "goblin.glb","goleling.glb","goleling_evolved.glb","greenblob.glb",
+  "greenspikyblob.glb","horse.glb","horse_white.glb","husky.glb",
+  "hywirl.glb","monkroose.glb","mushnub.glb","mushnub_evolved.glb",
+  "mushroomking.glb","ninja.glb","orc.glb","orc_skull.glb","pigeon.glb",
+  "pinkblob.glb","shiba_inu.glb","spider.glb","squidle.glb","stag.glb",
+  "tribal.glb","wild_boar.glb","wizard.glb","wolf_basic.glb","yeti.glb",
+];
+
+let allData = [];
+let activeFilters = new Set(['all','ok','fail','skin','noskin']);
+let detailAnimId = null;
+let detailRenderer = null;
+let detailScene = null;
+let detailCamera = null;
+
+// ---- 共享渲染器（用于缩略图拍摄） ----
+const THUMB_W = 220, THUMB_H = 220;
+const sharedRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+sharedRenderer.setSize(THUMB_W, THUMB_H, false);
+sharedRenderer.setPixelRatio(1);
+sharedRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+sharedRenderer.toneMappingExposure = 1.0;
+
+const sharedCam = new THREE.PerspectiveCamera(30, THUMB_W / THUMB_H, 0.01, 100);
+const sharedScene = new THREE.Scene();
+sharedScene.background = new THREE.Color(0x0a0a1a);
+
+// 共享灯光
+const _amb = new THREE.AmbientLight(0x404060, 0.6);
+sharedScene.add(_amb);
+const _dir = new THREE.DirectionalLight(0xffeedd, 1.8);
+_dir.position.set(3, 5, 4);
+sharedScene.add(_dir);
+const _dir2 = new THREE.DirectionalLight(0x4488ff, 0.4);
+_dir2.position.set(-3, -2, 3);
+sharedScene.add(_dir2);
+sharedScene.add(new THREE.HemisphereLight(0x88ccff, 0x443322, 0.5));
+
+const _grid = new THREE.GridHelper(3, 10, 0x444466, 0x333355);
+_grid.position.y = -0.5;
+sharedScene.add(_grid);
+
+// ---- 加载 ----
+function init() {
+  document.getElementById('progress').textContent = '⏳ 正在加载 GLB 文件...';
+  const loader = new THREE.GLTFLoader();
+  const promises = CREATURE_FILES.map(file => {
+    const url = BASE + 'creatures/' + file;
+    return new Promise(resolve => {
+      loader.load(url,
+        gltf => resolve(analyzeGLB(file.replace('.glb',''), file, gltf, null)),
+        undefined,
+        err => resolve(analyzeGLB(file.replace('.glb',''), file, null, err.message || String(err)))
+      );
+    });
+  });
+
+  Promise.all(promises).then(results => {
+    allData = results;
+    document.getElementById('progress').style.display = 'none';
+    renderGrid();
+    updateSummary();
+    updateCount();
+  });
+}
+
+function analyzeGLB(name, file, gltf, error) {
+  const data = { name, file, url: BASE + 'creatures/' + file, error, gltf };
+  if (!gltf) {
+    Object.assign(data, { ok: false, status: 'error',
+      meshCount: 0, skinnedCount: 0, boneCount: 0, primCount: 0,
+      minY: 0, maxY: 0, height: 0,
+      hasNormal: false, hasJoints: false, hasWeights: false,
+      skeletonInfo: '加载失败', materialModes: [] });
+    return data;
+  }
+  const sc = gltf.scene;
+  let skinnedCount = 0, meshCount = 0, boneCount = 0, primCount = 0;
+  let hasNormal = false, hasJoints = false, hasWeights = false;
+  let minY = Infinity, maxY = -Infinity;
+  let materialModes = [];
+
+  sc.traverse(o => {
+    if (o.isMesh) {
+      meshCount++;
+      if (o.isSkinnedMesh) skinnedCount++;
+      if (o.geometry) {
+        const pos = o.geometry.getAttribute('position');
+        if (pos) {
+          for (let i = 0; i < pos.count; i++) {
+            const y = pos.getY(i);
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+        hasNormal = hasNormal || !!o.geometry.getAttribute('normal');
+        hasJoints = hasJoints || !!o.geometry.getAttribute('joints') || !!o.geometry.getAttribute('JOINTS_0');
+        hasWeights = hasWeights || !!o.geometry.getAttribute('weights') || !!o.geometry.getAttribute('WEIGHTS_0');
+        const posAttr = o.geometry.getAttribute('position');
+        primCount += o.geometry.index ? o.geometry.index.count : (posAttr ? posAttr.count : 0);
+      }
+      if (o.material) {
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach(m => {
+          if (m) materialModes.push({
+            alphaMode: m.transparent ? 'BLEND' : (m.alphaTest ? 'MASK' : 'OPAQUE'),
+            doubleSided: m.side === THREE.DoubleSide,
+            opacity: m.opacity != null ? m.opacity : 1,
+          });
+        });
+      }
+    }
+    if (o.isBone) boneCount++;
+  });
+
+  let skeletonInfo = '无';
+  sc.traverse(o => {
+    if (o.isSkinnedMesh && o.skeleton) {
+      const bones = o.skeleton.bones;
+      const bm = o.skeleton.boneMatrices;
+      skeletonInfo = `骨骼=${bones.length} 矩阵=${bm ? bm.length/16 : 0}`;
+      if (bm) {
+        let allZero = true;
+        for (let i = 0; i < 16 && i < bm.length; i++) {
+          if (bm[i] !== 0) { allZero = false; break; }
+        }
+        if (allZero) skeletonInfo += ' ⚠️全零矩阵(坍缩)';
+      }
+    }
+  });
+
+  Object.assign(data, {
+    meshCount, skinnedCount, boneCount, primCount,
+    hasNormal, hasJoints, hasWeights,
+    minY, maxY, height: maxY - minY,
+    skeletonInfo, materialModes,
+    ok: true,
+    status: skinnedCount > 0 ? 'skinned' : 'static',
+  });
+  return data;
+}
+
+// ---- 用共享渲染器拍摄缩略图 ----
+function snapshotModel(data) {
+  if (!data.gltf) return null;
+  const root = data.gltf.scene.clone(true);
+
+  // 骨骼重映射
+  const boneMap = new Map();
+  root.traverse(o => { if (o.isBone && o.name) boneMap.set(o.name, o); });
+  root.traverse(o => {
+    if (!o.isSkinnedMesh || !o.skeleton) return;
+    const newBones = o.skeleton.bones.map(old => boneMap.get(old.name) || old);
+    o.skeleton.bones = newBones;
+    if (o.geometry) { o.geometry.computeBoundingBox(); o.geometry.computeBoundingSphere(); }
+    o.frustumCulled = false;
+  });
+
+  // 底部对齐
+  const box = new THREE.Box3().setFromObject(root);
+  root.position.y -= box.min.y;
+  root.updateMatrixWorld(true);
+
+  // 归一化
+  const box2 = new THREE.Box3().setFromObject(root);
+  const modelH = Math.max(0.01, box2.max.y - box2.min.y);
+  root.scale.setScalar(2.0 / modelH);
+  root.updateMatrixWorld(true);
+
+  // 骨骼矩阵更新（关键！）
+  root.traverse(o => { if (o.isSkinnedMesh && o.skeleton) o.skeleton.update(); });
+
+  sharedScene.add(root);
+
+  // 拍一张
+  let angle = 0.3; // 固定角度，不旋转
+  const r = 3.5;
+  sharedCam.position.set(Math.sin(angle) * r, 0.2, Math.cos(angle) * r);
+  sharedCam.lookAt(0, 0.3, 0);
+  sharedRenderer.render(sharedScene, sharedCam);
+  const dataUrl = sharedRenderer.domElement.toDataURL('image/png');
+
+  sharedScene.remove(root);
+  // 清理几何/材质
+  root.traverse(o => {
+    if (o.isMesh) {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) {
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach(m => { if (m) m.dispose(); });
+      }
+    }
+  });
+
+  return dataUrl;
+}
+
+// ---- 渲染网格 ----
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  const filtered = allData.filter(d => {
+    if (!activeFilters.has('all')) return false;
+    if (d.status === 'error' && !activeFilters.has('fail')) return false;
+    if (d.status === 'skinned' && !activeFilters.has('skin')) return false;
+    if (d.status === 'static' && !activeFilters.has('noskin')) return false;
+    if (d.ok && !activeFilters.has('ok')) return false;
+    return true;
+  });
+
+  // 逐个拍摄缩略图（避免同时创建太多 WebGL 上下文）
+  let idx = 0;
+  function renderNext() {
+    if (idx >= filtered.length) return;
+    const data = filtered[idx];
+    idx++;
+
+    const card = document.createElement('div');
+    card.className = `card ${data.ok ? 'status-ok' : 'status-fail'} ${data.status === 'skinned' ? 'status-skin' : ''}`;
+    card.dataset.filename = data.file;
+
+    const img = document.createElement('img');
+    img.alt = data.name;
+    img.loading = 'lazy';
+    card.appendChild(img);
+
+    const info = document.createElement('div');
+    info.className = 'info';
+    const badgeStatus = data.ok ? (data.status === 'skinned' ? '🦴' : '📦') : '❌';
+    const badgeColor = data.ok ? (data.status === 'skinned' ? 'badge-skin' : 'badge-ok') : 'badge-fail';
+    info.innerHTML = `<div class="name">${data.name} <span class="badge ${badgeColor}">${badgeStatus}</span></div>`;
+    info.innerHTML += `<div>顶点: ${data.primCount} | 网格: ${data.meshCount} | 骨骼: ${data.boneCount}</div>`;
+    info.innerHTML += `<div>Y: ${data.minY.toFixed(2)} ~ ${data.maxY.toFixed(2)} [高:${data.height.toFixed(2)}]</div>`;
+    if (data.skinnedCount > 0) {
+      info.innerHTML += `<div style="color:#fa0">${data.skeletonInfo}</div>`;
+    }
+    if (!data.hasNormal) info.innerHTML += `<div style="color:#f66">⚠️ 无 NORMAL</div>`;
+    if (!data.ok) info.innerHTML += `<div style="color:#f44">❌ ${data.error}</div>`;
+    card.appendChild(info);
+
+    card.addEventListener('click', () => showDetail(data));
+    grid.appendChild(card);
+
+    // 拍摄缩略图
+    requestAnimationFrame(() => {
+      const snap = snapshotModel(data);
+      if (snap) img.src = snap;
+      else img.alt = '❌';
+      renderNext(); // 继续下一个
+    });
+  }
+  renderNext();
+}
+
+// ---- 详情面板 ----
+function showDetail(data) {
+  const panel = document.getElementById('detail-panel');
+  panel.classList.add('open');
+  document.getElementById('detailName').textContent = `📄 ${data.name}.glb`;
+
+  if (detailAnimId) { cancelAnimationFrame(detailAnimId); detailAnimId = null; }
+
+  const canvas = document.getElementById('detailCanvas');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = canvas.parentElement.clientWidth;
+  const h = w;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+
+  if (detailRenderer) {
+    detailRenderer.dispose();
+    detailRenderer = null;
+  }
+  detailRenderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  detailRenderer.setSize(w, h, false);
+  detailRenderer.setPixelRatio(dpr);
+  detailRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+  detailRenderer.toneMappingExposure = 1.0;
+
+  detailCamera = new THREE.PerspectiveCamera(30, w / h, 0.01, 100);
+  detailCamera.position.set(0, 0, 5);
+
+  detailScene = new THREE.Scene();
+  detailScene.background = new THREE.Color(0x0a0a1a);
+
+  const amb = new THREE.AmbientLight(0x404060, 0.6);
+  detailScene.add(amb);
+  const dir = new THREE.DirectionalLight(0xffeedd, 2.0);
+  dir.position.set(3, 5, 4);
+  detailScene.add(dir);
+  const dir2 = new THREE.DirectionalLight(0x4488ff, 0.5);
+  dir2.position.set(-3, -2, 3);
+  detailScene.add(dir2);
+  detailScene.add(new THREE.HemisphereLight(0x88ccff, 0x443322, 0.5));
+
+  const gridHelper = new THREE.GridHelper(3, 10, 0x444466, 0x333355);
+  gridHelper.position.y = -0.5;
+  detailScene.add(gridHelper);
+
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.8, 1.0, 32),
+    new THREE.MeshBasicMaterial({ color: 0x333366, side: THREE.DoubleSide, transparent: true, opacity: 0.3 })
+  );
+  ring.rotation.x = -Math.PI/2;
+  ring.position.y = -0.49;
+  detailScene.add(ring);
+
+  if (data.gltf) {
+    const root = data.gltf.scene.clone(true);
+    const boneMap = new Map();
+    root.traverse(o => { if (o.isBone && o.name) boneMap.set(o.name, o); });
+    root.traverse(o => {
+      if (!o.isSkinnedMesh || !o.skeleton) return;
+      const newBones = o.skeleton.bones.map(old => boneMap.get(old.name) || old);
+      o.skeleton.bones = newBones;
+      if (o.geometry) { o.geometry.computeBoundingBox(); o.geometry.computeBoundingSphere(); }
+      o.frustumCulled = false;
+    });
+    const box = new THREE.Box3().setFromObject(root);
+    root.position.y -= box.min.y;
+    root.updateMatrixWorld(true);
+    const box2 = new THREE.Box3().setFromObject(root);
+    const modelH = Math.max(0.01, box2.max.y - box2.min.y);
+    root.scale.setScalar(2.0 / modelH);
+    root.updateMatrixWorld(true);
+    root.traverse(o => { if (o.isSkinnedMesh && o.skeleton) o.skeleton.update(); });
+    root.traverse(o => {
+      if (!o.isMesh) return;
+      if (o.material) {
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach(m => {
+          if (!m) return;
+          if (m.map) { m.map.colorSpace = THREE.SRGBColorSpace; m.needsUpdate = true; }
+          m.transparent = false;
+          m.depthWrite = true;
+          m.visible = true;
+        });
+      }
+    });
+    detailScene.add(root);
+
+    let angle = 0;
+    function animDetail() {
+      angle += 0.012;
+      const r = 3.5;
+      detailCamera.position.x = Math.sin(angle) * r;
+      detailCamera.position.z = Math.cos(angle) * r;
+      detailCamera.lookAt(0, 0.3, 0);
+      detailRenderer.render(detailScene, detailCamera);
+      detailAnimId = requestAnimationFrame(animDetail);
+    }
+    animDetail();
+  }
+
+  // 表格
+  const table = document.getElementById('detailTable');
+  const rows = [
+    ['文件名', data.file],
+    ['状态', data.ok ? (data.status === 'skinned' ? '✅ 骨骼模型' : '✅ 静态模型') : '❌ 加载失败'],
+    ['网格数', String(data.meshCount)],
+    ['骨骼网格', String(data.skinnedCount)],
+    ['骨骼节点', String(data.boneCount)],
+    ['顶点数', String(data.primCount)],
+    ['Y 范围', `${data.minY.toFixed(3)} ~ ${data.maxY.toFixed(3)}`],
+    ['模型高度', data.height.toFixed(3)],
+    ['有 NORMAL', data.hasNormal ? '✅' : '❌'],
+    ['有 JOINTS', data.hasJoints ? '✅' : '❌'],
+    ['有 WEIGHTS', data.hasWeights ? '✅' : '❌'],
+    ['骨骼信息', data.skeletonInfo],
+  ];
+  if (data.error) rows.push(['错误', data.error]);
+  if (data.materialModes && data.materialModes.length) {
+    const m = data.materialModes[0];
+    rows.push(['材质模式', `${m.alphaMode} 双面=${m.doubleSided} 透明度=${m.opacity}`]);
+    if (data.materialModes.length > 1) rows.push(['材质数量', String(data.materialModes.length)]);
+  }
+  table.innerHTML = rows.map(r => `<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join('');
+
+  // 诊断日志
+  const log = document.getElementById('detailLog');
+  const logs = [];
+  if (data.error) {
+    logs.push(`❌ 加载失败: ${data.error}`);
+  } else {
+    logs.push(`✅ 加载成功`);
+    logs.push(`📊 网格 ${data.meshCount} 个，骨骼网格 ${data.skinnedCount} 个`);
+    logs.push(`🦴 骨骼节点 ${data.boneCount} 个`);
+    if (data.skinnedCount > 0) {
+      logs.push(`🔍 ${data.skeletonInfo}`);
+      if (data.skeletonInfo.includes('全零矩阵')) {
+        logs.push(`⚠️ 骨骼矩阵全零 → 顶点坍缩，不可见！`);
+        logs.push(`   原因: skeleton.update() 在 root.position 偏移前调用`);
+        logs.push(`   修复: 先设 root.position 再调 skeleton.update()`);
+      } else {
+        logs.push(`✅ 骨骼矩阵正常`);
+      }
+    }
+    if (!data.hasNormal) logs.push(`⚠️ 缺少 NORMAL 属性，PBR 可能全黑`);
+    if (data.minY < -0.1) logs.push(`📐 底部 Y=${data.minY.toFixed(3)}，偏移 ${(-data.minY).toFixed(3)} 后归零`);
+    logs.push(`ℹ️ frustumCulled=false ✅`);
+  }
+  log.textContent = logs.join('\n');
+}
+
+// ---- 辅助 ----
+function updateSummary() {
+  const total = allData.length;
+  const ok = allData.filter(d => d.ok).length;
+  const fail = allData.filter(d => !d.ok).length;
+  const skin = allData.filter(d => d.skinnedCount > 0).length;
+  const static_ = allData.filter(d => d.ok && d.skinnedCount === 0).length;
+  document.getElementById('summary').innerHTML =
+    `总计 ${total} | ✅ ${ok} | ❌ ${fail} | 🦴 ${skin} | 📦 ${static_}`;
+}
+
+function updateCount() {
+  const filtered = allData.filter(d => {
+    if (!activeFilters.has('all')) return false;
+    if (d.status === 'error' && !activeFilters.has('fail')) return false;
+    if (d.status === 'skinned' && !activeFilters.has('skin')) return false;
+    if (d.status === 'static' && !activeFilters.has('noskin')) return false;
+    if (d.ok && !activeFilters.has('ok')) return false;
+    return true;
+  });
+  document.getElementById('countDisplay').textContent = `显示 ${filtered.length}/${allData.length} 个`;
+}
+
+// ---- 事件绑定 ----
+document.getElementById('detailClose').addEventListener('click', () => {
+  document.getElementById('detail-panel').classList.remove('open');
+  if (detailAnimId) { cancelAnimationFrame(detailAnimId); detailAnimId = null; }
+  if (detailRenderer) { detailRenderer.dispose(); detailRenderer = null; }
+});
+
+document.getElementById('btnReload').addEventListener('click', () => {
+  if (detailAnimId) { cancelAnimationFrame(detailAnimId); detailAnimId = null; }
+  if (detailRenderer) { detailRenderer.dispose(); detailRenderer = null; }
+  document.getElementById('grid').innerHTML = '';
+  init();
+});
+
+document.querySelectorAll('#filter-bar .tag').forEach(tag => {
+  tag.addEventListener('click', () => {
+    const filter = tag.dataset.filter;
+    tag.classList.toggle('active');
+    if (tag.classList.contains('active')) activeFilters.add(filter);
+    else activeFilters.delete(filter);
+    renderGrid();
+    updateCount();
+  });
+});
+
+// ---- 启动 ----
+init();
+</script>
+</body>
+</html>

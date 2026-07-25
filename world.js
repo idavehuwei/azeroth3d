@@ -938,6 +938,9 @@ function spawnMob(type,x,z,group,opts){
   const T=MOB_TYPES[type], baseSt=BAL.mobs[T.stats];
   const mesh=T.build();
   if(!mesh){console.warn("[spawnMob] build returned null for",type,"- ASSETS 未就绪或模型缺失");return null;}
+  /* 日志：检查是否是 GLB */
+  const isGLB=mesh.userData&&(mesh.userData.kind==="quad_glb"||mesh.userData.kind==="humanoid_glb"||mesh.userData.kind==="meleeHumanoid_glb"||mesh.userData.creatureKind);
+  console.log("[spawnMob]",type,isGLB?"GLB":"程序化","position:",x.toFixed(1),z.toFixed(1),"mesh.children:",mesh.children.length);
   const gy=(zoneId==="mulgore"&&typeof heightAt==="function")?heightAt(x,z):0;
   mesh.position.set(x,gy,z);
   mesh.rotation.y=srand(0,6.28);
